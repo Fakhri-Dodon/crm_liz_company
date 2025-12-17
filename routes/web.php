@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\LeadController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -22,6 +23,13 @@ Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+});
+
+Route::prefix('leads')->group(function () {
+    Route::get('/', [LeadController::class, 'index']);
+    Route::post('/', [LeadController::class, 'store']);
+    Route::put('{id}', [LeadController::class, 'update']);
+    Route::delete('{id}', [LeadController::class, 'destroy']);
 });
 
 require __DIR__.'/auth.php';
