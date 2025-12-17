@@ -13,7 +13,7 @@
         "@tailwindcss/vite": "^4.0.0",
         "@vitejs/plugin-react": "^4.2.0",
         "autoprefixer": "^10.4.12",
-        "axios": "^1.11.0",
+        "axios": "^1.13.2",
         "concurrently": "^9.0.1",
         "laravel-vite-plugin": "^2.0.0",
         "postcss": "^8.4.31",
@@ -24,6 +24,13 @@
     },
     "dependencies": {
         "lucide-react": "^0.561.0",
-        "react-icons": "^5.5.0"
+        "react-icons": "^5.5.0",
+        "@radix-ui/react-slot": "^1.2.4",
+        "@tanstack/react-query": "^5.90.12",
+        "class-variance-authority": "^0.7.1",
+        "clsx": "^2.1.1",
+        "lucide-react": "^0.561.0",
+        "sonner": "^2.0.7",
+        "tailwind-merge": "^3.4.0"
     }
 }

@@ -11,7 +11,7 @@ export default function HeaderLayout({ header, children }) {
     const user = props.auth.user;
 
     const headerMenus = [
-        { name: "Setting", icon: Settings, path: "/setting" },
+        { name: "Setting", icon: Settings, path: "/setting/general" },
         { name: "Language", icon: Globe, path: "/language" },
         { name: "Notifications", icon: Bell, path: "/notifications" },
         { name: "Profile", icon: User, path: "/profile" },

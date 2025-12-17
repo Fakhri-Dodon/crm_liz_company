@@ -4,6 +4,7 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\LeadController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\SettingController;
 use Inertia\Inertia;
 
 Route::get('/', function () {
@@ -25,11 +26,20 @@ Route::middleware('auth')->group(function () {
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });
 
+// Leads Menu
 // Route::middleware(['auth'])->group(function () {
     Route::get('/leads', function () {
         return Inertia::render('Leads/Index');
     })->name('leads.index');
 // });
 
+
+Route::prefix('setting')->name('settings.')->group(function () {
+    Route::get('/general', [SettingController::class, 'general'])->name('general');
+    Route::get('/user-roles', [SettingController::class, 'userRoles'])->name('user-roles');
+    Route::get('/leads', [SettingController::class, 'leads'])->name('leads');
+    Route::get('/proposals', [SettingController::class, 'proposals'])->name('proposals');
+    Route::get('/email', [SettingController::class, 'email'])->name('email');
+});
 
 require __DIR__.'/auth.php';
