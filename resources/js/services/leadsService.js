@@ -1,25 +1,8 @@
-import axios from './axios';
+import axios from "./axios";
 
-const leadsService = {
-    getAll() {
-        return axios.get('/leads');
-    },
-
-    getById(id) {
-        return axios.get(`/leads/${id}`);
-    },
-
-    create(payload) {
-        return axios.post('/leads', payload);
-    },
-
-    update(id, payload) {
-        return axios.put(`/leads/${id}`, payload);
-    },
-
-    delete(id) {
-        return axios.delete(`/leads/${id}`);
-    },
+export default {
+  getAll: () => axios.get("/leads"),
+  create: (data) => axios.post("/leads", data),
+  update: (id, data) => axios.put(`/leads/${id}`, data),
+  delete: (id) => axios.delete(`/leads/${id}`),
 };
-
-export default leadsService;
