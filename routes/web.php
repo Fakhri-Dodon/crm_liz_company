@@ -25,11 +25,6 @@ Route::middleware('auth')->group(function () {
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });
 
-Route::prefix('leads')->group(function () {
-    Route::get('/', [LeadController::class, 'index']);
-    Route::post('/', [LeadController::class, 'store']);
-    Route::put('{id}', [LeadController::class, 'update']);
-    Route::delete('{id}', [LeadController::class, 'destroy']);
-});
+
 
 require __DIR__.'/auth.php';

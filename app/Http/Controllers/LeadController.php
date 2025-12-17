@@ -10,17 +10,19 @@ class LeadController extends Controller
 {
     public function index()
     {
-        return Lead::where('deleted', false)
-            ->orderByDesc('created_at')
-            ->get();
+        return response()->json(
+            Lead::where('deleted', false)
+                ->orderByDesc('created_at')
+                ->get()
+        );
     }
 
     public function store(StoreLeadRequest $request)
     {
-        $lead = Lead::create([
-            $request->validated(),
-            'created_by' => auth()->id(),
-        ]);
+        $data = $request->validated();
+        $data['created_by'] = auth()->id();
+
+        $lead = Lead::create($data);
 
         return response()->json($lead, 201);
     }
@@ -29,10 +31,10 @@ class LeadController extends Controller
     {
         $lead = Lead::findOrFail($id);
 
-        $lead->update([
-            $request->validated(),
-            'updated_by' => auth()->id(),
-        ]);
+        $data = $request->validated();
+        $data['updated_by'] = auth()->id();
+
+        $lead->update($data);
 
         return response()->json($lead);
     }
@@ -46,9 +48,8 @@ class LeadController extends Controller
             'deleted_by' => auth()->id(),
         ]);
 
-        $lead->delete();
-
-        return response()->json(['message' => 'Lead deleted']);
+        return response()->json([
+            'message' => 'Lead deleted'
+        ]);
     }
 }
-
