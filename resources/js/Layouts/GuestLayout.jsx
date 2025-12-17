@@ -1,17 +1,20 @@
-import ApplicationLogo from '@/Components/ApplicationLogo';
-import { Link } from '@inertiajs/react';
+import ApplicationLogo from "@/Components/ApplicationLogo";
+import { Link } from "@inertiajs/react";
 
 export default function GuestLayout({ children }) {
     return (
-        <div className="flex min-h-screen flex-col items-center bg-gray-100 pt-6 sm:justify-center sm:pt-0">
-            <div>
-                <Link href="/">
-                    <ApplicationLogo className="h-20 w-20 fill-current text-gray-500" />
-                </Link>
-            </div>
+        <div className="flex min-h-screen">
+            {/* Left side - green */}
+            <div className="w-1/2 bg-teal-800 hidden md:block"></div>
 
-            <div className="mt-6 w-full overflow-hidden bg-white px-6 py-4 shadow-md sm:max-w-md sm:rounded-lg">
-                {children}
+            {/* Right side - form */}
+            <div className="w-full md:w-1/2 flex items-center justify-center bg-green-50">
+                <div className="w-full max-w-md p-8 flex flex-col items-center">
+                    <Link href="/">
+                        <ApplicationLogo className="h-28 w-28 mb-8" />
+                    </Link>
+                    <div className="w-full">{children}</div>
+                </div>
             </div>
         </div>
     );
