@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
-import GeneralSettings from './GeneralSettings';
-import UserRoleSettings from './UserRoleSettings';
-import LeadSettings from './LeadSettings';
-import ProposalSettings from './ProposalSettings';
-import EmailSettings from './EmailSettings';
+import GeneralSettings from "../../Components/Settings/GeneralSettings";
+import UserRoleSettings from "../../Components/Settings/UserRoleSettings";
+import LeadSettings from '../../Components/Settings/LeadSettings';
+import ProposalSettings from '../../Components/Settings/ProposalSettings';
+import EmailSettings from '../../Components/Settings/EmailSettings';
 
 const SettingsDashboard = () => {
   const [activeTab, setActiveTab] = useState('general');
