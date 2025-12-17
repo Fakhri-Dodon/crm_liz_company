@@ -59,3 +59,5 @@ const DeleteConfirmationModal = ({ isOpen, onClose, onConfirm, lead }) => {
 };
 
 export default DeleteConfirmationModal;
+
+
