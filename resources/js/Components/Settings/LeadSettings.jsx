@@ -102,7 +102,7 @@ export default function LeadSettings() {
         const newValue = !currentValue;
         setLocalSettings(prev => ({ ...prev, [field]: newValue }));
 
-        router.post("/setting/general", { [field]: newValue }, {
+        router.post("/setting/general/store", { [field]: newValue }, {
             preserveScroll: true,
             onSuccess: () => toast.success("Settings updated"),
             onError: () => {

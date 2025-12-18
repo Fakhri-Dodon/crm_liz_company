@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { router, usePage } from "@inertiajs/react";
+import { useForm, router, usePage } from "@inertiajs/react";
 import { Button } from "@/components/ui/button";
 import {
     Table,
@@ -9,17 +9,110 @@ import {
     TableHeader,
     TableRow,
 } from "@/components/ui/table";
-import { Edit, Trash2, Loader2 } from "lucide-react";
+import { Edit, Trash2, Loader2, Plus } from "lucide-react";
 import { api } from "@/services/api";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Switch } from "@/components/ui/switch";
+import SimpleModal from "@/components/ui/SimpleModal";
 
 export default function ProposalSettings() {
-    const { config, statuses } = usePage().props;
+    const { numbering, config, statuses } = usePage().props;
     const queryClient = useQueryClient();
     const [isProcessing, setIsProcessing] = useState(false);
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [isStatusModalOpen, setIsStatusModalOpen] = useState(false);
+    const [editingStatus, setEditingStatus] = useState(null);
+    const [formData, setFormData] = useState({
+        id: null,
+        prefix: "",
+        padding: "",
+        next_number: "",
+    });
+    const {
+        data,
+        setData,
+        post,
+        put,
+        delete: destroy,
+        processing: actionProcessing,
+        reset,
+        errors,
+    } = useForm({
+        name: "",
+        note: "",
+        color: "",
+        color_name: "",
+    });
 
+    const handleEditClick = () => {
+        setFormData({
+            id: numbering?.id || null,
+            prefix: numbering?.prefix || "",
+            padding: numbering?.padding || "",
+            next_number: numbering?.next_number || "",
+        });
+        setIsModalOpen(true);
+    };
+
+    const openModal = (status) => {
+        setEditingStatus(status);
+        setData({
+            name: status.name,
+            note: status.note || "",
+            color: status.color,
+            color_name: status.color_name,
+        });
+        setIsStatusModalOpen(true);
+    };
+
+    const handleStatusSubmit = (e) => {
+        e.preventDefault();
+        if (editingStatus) {
+            put(`/setting/proposal-status/update/${editingStatus.id}`, {
+                onSuccess: () => {
+                    toast.success("Status updated successfully");
+                    setIsModalOpen(false);
+                },
+            });
+        } else {
+            post("/setting/proposal-status/store", {
+                onSuccess: () => {
+                    toast.success("Status added successfully");
+                    setIsModalOpen(false);
+                    reset();
+                },
+            });
+        }
+    };
+
+    const handleStatusDelete = (id) => {
+        if (confirm("Are you sure you want to delete this status?")) {
+            destroy(`/setting/status-status/destroy/${id}`, {
+                onSuccess: () => toast.success("Status deleted successfully"),
+                onError: () => toast.error("Failed to delete status"),
+            });
+        }
+    };
+
+    const handleSubmit = (e) => {
+        e.preventDefault();
+        setIsProcessing(true);
+
+        router.post(
+            `/setting/proposal_numbering/update/${formData.id}`,
+            formData,
+            {
+                preserveScroll: true,
+                onSuccess: () => {
+                    toast.success("Numbering setting updated!");
+                    setIsModalOpen(false);
+                },
+                onError: () => toast.error("Something went wrong"),
+                onFinish: () => setIsProcessing(false),
+            }
+        );
+    };
     // Helper Konversi Boolean
     const toBool = (val) =>
         val === true || val === 1 || val === "1" || val === "true";
@@ -53,7 +146,7 @@ export default function ProposalSettings() {
         setIsProcessing(true);
 
         router.post(
-            "/setting/general",
+            "/setting/general/store",
             { [field]: nextValue ? 1 : 0 }, // Kirim 1 atau 0 ke Laravel
             {
                 preserveScroll: true,
@@ -112,7 +205,10 @@ export default function ProposalSettings() {
                     <h3 className="font-bold text-gray-800">
                         Proposal Numbering Setting
                     </h3>
-                    <Button className="bg-teal-800 hover:bg-teal-900 text-white px-8 h-9 font-bold uppercase text-xs tracking-widest">
+                    <Button
+                        onClick={handleEditClick}
+                        className="bg-teal-800 hover:bg-teal-900 text-white px-8 h-9 font-bold uppercase text-xs tracking-widest"
+                    >
                         Edit
                     </Button>
                 </div>
@@ -144,10 +240,10 @@ export default function ProposalSettings() {
                                     Prefix
                                 </TableCell>
                                 <TableCell className="text-center font-bold text-teal-700">
-                                    {config?.proposal_prefix || "PRO-"}
+                                    {numbering.prefix}
                                 </TableCell>
                                 <TableCell className="text-gray-600 italic text-sm">
-                                    Prefix text for the proposal number.
+                                    {numbering.prefix_description}
                                 </TableCell>
                             </TableRow>
                             <TableRow className="border-b border-gray-300">
@@ -158,21 +254,124 @@ export default function ProposalSettings() {
                                     Padding
                                 </TableCell>
                                 <TableCell className="text-center font-bold text-teal-700">
-                                    {config?.proposal_padding || 5}
+                                    {numbering.padding}
                                 </TableCell>
                                 <TableCell className="text-gray-600 italic text-sm">
-                                    Sets the length of the numeric part.
+                                    {numbering.padding_description}
+                                </TableCell>
+                            </TableRow>
+                            <TableRow className="border-b border-gray-300">
+                                <TableCell className="text-center font-medium">
+                                    3
+                                </TableCell>
+                                <TableCell className="text-center font-bold uppercase text-xs">
+                                    Next Number
+                                </TableCell>
+                                <TableCell className="text-center font-bold text-teal-700">
+                                    {numbering.next_number}
+                                </TableCell>
+                                <TableCell className="text-gray-600 italic text-sm">
+                                    {numbering.next_number_description}
                                 </TableCell>
                             </TableRow>
                         </TableBody>
                     </Table>
                 </div>
+                <h1 className="font-bold uppercase text-[10px]">
+                    <span className="text-red-700">EXAMPLE </span>: PRO-00001
+                    (Padding 5), PRO-0001 (Padding 4)
+                </h1>
+                <h1 className="font-bold uppercase text-[10px]">
+                    Display proposal number when saving proposal, for example
+                    "PRO-00001"
+                </h1>
+
+                <SimpleModal
+                    isOpen={isModalOpen}
+                    onClose={() => setIsModalOpen(false)}
+                    title="EDIT PROPOSAL NUMBERING"
+                >
+                    <form onSubmit={handleSubmit} className="space-y-5">
+                        <input type="hidden" value={formData.id} />
+                        <div className="space-y-1">
+                            <label className="text-xs font-bold text-teal-900 uppercase">
+                                Prefix
+                            </label>
+                            <input
+                                type="text"
+                                className="w-full border-gray-300 rounded-lg focus:ring-teal-500 focus:border-teal-500 text-sm"
+                                value={formData.prefix}
+                                onChange={(e) =>
+                                    setFormData({
+                                        ...formData,
+                                        prefix: e.target.value,
+                                    })
+                                }
+                                required
+                            />
+                        </div>
+                        <div className="space-y-1">
+                            <label className="text-xs font-bold text-teal-900 uppercase">
+                                Padding (Length)
+                            </label>
+                            <input
+                                type="number"
+                                className="w-full border-gray-300 rounded-lg focus:ring-teal-500 focus:border-teal-500 text-sm"
+                                value={formData.padding}
+                                onChange={(e) =>
+                                    setFormData({
+                                        ...formData,
+                                        padding: e.target.value,
+                                    })
+                                }
+                                required
+                            />
+                        </div>
+                        <div className="space-y-1">
+                            <label className="text-xs font-bold text-teal-900 uppercase">
+                                Next Number
+                            </label>
+                            <input
+                                type="number"
+                                className="w-full border-gray-300 rounded-lg focus:ring-teal-500 focus:border-teal-500 text-sm"
+                                value={formData.next_number}
+                                onChange={(e) =>
+                                    setFormData({
+                                        ...formData,
+                                        next_number: e.target.value,
+                                    })
+                                }
+                                required
+                            />
+                        </div>
+
+                        <div className="flex justify-end gap-3 mt-6">
+                            <button
+                                type="button"
+                                onClick={() => setIsModalOpen(false)}
+                                className="px-4 py-2 text-xs font-bold text-gray-500 hover:text-gray-700 uppercase"
+                            >
+                                Cancel
+                            </button>
+                            <Button
+                                type="submit"
+                                disabled={isProcessing}
+                                className="bg-teal-800 hover:bg-teal-900 text-white px-6 py-2 text-xs font-bold uppercase tracking-widest"
+                            >
+                                {isProcessing ? "Saving..." : "Save Changes"}
+                            </Button>
+                        </div>
+                    </form>
+                </SimpleModal>
 
                 {/* --- Section 2: Status --- */}
                 <div className="flex justify-between items-center mb-4 mt-10">
                     <h3 className="font-bold text-gray-800">Proposal Status</h3>
-                    <Button className="bg-teal-800 hover:bg-teal-900 text-white h-9 font-bold uppercase text-xs tracking-widest">
-                        Add Status
+                    <Button
+                        onClick={() => setIsStatusModalOpen(true)}
+                        className="bg-teal-800 hover:bg-teal-900 text-white shadow-md flex items-center gap-2"
+                    >
+                        <Plus className="w-4 h-4" /> Add Status
                     </Button>
                 </div>
 
@@ -268,6 +467,95 @@ export default function ProposalSettings() {
                         </TableBody>
                     </Table>
                 </div>
+                <SimpleModal
+                    isOpen={isStatusModalOpen}
+                    onClose={() => setIsStatusModalOpen(false)}
+                    title={
+                        editingStatus
+                            ? "Edit Proposal Status"
+                            : "Create New Proposal Status"
+                    }
+                >
+                    <form onSubmit={handleStatusSubmit} className="space-y-4">
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700">
+                                Status Name
+                            </label>
+                            <input
+                                type="text"
+                                required
+                                className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-teal-500 focus:border-teal-500"
+                                value={data.name}
+                                onChange={(e) =>
+                                    setData("name", e.target.value)
+                                }
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700">
+                                Note
+                            </label>
+                            <textarea
+                                className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-teal-500 focus:border-teal-500"
+                                rows="2"
+                                value={data.note}
+                                onChange={(e) =>
+                                    setData("note", e.target.value)
+                                }
+                            ></textarea>
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700">
+                                Select Color
+                            </label>
+                            <select
+                                required
+                                className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-teal-500 focus:border-teal-500"
+                                value={data.color_name}
+                                onChange={(e) => {
+                                    const selectedName = e.target.value;
+                                    const colorMap = {
+                                        Orange: "#F97316",
+                                        Blue: "#3B82F6",
+                                        Green: "#22C55E",
+                                        Gray: "#6B7280",
+                                    };
+                                    setData((prev) => ({
+                                        ...prev,
+                                        color_name: selectedName,
+                                        color: colorMap[selectedName] || "",
+                                    }));
+                                }}
+                            >
+                                <option value="">-- Choose Color --</option>
+                                <option value="Orange">Orange</option>
+                                <option value="Blue">Blue</option>
+                                <option value="Green">Green</option>
+                                <option value="Gray">Gray</option>
+                            </select>
+                        </div>
+                        <div className="flex justify-end gap-2 pt-4">
+                            <Button
+                                type="button"
+                                variant="outline"
+                                onClick={() => setIsModalOpen(false)}
+                            >
+                                Cancel
+                            </Button>
+                            <Button
+                                type="submit"
+                                className="bg-teal-900 text-white"
+                                disabled={actionProcessing}
+                            >
+                                {actionProcessing ? (
+                                    <Loader2 className="w-4 h-4 animate-spin" />
+                                ) : (
+                                    "Save Changes"
+                                )}
+                            </Button>
+                        </div>
+                    </form>
+                </SimpleModal>
 
                 {/* --- Section 3: Restrictions --- */}
                 <h3 className="font-bold text-gray-800 mb-4 uppercase text-sm tracking-widest">

@@ -7,6 +7,7 @@ use App\Models\Menu;
 use App\Models\AppConfig;
 use App\Models\LeadStatuses;
 use App\Models\Roles;
+use App\Models\ProposalNumberFormatted;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
@@ -105,9 +106,13 @@ class SettingController extends Controller
 
     public function proposals()
     {
+        $config = AppConfig::where('deleted', 0)->first();
+        $numbering = ProposalNumberFormatted::where('deleted', 0)->first();
+
         return Inertia::render('Settings/Proposals', [
-            'config' => AppConfig::where('deleted', 0)->first(),
-            'statuses' => [] // Isi jika model ProposalStatus sudah ada
+            'config' => $config,
+            'numbering' => $numbering,
+            'statuses' => []
         ]);
     }
 
