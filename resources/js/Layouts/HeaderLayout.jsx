@@ -20,12 +20,12 @@ export default function HeaderLayout({ header, children }) {
     const menus = [
         { name: "DASHBOARD", path: "/dashboard" },
         { name: "CLIENTS", path: "/clients" },
-        { name: "LEAD", path: "/leads" },
+        { name: "LEAD", path: "/lead" },
         { name: "PROPOSAL", path: "/proposal" },
         { name: "QUOTATION", path: "/quotation" },
         { name: "INVOICE", path: "/invoice" },
         { name: "PAYMENT", path: "/payment" },
-        { name: "PROJECT", path: "/project" },
+        { name: "PROJECT", path: "/projects" },
         { name: "EMAIL", path: "/email" },
         { name: "USER", path: "/user" },
     ];

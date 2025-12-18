@@ -2,15 +2,12 @@
 
 namespace App\Models;
 
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
-use Illuminate\Support\Str;
 
 class User extends Authenticatable
 {
-    /** @use HasFactory<\Database\Factories\UserFactory> */
     use HasFactory, Notifiable;
 
     /**
@@ -28,15 +25,6 @@ class User extends Authenticatable
         'updated_by',
         'deleted_by',
     ];
-
-    protected static function booted()
-    {
-        static::creating(function ($model) {
-            if (empty($model->id)) {
-                $model->id = (string) Str::uuid();
-            }
-        });
-    }
 
     /**
      * The attributes that should be hidden for serialization.
@@ -65,4 +53,7 @@ class User extends Authenticatable
             'password' => 'hashed',
         ];
     }
+
+    // **TAMBAHKAN INI: HAPUS booted() method yang membuat UUID**
+    // User.id adalah BIGINT (auto-increment), jadi biarkan Laravel handle
 }
