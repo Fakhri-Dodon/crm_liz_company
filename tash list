@@ -1,0 +1,20 @@
+[33meb4f2ea[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mdev-azmi[m[33m)[m Merge branch 'master' of https://github.com/Fakhri-Dodon/crm_liz_company into dev-azmi
+[33m463c504[m[33m ([m[1;31morigin/master[m[33m, [m[1;31morigin/HEAD[m[33m)[m fix bug in User Roles Menu
+[33m04c5fe9[m UPDATE ROUTE HEADER LAYOUT
+[33m90182a0[m UPDATE LOGIN PAGE
+[33me550cfa[m add menu General(80%), Leads#DONE, Proposal(40%)
+[33m2456e30[m test
+[33m438fead[m zacky
+[33m342bf2c[m add style and fix function crud lead
+[33m94cb9e6[m[33m ([m[1;31morigin/dev-azmi[m[33m)[m UPDATE ROUTE HEADER LAYOUT
+[33m3444a84[m[33m ([m[1;32mmaster[m[33m)[m UPDATE LOGIN PAGE
+[33mbac5ead[m add frontend menu Settings
+[33m0fbc598[m frontend lead need to check
+[33m50b7d1c[m[33m ([m[1;35mrefs/stash[m[33m)[m WIP on master: c282839 add component: DateTime. Add layouts: HeaderLayout
+[33md1305e6[m index on master: c282839 add component: DateTime. Add layouts: HeaderLayout
+[33me706c9c[m[33m ([m[1;31morigin/zacky[m[33m)[m backend lead
+[33m71bf1e9[m backend lead
+[33m27c7c82[m add table layout
+[33m343bd51[m add table layout
+[33mc282839[m[33m ([m[1;31morigin/fakhri[m[33m)[m add component: DateTime. Add layouts: HeaderLayout
+[33me880159[m first commit

@@ -14,7 +14,6 @@ export default function HeaderLayout({ header, children }) {
         { name: "Setting", icon: Settings, path: "/setting/general" },
         { name: "Language", icon: Globe, path: "/language" },
         { name: "Notifications", icon: Bell, path: "/notifications" },
-        { name: "Profile", icon: User, path: "/profile" },
     ];
 
     const menus = [
@@ -27,8 +26,8 @@ export default function HeaderLayout({ header, children }) {
         { name: "PAYMENT", path: "/payment" },
         { name: "PROJECT", path: "/project" },
         { name: "EMAIL", path: "/email" },
-        { name: "USER", path: "/user" },
-    ];
+        { name: "USER", path: "/user" },
+    ];
 
     return (
         <>
@@ -44,13 +43,39 @@ export default function HeaderLayout({ header, children }) {
                 <div className="flex gap-3">
                     {headerMenus.map((menu) => (
                         <Link key={menu.name} href={menu.path}>
-                            <div className="flex flex-col items-center gap-1 p-4
-                                            hover:bg-gray-100 rounded-lg transition">
+                            <div className="flex flex-col items-center gap-1 p-4 hover:bg-gray-100 rounded-lg transition">
                                 <menu.icon size={28} />
                                 <span className="text-sm">{menu.name}</span>
                             </div>
                         </Link>
                     ))}
+                    {/* Profile Dropdown */}
+                    <Dropdown>
+                        <Dropdown.Trigger>
+                            <div className="flex flex-col items-center gap-1 p-4 hover:bg-gray-100 rounded-lg transition cursor-pointer">
+                                <User size={28} />
+                                <span className="text-sm">
+                                    {user?.name || "Profile"}
+                                </span>
+                            </div>
+                        </Dropdown.Trigger>
+                        <Dropdown.Content align="right" width="48">
+                            <Link
+                                href="/profile"
+                                className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                            >
+                                Profile
+                            </Link>
+                            <Link
+                                method="post"
+                                href={route("logout")}
+                                as="button"
+                                className="block w-full px-4 py-2 text-start text-sm leading-5 text-gray-700 transition duration-150 ease-in-out hover:bg-gray-100 focus:bg-gray-100 focus:outline-none"
+                            >
+                                Logout
+                            </Link>
+                        </Dropdown.Content>
+                    </Dropdown>
                 </div>
             </header>
 
