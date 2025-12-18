@@ -1,205 +1,414 @@
-import React, { useState } from 'react';
+import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { api } from '@/services/api';
-import { toast } from 'sonner';
-import { Check, X } from 'lucide-react';
+import {
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
+} from "@/components/ui/table";
+import { router, usePage } from "@inertiajs/react";
+import { toast } from "sonner";
 
+// --- Komponen Editor (Pop-up) ---
 const PermissionEditor = ({ permission, onSave, onCancel }) => {
-  const [selected, setSelected] = useState(permission.permissions || []);
+    const [perms, setPerms] = useState({
+        can_create: permission.can_create || 0,
+        can_read: permission.can_read || 0,
+        can_update: permission.can_update || 0,
+        can_delete: permission.can_delete || 0,
+    });
 
-  const toggle = (char) => {
-    setSelected(prev => 
-      prev.includes(char) ? prev.filter(c => c !== char) : [...prev, char]
+    const config = [
+        { key: "can_create", char: "C", label: "Create" },
+        { key: "can_read", char: "R", label: "Read" },
+        { key: "can_update", char: "U", label: "Update" },
+        { key: "can_delete", char: "D", label: "Delete" },
+    ];
+
+    return (
+        <div className="absolute z-50 bg-white border border-gray-300 shadow-2xl rounded-md p-4 w-56 animate-in fade-in zoom-in-95 duration-150">
+            <div className="mb-2 pb-2 border-b">
+                <span className="text-[10px] font-black uppercase text-teal-600 tracking-tighter">
+                    {permission.id ? "Edit Permission" : "Setup New Permission"}
+                </span>
+            </div>
+            <div className="space-y-2 mb-4">
+                {config.map((item) => (
+                    <label
+                        key={item.key}
+                        className="flex items-center gap-3 cursor-pointer p-1 hover:bg-gray-50 rounded"
+                    >
+                        <input
+                            type="checkbox"
+                            checked={perms[item.key] === 1}
+                            onChange={() =>
+                                setPerms((prev) => ({
+                                    ...prev,
+                                    [item.key]: prev[item.key] === 1 ? 0 : 1,
+                                }))
+                            }
+                            className="rounded text-teal-600 focus:ring-teal-500"
+                        />
+                        <span className="text-sm font-bold text-gray-700">
+                            {item.label}
+                        </span>
+                    </label>
+                ))}
+            </div>
+            <div className="flex justify-end gap-2 border-t pt-2">
+                <Button size="sm" variant="outline" onClick={onCancel}>
+                    Batal
+                </Button>
+                <Button
+                    size="sm"
+                    onClick={() => onSave({ ...permission, ...perms })}
+                    className="bg-teal-700 hover:bg-teal-800 text-white"
+                >
+                    {permission.id ? "Update" : "Create"}
+                </Button>
+            </div>
+        </div>
     );
-  };
-
-  const handleSave = () => {
-    onSave({ ...permission, permissions: selected });
-  };
-
-  return (
-    <div className="absolute z-50 bg-white border border-gray-200 shadow-xl rounded-lg p-4 w-64 animate-in fade-in zoom-in-95 duration-200">
-      <h3 className="font-bold mb-3 text-sm text-gray-700">Edit Permissions</h3>
-      <div className="space-y-2 mb-4">
-        {['C', 'R', 'U', 'D'].map(char => {
-            const label = { 'C': 'Create', 'R': 'Read', 'U': 'Update', 'D': 'Delete' }[char];
-            return (
-                <div key={char} className="flex items-center space-x-2">
-                    <input 
-                        type="checkbox" 
-                        id={`perm-${char}`} 
-                        checked={selected.includes(char)}
-                        onChange={() => toggle(char)}
-                        className="rounded border-gray-300 text-teal-600 focus:ring-teal-600"
-                    />
-                    <label htmlFor={`perm-${char}`} className="text-sm font-medium">{label} ({char})</label>
-                </div>
-            );
-        })}
-      </div>
-      <div className="flex justify-end gap-2">
-        <Button size="sm" variant="outline" onClick={onCancel} className="h-8">Cancel</Button>
-        <Button size="sm" onClick={handleSave} className="bg-teal-700 hover:bg-teal-800 h-8">Save</Button>
-      </div>
-    </div>
-  );
 };
 
+// --- Komponen Utama ---
 export default function UserRoleSettings() {
-  const queryClient = useQueryClient();
-  const [editingId, setEditingId] = useState(null);
-  const [editPosition, setEditPosition] = useState(null);
+    const { props } = usePage();
+    const rawPermissions = props.rawPermissions || [];
+    const menus = props.menus || [];
+    const roles = props.roles || [];
 
-  const { data: rawPermissions = [] } = useQuery({
-    queryKey: ['rolePermissions'],
-    queryFn: () => api.entities.RolePermission.list()
-  });
+    // Kita gunakan satu state object untuk mengontrol pop-up
+    const [activeEditor, setActiveEditor] = useState(null);
+    const [isRoleModalOpen, setIsRoleModalOpen] = useState(false);
+    const [newRoleName, setNewRoleName] = useState("");
+    const [newRoleDesc, setNewRoleDesc] = useState("");
 
-  const updateMutation = useMutation({
-    mutationFn: (data) => api.entities.RolePermission.update(data.id, data),
-    onSuccess: () => {
-      queryClient.invalidateQueries(['rolePermissions']);
-      setEditingId(null);
-      toast.success("Permissions updated");
-    },
-    onError: () => toast.error("Failed to update")
-  });
+    const handleCreateRole = (e) => {
+        e.preventDefault();
 
-  // Process data for the table
-  const MODULE_ORDER = [
-    'LOGIN', 'PERMISSIONS', 'USER', 'USER ROLE', 'DASHBOARD', 'CLIENT', 
-    'LEAD', 'PROPOSAL', 'QUOTATION', 'INVOICE', 'PAYMENT', 'PROJECT', 
-    'CHAT', 'EMAIL'
-  ];
+        if (!newRoleName.trim()) {
+            toast.error("Nama role tidak boleh kosong");
+            return;
+        }
 
-  const processedData = MODULE_ORDER.map(module => {
-    const row = { name: module };
-    ['admin', 'manager', 'marketing', 'finance'].forEach(role => {
-      row[role] = rawPermissions.find(p => p.module === module && p.role === role) || { permissions: [], value_type: 'crud' };
-    });
-    return row;
-  });
+        router.post(
+            "/setting/user-roles/role-store",
+            {
+              name: newRoleName,
+              description: newRoleDesc,
+            },
+            {
+              onSuccess: () => {
+                  setIsRoleModalOpen(false);
+                  setNewRoleName("");
+                  setNewRoleDesc(""); // Reset deskripsi
+                  toast.success("Role berhasil ditambahkan");
+              },
+              onError: () => toast.error("Gagal menambahkan role"),
+            }
+        );
+    };
 
-  const handleCellClick = (e, permission) => {
-    if (permission.value_type !== 'crud') return;
-    
-    // Calculate position for fixed positioning
-    const rect = e.currentTarget.getBoundingClientRect();
+    const handleSave = (updatedData) => {
+        if (updatedData.id) {
+            // UPDATE
+            router.put(`/setting/user-roles/${updatedData.id}`, updatedData, {
+                preserveScroll: true,
+                onSuccess: () => {
+                    setActiveEditor(null);
+                    toast.success("Izin berhasil diperbarui");
+                },
+            });
+        } else {
+            // CREATE
+            router.post(`/setting/user-roles/store`, updatedData, {
+                preserveScroll: true,
+                onSuccess: () => {
+                    setActiveEditor(null);
+                    toast.success("Izin baru berhasil dibuat");
+                },
+                onError: (errors) => {
+                    console.error(errors);
+                    toast.error("Gagal membuat izin baru");
+                },
+            });
+        }
+    };
 
-    setEditPosition({
-        top: rect.bottom + 5,
-        left: rect.left - 20 
-    });
-    setEditingId(permission.id);
-  };
-
-  const renderCell = (permission, role) => {
-    const { value_type, permissions, text_value, id } = permission;
-
-    if (!id) return <span className="text-gray-300">-</span>;
-
-    const content = () => {
-        if (value_type === 'text') return <span className="font-bold text-green-600">{text_value}</span>;
-        
-        // Handle CRUD display
-        if (value_type === 'crud') {
-            // Check for "Full Access" or "No Access" scenarios based on array content
-            // Assuming seeded data might use permissions array to represent these
-            const hasC = permissions.includes('C');
-            const hasR = permissions.includes('R');
-            const hasU = permissions.includes('U');
-            const hasD = permissions.includes('D');
-            const isFull = hasC && hasR && hasU && hasD;
-            const isEmpty = permissions.length === 0;
-
-            if (isEmpty) return <span className="text-xs px-2 py-1 text-red-500">No Access</span>;
-            
+    const renderCRUD = (perm) => {
+        // Kondisi Jika data TIDAK ADA di database
+        if (!perm || !perm.id) {
             return (
-                <div className="flex gap-1 justify-center">
-                  {['C', 'R', 'U', 'D'].map(char => (
-                    <span key={char} className={`
-                      w-6 h-6 flex items-center justify-center border text-xs font-bold rounded
-                      ${permissions.includes(char) ? 
-                        (char === 'C' ? 'text-green-600 border-green-200 bg-green-50' : 
-                         char === 'R' ? 'text-orange-500 border-orange-200 bg-orange-50' : 
-                         char === 'U' ? 'text-blue-500 border-blue-200 bg-blue-50' : 'text-red-500 border-red-200 bg-red-50') 
-                        : 'text-gray-300 border-gray-100 bg-gray-50'}
-                    `}>
-                      {char}
-                    </span>
-                  ))}
+                <div className="flex justify-center italic text-gray-300 text-[10px]">
+                    No Access (Click to Create)
                 </div>
             );
         }
-        return null;
+
+        const activePerms = [
+            perm.can_create,
+            perm.can_read,
+            perm.can_update,
+            perm.can_delete,
+        ];
+        const activeCount = activePerms.filter((v) => v === 1).length;
+
+        if (activeCount === 4) {
+            return (
+                <div className="flex justify-center">
+                    <span className="text-[10px] font-black text-teal-700 bg-teal-50 px-2 py-1 rounded border border-teal-200 uppercase tracking-tighter shadow-sm">
+                        Full Access
+                    </span>
+                </div>
+            );
+        }
+
+        if (activeCount === 0) {
+            return (
+                <div className="flex justify-center">
+                    <span className="text-[10px] font-bold text-red-400 bg-gray-50 px-2 py-1 rounded border border-gray-200 uppercase tracking-tighter opacity-70">
+                        No Access
+                    </span>
+                </div>
+            );
+        }
+
+        const items = [
+            {
+                k: "can_create",
+                c: "C",
+                color: "text-green-600 bg-green-50 border-green-200",
+            },
+            {
+                k: "can_read",
+                c: "R",
+                color: "text-orange-600 bg-orange-50 border-orange-200",
+            },
+            {
+                k: "can_update",
+                c: "U",
+                color: "text-blue-600 bg-blue-50 border-blue-200",
+            },
+            {
+                k: "can_delete",
+                c: "D",
+                color: "text-red-600 bg-red-50 border-red-200",
+            },
+        ];
+
+        return (
+            <div className="flex gap-1 justify-center">
+                {items.map((i) => (
+                    <span
+                        key={i.c}
+                        className={`w-6 h-6 flex items-center justify-center border text-[10px] font-bold rounded shadow-sm transition-all ${
+                            perm[i.k] === 1
+                                ? i.color
+                                : "text-gray-200 bg-gray-50/50 border-gray-100"
+                        }`}
+                    >
+                        {i.c}
+                    </span>
+                ))}
+            </div>
+        );
     };
 
     return (
-        <div 
-            onClick={(e) => handleCellClick(e, permission)}
-            className={`h-full w-full p-2 flex items-center justify-center cursor-pointer hover:bg-gray-100 transition-colors ${value_type === 'crud' ? 'group' : ''}`}
-        >
-            {content()}
-            {value_type === 'crud' && (
-               <span className="opacity-0 group-hover:opacity-100 text-[10px] text-gray-400 absolute bottom-1 right-1">Edit</span>
+        <div className="p-6 relative">
+            <div className="mb-6 flex justify-between items-center">
+                <h1 className="text-xl font-black uppercase tracking-widest text-gray-800">
+                    Role Permissions Mapping
+                </h1>
+
+                <Button
+                    onClick={() => {
+                        setIsRoleModalOpen(true);
+                    }}
+                    className="bg-gray-900 hover:bg-gray-800 text-white flex items-center gap-2"
+                >
+                    <span className="text-lg">+</span>
+                    Add Role
+                </Button>
+            </div>
+
+            <div className="border border-gray-300 rounded-lg bg-white overflow-hidden shadow-md">
+                <Table>
+                    <TableHeader>
+                        <TableRow className="bg-gray-900 hover:bg-gray-900">
+                            <TableHead className="w-56 font-bold border-r border-gray-700 text-white uppercase text-xs tracking-wider">
+                                Menu / Module
+                            </TableHead>
+                            {roles.map((role) => (
+                                <TableHead
+                                    key={role.id}
+                                    className="text-center font-bold uppercase text-xs text-white tracking-wider border-r border-gray-800 last:border-r-0"
+                                >
+                                    {role.name}
+                                </TableHead>
+                            ))}
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        {menus.map((menu) => (
+                            <TableRow
+                                key={menu.id}
+                                className="hover:bg-gray-50/80 transition-colors h-14"
+                            >
+                                <TableCell className="font-bold border-r bg-gray-50/50 text-gray-700 text-xs uppercase">
+                                    {menu.name}
+                                </TableCell>
+                                {roles.map((role) => {
+                                    // Mencari data permission di array
+                                    const perm = rawPermissions.find(
+                                        (p) =>
+                                            p.menu_id === menu.id &&
+                                            p.role_id === role.id
+                                    );
+
+                                    return (
+                                        <TableCell
+                                            key={role.id}
+                                            className="p-0 text-center relative border-r last:border-r-0"
+                                        >
+                                            <div
+                                                onClick={(e) => {
+                                                    const rect =
+                                                        e.currentTarget.getBoundingClientRect();
+                                                    setActiveEditor({
+                                                        pos: {
+                                                            top:
+                                                                rect.bottom +
+                                                                window.scrollY +
+                                                                5,
+                                                            left:
+                                                                rect.left +
+                                                                window.scrollX,
+                                                        },
+                                                        // Kirim data asli jika ada, jika tidak kirim blueprint untuk Create
+                                                        data: perm
+                                                            ? perm
+                                                            : {
+                                                                  role_id:
+                                                                      role.id,
+                                                                  menu_id:
+                                                                      menu.id,
+                                                              },
+                                                    });
+                                                }}
+                                                className={`h-14 w-full flex items-center justify-center cursor-pointer transition-all hover:bg-teal-50/30 active:scale-95`}
+                                            >
+                                                {renderCRUD(perm)}
+                                            </div>
+                                        </TableCell>
+                                    );
+                                })}
+                            </TableRow>
+                        ))}
+                    </TableBody>
+                </Table>
+            </div>
+
+            {/* Pop-up Editor Overlay */}
+            {activeEditor && (
+                <>
+                    <div
+                        className="fixed inset-0 z-40"
+                        onClick={() => setActiveEditor(null)}
+                    />
+                    <div
+                        className="fixed z-50 shadow-2xl"
+                        style={{
+                            top: activeEditor.pos.top,
+                            left: activeEditor.pos.left,
+                            minWidth: "224px",
+                        }}
+                    >
+                        <PermissionEditor
+                            permission={activeEditor.data}
+                            onCancel={() => setActiveEditor(null)}
+                            onSave={handleSave}
+                        />
+                    </div>
+                </>
+            )}
+            {isRoleModalOpen && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
+                    <div className="bg-white rounded-xl shadow-2xl w-full max-w-md p-6 animate-in zoom-in-95 duration-200">
+                        <div className="flex justify-between items-center mb-4 border-b pb-2">
+                            <h2 className="text-lg font-black uppercase tracking-tight text-gray-800">
+                                Create New Role
+                            </h2>
+                            <button
+                                onClick={() => setIsRoleModalOpen(false)}
+                                className="text-gray-400 hover:text-gray-600"
+                            >
+                                ✕
+                            </button>
+                        </div>
+
+                        <form onSubmit={handleCreateRole} className="space-y-4">
+                            {/* Input Nama Role */}
+                            <div>
+                                <label className="block text-xs font-bold uppercase text-gray-500 mb-1">
+                                    Role Name{" "}
+                                    <span className="text-red-500">*</span>
+                                </label>
+                                <input
+                                    autoFocus
+                                    type="text"
+                                    value={newRoleName}
+                                    onChange={(e) =>
+                                        setNewRoleName(e.target.value)
+                                    }
+                                    placeholder="e.g. SUPERVISOR"
+                                    className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-all"
+                                />
+                            </div>
+
+                            {/* Input Deskripsi (Opsional) */}
+                            <div>
+                                <div className="flex justify-between">
+                                    <label className="block text-xs font-bold uppercase text-gray-500 mb-1">
+                                        Description
+                                    </label>
+                                    <span className="text-[10px] text-gray-400 italic">
+                                        Optional
+                                    </span>
+                                </div>
+                                <textarea
+                                    value={newRoleDesc}
+                                    onChange={(e) =>
+                                        setNewRoleDesc(e.target.value)
+                                    }
+                                    placeholder="Describe the responsibilities of this role..."
+                                    rows={3}
+                                    className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-all resize-none"
+                                />
+                            </div>
+
+                            <div className="flex justify-end gap-3 mt-6">
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    onClick={() => setIsRoleModalOpen(false)}
+                                >
+                                    Cancel
+                                </Button>
+                                <Button
+                                    type="submit"
+                                    className="bg-teal-700 hover:bg-teal-800 text-white"
+                                >
+                                    Save Role
+                                </Button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
             )}
         </div>
     );
-  };
-
-  return (
-    <div className="space-y-6 pt-10 relative">
-      <div className="flex justify-between items-center">
-        <h2 className="text-xl font-bold text-red-700">User Role Management</h2>
-        <Button className="bg-teal-800 hover:bg-teal-900 text-white">Add Role</Button>
-      </div>
-
-      <div className="border-2 border-gray-400 rounded-sm overflow-hidden bg-white">
-        <Table>
-          <TableHeader>
-            <TableRow className="bg-gray-50 hover:bg-gray-50 border-b-2 border-gray-400">
-              <TableHead className="text-black font-bold border-r-2 border-gray-400 w-48 text-center bg-gray-100 uppercase">User Role Access</TableHead>
-              <TableHead className="text-black font-bold border-r-2 border-gray-400 text-center uppercase">Admin</TableHead>
-              <TableHead className="text-black font-bold border-r-2 border-gray-400 text-center uppercase">Manager</TableHead>
-              <TableHead className="text-black font-bold border-r-2 border-gray-400 text-center uppercase">Marketing</TableHead>
-              <TableHead className="text-black font-bold text-center uppercase">Finance</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {processedData.map((row, idx) => (
-              <TableRow key={idx} className="hover:bg-gray-50 border-b border-gray-300 last:border-0 h-14">
-                <TableCell className="font-bold border-r-2 border-gray-400 bg-gray-50/50 uppercase text-xs align-middle">
-                    {row.name}
-                </TableCell>
-                <TableCell className="border-r-2 border-gray-400 text-center p-0 align-middle relative">
-                    {renderCell(row.admin, 'admin')}
-                </TableCell>
-                <TableCell className="border-r-2 border-gray-400 text-center p-0 align-middle relative">
-                    {renderCell(row.manager, 'manager')}
-                </TableCell>
-                <TableCell className="border-r-2 border-gray-400 text-center p-0 align-middle relative">
-                    {renderCell(row.marketing, 'marketing')}
-                </TableCell>
-                <TableCell className="text-center p-0 align-middle relative">
-                    {renderCell(row.finance, 'finance')}
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </div>
-
-      {editingId && editPosition && (
-         <div style={{ position: 'fixed', top: editPosition.top, left: editPosition.left, zIndex: 50 }}>
-            <PermissionEditor 
-                permission={rawPermissions.find(p => p.id === editingId)} 
-                onSave={(data) => updateMutation.mutate(data)}
-                onCancel={() => setEditingId(null)}
-            />
-         </div>
-      )}
-    </div>
-  );
 }
