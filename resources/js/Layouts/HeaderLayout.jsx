@@ -1,17 +1,18 @@
-import Dropdown from "@/Components/Dropdown";
-import NavLink from "@/Components/NavLink";
 import DateTime from "@/components/DateTime";
-import ResponsiveNavLink from "@/Components/ResponsiveNavLink";
 import { Settings, User, Bell, Globe } from "lucide-react";
 import { Link, usePage } from "@inertiajs/react";
-import { useState } from "react";
 
-export default function HeaderLayout({ header, children }) {
+export default function HeaderLayout({ children }) {
     const { url, props } = usePage();
-    const user = props.auth.user;
+    const { auth } = props;
+    
+    // Safe access user dengan fallback
+    const userName = auth?.user?.name || 'Admin User';
+    const userEmail = auth?.user?.email || 'admin@lizcompany.com';
+    const userAvatar = auth?.user?.avatar || userName.charAt(0).toUpperCase();
 
     const headerMenus = [
-        { name: "Setting", icon: Settings, path: "/setting/general" },
+        { name: "Setting", icon: Settings, path: "/setting" },
         { name: "Language", icon: Globe, path: "/language" },
         { name: "Notifications", icon: Bell, path: "/notifications" },
         { name: "Profile", icon: User, path: "/profile" },
@@ -41,7 +42,7 @@ export default function HeaderLayout({ header, children }) {
                     <DateTime />
                 </div>
 
-                <div className="flex gap-3">
+                <div className="flex gap-3 items-center">
                     {headerMenus.map((menu) => (
                         <Link key={menu.name} href={menu.path}>
                             <div className="flex flex-col items-center gap-1 p-4
@@ -51,6 +52,23 @@ export default function HeaderLayout({ header, children }) {
                             </div>
                         </Link>
                     ))}
+                    
+                    {/* User info dengan fallback */}
+                    <div className="flex items-center gap-2 ml-4">
+                        <div className="text-right">
+                            <div className="font-medium text-gray-900">
+                                {userName}
+                            </div>
+                            <div className="text-sm text-gray-500">
+                                {userEmail}
+                            </div>
+                        </div>
+                        <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center">
+                            <span className="text-blue-600 font-medium">
+                                {userAvatar}
+                            </span>
+                        </div>
+                    </div>
                 </div>
             </header>
 
