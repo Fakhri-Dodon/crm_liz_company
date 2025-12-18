@@ -38,12 +38,45 @@ class SettingController extends Controller
         ]);
     }
 
-    /**
-     * Menampilkan halaman pengaturan Role
-     */
      public function userRoles()
     {
-        return Inertia::render('Settings/UserRoles');
+        return Inertia::render('Settings/UserRoles', [
+            'roles' => Roles::orderBy('name', 'asc')->get(),
+            'menus' => Menu::orderBy('name', 'asc')->get(),
+            'rawPermissions' => MenuMapping::all(),
+        ]);
+    }
+
+    public function userRolesStore(Request $request)
+    {
+        $validated = $request->validate([
+            'role_id' => 'required|exists:roles,id',
+            'menu_id' => 'required|exists:menu,id',
+            'can_create' => 'required|integer',
+            'can_read' => 'required|integer',
+            'can_update' => 'required|integer',
+            'can_delete' => 'required|integer',
+        ]);
+
+        MenuMapping::create($validated);
+
+        return redirect()->back();
+    }
+
+    public function userRolesUpdate(Request $request, $id)
+    {
+        $permission = MenuMapping::findOrFail($id);
+        
+        $validated = $request->validate([
+            'can_create' => 'required|integer',
+            'can_read' => 'required|integer',
+            'can_update' => 'required|integer',
+            'can_delete' => 'required|integer',
+        ]);
+
+        $permission->update($validated);
+
+        return redirect()->back();
     }
 
     public function leads()
