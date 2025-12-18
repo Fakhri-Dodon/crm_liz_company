@@ -24,7 +24,7 @@ export default function HeaderLayout({ header, children }) {
         { name: "QUOTATION", path: "/quotation" },
         { name: "INVOICE", path: "/invoice" },
         { name: "PAYMENT", path: "/payment" },
-        { name: "PROJECT", path: "/project" },
+        { name: "PROJECT", path: "/projects" },
         { name: "EMAIL", path: "/email" },
         { name: "USER", path: "/user" },
     ];

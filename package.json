@@ -29,9 +29,17 @@
         "class-variance-authority": "^0.7.1",
         "clsx": "^2.1.1",
         "lucide-react": "^0.561.0",
+<<<<<<< HEAD
         "react-icons": "^5.5.0",
         "sonner": "^2.0.7",
         "tailwind-merge": "^3.4.0",
         "tailwindcss-animate": "^1.0.7"
+=======
+        "react-hot-toast": "^2.6.0",
+        "react-icons": "^5.5.0",
+        "sonner": "^2.0.7",
+        "tailwind-merge": "^3.4.0",
+        "toast": "^0.5.4"
+>>>>>>> bf6928a1c19685db0b3e23f7981fabb90cc99d9b
     }
 }

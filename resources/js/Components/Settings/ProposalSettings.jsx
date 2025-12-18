@@ -45,6 +45,12 @@ export default function ProposalSettings() {
         color_name: "",
     });
 
+    const handleAddStatusClick = () => {
+      setEditingStatus(null);
+      reset(); 
+      setIsStatusModalOpen(true);
+    };
+
     const handleEditClick = () => {
         setFormData({
             id: numbering?.id || null,
@@ -66,20 +72,31 @@ export default function ProposalSettings() {
         setIsStatusModalOpen(true);
     };
 
+    const openEditStatusModal = (status) => {
+        setEditingStatus(status);
+        setData({
+            name: status.name,
+            note: status.note || "",
+            color: status.color,
+            color_name: status.color_name,
+        });
+        setIsStatusModalOpen(true);
+    };
+
     const handleStatusSubmit = (e) => {
         e.preventDefault();
         if (editingStatus) {
             put(`/setting/proposal-status/update/${editingStatus.id}`, {
                 onSuccess: () => {
                     toast.success("Status updated successfully");
-                    setIsModalOpen(false);
+                    setIsStatusModalOpen(false);
                 },
             });
         } else {
             post("/setting/proposal-status/store", {
                 onSuccess: () => {
                     toast.success("Status added successfully");
-                    setIsModalOpen(false);
+                    setIsStatusModalOpen(false);
                     reset();
                 },
             });
@@ -88,7 +105,7 @@ export default function ProposalSettings() {
 
     const handleStatusDelete = (id) => {
         if (confirm("Are you sure you want to delete this status?")) {
-            destroy(`/setting/status-status/destroy/${id}`, {
+            destroy(`/setting/proposal-status/destroy/${id}`, {
                 onSuccess: () => toast.success("Status deleted successfully"),
                 onError: () => toast.error("Failed to delete status"),
             });
@@ -368,7 +385,7 @@ export default function ProposalSettings() {
                 <div className="flex justify-between items-center mb-4 mt-10">
                     <h3 className="font-bold text-gray-800">Proposal Status</h3>
                     <Button
-                        onClick={() => setIsStatusModalOpen(true)}
+                        onClick={() => handleAddStatusClick()}
                         className="bg-teal-800 hover:bg-teal-900 text-white shadow-md flex items-center gap-2"
                     >
                         <Plus className="w-4 h-4" /> Add Status
@@ -419,12 +436,9 @@ export default function ProposalSettings() {
                                             {status.note || "-"}
                                         </TableCell>
                                         <TableCell className="text-center">
-                                            <div
-                                                className={`px-3 py-1 border rounded bg-white text-[10px] font-black inline-block w-24 uppercase ${getStatusColor(
-                                                    status.color
-                                                )}`}
-                                            >
-                                                {status.color || "DEFAULT"}
+                                            <div className="flex items-center gap-2">
+                                                <div className="w-3 h-3 rounded-full" style={{ backgroundColor: status.color }}></div>
+                                                {status.color_name}
                                             </div>
                                         </TableCell>
                                         <TableCell className="text-center">
@@ -433,19 +447,16 @@ export default function ProposalSettings() {
                                                     variant="ghost"
                                                     size="icon"
                                                     className="h-8 w-8 text-gray-400 hover:text-blue-600"
+                                                    onClick={() => openEditStatusModal(status)}
                                                 >
-                                                    <Edit className="w-4 h-4" />
+                                                    <Edit className="w-4 h-4"/>
                                                 </Button>
                                                 {!status.is_system && (
                                                     <Button
-                                                        variant="ghost"
-                                                        size="icon"
-                                                        className="h-8 w-8 text-gray-400 hover:text-red-600"
-                                                        onClick={() =>
-                                                            deleteMutation.mutate(
-                                                                status.id
-                                                            )
-                                                        }
+                                                      variant="ghost"
+                                                      size="icon"
+                                                      className="h-8 w-8 text-gray-400 hover:text-red-600"
+                                                      onClick={() => handleStatusDelete(status.id)}
                                                     >
                                                         <Trash2 className="w-4 h-4" />
                                                     </Button>
@@ -538,7 +549,7 @@ export default function ProposalSettings() {
                             <Button
                                 type="button"
                                 variant="outline"
-                                onClick={() => setIsModalOpen(false)}
+                                onClick={() => setIsStatusModalOpen(false)}
                             >
                                 Cancel
                             </Button>

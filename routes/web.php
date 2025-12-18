@@ -8,6 +8,7 @@ use App\Http\Controllers\RolesController;
 use App\Http\Controllers\ProposalNumberFormated;
 use App\Http\Controllers\ProposalStatusesController;
 use App\Http\Controllers\AppConfigController;
+use App\Http\Controllers\ProjectController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -41,6 +42,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/project', fn() => Inertia::render('Projects/Index'))->name('project.index');
     Route::get('/email-inbox', fn() => Inertia::render('Email/Index'))->name('email.index');
     Route::get('/user-management', fn() => Inertia::render('Users/Index'))->name('user.index');
+    Route::get('/email', fn() => Inertia::render('Email/Index'))->name('email.index');
+    Route::get('/user', fn() => Inertia::render('Users/Index'))->name('user.index');
 
     // --- SETTINGS GROUP (Konsisten menggunakan 'settings.') ---
     Route::prefix('setting')->name('settings.')->group(function () {
@@ -72,9 +75,24 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/email', [SettingController::class, 'email'])->name('email');
     });
 
+
     // Header menus
     Route::get('/language', fn() => Inertia::render('Language/Index'))->name('language.index');
     Route::get('/notifications', fn() => Inertia::render('Notifications/Index'))->name('notifications.index');
 });
 
+Route::middleware(['auth', 'verified'])->group(function () {
+    // ... route lainnya ...
+    
+    // Projects routes
+    Route::resource('projects', ProjectController::class);
+    
+    // **TAMBAHKAN INI: Route khusus untuk update status**
+    Route::patch('/projects/{project}/status', [ProjectController::class, 'updateStatus'])
+        ->name('projects.status.update');
+        
+    // Atau jika ingin menggunakan POST:
+    Route::post('/projects/{project}/status', [ProjectController::class, 'updateStatus'])
+        ->name('projects.status.update');
+});
 require __DIR__.'/auth.php';
