@@ -10,36 +10,10 @@ const axiosInstance = axios.create({
     withCredentials: true,
 });
 
-// Request interceptor untuk menambahkan CSRF token
-axiosInstance.interceptors.request.use(
-    (config) => {
-        // Coba ambil CSRF token dari meta tag
-        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
-        if (csrfToken) {
-            config.headers['X-CSRF-TOKEN'] = csrfToken;
-        }
-        return config;
-    },
-    (error) => {
-        return Promise.reject(error);
-    }
-);
-
-// Response interceptor
 axiosInstance.interceptors.response.use(
     (response) => response,
     (error) => {
-        console.error('API Error:', error.response?.status, error.response?.data);
-        
-        // Handle specific errors
-        if (error.response?.status === 403) {
-            console.warn('Access forbidden - check CSRF token or authentication');
-        }
-        
-        if (error.response?.status === 422) {
-            console.warn('Validation error:', error.response.data.errors);
-        }
-        
+        console.error('API Error:', error.response?.status, error.config?.url);
         return Promise.reject(error);
     }
 );
