@@ -1,5 +1,3 @@
-import React from "react";
-
 const DeleteConfirmationModal = ({ isOpen, onClose, onConfirm, lead }) => {
   if (!isOpen) return null;
 
@@ -9,7 +7,7 @@ const DeleteConfirmationModal = ({ isOpen, onClose, onConfirm, lead }) => {
       
       <div className="flex min-h-full items-center justify-center p-4 text-center">
         <div className="relative transform overflow-hidden rounded-lg bg-white shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg">
-          <div className="bg-white px-4 pb-4 pt-5 sm:p-6 sm:pb-4">
+          <div className="bg-white px-6 py-5">
             <div className="sm:flex sm:items-start">
               <div className="mx-auto flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-red-100 sm:mx-0 sm:h-10 sm:w-10">
                 <svg className="h-6 w-6 text-red-600" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
@@ -18,36 +16,34 @@ const DeleteConfirmationModal = ({ isOpen, onClose, onConfirm, lead }) => {
               </div>
               
               <div className="mt-3 text-center sm:ml-4 sm:mt-0 sm:text-left">
-                <h3 className="text-lg font-semibold leading-6 text-gray-900">
-                  Delete Lead Permanently
+                <h3 className="text-lg font-semibold text-gray-900">
+                  Delete Lead
                 </h3>
                 <div className="mt-2">
-                  <div className="bg-red-50 border border-red-100 rounded-lg p-3 mb-3">
-                    <p className="text-sm text-gray-900 font-medium">Lead Details:</p>
-                    <p className="text-sm text-gray-700 mt-1"><span className="font-medium">Company:</span> {lead?.company_name}</p>
-                    <p className="text-sm text-gray-700"><span className="font-medium">Contact:</span> {lead?.contact_person}</p>
-                    <p className="text-sm text-gray-700"><span className="font-medium">Email:</span> {lead?.email || '-'}</p>
-                  </div>
-                  <p className="text-sm text-red-600 font-medium">
-                    ⚠️ This action cannot be undone! All lead data will be permanently removed from the database.
+                  <p className="text-sm text-gray-500">
+                    Are you sure you want to delete{" "}
+                    <span className="font-semibold text-gray-900">{lead?.company_name}</span>?
+                  </p>
+                  <p className="mt-2 text-sm text-red-600 font-medium">
+                    This action cannot be undone.
                   </p>
                 </div>
               </div>
             </div>
           </div>
           
-          <div className="bg-gray-50 px-4 py-3 sm:flex sm:flex-row-reverse sm:px-6">
+          <div className="bg-gray-50 px-6 py-4 sm:flex sm:flex-row-reverse">
             <button
               type="button"
               onClick={() => onConfirm(lead)}
-              className="inline-flex w-full justify-center rounded-md bg-red-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-red-500 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 sm:ml-3 sm:w-auto transition-colors duration-200"
+              className="inline-flex w-full justify-center rounded-md bg-red-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-red-500 sm:ml-3 sm:w-auto transition-colors"
             >
-              Yes, Delete Permanently
+              Delete
             </button>
             <button
               type="button"
               onClick={onClose}
-              className="mt-3 inline-flex w-full justify-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 sm:mt-0 sm:w-auto transition-colors duration-200"
+              className="mt-3 inline-flex w-full justify-center rounded-md bg-white px-4 py-2.5 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 sm:mt-0 sm:w-auto transition-colors"
             >
               Cancel
             </button>

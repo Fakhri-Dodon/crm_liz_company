@@ -5,17 +5,15 @@ const axiosInstance = axios.create({
     headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
+        'X-Requested-With': 'XMLHttpRequest',
     },
-    withCredentials: true, // penting untuk Sanctum
+    withCredentials: true,
 });
 
-// Optional: interceptor response (future ready)
 axiosInstance.interceptors.response.use(
     (response) => response,
     (error) => {
-        if (error.response?.status === 401) {
-            console.warn('Unauthorized');
-        }
+        console.error('API Error:', error.response?.status, error.config?.url);
         return Promise.reject(error);
     }
 );
