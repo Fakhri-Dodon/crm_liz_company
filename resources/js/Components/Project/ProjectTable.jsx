@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link } from '@inertiajs/react';
+import StatusModal from '@/Components/Project/StatusModal';
 import { 
     Edit, 
     Trash2, 
@@ -14,7 +15,15 @@ import {
     AlertCircle
 } from 'lucide-react';
 
-const ProjectTable = ({ projects, onEdit, onStatusChange, onDelete }) => {
+const ProjectTable = ({ projects, onEdit, onStatusChange, onDelete, statusOptions }) => {
+    const [showStatusModal, setShowStatusModal] = useState(false);
+    const [selectedProject, setSelectedProject] = useState(null);
+
+    const handleStatusClick = (project) => {
+        setSelectedProject(project);
+        setShowStatusModal(true);
+    };
+
     const getStatusBadge = (status) => {
         const config = {
             in_progress: {
@@ -53,6 +62,60 @@ const ProjectTable = ({ projects, onEdit, onStatusChange, onDelete }) => {
             text: 'text-gray-700',
             dot: 'bg-gray-500',
             label: status
+        };
+
+        return (
+            <button
+                onClick={() => handleStatusClick(project)}
+                className={`inline-flex items-center px-3 py-1.5 rounded-full ${style.bg} ${style.border} cursor-pointer hover:opacity-80 transition-opacity`}
+                title="Click to change status"
+            >
+                <div className={`w-2 h-2 rounded-full mr-2 ${style.dot}`}></div>
+                <span className={`text-xs font-medium ${style.text}`}>
+                    {style.label}
+                </span>
+            </button>
+        );
+    };
+
+    const getStatusBadgeWithoutClick = (project) => {
+        const config = {
+            in_progress: {
+                bg: 'bg-blue-50',
+                border: 'border border-blue-200',
+                text: 'text-blue-700',
+                dot: 'bg-blue-500',
+                label: 'In Progress'
+            },
+            completed: {
+                bg: 'bg-green-50',
+                border: 'border border-green-200',
+                text: 'text-green-700',
+                dot: 'bg-green-500',
+                label: 'Completed'
+            },
+            pending: {
+                bg: 'bg-yellow-50',
+                border: 'border border-yellow-200',
+                text: 'text-yellow-700',
+                dot: 'bg-yellow-500',
+                label: 'Pending'
+            },
+            cancelled: {
+                bg: 'bg-red-50',
+                border: 'border border-red-200',
+                text: 'text-red-700',
+                dot: 'bg-red-500',
+                label: 'Cancelled'
+            }
+        };
+
+        const style = config[project.status] || {
+            bg: 'bg-gray-50',
+            border: 'border border-gray-200',
+            text: 'text-gray-700',
+            dot: 'bg-gray-500',
+            label: project.status
         };
 
         return (
@@ -183,7 +246,12 @@ const ProjectTable = ({ projects, onEdit, onStatusChange, onDelete }) => {
                             )}
                         </div>
                     </div>
-                    {getStatusBadge(project.status)}
+                    <button
+                        onClick={() => handleStatusClick(project)}
+                        className="cursor-pointer hover:opacity-80 transition-opacity"
+                    >
+                        {getStatusBadgeWithoutClick(project)}
+                    </button>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4 mb-4">
@@ -248,6 +316,19 @@ const ProjectTable = ({ projects, onEdit, onStatusChange, onDelete }) => {
 
     return (
         <>
+            {/* Status Modal */}
+            {selectedProject && (
+                <StatusModal
+                    show={showStatusModal}
+                    onClose={() => {
+                        setShowStatusModal(false);
+                        setSelectedProject(null);
+                    }}
+                    project={selectedProject}
+                    statusOptions={statusOptions || []}
+                />
+            )}
+
             {/* Mobile View */}
             <div className="block lg:hidden">
                 <div className="p-4">
@@ -352,7 +433,13 @@ const ProjectTable = ({ projects, onEdit, onStatusChange, onDelete }) => {
                                     </td>
                                     
                                     <td className="px-6 py-4 whitespace-nowrap">
-                                        {getStatusBadge(project.status)}
+                                        <button
+                                            onClick={() => handleStatusClick(project)}
+                                            className="cursor-pointer hover:opacity-80 transition-opacity"
+                                            title="Click to change status"
+                                        >
+                                            {getStatusBadgeWithoutClick(project)}
+                                        </button>
                                     </td>
                                     
                                     <td className="px-6 py-4 whitespace-nowrap">

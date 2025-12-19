@@ -340,6 +340,7 @@ export default function Index({
                     onEdit={handleEdit}
                     onStatusChange={handleStatusChange}
                     onDelete={handleDelete}
+                    statusOptions={statusOptions || []}  // Tambahkan ini
                 />
             </div>
 
