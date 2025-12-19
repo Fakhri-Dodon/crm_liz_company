@@ -48,15 +48,19 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::prefix('setting')->name('settings.')->group(function () {
         // General
-        Route::get('/general', [SettingController::class, 'general'])->name('general');
-        Route::post('/general/store', [AppConfigController::class, 'store'])->name('general.store');
-        Route::post('/general/upload-logo', [AppConfigController::class, 'uploadLogo'])->name('general.upload-logo');
+        Route::prefix('general')->name('general.')->group(function () {
+            Route::get('/', [SettingController::class, 'general']);
+            Route::post('/store', [AppConfigController::class, 'store'])->name('store');
+            Route::post('/upload-logo', [AppConfigController::class, 'uploadLogo'])->name('upload-logo');
+        });
         
         // User Roles & Permissions
-        Route::get('/user-roles', [SettingController::class, 'userRoles'])->name('user-roles');
-        Route::post('/user-roles/store', [SettingController::class, 'userRolesStore'])->name('user-roles.store');
-        Route::put('/user-roles/{id}', [SettingController::class, 'userRolesUpdate'])->name('user-roles.update');
-        Route::post('/user-roles/role-store', [RolesController::class, 'roleStore'])->name('roles.store');
+        Route::prefix('user-roles')->name('user-roles.')->group(function () {
+            Route::get('/', [SettingController::class, 'userRoles']);
+            Route::post('/store', [SettingController::class, 'userRolesStore'])->name('store');
+            Route::put('/{id}', [SettingController::class, 'userRolesUpdate'])->name('update');
+            Route::post('/role-store', [RolesController::class, 'roleStore'])->name('roles.store');
+        });
         
         // Leads Settings
         Route::get('/leads', [SettingController::class, 'leads'])->name('leads');
@@ -72,10 +76,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::delete('/proposal-status/destroy/{id}', [ProposalStatusesController::class, 'destroy'])->name('proposal-status.delete');
 
         // Emails
-        Route::get('/email', [SettingController::class, 'email'])->name('email');
-        Route::post('/email/save', [EmailSettingsController::class, 'saveSettings'])->name('email.save');
-        Route::post('/email/test', [EmailSettingsController::class, 'testConnection'])->name('email.test');
-        Route::delete('/email/destroy-log/{id}', [EmailSettingsController::class, 'destroyLog'])->name('email.destroy-log');
+        Route::prefix('email')->name('email.')->group(function () {
+            Route::get('/', [SettingController::class, 'email']);
+            Route::post('/save', [EmailSettingsController::class, 'saveSettings'])->name('save');
+            Route::post('/test', [EmailSettingsController::class, 'testConnection'])->name('test');
+            Route::delete('/destroy-log/{id}', [EmailSettingsController::class, 'destroyLog'])->name('destroy-log');
+        });
     });
 
 

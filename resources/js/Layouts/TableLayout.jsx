@@ -76,22 +76,22 @@ export default function TableLayout({
         <table className="w-full">
           {/* ================= HEADER ================= */}
           <thead>
-            <tr className="bg-gradient-to-r from-blue-50 to-blue-100 border-b border-blue-200">
-              <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+            <tr className="bg-[#c8e1b5] border-b border-blue-200">
+              <th className="px-6 py-4 text-left text-xs font-semibold text-black uppercase tracking-wider">
                 No
               </th>
 
               {columns.map((col) => (
                 <th
                   key={col.key}
-                  className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider"
+                  className="px-6 py-4 text-left text-xs font-semibold text-black uppercase tracking-wider"
                 >
                   {col.label}
                 </th>
               ))}
 
               {showAction && (
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                <th className="px-6 py-4 text-left text-xs font-semibold text-black uppercase tracking-wider">
                   Actions
                 </th>
               )}

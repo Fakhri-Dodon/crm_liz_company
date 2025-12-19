@@ -32,9 +32,9 @@ export default function HeaderLayout({ header, children }) {
     return (
         <>
             {/* HEADER */}
-            <header className="h-22 bg-white p-3 flex items-center justify-between">
+            <header className="h-20 bg-white p-3 flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                    <div className="border-r-4 border-black w-40">
+                    <div className="border-r-2 border-gray w-40">
                         <h1 className="text-xl font-bold p-5">My</h1>
                     </div>
                     <DateTime />
@@ -80,7 +80,7 @@ export default function HeaderLayout({ header, children }) {
             </header>
 
             {/* NAVBAR */}
-            <nav className="h-20 bg-teal-800 border-b flex items-center px-6">
+            <nav className="h-20 bg-teal-800 flex items-center px-6">
                 <ul className="flex gap-12">
                     {menus.map((item) => (
                         <li key={item.path}>
@@ -88,8 +88,8 @@ export default function HeaderLayout({ header, children }) {
                                 href={item.path}
                                 className={`font-medium ${
                                     url === item.path
-                                        ? "text-white border-b-2 border-blue-400 pb-1"
-                                        : "text-white hover:text-blue-300"
+                                        ? "text-white border-b-2 border-white pb-1"
+                                        : "text-white hover:text-gray-300"
                                 }`}
                             >
                                 {item.name}
@@ -99,7 +99,7 @@ export default function HeaderLayout({ header, children }) {
                 </ul>
             </nav>
 
-            <div className="h-4 bg-green-50 shadow-sm"></div>
+            <div className="h-4 bg-[#c8e1b5] shadow-sm"></div>
 
             <main>{children}</main>
         </>
