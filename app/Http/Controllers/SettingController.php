@@ -9,6 +9,9 @@ use App\Models\LeadStatuses;
 use App\Models\Roles;
 use App\Models\ProposalNumberFormatted;
 use App\Models\ProposalStatuses;
+use App\Models\MailSettings;
+use App\Models\EmailTemplates;
+use App\Models\EmailLogs;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
@@ -120,6 +123,10 @@ class SettingController extends Controller
 
     public function email()
     {
-        return Inertia::render('Settings/Emails');
+        return Inertia::render('Settings/Emails', [
+            'mails' => MailSettings::where('deleted', 0)->first(),
+            'templates' => EmailTemplates::where('deleted', 0)->get(),
+            'emailLogs' => EmailLogs::where('deleted', 0)->get(),
+        ]);
     }
 }

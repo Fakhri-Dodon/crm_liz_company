@@ -3,16 +3,16 @@ import { Settings, Users, FileText, Mail, LayoutDashboard, Menu, PieChart } from
 import { useState } from 'react';
 
 export default function SettingsLayout({ children }) {
-  const { url } = usePage(); // ganti useLocation
+  const { url } = usePage();
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
   const navItems = [
-    { label: 'General', icon: Settings, href: route('settings.general') },
-    { label: 'User Roles', icon: Users, href: route('settings.user-roles') },
-    { label: 'Leads', icon: LayoutDashboard, href: route('settings.leads') },
-    { label: 'Proposals', icon: FileText, href: route('settings.proposals') },
-    { label: 'Email', icon: Mail, href: route('settings.email') },
-    { label: 'Dashboard', icon: PieChart, href: route('dashboard') },
+    { label: 'General', icon: Settings, href: '/setting/general' },
+    { label: 'User Roles', icon: Users, href: '/setting/user-roles' },
+    { label: 'Leads', icon: LayoutDashboard, href: '/setting/leads' },
+    { label: 'Proposals', icon: FileText, href: '/setting/proposals' },
+    { label: 'Email', icon: Mail, href: '/setting/email' },
+    { label: 'Dashboard', icon: PieChart, href: '/dashboard' },
   ];
 
   return (
@@ -21,35 +21,60 @@ export default function SettingsLayout({ children }) {
       <aside
         className={`${
           isSidebarOpen ? 'w-64' : 'w-20'
-        } bg-teal-900 text-white transition-all duration-300 flex flex-col fixed h-full z-10`}
+        } bg-teal-900 text-white transition-all duration-300 flex flex-col fixed h-full z-10 shadow-xl`}
       >
-        <div className="p-4 flex items-center justify-between border-b border-teal-800">
-          {isSidebarOpen && <span className="font-bold text-xl">AdminPanel</span>}
+        <div className="p-4 flex items-center justify-between border-b border-teal-800/50">
+          {isSidebarOpen && (
+            <div className="flex items-center gap-2 px-2">
+              <div className="w-8 h-8 bg-teal-500 rounded-lg flex items-center justify-center shadow-lg shadow-teal-500/20">
+                <span className="font-bold text-white uppercase text-xs">AP</span>
+              </div>
+              <span className="font-bold text-xl tracking-tight">AdminPanel</span>
+            </div>
+          )}
           <button
             onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-            className="p-1 hover:bg-teal-800 rounded"
+            className="p-2 hover:bg-teal-800 rounded-lg transition-colors"
           >
-            <Menu className="w-6 h-6" />
+            <Menu className="w-5 h-5" />
           </button>
         </div>
 
-        <nav className="flex-1 py-6 space-y-2 px-3">
+        <nav className="flex-1 py-6 space-y-1 px-3">
           {navItems.map((item) => {
             const Icon = item.icon;
-            const isActive = url.startsWith(item.href);
+            const isActive = url === item.href || url.startsWith(item.href + '/');
 
             return (
               <Link
                 key={item.label}
                 href={item.href}
-                className={`flex items-center gap-3 px-3 py-3 rounded-lg transition-colors ${
+                className={`relative group flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-200 ${
                   isActive
-                    ? 'bg-teal-700 text-white'
-                    : 'text-teal-100 hover:bg-teal-800 hover:text-white'
+                    ? 'bg-teal-800 text-white shadow-inner shadow-black/10'
+                    : 'text-teal-100/70 hover:bg-teal-800/50 hover:text-white'
                 }`}
               >
-                <Icon className="w-6 h-6 shrink-0" />
-                {isSidebarOpen && <span className="font-medium">{item.label}</span>}
+                {isActive && (
+                  <div className="absolute left-0 w-1.5 h-6 bg-teal-400 rounded-r-full shadow-[0_0_8px_rgba(45,212,191,0.6)]" />
+                )}
+
+                <Icon 
+                  className={`w-5 h-5 shrink-0 transition-transform duration-200 ${
+                    isActive ? 'text-teal-300 scale-110' : 'group-hover:scale-110'
+                  }`} 
+                />
+                
+                {isSidebarOpen && (
+                  <span className={`font-medium ${isActive ? 'translate-x-1 transition-transform' : ''}`}>
+                    {item.label}
+                  </span>
+                )}
+                {!isSidebarOpen && (
+                  <div className="absolute left-16 bg-teal-800 text-white px-2 py-1 rounded md:hidden group-hover:block whitespace-nowrap text-xs z-50 shadow-lg border border-teal-700">
+                    {item.label}
+                  </div>
+                )}
               </Link>
             );
           })}
@@ -63,6 +88,14 @@ export default function SettingsLayout({ children }) {
         }`}
       >
         <div className="p-8 max-w-7xl mx-auto">
+          <div className="mb-6 flex items-center gap-2 text-sm text-gray-500">
+             <span className="hover:text-teal-700 cursor-pointer">Settings</span>
+             <span>/</span>
+             <span className="text-teal-900 font-semibold capitalize">
+                {url.split('/').pop()?.replace('-', ' ')}
+             </span>
+          </div>
+          
           {children}
         </div>
       </main>

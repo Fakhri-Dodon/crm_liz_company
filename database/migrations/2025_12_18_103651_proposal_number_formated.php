@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('proposal_number_formated', function (Blueprint $table) {
             $table->uuid('id')->primary();
-             $table->string('prefix')->default('PRO-');
+            $table->string('prefix')->default('PRO-');
             $table->string('prefix_description')->default('Fixed text added at the beginning of the proposal number.');
             $table->integer('padding')->default(5);
             $table->string('padding_description')->default('Sets the length of the numeric part. Extra zeros are added to maintain consistent length.');

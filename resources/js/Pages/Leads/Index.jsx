@@ -4,6 +4,7 @@ import HeaderLayout from "@/Layouts/HeaderLayout";
 import TableLayout from "@/Layouts/TableLayout";
 import leadsService from "@/services/leadsService";
 import LeadModal from "@/Components/LeadModal";
+import PrimaryButton from '@/Components/PrimaryButton';
 import DeleteConfirmationModal from "@/Components/DeleteConfirmationModal";
 import NotificationModal from "@/Components/NotificationModal";
 
@@ -226,15 +227,15 @@ export default function LeadsIndex({ leads: initialLeads = [] }) {
                     </div>
 
                     {/* ADD BUTTON */}
-                    <button
+                    <PrimaryButton
                         onClick={handleAdd}
-                        className="w-full sm:w-auto px-5 py-2.5 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-all duration-200 flex items-center justify-center gap-2 shadow-sm hover:shadow focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                        className="w-full sm:w-auto px-5 py-2.5 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-all duration-200 flex items-center justify-center gap-2 shadow-sm hover:shadow focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
                     >
                         <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                         </svg>
                         <span>Add New Lead</span>
-                    </button>
+                    </PrimaryButton>
                 </div>
                 
                 {/* Results Count */}

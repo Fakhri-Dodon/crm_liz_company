@@ -37,7 +37,7 @@ export default function GeneralSettings({ config }) {
     }, [config]);
 
     const handleSave = () => {
-        post("/setting/general", {
+        post("/setting/general/store", {
             preserveScroll: true,
             onSuccess: () => toast.success("Settings updated"),
         });

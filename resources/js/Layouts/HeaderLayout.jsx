@@ -80,7 +80,7 @@ export default function HeaderLayout({ header, children }) {
             </header>
 
             {/* NAVBAR */}
-            <nav className="h-20 bg-green-900 border-b flex items-center px-6">
+            <nav className="h-20 bg-teal-800 border-b flex items-center px-6">
                 <ul className="flex gap-12">
                     {menus.map((item) => (
                         <li key={item.path}>
@@ -99,7 +99,7 @@ export default function HeaderLayout({ header, children }) {
                 </ul>
             </nav>
 
-            <div className="h-7 bg-lime-100"></div>
+            <div className="h-4 bg-green-50 shadow-sm"></div>
 
             <main>{children}</main>
         </>

@@ -9,6 +9,7 @@ use App\Http\Controllers\ProposalNumberFormated;
 use App\Http\Controllers\ProposalStatusesController;
 use App\Http\Controllers\AppConfigController;
 use App\Http\Controllers\ProjectController;
+use App\Http\Controllers\EmailSettingsController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -45,7 +46,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/email', fn() => Inertia::render('Email/Index'))->name('email.index');
     Route::get('/user', fn() => Inertia::render('Users/Index'))->name('user.index');
 
-    // --- SETTINGS GROUP (Konsisten menggunakan 'settings.') ---
     Route::prefix('setting')->name('settings.')->group(function () {
         // General
         Route::get('/general', [SettingController::class, 'general'])->name('general');
@@ -73,6 +73,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
         // Emails
         Route::get('/email', [SettingController::class, 'email'])->name('email');
+        Route::post('/email/save', [EmailSettingsController::class, 'saveSettings'])->name('email.save');
+        Route::post('/email/test', [EmailSettingsController::class, 'testConnection'])->name('email.test');
+        Route::delete('/email/destroy-log/{id}', [EmailSettingsController::class, 'destroyLog'])->name('email.destroy-log');
     });
 
 
