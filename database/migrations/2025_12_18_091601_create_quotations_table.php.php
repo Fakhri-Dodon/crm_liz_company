@@ -9,9 +9,7 @@ return new class extends Migration
 {
     public function up(): void
     {
-        // Nonaktifkan foreign key checks
-        DB::statement('SET FOREIGN_KEY_CHECKS=0');
-
+  
         Schema::create('quotations', function (Blueprint $table) {
             $table->char('id', 36)->primary();
             $table->char('lead_id', 36)->nullable();
@@ -41,8 +39,7 @@ return new class extends Migration
             $table->index('deleted');
         });
 
-        // Aktifkan kembali foreign key checks
-        DB::statement('SET FOREIGN_KEY_CHECKS=1');
+
     }
 
     public function down(): void

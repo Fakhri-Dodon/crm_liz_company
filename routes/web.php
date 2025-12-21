@@ -43,8 +43,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/project', fn() => Inertia::render('Projects/Index'))->name('project.index');
     Route::get('/email-inbox', fn() => Inertia::render('Email/Index'))->name('email.index');
     Route::get('/user-management', fn() => Inertia::render('Users/Index'))->name('user.index');
-    Route::get('/email', fn() => Inertia::render('Email/Index'))->name('email.index');
-    Route::get('/user', fn() => Inertia::render('Users/Index'))->name('user.index');
+    Route::get('/email', fn() => Inertia::render('Email/Index'))->name('email.inbox');
+    Route::get('/user', fn() => Inertia::render('Users/Index'))->name('user.management');
 
     Route::prefix('setting')->name('settings.')->group(function () {
         // General
@@ -99,9 +99,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // **TAMBAHKAN INI: Route khusus untuk update status**
     Route::patch('/projects/{project}/status', [ProjectController::class, 'updateStatus'])
         ->name('projects.status.update');
-        
     // Atau jika ingin menggunakan POST:
     Route::post('/projects/{project}/status', [ProjectController::class, 'updateStatus'])
-        ->name('projects.status.update');
+        ->name('projects.status.update.post');
 });
 require __DIR__.'/auth.php';
