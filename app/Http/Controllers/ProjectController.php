@@ -240,24 +240,31 @@ class ProjectController extends Controller
     public function updateStatus(Request $request, Project $project)
     {
         if ($project->deleted == 1) {
-            return response()->json(['error' => 'Cannot update status of deleted project.'], 400);
+            return redirect()->route('projects.index')
+                ->with('error', 'Cannot update status of deleted project.');
         }
 
-        $request->validate([
+        $validated = $request->validate([
             'status' => 'required|in:in_progress,completed,pending,cancelled'
         ]);
 
-        // **PERBAIKAN: updated_by harus char(36)**
+        // PERBAIKAN: updated_by harus char(36)
         $userId = Auth::id();
         $user = User::find($userId);
         $userUuid = $user->uuid ?? Str::uuid()->toString();
 
-        $project->update([
-            'status' => $request->status,
-            'updated_by' => $userUuid
-        ]);
+        try {
+            $project->update([
+                'status' => $validated['status'],
+                'updated_by' => $userUuid
+            ]);
 
-        return redirect()->route('projects.index')
-            ->with('success', 'Project status updated successfully!');
+            return redirect()->route('projects.index')
+                ->with('success', 'Project status updated successfully!');
+                
+        } catch (\Exception $e) {
+            return redirect()->route('projects.index')
+                ->with('error', 'Failed to update status: ' . $e->getMessage());
+        }
     }
 }
