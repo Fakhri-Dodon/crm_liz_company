@@ -18,7 +18,7 @@ export default function HeaderLayout({ header, children }) {
 
     const menus = [
         { name: "DASHBOARD", path: "/dashboard" },
-        { name: "CLIENTS", path: "/clients" },
+        { name: "CLIENTS", path: "/companies" },
         { name: "LEAD", path: "/lead" },
         { name: "PROPOSAL", path: "/proposal" },
         { name: "QUOTATION", path: "/quotation" },

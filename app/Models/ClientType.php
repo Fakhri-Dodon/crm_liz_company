@@ -27,34 +27,21 @@ class ClientType extends Model
         'deleted_at',
         'deleted'
     ];
-    
-    // HAPUS SoftDeletes karena kita pakai kolom 'deleted'
-    // JANGAN gunakan: use SoftDeletes;
-    
+
     /**
      * Global scope untuk data aktif
-     * Gunakan kondisi: deleted = 0 DAN deleted_at IS NULL
      */
-    protected static function boot()
+    protected static function booted()
     {
-        parent::boot();
-        
         static::addGlobalScope('active', function ($query) {
-            // Logika AND: harus memenuhi kedua kondisi
             $query->where('deleted', 0)
                   ->whereNull('deleted_at');
-            
-            // ATAU jika ingin OR (salah satu kondisi terpenuhi)
-            // $query->where(function($q) {
-            //     $q->where('deleted', 0)
-            //       ->orWhereNull('deleted_at');
-            // });
         });
     }
     
     // Relationships
-    public function projects()
+    public function companies()
     {
-        return $this->hasMany(Project::class, 'client_id');
+        return $this->hasMany(Company::class, 'client_type_id');
     }
 }
