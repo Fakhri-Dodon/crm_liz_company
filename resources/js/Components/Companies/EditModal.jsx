@@ -1,13 +1,10 @@
-// resources/js/Components/Companies/Create.jsx
 import React, { useState, useEffect } from 'react';
-import { X, Upload, Building, User, Mail, Phone, MapPin, Globe, FileText, AlertCircle, Check } from 'lucide-react';
-import { router } from '@inertiajs/react'; // TAMBAHKAN IMPORT INI
+import { X, Upload, Building, User, Mail, Phone, MapPin, Globe, FileText, AlertCircle, Check, Image, Trash2 } from 'lucide-react';
 
-const Create = ({ isOpen, onClose, clientTypes, quotationId }) => {
+const EditModal = ({ isOpen, onClose, company, clientTypes, onUpdate }) => {
     const [formData, setFormData] = useState({
-        company_name: '',
+        name: '',
         client_type_id: '',
-        status: 'active',
         address: '',
         city: '',
         province: '',
@@ -17,78 +14,87 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId }) => {
         nib: '',
         website: '',
         contact_person: '',
-        contact_email: '',
-        contact_phone: '',
-        contact_position: '',
+        email: '',
+        phone: '',
+        position: '',
+        client_since: '',
+        is_active: true,
         logo: null,
-        quotation_id: quotationId || ''
+        logo_preview: '',
+        delete_logo: false
     });
 
     const [errors, setErrors] = useState({});
     const [isSubmitting, setIsSubmitting] = useState(false);
-    const [leads, setLeads] = useState([]);
-    const [loadingLeads, setLoadingLeads] = useState(false);
-    const [selectedLead, setSelectedLead] = useState(null);
+    const [logoFile, setLogoFile] = useState(null);
 
-    // Reset form ketika modal dibuka
+    // Initialize form data when company changes
     useEffect(() => {
-        if (isOpen) {
-            fetchLeads();
-            setFormData(prev => ({
-                ...prev,
-                quotation_id: quotationId || ''
-            }));
-        }
-    }, [isOpen, quotationId]);
-
-    const fetchLeads = async () => {
-        setLoadingLeads(true);
-        try {
-            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
-            const response = await fetch('/companies/get-leads', {
-                headers: {
-                    'Accept': 'application/json',
-                    'X-Requested-With': 'XMLHttpRequest',
-                    'X-CSRF-TOKEN': csrfToken,
-                },
-                credentials: 'include',
+        if (company) {
+            setFormData({
+                name: company.name || '',
+                client_type_id: company.client_type_id || '',
+                address: company.address || '',
+                city: company.city || '',
+                province: company.province || '',
+                country: company.country || '',
+                postal_code: company.postal_code || '',
+                vat_number: company.vat_number || '',
+                nib: company.nib || '',
+                website: company.website || '',
+                contact_person: company.contact_person || '',
+                email: company.email || '',
+                phone: company.phone || '',
+                position: company.position || '',
+                client_since: company.client_since ? company.client_since.split('T')[0] : '',
+                is_active: company.is_active ?? true,
+                logo: null,
+                logo_preview: company.logo_url || '',
+                delete_logo: false
             });
-
-            if (!response.ok) throw new Error('Failed to fetch leads');
-            
-            const data = await response.json();
-            if (data.success) {
-                setLeads(data.data || []);
-            }
-        } catch (error) {
-            console.error('Error fetching leads:', error);
-        } finally {
-            setLoadingLeads(false);
+            setLogoFile(null);
+            setErrors({});
         }
-    };
-
-    const handleLeadSelect = (lead) => {
-        setSelectedLead(lead);
-        setFormData(prev => ({
-            ...prev,
-            company_name: lead.company_name,
-            contact_email: lead.email,
-            contact_phone: lead.phone,
-            contact_person: lead.contact_person || 'Contact Person',
-        }));
-    };
+    }, [company]);
 
     const handleInputChange = (e) => {
-        const { name, value, type, files } = e.target;
-        setFormData(prev => ({
-            ...prev,
-            [name]: type === 'file' ? files[0] : value
-        }));
+        const { name, value, type, checked, files } = e.target;
+        
+        if (type === 'checkbox') {
+            setFormData(prev => ({ ...prev, [name]: checked }));
+        } else if (type === 'file') {
+            const file = files[0];
+            if (file) {
+                setLogoFile(file);
+                const previewUrl = URL.createObjectURL(file);
+                setFormData(prev => ({ 
+                    ...prev, 
+                    logo: file,
+                    logo_preview: previewUrl,
+                    delete_logo: false
+                }));
+            }
+        } else {
+            setFormData(prev => ({ ...prev, [name]: value }));
+        }
         
         // Clear error for this field
         if (errors[name]) {
             setErrors(prev => ({ ...prev, [name]: null }));
         }
+    };
+
+    const handleRemoveLogo = () => {
+        if (formData.logo_preview && formData.logo_preview.startsWith('blob:')) {
+            URL.revokeObjectURL(formData.logo_preview);
+        }
+        setFormData(prev => ({ 
+            ...prev, 
+            logo: null,
+            logo_preview: '',
+            delete_logo: true 
+        }));
+        setLogoFile(null);
     };
 
     const handleSubmit = async (e) => {
@@ -99,26 +105,20 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId }) => {
         try {
             const formDataToSend = new FormData();
             
-            console.log('=== SUBMITTING FORM DATA ===');
-            console.log('Form data:', formData);
-            
-            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
-            console.log('CSRF Token:', csrfToken);
-            
-            // Append semua data form
+            // Append form data
             Object.keys(formData).forEach(key => {
-                const value = formData[key];
-                if (value !== null && value !== undefined && value !== '') {
-                    formDataToSend.append(key, value);
+                if (key === 'logo' && formData.logo) {
+                    formDataToSend.append('logo', formData.logo);
+                } else if (key === 'delete_logo' && formData.delete_logo) {
+                    formDataToSend.append('delete_logo', '1');
+                } else if (key !== 'logo_preview' && key !== 'logo' && formData[key] !== null && formData[key] !== '') {
+                    formDataToSend.append(key, formData[key]);
                 }
             });
 
-            // Jika ada quotation_id dari prop, tambahkan
-            if (quotationId) {
-                formDataToSend.append('quotation_id', quotationId);
-            }
-
-            const response = await fetch('/companies', {
+            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+            
+            const response = await fetch(`/companies/${company.id}`, {
                 method: 'POST',
                 headers: {
                     'X-CSRF-TOKEN': csrfToken,
@@ -126,84 +126,54 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId }) => {
                     'Accept': 'application/json',
                 },
                 body: formDataToSend,
-                credentials: 'include',
             });
 
             const data = await response.json();
-            console.log('Server response:', data);
 
             if (!response.ok) {
-                if (response.status === 422 && data.errors) {
-                    console.error('Validation errors:', data.errors);
+                if (data.errors) {
                     setErrors(data.errors);
-                    
-                    // Tampilkan alert khusus untuk email duplikat
-                    if (data.errors.contact_email && data.errors.contact_email.includes('already been taken')) {
-                        alert(`Email "${formData.contact_email}" sudah terdaftar di sistem. Silakan gunakan email lain.`);
-                    }
-                    
                     throw new Error('Validation failed');
-                } else {
-                    throw new Error(data.message || `Failed to create client (${response.status})`);
                 }
-            } else {
-                // SUCCESS: Tampilkan pesan dan refresh data
-                alert(data.message || 'Client created successfully!');
-                
-                // 1. Tutup modal
-                onClose();
-                
-                // 2. Reset form
-                setFormData({
-                    company_name: '',
-                    client_type_id: '',
-                    status: 'active',
-                    address: '',
-                    city: '',
-                    province: '',
-                    country: '',
-                    postal_code: '',
-                    vat_number: '',
-                    nib: '',
-                    website: '',
-                    contact_person: '',
-                    contact_email: '',
-                    contact_phone: '',
-                    contact_position: '',
-                    logo: null,
-                    quotation_id: ''
-                });
-                setSelectedLead(null);
-                
-                // 3. Refresh data di table menggunakan Inertia.js
-                console.log('Refreshing companies data...');
-                router.reload({
-                    only: ['companies', 'statistics'], // Hanya reload data companies dan statistics
-                    preserveScroll: true, // Pertahankan posisi scroll
-                    onSuccess: () => {
-                        console.log('Companies data refreshed successfully');
-                    },
-                    onError: (errors) => {
-                        console.error('Error refreshing data:', errors);
-                    }
-                });
+                throw new Error(data.message || 'Failed to update client');
             }
+
+            // Success
+            alert(data.message || 'Client updated successfully!');
+            
+            // Clean up blob URL if exists
+            if (formData.logo_preview && formData.logo_preview.startsWith('blob:')) {
+                URL.revokeObjectURL(formData.logo_preview);
+            }
+            
+            // Call onUpdate callback
+            if (onUpdate) {
+                onUpdate(data.data || company.id);
+            }
+            
+            onClose();
         } catch (error) {
-            console.error('Error creating client:', error);
-            // Jangan tampilkan error jika sudah dihandle oleh validasi
+            console.error('Error updating client:', error);
             if (!error.message.includes('Validation failed')) {
                 setErrors(prev => ({ 
                     ...prev, 
                     submit: error.message || 'An error occurred. Please try again.' 
                 }));
-                alert(error.message || 'Failed to create client. Please try again.');
             }
         } finally {
             setIsSubmitting(false);
         }
     };
 
-    if (!isOpen) return null;
+    const handleCancel = () => {
+        // Clean up blob URL if exists
+        if (formData.logo_preview && formData.logo_preview.startsWith('blob:')) {
+            URL.revokeObjectURL(formData.logo_preview);
+        }
+        onClose();
+    };
+
+    if (!isOpen || !company) return null;
 
     return (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
@@ -211,11 +181,18 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId }) => {
                 {/* Header */}
                 <div className="flex justify-between items-center p-6 border-b">
                     <div>
-                        <h2 className="text-2xl font-bold text-gray-900">Create New Client</h2>
-                        <p className="text-gray-600 mt-1">Add a new client to your portfolio</p>
+                        <h2 className="text-2xl font-bold text-gray-900">Edit Client</h2>
+                        <p className="text-gray-600 mt-1">
+                            Editing: <span className="font-medium">{company.name}</span>
+                            {company.client_code && (
+                                <span className="ml-2 text-sm bg-gray-100 px-2 py-1 rounded">
+                                    {company.client_code}
+                                </span>
+                            )}
+                        </p>
                     </div>
                     <button
-                        onClick={onClose}
+                        onClick={handleCancel}
                         className="p-2 hover:bg-gray-100 rounded-lg transition"
                     >
                         <X className="w-6 h-6 text-gray-500" />
@@ -225,66 +202,14 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId }) => {
                 {/* Form */}
                 <form onSubmit={handleSubmit} className="overflow-y-auto max-h-[calc(90vh-200px)]">
                     <div className="p-6 space-y-6">
-                        {/* Error Alert */}
                         {errors.submit && (
                             <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-                                <div className="flex items-start gap-3">
-                                    <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
-                                    <div>
-                                        <p className="text-sm font-medium text-red-800">{errors.submit}</p>
-                                        <p className="text-sm text-red-600 mt-1">Please check your inputs and try again.</p>
-                                    </div>
+                                <div className="flex items-center text-red-800">
+                                    <AlertCircle className="w-5 h-5 mr-2" />
+                                    <span className="font-medium">{errors.submit}</span>
                                 </div>
                             </div>
                         )}
-
-                        {/* Lead Selection Section */}
-                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                            <h3 className="font-medium text-blue-900 mb-3 flex items-center gap-2">
-                                <FileText className="w-5 h-5" />
-                                Select from Existing Lead (Optional)
-                            </h3>
-                            
-                            {loadingLeads ? (
-                                <div className="text-center py-4">
-                                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-                                    <p className="text-sm text-gray-600 mt-2">Loading leads...</p>
-                                </div>
-                            ) : (
-                                <div className="space-y-2">
-                                    {leads.map(lead => (
-                                        <div
-                                            key={lead.id}
-                                            onClick={() => handleLeadSelect(lead)}
-                                            className={`p-3 border rounded-lg cursor-pointer transition ${
-                                                selectedLead?.id === lead.id
-                                                    ? 'border-blue-500 bg-blue-100'
-                                                    : 'border-gray-200 hover:bg-gray-50'
-                                            }`}
-                                        >
-                                            <div className="flex justify-between items-center">
-                                                <div>
-                                                    <div className="font-medium">{lead.company_name}</div>
-                                                    <div className="text-sm text-gray-600 flex items-center gap-2 mt-1">
-                                                        <Mail className="w-3 h-3" /> {lead.email}
-                                                        <Phone className="w-3 h-3 ml-2" /> {lead.phone}
-                                                    </div>
-                                                </div>
-                                                {selectedLead?.id === lead.id && (
-                                                    <Check className="w-5 h-5 text-blue-600" />
-                                                )}
-                                            </div>
-                                        </div>
-                                    ))}
-                                    
-                                    {leads.length === 0 && (
-                                        <div className="text-center py-4 text-gray-500 text-sm">
-                                            No leads available. Fill the form manually.
-                                        </div>
-                                    )}
-                                </div>
-                            )}
-                        </div>
 
                         {/* Company Information */}
                         <div className="space-y-6">
@@ -301,16 +226,16 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId }) => {
                                     </label>
                                     <input
                                         type="text"
-                                        name="company_name"
-                                        value={formData.company_name}
+                                        name="name"
+                                        value={formData.name}
                                         onChange={handleInputChange}
                                         className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 ${
-                                            errors.company_name ? 'border-red-300' : 'border-gray-300'
+                                            errors.name ? 'border-red-300' : 'border-gray-300'
                                         }`}
                                         required
                                     />
-                                    {errors.company_name && (
-                                        <p className="mt-1 text-sm text-red-600">{errors.company_name}</p>
+                                    {errors.name && (
+                                        <p className="mt-1 text-sm text-red-600">{errors.name}</p>
                                     )}
                                 </div>
 
@@ -344,7 +269,7 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId }) => {
                                         VAT Number
                                     </label>
                                     <input
-                                        type="text"
+                                        type="number"
                                         name="vat_number"
                                         value={formData.vat_number}
                                         onChange={handleInputChange}
@@ -361,6 +286,20 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId }) => {
                                         type="text"
                                         name="nib"
                                         value={formData.nib}
+                                        onChange={handleInputChange}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                                    />
+                                </div>
+
+                                {/* Client Since */}
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                        Client Since
+                                    </label>
+                                    <input
+                                        type="date"
+                                        name="client_since"
+                                        value={formData.client_since}
                                         onChange={handleInputChange}
                                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
                                     />
@@ -385,70 +324,47 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId }) => {
                                         value={formData.address}
                                         onChange={handleInputChange}
                                         rows="3"
-                                        className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 ${
-                                            errors.address ? 'border-red-300' : 'border-gray-300'
-                                        }`}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
                                     />
-                                    {errors.address && (
-                                        <p className="mt-1 text-sm text-red-600">{errors.address}</p>
-                                    )}
                                 </div>
 
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        City *
+                                        City
                                     </label>
                                     <input
                                         type="text"
                                         name="city"
                                         value={formData.city}
                                         onChange={handleInputChange}
-                                        className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 ${
-                                            errors.city ? 'border-red-300' : 'border-gray-300'
-                                        }`}
-                                        required
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
                                     />
-                                    {errors.city && (
-                                        <p className="mt-1 text-sm text-red-600">{errors.city}</p>
-                                    )}
                                 </div>
 
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        Province *
+                                        Province
                                     </label>
                                     <input
                                         type="text"
                                         name="province"
                                         value={formData.province}
                                         onChange={handleInputChange}
-                                        className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 ${
-                                            errors.province ? 'border-red-300' : 'border-gray-300'
-                                        }`}
-                                        required
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
                                     />
-                                    {errors.province && (
-                                        <p className="mt-1 text-sm text-red-600">{errors.province}</p>
-                                    )}
                                 </div>
 
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        Country *
+                                        Country
                                     </label>
                                     <input
                                         type="text"
                                         name="country"
                                         value={formData.country}
                                         onChange={handleInputChange}
-                                        className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 ${
-                                            errors.country ? 'border-red-300' : 'border-gray-300'
-                                        }`}
-                                        required
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
                                     />
-                                    {errors.country && (
-                                        <p className="mt-1 text-sm text-red-600">{errors.country}</p>
-                                    )}
                                 </div>
 
                                 <div>
@@ -474,6 +390,7 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId }) => {
                                         value={formData.website}
                                         onChange={handleInputChange}
                                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                                        placeholder="https://example.com"
                                     />
                                 </div>
                             </div>
@@ -512,8 +429,8 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId }) => {
                                     </label>
                                     <input
                                         type="text"
-                                        name="contact_position"
-                                        value={formData.contact_position}
+                                        name="position"
+                                        value={formData.position}
                                         onChange={handleInputChange}
                                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
                                     />
@@ -525,20 +442,16 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId }) => {
                                     </label>
                                     <input
                                         type="email"
-                                        name="contact_email"
-                                        value={formData.contact_email}
+                                        name="email"
+                                        value={formData.email}
                                         onChange={handleInputChange}
                                         className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 ${
-                                            errors.contact_email ? 'border-red-300' : 'border-gray-300'
+                                            errors.email ? 'border-red-300' : 'border-gray-300'
                                         }`}
                                         required
                                     />
-                                    {errors.contact_email && (
-                                        <div className="mt-1 text-sm text-red-600">
-                                            {Array.isArray(errors.contact_email) 
-                                                ? errors.contact_email.join(', ')
-                                                : errors.contact_email}
-                                        </div>
+                                    {errors.email && (
+                                        <p className="mt-1 text-sm text-red-600">{errors.email}</p>
                                     )}
                                 </div>
 
@@ -548,16 +461,16 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId }) => {
                                     </label>
                                     <input
                                         type="tel"
-                                        name="contact_phone"
-                                        value={formData.contact_phone}
+                                        name="phone"
+                                        value={formData.phone}
                                         onChange={handleInputChange}
                                         className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 ${
-                                            errors.contact_phone ? 'border-red-300' : 'border-gray-300'
+                                            errors.phone ? 'border-red-300' : 'border-gray-300'
                                         }`}
                                         required
                                     />
-                                    {errors.contact_phone && (
-                                        <p className="mt-1 text-sm text-red-600">{errors.contact_phone}</p>
+                                    {errors.phone && (
+                                        <p className="mt-1 text-sm text-red-600">{errors.phone}</p>
                                     )}
                                 </div>
                             </div>
@@ -567,58 +480,72 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId }) => {
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div>
                                 <h3 className="text-lg font-semibold text-gray-900 mb-3">Status</h3>
-                                <div className="flex gap-4">
-                                    <label className="flex items-center">
-                                        <input
-                                            type="radio"
-                                            name="status"
-                                            value="active"
-                                            checked={formData.status === 'active'}
-                                            onChange={handleInputChange}
-                                            className="w-4 h-4 text-teal-600 focus:ring-teal-500"
-                                        />
-                                        <span className="ml-2 text-gray-700">Active</span>
-                                    </label>
-                                    <label className="flex items-center">
-                                        <input
-                                            type="radio"
-                                            name="status"
-                                            value="inactive"
-                                            checked={formData.status === 'inactive'}
-                                            onChange={handleInputChange}
-                                            className="w-4 h-4 text-teal-600 focus:ring-teal-500"
-                                        />
-                                        <span className="ml-2 text-gray-700">Inactive</span>
+                                <div className="flex items-center space-x-4">
+                                    <label className="flex items-center cursor-pointer">
+                                        <div className="relative">
+                                            <input
+                                                type="checkbox"
+                                                name="is_active"
+                                                checked={formData.is_active}
+                                                onChange={handleInputChange}
+                                                className="sr-only"
+                                            />
+                                            <div className={`block w-14 h-8 rounded-full ${formData.is_active ? 'bg-teal-600' : 'bg-gray-300'}`}></div>
+                                            <div className={`dot absolute left-1 top-1 bg-white w-6 h-6 rounded-full transition transform ${formData.is_active ? 'translate-x-6' : ''}`}></div>
+                                        </div>
+                                        <div className="ml-3 text-gray-700 font-medium">
+                                            {formData.is_active ? 'Active' : 'Inactive'}
+                                        </div>
                                     </label>
                                 </div>
-                                {errors.status && (
-                                    <p className="mt-1 text-sm text-red-600">{errors.status}</p>
-                                )}
                             </div>
 
                             <div>
                                 <h3 className="text-lg font-semibold text-gray-900 mb-3">Company Logo</h3>
-                                <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center">
-                                    <Upload className="w-8 h-8 text-gray-400 mx-auto mb-2" />
-                                    <label className="cursor-pointer">
-                                        <input
-                                            type="file"
-                                            name="logo"
-                                            onChange={handleInputChange}
-                                            className="hidden"
-                                            accept="image/*"
-                                        />
-                                        <span className="text-sm text-teal-600 hover:text-teal-800 font-medium">
-                                            Click to upload logo
-                                        </span>
-                                        <p className="text-xs text-gray-500 mt-1">PNG, JPG, GIF up to 2MB</p>
-                                    </label>
-                                    {formData.logo && (
-                                        <div className="mt-2 text-sm text-green-600">
-                                            ✓ {formData.logo.name || 'File selected'}
+                                
+                                {formData.logo_preview ? (
+                                    <div className="relative">
+                                        <div className="border-2 border-dashed border-gray-300 rounded-lg p-4">
+                                            <div className="flex items-center justify-center mb-3">
+                                                <div className="relative">
+                                                    <img 
+                                                        src={formData.logo_preview} 
+                                                        alt="Logo preview" 
+                                                        className="w-32 h-32 object-contain rounded-lg"
+                                                    />
+                                                    <button
+                                                        type="button"
+                                                        onClick={handleRemoveLogo}
+                                                        className="absolute -top-2 -right-2 bg-red-500 text-white p-1 rounded-full hover:bg-red-600 transition"
+                                                        title="Remove logo"
+                                                    >
+                                                        <Trash2 className="w-4 h-4" />
+                                                    </button>
+                                                </div>
+                                            </div>
+                                            <p className="text-sm text-gray-500 text-center">
+                                                Current logo
+                                            </p>
                                         </div>
-                                    )}
-                                </div>
+                                    </div>
+                                ) : (
+                                    <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center hover:border-teal-400 transition">
+                                        <Upload className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+                                        <label className="cursor-pointer inline-block">
+                                            <input
+                                                type="file"
+                                                name="logo"
+                                                onChange={handleInputChange}
+                                                className="hidden"
+                                                accept="image/*"
+                                            />
+                                            <span className="text-sm text-teal-600 hover:text-teal-800 font-medium">
+                                                Upload new logo
+                                            </span>
+                                            <p className="text-xs text-gray-500 mt-1">PNG, JPG, GIF up to 2MB</p>
+                                        </label>
+                                    </div>
+                                )}
                             </div>
                         </div>
                     </div>
@@ -627,9 +554,8 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId }) => {
                     <div className="bg-gray-50 px-6 py-4 border-t flex justify-end gap-3">
                         <button
                             type="button"
-                            onClick={onClose}
-                            disabled={isSubmitting}
-                            className="px-4 py-2 text-gray-700 hover:text-gray-900 font-medium disabled:opacity-50"
+                            onClick={handleCancel}
+                            className="px-4 py-2 text-gray-700 hover:text-gray-900 font-medium"
                         >
                             Cancel
                         </button>
@@ -641,10 +567,10 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId }) => {
                             {isSubmitting ? (
                                 <>
                                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                                    Creating...
+                                    Updating...
                                 </>
                             ) : (
-                                'Create Client'
+                                'Update Client'
                             )}
                         </button>
                     </div>
@@ -654,4 +580,4 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId }) => {
     );
 };
 
-export default Create;
+export default EditModal;

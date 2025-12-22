@@ -1,3 +1,4 @@
+// resources/js/Components/Companies/CompaniesTable.jsx
 import React, { useState, useEffect } from 'react';
 import { Link, router } from '@inertiajs/react';
 import { 
@@ -10,7 +11,8 @@ import {
     Calendar,
     MoreVertical,
     ChevronLeft,
-    ChevronRight
+    ChevronRight,
+    Eye
 } from 'lucide-react';
 
 const CompaniesTable = ({ 
@@ -22,6 +24,7 @@ const CompaniesTable = ({
 }) => {
     const [isMobile, setIsMobile] = useState(false);
     const [search, setSearch] = useState(filters.search || '');
+    const [selectedCompany, setSelectedCompany] = useState(null);
 
     // Check screen size
     useEffect(() => {
@@ -34,10 +37,29 @@ const CompaniesTable = ({
     // Debounced search
     useEffect(() => {
         const timer = setTimeout(() => {
-            if (onSearch) onSearch(search);
+            if (search !== filters.search && onSearch) {
+                onSearch(search);
+            }
         }, 500);
         return () => clearTimeout(timer);
-    }, [search, onSearch]);
+    }, [search, filters.search, onSearch]);
+
+    // Handle page change
+    const handlePageChange = (url) => {
+        if (url) {
+            const params = new URL(url).searchParams;
+            const page = params.get('page');
+            
+            router.get('/companies', { 
+                ...filters,
+                page: page
+            }, {
+                preserveState: true,
+                replace: true,
+                only: ['companies', 'filters']
+            });
+        }
+    };
 
     // Define color mapping for different client types
     const getTypeColor = (typeName) => {
@@ -73,10 +95,15 @@ const CompaniesTable = ({
         return colorMap[typeName] || defaultColors;
     };
 
+    // View company details
+    const viewCompanyDetails = (company) => {
+        setSelectedCompany(company);
+    };
+
     // Mobile view
     if (isMobile) {
         return (
-            <div className="space-y-3">
+            <div className="space-y-3 p-4">
                 {/* Search Bar */}
                 <div className="relative">
                     <input
@@ -93,112 +120,134 @@ const CompaniesTable = ({
                     </svg>
                 </div>
 
+                {/* Results Count */}
+                <div className="text-sm text-gray-600">
+                    Showing {companies.from || 0} to {companies.to || 0} of {companies.total || 0} clients
+                </div>
+
                 {/* Mobile Cards */}
-                {companies.data.length > 0 ? (
-                    companies.data.map((company) => {
-                        const colors = getTypeColor(company.client_type_name);
-                        
-                        return (
-                            <div key={company.id} className="bg-white rounded-lg border border-gray-200 p-4 shadow-sm">
-                                <div className="flex justify-between items-start">
-                                    <div className="flex-1">
-                                        <div className="flex items-center gap-2">
-                                            <div className="bg-gray-100 p-2 rounded-lg">
-                                                <Building className="w-4 h-4 text-gray-600" />
+                {companies.data && companies.data.length > 0 ? (
+                    <div className="space-y-3">
+                        {companies.data.map((company) => {
+                            const colors = getTypeColor(company.client_type_name);
+                            
+                            return (
+                                <div key={company.id} className="bg-white rounded-lg border border-gray-200 p-4 shadow-sm">
+                                    <div className="flex justify-between items-start">
+                                        <div className="flex-1">
+                                            <div className="flex items-center gap-2 mb-3">
+                                                <div className="bg-gray-100 p-2 rounded-lg">
+                                                    <Building className="w-4 h-4 text-gray-600" />
+                                                </div>
+                                                <div className="flex-1">
+                                                    <h3 className="font-medium text-gray-900 text-sm">{company.name}</h3>
+                                                    <p className="text-xs text-gray-500">{company.client_code}</p>
+                                                </div>
                                             </div>
-                                            <div>
-                                                <h3 className="font-medium text-gray-900">{company.name}</h3>
-                                                <p className="text-xs text-gray-500">{company.client_code}</p>
+                                            
+                                            <div className="space-y-2">
+                                                <div className="flex items-center gap-2">
+                                                    <User className="w-3 h-3 text-gray-400 flex-shrink-0" />
+                                                    <span className="text-xs text-gray-700 truncate">{company.contact_person}</span>
+                                                </div>
+                                                <div className="flex items-center gap-2">
+                                                    <Mail className="w-3 h-3 text-gray-400 flex-shrink-0" />
+                                                    <span className="text-xs text-gray-600 truncate">{company.email}</span>
+                                                </div>
+                                                <div className="flex items-center gap-2">
+                                                    <Phone className="w-3 h-3 text-gray-400 flex-shrink-0" />
+                                                    <span className="text-xs bg-yellow-200 px-2 py-1 rounded font-medium">
+                                                        {company.phone}
+                                                    </span>
+                                                </div>
                                             </div>
-                                        </div>
-                                        
-                                        <div className="mt-3 space-y-2">
-                                            <div className="flex items-center gap-2">
-                                                <User className="w-3 h-3 text-gray-400" />
-                                                <span className="text-sm text-gray-700">{company.contact_person}</span>
-                                            </div>
-                                            <div className="flex items-center gap-2">
-                                                <Mail className="w-3 h-3 text-gray-400" />
-                                                <span className="text-sm text-gray-600 truncate">{company.email}</span>
-                                            </div>
-                                            <div className="flex items-center gap-2">
-                                                <Phone className="w-3 h-3 text-gray-400" />
-                                                <span className="text-sm bg-yellow-200 px-2 py-1 rounded font-medium">
-                                                    {company.phone}
+
+                                            <div className="mt-3 flex flex-wrap gap-2">
+                                                <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium border ${colors.badgeBorder} ${colors.badgeText} ${colors.bgColor}`}>
+                                                    {company.client_type_name}
+                                                </span>
+                                                <span className={`inline-flex items-center px-2 py-1 rounded text-xs ${
+                                                    company.is_active 
+                                                        ? 'bg-green-100 text-green-800' 
+                                                        : 'bg-gray-100 text-gray-800'
+                                                }`}>
+                                                    {company.is_active ? 'Active' : 'Inactive'}
                                                 </span>
                                             </div>
                                         </div>
-
-                                        <div className="mt-3 flex flex-wrap gap-2">
-                                            <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium border ${colors.badgeBorder} ${colors.badgeText} ${colors.bgColor}`}>
-                                                {company.client_type_name}
-                                            </span>
-                                            <span className={`inline-flex items-center px-2 py-1 rounded text-xs ${
-                                                company.is_active 
-                                                    ? 'bg-green-100 text-green-800' 
-                                                    : 'bg-gray-100 text-gray-800'
-                                            }`}>
-                                                {company.is_active ? 'Active' : 'Inactive'}
-                                            </span>
-                                        </div>
+                                        
+                                        {showActions && (
+                                            <div className="flex flex-col gap-1">
+                                                <button
+                                                    onClick={() => viewCompanyDetails(company)}
+                                                    className="text-teal-600 hover:text-teal-900 p-1.5 hover:bg-teal-50 rounded-lg transition"
+                                                    title="View Details"
+                                                >
+                                                    <Eye className="w-4 h-4" />
+                                                </button>
+                                                <Link
+                                                    href={route('companies.edit', company.id)}
+                                                    className="text-blue-600 hover:text-blue-900 p-1.5 hover:bg-blue-50 rounded-lg transition"
+                                                    title="Edit"
+                                                >
+                                                    <Edit className="w-4 h-4" />
+                                                </Link>
+                                                <button
+                                                    onClick={() => {
+                                                        if (confirm('Are you sure you want to delete this client?')) {
+                                                            router.delete(route('companies.destroy', company.id), {
+                                                                preserveScroll: true,
+                                                                onSuccess: () => {
+                                                                    router.reload({ only: ['companies', 'statistics'] });
+                                                                }
+                                                            });
+                                                        }
+                                                    }}
+                                                    className="text-red-600 hover:text-red-900 p-1.5 hover:bg-red-50 rounded-lg transition"
+                                                    title="Delete"
+                                                >
+                                                    <Trash2 className="w-4 h-4" />
+                                                </button>
+                                            </div>
+                                        )}
                                     </div>
-                                    
-                                    {showActions && (
-                                        <div className="flex flex-col gap-1">
-                                            <Link
-                                                href={route('companies.edit', company.id)}
-                                                className="text-blue-600 hover:text-blue-900 p-1.5 hover:bg-blue-50 rounded-lg transition"
-                                                title="Edit"
-                                            >
-                                                <Edit className="w-4 h-4" />
-                                            </Link>
-                                            <button
-                                                onClick={() => {
-                                                    if (confirm('Are you sure you want to delete this client?')) {
-                                                        router.delete(route('companies.destroy', company.id));
-                                                    }
-                                                }}
-                                                className="text-red-600 hover:text-red-900 p-1.5 hover:bg-red-50 rounded-lg transition"
-                                                title="Delete"
-                                            >
-                                                <Trash2 className="w-4 h-4" />
-                                            </button>
-                                        </div>
-                                    )}
                                 </div>
-                            </div>
-                        );
-                    })
+                            );
+                        })}
+                    </div>
                 ) : (
                     <div className="text-center py-8">
                         <Building className="w-12 h-12 mx-auto mb-3 text-gray-300" />
                         <div className="text-base font-medium text-gray-500">No clients found</div>
+                        <p className="text-sm text-gray-400 mt-1">
+                            {search ? 'Try adjusting your search' : 'Get started by adding your first client'}
+                        </p>
                     </div>
                 )}
 
                 {/* Mobile Pagination */}
-                {companies.data.length > 0 && (
+                {companies.data && companies.data.length > 0 && (
                     <div className="flex items-center justify-center gap-2 pt-4">
                         {companies.links[0].url && (
-                            <Link
-                                href={companies.links[0].url}
-                                className="p-2 border border-gray-300 rounded-lg bg-white text-gray-500 hover:bg-gray-50"
+                            <button
+                                onClick={() => handlePageChange(companies.links[0].url)}
+                                className="p-2 border border-gray-300 rounded-lg bg-white text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
                                 title="Previous"
                             >
                                 <ChevronLeft className="w-4 h-4" />
-                            </Link>
+                            </button>
                         )}
                         <div className="text-sm text-gray-700">
                             Page {companies.current_page} of {companies.last_page}
                         </div>
                         {companies.links[companies.links.length - 1].url && (
-                            <Link
-                                href={companies.links[companies.links.length - 1].url}
-                                className="p-2 border border-gray-300 rounded-lg bg-white text-gray-500 hover:bg-gray-50"
+                            <button
+                                onClick={() => handlePageChange(companies.links[companies.links.length - 1].url)}
+                                className="p-2 border border-gray-300 rounded-lg bg-white text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
                                 title="Next"
                             >
                                 <ChevronRight className="w-4 h-4" />
-                            </Link>
+                            </button>
                         )}
                     </div>
                 )}
@@ -236,7 +285,7 @@ const CompaniesTable = ({
                         </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
-                        {companies.data.length > 0 ? (
+                        {companies.data && companies.data.length > 0 ? (
                             companies.data.map((company) => {
                                 const colors = getTypeColor(company.client_type_name);
                                 
@@ -334,6 +383,13 @@ const CompaniesTable = ({
                                             <td className="px-6 py-4">
                                                 <div className="flex items-center gap-2">
                                                     <Link
+                                                        href={route('companies.show', company.id)}
+                                                        className="text-teal-600 hover:text-teal-900 p-2 hover:bg-teal-50 rounded-lg transition"
+                                                        title="View Details"
+                                                    >
+                                                        <Eye className="w-5 h-5" />
+                                                    </Link>
+                                                    <Link
                                                         href={route('companies.edit', company.id)}
                                                         className="text-blue-600 hover:text-blue-900 p-2 hover:bg-blue-50 rounded-lg transition"
                                                         title="Edit"
@@ -343,7 +399,12 @@ const CompaniesTable = ({
                                                     <button
                                                         onClick={() => {
                                                             if (confirm('Are you sure you want to delete this client?')) {
-                                                                router.delete(route('companies.destroy', company.id));
+                                                                router.delete(route('companies.destroy', company.id), {
+                                                                    preserveScroll: true,
+                                                                    onSuccess: () => {
+                                                                        router.reload({ only: ['companies', 'statistics'] });
+                                                                    }
+                                                                });
                                                             }
                                                         }}
                                                         className="text-red-600 hover:text-red-900 p-2 hover:bg-red-50 rounded-lg transition"
@@ -375,7 +436,7 @@ const CompaniesTable = ({
             </div>
 
             {/* Desktop Pagination */}
-            {companies.data.length > 0 && (
+            {companies.data && companies.data.length > 0 && (
                 <div className="px-6 py-4 border-t border-gray-200">
                     <div className="flex items-center justify-between">
                         <div className="text-sm text-gray-700">
@@ -387,16 +448,17 @@ const CompaniesTable = ({
                         <nav className="flex items-center">
                             <div className="flex items-center gap-1">
                                 {companies.links.map((link, index) => (
-                                    <Link
+                                    <button
                                         key={index}
-                                        href={link.url || '#'}
+                                        onClick={() => handlePageChange(link.url)}
+                                        disabled={!link.url || link.active}
                                         className={`relative inline-flex items-center px-3 py-2 text-sm font-medium border ${
                                             link.active
-                                                ? 'z-10 bg-teal-50 border-teal-500 text-teal-600'
+                                                ? 'z-10 bg-teal-50 border-teal-500 text-teal-600 cursor-default'
                                                 : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
                                         } ${index === 0 ? 'rounded-l-md' : ''} ${
                                             index === companies.links.length - 1 ? 'rounded-r-md' : ''
-                                        }`}
+                                        } ${!link.url ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
                                         dangerouslySetInnerHTML={{ __html: link.label }}
                                     />
                                 ))}
@@ -409,4 +471,5 @@ const CompaniesTable = ({
     );
 };
 
+// INI YANG PENTING: Export sebagai default
 export default CompaniesTable;

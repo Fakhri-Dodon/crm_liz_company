@@ -9,6 +9,7 @@ use App\Models\Quotation;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
 
@@ -90,6 +91,7 @@ class CompanyController extends Controller
                 'vat_number' => $company->vat_number,
                 'nib' => $company->nib,
                 'website' => $company->website,
+                'logo_path' => $company->logo_path,
                 'is_active' => $company->is_active,
                 'created_at' => $company->created_at->format('d M Y'),
                 'updated_at' => $company->updated_at->format('d M Y'),
@@ -176,7 +178,7 @@ class CompanyController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'company_name' => 'required|string|max:255',
-            'client_type_id' => 'required|exists:client_type,id',
+            'client_type_id' => 'required|exists:client_types,id',
             'status' => 'required|in:active,inactive',
             'address' => 'nullable|string',
             'city' => 'nullable|string|max:100',
@@ -192,11 +194,16 @@ class CompanyController extends Controller
             'contact_position' => 'nullable|string|max:100',
             'logo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
             'quotation_id' => 'nullable|exists:quotations,id',
+        ], [
+            'contact_email.unique' => 'The contact email has already been taken.',
+            'client_type_id.exists' => 'The selected client type is invalid.',
+            'quotation_id.exists' => 'The selected quotation is invalid.',
         ]);
 
         if ($validator->fails()) {
             return response()->json([
                 'success' => false,
+                'message' => 'Validation failed',
                 'errors' => $validator->errors()
             ], 422);
         }
@@ -219,23 +226,39 @@ class CompanyController extends Controller
                 if ($quotation && $quotation->lead_id) {
                     $leadId = $quotation->lead_id;
                     
-                    if (empty($companyName)) {
-                        $lead = Lead::find($leadId);
-                        if ($lead) {
+                    // Update quotation status
+                    $quotation->update([
+                        'status' => 'converted',
+                        'updated_by' => auth()->id()
+                    ]);
+                    
+                    // Update lead status
+                    $lead = Lead::find($leadId);
+                    if ($lead) {
+                        $lead->update(['status' => 'converted']);
+                        
+                        if (empty($companyName)) {
                             $companyName = $lead->company_name ?? $request->company_name;
                         }
                     }
                 }
             }
 
+            // Jika ada lead yang dipilih dari select
+            if ($request->filled('lead_id')) {
+                $leadId = $request->lead_id;
+                $lead = Lead::find($leadId);
+                if ($lead && empty($companyName)) {
+                    $companyName = $lead->company_name ?? $request->company_name;
+                }
+            }
+
             // Create company
-            $company = Company::create([
-                'id' => (string) Str::orderedUuid(),
-                'client_code' => 'CL-' . strtoupper(uniqid()),
-                'name' => $companyName,
+            $companyData = [
                 'client_type_id' => $request->client_type_id,
                 'lead_id' => $leadId,
                 'quotation_id' => $request->quotation_id,
+                'name' => $companyName,
                 'address' => $request->address,
                 'city' => $request->city,
                 'province' => $request->province,
@@ -251,15 +274,22 @@ class CompanyController extends Controller
                 'website' => $request->website,
                 'logo_path' => $logoPath,
                 'is_active' => $request->status === 'active',
-                'created_by' => auth()->id(),
-            ]);
+            ];
+
+            $company = Company::create($companyData);
 
             DB::commit();
 
             return response()->json([
                 'success' => true,
                 'message' => 'Client created successfully!',
-                'data' => $company
+                'data' => [
+                    'id' => $company->id,
+                    'name' => $company->name,
+                    'email' => $company->email,
+                    'client_code' => $company->client_code,
+                    'client_type_name' => $company->clientType->name ?? 'N/A',
+                ]
             ], 201);
 
         } catch (\Exception $e) {
@@ -269,7 +299,8 @@ class CompanyController extends Controller
             
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to create client: ' . $e->getMessage()
+                'message' => 'Failed to create client. Please try again.',
+                'error' => env('APP_DEBUG') ? $e->getMessage() : null
             ], 500);
         }
     }
@@ -278,7 +309,7 @@ class CompanyController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'company_name' => 'required|string|max:255',
-            'client_type_id' => 'required|exists:client_type,id',
+            'client_type_id' => 'required|exists:client_types,id',
             'status' => 'required|in:active,inactive',
             'address' => 'nullable|string',
             'city' => 'nullable|string|max:100',
@@ -320,9 +351,18 @@ class CompanyController extends Controller
                 if ($quotation && $quotation->lead_id) {
                     $leadId = $quotation->lead_id;
                     
-                    if (empty($companyName)) {
-                        $lead = Lead::find($leadId);
-                        if ($lead) {
+                    // Update quotation status
+                    $quotation->update([
+                        'status' => 'converted',
+                        'updated_by' => auth()->id()
+                    ]);
+                    
+                    // Update lead status
+                    $lead = Lead::find($leadId);
+                    if ($lead) {
+                        $lead->update(['status' => 'converted']);
+                        
+                        if (empty($companyName)) {
                             $companyName = $lead->company_name ?? $request->company_name;
                         }
                     }
@@ -330,13 +370,11 @@ class CompanyController extends Controller
             }
 
             // Create company
-            $company = Company::create([
-                'id' => (string) Str::orderedUuid(),
-                'client_code' => 'CL-' . strtoupper(uniqid()),
-                'name' => $companyName,
+            $companyData = [
                 'client_type_id' => $request->client_type_id,
                 'lead_id' => $leadId,
                 'quotation_id' => $request->quotation_id,
+                'name' => $companyName,
                 'address' => $request->address,
                 'city' => $request->city,
                 'province' => $request->province,
@@ -352,8 +390,9 @@ class CompanyController extends Controller
                 'website' => $request->website,
                 'logo_path' => $logoPath,
                 'is_active' => $request->status === 'active',
-                'created_by' => auth()->id(),
-            ]);
+            ];
+
+            $company = Company::create($companyData);
 
             DB::commit();
 
@@ -388,7 +427,7 @@ class CompanyController extends Controller
                 'client_type' => $company->clientType->name ?? 'N/A',
                 'client_type_id' => $company->client_type_id,
                 'lead_id' => $company->lead_id,
-                'lead_name' => $company->lead->name ?? 'N/A',
+                'lead_name' => $company->lead->company_name ?? 'N/A',
                 'quotation_id' => $company->quotation_id,
                 'quotation_number' => $company->quotation->quotation_number ?? 'N/A',
                 'client_since' => $company->client_since ? $company->client_since->format('d M Y') : null,
@@ -397,6 +436,7 @@ class CompanyController extends Controller
                 'nib' => $company->nib,
                 'website' => $company->website,
                 'logo_path' => $company->logo_path,
+                'logo_url' => $company->logo_path ? Storage::url($company->logo_path) : null,
                 'is_active' => $company->is_active,
                 'created_by_name' => $company->creator->name ?? 'N/A',
                 'updated_by_name' => $company->updater->name ?? 'N/A',
@@ -412,7 +452,7 @@ class CompanyController extends Controller
         $company->load(['clientType', 'lead', 'quotation']);
 
         $clientTypes = ClientType::select('id', 'name')->get();
-        $leads = Lead::select('id', 'name')->get();
+        $leads = Lead::select('id', 'company_name')->get();
         $quotations = Quotation::select('id', 'quotation_number')->get();
 
         return Inertia::render('Companies/Edit', [
@@ -436,6 +476,8 @@ class CompanyController extends Controller
                 'vat_number' => $company->vat_number,
                 'nib' => $company->nib,
                 'website' => $company->website,
+                'logo_path' => $company->logo_path,
+                'logo_url' => $company->logo_path ? Storage::url($company->logo_path) : null,
                 'is_active' => $company->is_active,
             ],
             'clientTypes' => $clientTypes,
@@ -448,10 +490,9 @@ class CompanyController extends Controller
     public function update(Request $request, Company $company)
     {
         $validator = Validator::make($request->all(), [
-            'client_type_id' => 'required|exists:client_type,id',
+            'client_type_id' => 'required|exists:client_types,id',
             'lead_id' => 'nullable|exists:leads,id',
             'quotation_id' => 'nullable|exists:quotations,id',
-            'client_code' => 'nullable|string|max:50|unique:companies,client_code,' . $company->id,
             'name' => 'required|string|max:255',
             'address' => 'nullable|string',
             'city' => 'nullable|string|max:100',
@@ -466,10 +507,23 @@ class CompanyController extends Controller
             'vat_number' => 'nullable|integer',
             'nib' => 'nullable|string|max:50',
             'website' => 'nullable|url|max:255',
+            'logo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
             'is_active' => 'required|boolean',
+        ], [
+            'email.unique' => 'The email has already been taken.',
+            'client_type_id.exists' => 'The selected client type is invalid.',
+            'lead_id.exists' => 'The selected lead is invalid.',
+            'quotation_id.exists' => 'The selected quotation is invalid.',
         ]);
 
         if ($validator->fails()) {
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'errors' => $validator->errors()
+                ], 422);
+            }
+            
             return redirect()->back()
                 ->withErrors($validator)
                 ->withInput();
@@ -478,11 +532,10 @@ class CompanyController extends Controller
         try {
             DB::beginTransaction();
 
-            $company->update([
+            $updateData = [
                 'client_type_id' => $request->client_type_id,
                 'lead_id' => $request->lead_id,
                 'quotation_id' => $request->quotation_id,
-                'client_code' => $request->client_code,
                 'name' => $request->name,
                 'address' => $request->address,
                 'city' => $request->city,
@@ -498,17 +551,52 @@ class CompanyController extends Controller
                 'nib' => $request->nib,
                 'website' => $request->website,
                 'is_active' => $request->is_active,
-                'updated_by' => auth()->id(),
-            ]);
+            ];
+
+            // Handle logo upload
+            if ($request->hasFile('logo')) {
+                // Delete old logo if exists
+                if ($company->logo_path) {
+                    Storage::disk('public')->delete($company->logo_path);
+                }
+                
+                $updateData['logo_path'] = $request->file('logo')->store('company-logos', 'public');
+            }
+
+            // Delete logo if requested
+            if ($request->has('delete_logo') && $request->delete_logo == '1') {
+                if ($company->logo_path) {
+                    Storage::disk('public')->delete($company->logo_path);
+                    $updateData['logo_path'] = null;
+                }
+            }
+
+            $company->update($updateData);
 
             DB::commit();
 
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Client updated successfully!',
+                    'data' => $company
+                ]);
+            }
+
             return redirect()->route('companies.index')
-                ->with('success', 'Company updated successfully!');
+                ->with('success', 'Client updated successfully!');
         } catch (\Exception $e) {
             DB::rollBack();
+            
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Failed to update client: ' . $e->getMessage()
+                ], 500);
+            }
+            
             return redirect()->back()
-                ->with('error', 'Failed to update company: ' . $e->getMessage())
+                ->with('error', 'Failed to update client: ' . $e->getMessage())
                 ->withInput();
         }
     }
@@ -527,23 +615,79 @@ class CompanyController extends Controller
 
             DB::commit();
 
+            if (request()->ajax() || request()->wantsJson()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Client deleted successfully!'
+                ]);
+            }
+
             return redirect()->route('companies.index')
-                ->with('success', 'Company deleted successfully!');
+                ->with('success', 'Client deleted successfully!');
         } catch (\Exception $e) {
             DB::rollBack();
+            
+            if (request()->ajax() || request()->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Failed to delete client: ' . $e->getMessage()
+                ], 500);
+            }
+            
             return redirect()->back()
-                ->with('error', 'Failed to delete company: ' . $e->getMessage());
+                ->with('error', 'Failed to delete client: ' . $e->getMessage());
+        }
+    }
+
+    // Force delete company permanently
+    public function forceDelete($id)
+    {
+        try {
+            DB::beginTransaction();
+
+            $company = Company::withTrashed()->findOrFail($id);
+            
+            // Delete logo if exists
+            if ($company->logo_path) {
+                Storage::disk('public')->delete($company->logo_path);
+            }
+            
+            $company->forceDelete();
+
+            DB::commit();
+
+            if (request()->ajax() || request()->wantsJson()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Client permanently deleted!'
+                ]);
+            }
+
+            return redirect()->route('companies.index')
+                ->with('success', 'Client permanently deleted!');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            
+            if (request()->ajax() || request()->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Failed to delete client: ' . $e->getMessage()
+                ], 500);
+            }
+            
+            return redirect()->back()
+                ->with('error', 'Failed to delete client: ' . $e->getMessage());
         }
     }
 
     // Restore deleted company
     public function restore($id)
     {
-        $company = Company::withTrashed()->findOrFail($id);
-
         try {
             DB::beginTransaction();
 
+            $company = Company::withTrashed()->findOrFail($id);
+            
             $company->update([
                 'deleted' => false,
                 'deleted_at' => null,
@@ -552,12 +696,28 @@ class CompanyController extends Controller
 
             DB::commit();
 
+            if (request()->ajax() || request()->wantsJson()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Client restored successfully!',
+                    'data' => $company
+                ]);
+            }
+
             return redirect()->route('companies.index')
-                ->with('success', 'Company restored successfully!');
+                ->with('success', 'Client restored successfully!');
         } catch (\Exception $e) {
             DB::rollBack();
+            
+            if (request()->ajax() || request()->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Failed to restore client: ' . $e->getMessage()
+                ], 500);
+            }
+            
             return redirect()->back()
-                ->with('error', 'Failed to restore company: ' . $e->getMessage());
+                ->with('error', 'Failed to restore client: ' . $e->getMessage());
         }
     }
 
@@ -582,7 +742,7 @@ class CompanyController extends Controller
             DB::rollBack();
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to update status'
+                'message' => 'Failed to update status: ' . $e->getMessage()
             ], 500);
         }
     }
@@ -592,6 +752,7 @@ class CompanyController extends Controller
     {
         $query = Company::select('id', 'client_code', 'name', 'client_type_id')
             ->where('is_active', true)
+            ->where('deleted', false)
             ->with(['clientType:id,name']);
 
         if ($request->filled('search')) {
@@ -605,7 +766,10 @@ class CompanyController extends Controller
 
         $companies = $query->orderBy('name')->limit(50)->get();
 
-        return response()->json($companies);
+        return response()->json([
+            'success' => true,
+            'data' => $companies
+        ]);
     }
 
     // Get leads for company creation
@@ -646,5 +810,67 @@ class CompanyController extends Controller
             'success' => true,
             'data' => $leads
         ]);
+    }
+
+    // Bulk actions
+    public function bulkActions(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'action' => 'required|in:activate,deactivate,delete',
+            'ids' => 'required|array',
+            'ids.*' => 'required|exists:companies,id'
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        try {
+            DB::beginTransaction();
+
+            $action = $request->action;
+            $ids = $request->ids;
+
+            switch ($action) {
+                case 'activate':
+                    Company::whereIn('id', $ids)->update(['is_active' => true]);
+                    $message = 'Selected clients activated successfully!';
+                    break;
+                    
+                case 'deactivate':
+                    Company::whereIn('id', $ids)->update(['is_active' => false]);
+                    $message = 'Selected clients deactivated successfully!';
+                    break;
+                    
+                case 'delete':
+                    Company::whereIn('id', $ids)->update([
+                        'deleted' => true,
+                        'deleted_at' => now(),
+                        'deleted_by' => auth()->id()
+                    ]);
+                    $message = 'Selected clients deleted successfully!';
+                    break;
+                    
+                default:
+                    throw new \Exception('Invalid action');
+            }
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => $message
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to perform bulk action: ' . $e->getMessage()
+            ], 500);
+        }
     }
 }

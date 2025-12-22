@@ -101,6 +101,9 @@ Route::middleware(['auth:sanctum', 'verified'])->group(function () {
     Route::get('/companies/{company}/edit', [CompanyController::class, 'edit'])->name('companies.edit');
     Route::put('/companies/{company}', [CompanyController::class, 'update'])->name('companies.update');
     Route::delete('/companies/{company}', [CompanyController::class, 'destroy'])->name('companies.destroy');
+    // Tambahkan route ini
+    Route::delete('/companies/force-delete/{id}', [CompanyController::class, 'forceDelete'])
+        ->name('companies.force-delete');
 });
 
 require __DIR__.'/auth.php';

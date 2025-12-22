@@ -1,27 +1,21 @@
 // resources/js/Pages/Companies/Index.jsx
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Head, Link, usePage, router } from '@inertiajs/react';
 import HeaderLayout from '@/Layouts/HeaderLayout';
-import TableLayout from '@/Layouts/TableLayout';
 import CompaniesTable from '@/Components/Companies/CompaniesTable';
 import Create from '@/Components/Companies/Create';
+import EditModal from '@/Components/Companies/EditModal';
+import DeleteModal from '@/Components/Companies/DeleteModal';
 import { 
-    PlusCircle, 
-    Edit, 
-    Trash2,
-    Phone,
-    Mail,
-    Search,
     FileText,
     Building,
-    User,
-    Calendar,
+    Search,
     Filter,
     X,
-    ChevronLeft,
-    ChevronRight,
-    MoreVertical,
-    AlertCircle
+    Calendar,
+    Phone,
+    Mail,
+    User
 } from 'lucide-react';
 
 const CompaniesIndex = () => {
@@ -31,31 +25,14 @@ const CompaniesIndex = () => {
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
     const [showMobileFilters, setShowMobileFilters] = useState(false);
     const [isMobile, setIsMobile] = useState(false);
-    const [visibleColumns, setVisibleColumns] = useState([]);
+    const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+    const [selectedCompany, setSelectedCompany] = useState(null);
+    const [selectedCompanies, setSelectedCompanies] = useState([]);
 
-    // Check screen size on mount and resize
+    // Check screen size
     useEffect(() => {
-        const checkMobile = () => {
-            const mobile = window.innerWidth < 768;
-            setIsMobile(mobile);
-            
-            // Update visible columns based on screen size
-            const columns = [
-                { key: 'name', label: 'Client Name', showOnMobile: true },
-                { key: 'address', label: 'Address', showOnMobile: false },
-                { key: 'contact', label: 'Contact Person', showOnMobile: false },
-                { key: 'email', label: 'Email & Phone', showOnMobile: true },
-                { key: 'status', label: 'Status', showOnMobile: true },
-                { key: 'actions', label: 'Actions', showOnMobile: true }
-            ];
-            
-            const visible = mobile 
-                ? columns.filter(col => col.showOnMobile).map(col => col.label)
-                : columns.map(col => col.label);
-            
-            setVisibleColumns(visible);
-        };
-
+        const checkMobile = () => setIsMobile(window.innerWidth < 768);
         checkMobile();
         window.addEventListener('resize', checkMobile);
         return () => window.removeEventListener('resize', checkMobile);
@@ -68,20 +45,20 @@ const CompaniesIndex = () => {
         }
     }, [fromQuotation, quotationId]);
 
-    // Handle search with debounce
-    const handleSearch = (value) => {
-        setSearch(value);
+    // Handle search
+    const handleSearch = useCallback((value) => {
         router.get('/companies', { 
             search: value,
             client_type_id: selectedType,
         }, {
             preserveState: true,
             replace: true,
+            only: ['companies', 'filters', 'statistics']
         });
-    };
+    }, [selectedType]);
 
     // Handle type filter
-    const handleTypeFilter = (typeId) => {
+    const handleTypeFilter = useCallback((typeId) => {
         const newType = typeId === selectedType ? '' : typeId;
         setSelectedType(newType);
         router.get('/companies', { 
@@ -89,10 +66,11 @@ const CompaniesIndex = () => {
             client_type_id: newType,
         }, {
             preserveState: true,
-            replace: true
+            replace: true,
+            only: ['companies', 'filters', 'statistics']
         });
         setShowMobileFilters(false);
-    };
+    }, [search, selectedType]);
 
     // Clear all filters
     const clearFilters = () => {
@@ -100,9 +78,105 @@ const CompaniesIndex = () => {
         setSelectedType('');
         router.get('/companies', {}, {
             preserveState: true,
-            replace: true
+            replace: true,
+            only: ['companies', 'filters', 'statistics']
         });
     };
+
+    // Handle successful client creation
+    const handleClientCreated = () => {
+        setIsCreateModalOpen(false);
+        // Refresh the page data without full reload
+        router.reload({ 
+            only: ['companies', 'statistics'],
+            preserveScroll: true 
+        });
+    };
+
+    // Fungsi untuk handle edit
+    const handleEditClick = (company) => {
+        setSelectedCompany(company);
+        setIsEditModalOpen(true);
+    };
+
+    // Fungsi untuk handle delete
+    const handleDeleteClick = (company) => {
+        setSelectedCompany(company);
+        setIsDeleteModalOpen(true);
+    };
+
+    // Fungsi untuk handle update success
+    const handleUpdateSuccess = (updatedCompany) => {
+        setIsEditModalOpen(false);
+        setSelectedCompany(null);
+        // Refresh data
+        router.reload({ 
+            only: ['companies', 'statistics'],
+            preserveScroll: true 
+        });
+    };
+
+    // Fungsi untuk handle delete success
+    const handleDeleteSuccess = async (deleteType) => {
+        if (!selectedCompany) return;
+
+        try {
+            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+            
+            let url = `/companies/${selectedCompany.id}`;
+            if (deleteType === 'permanent') {
+                url = `/companies/force-delete/${selectedCompany.id}`;
+            }
+
+            const response = await fetch(url, {
+                method: deleteType === 'permanent' ? 'DELETE' : 'POST',
+                headers: {
+                    'X-CSRF-TOKEN': csrfToken,
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Accept': 'application/json',
+                },
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(data.message || 'Failed to delete');
+            }
+
+            alert(data.message || 'Client deleted successfully!');
+            setIsDeleteModalOpen(false);
+            setSelectedCompany(null);
+            
+            // Refresh data
+            router.reload({ 
+                only: ['companies', 'statistics'],
+                preserveScroll: true 
+            });
+        } catch (error) {
+            console.error('Delete error:', error);
+            throw error;
+        }
+    };
+
+    // Fungsi untuk bulk delete
+    const handleBulkDelete = () => {
+        if (selectedCompanies.length === 0) {
+            alert('Please select at least one client to delete.');
+            return;
+        }
+        setIsDeleteModalOpen(true);
+    };
+
+    // Handle search input with debounce
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            if (search !== filters.search) {
+                handleSearch(search);
+            }
+        }, 500);
+
+        return () => clearTimeout(timer);
+    }, [search]);
 
     // Define color mapping for different client types
     const getTypeColor = (typeName) => {
@@ -156,7 +230,7 @@ const CompaniesIndex = () => {
                 {/* Header Section */}
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pt-4 md:pt-0">
                     <div>
-                        <h1 className="text-2xl md:text-3xl font-bold text-gray-900">CLIENT</h1>
+                        <h1 className="text-2xl md:text-3xl font-bold text-gray-900">CLIENT MANAGEMENT</h1>
                         <p className="text-sm md:text-base text-gray-600 mt-1">Manage your client portfolio</p>
                     </div>
                     
@@ -185,17 +259,44 @@ const CompaniesIndex = () => {
                         className="w-full sm:w-auto flex items-center justify-center gap-2 bg-teal-700 hover:bg-teal-800 text-white px-4 md:px-6 py-2.5 md:py-3 rounded-lg font-medium transition-colors shadow-md"
                     >
                         <FileText className="w-4 h-4 md:w-5 md:h-5" />
-                        <span className="text-sm md:text-base">Add Quotation</span>
+                        <span className="text-sm md:text-base">Add New Client</span>
                     </button>
                 </div>
 
                 {/* Create Modal */}
-                <Create 
-                    isOpen={isCreateModalOpen}
-                    onClose={() => setIsCreateModalOpen(false)}
-                    clientTypes={types}
-                    quotationId={quotationId}
-                />
+                {isCreateModalOpen && (
+                    <Create 
+                        isOpen={isCreateModalOpen}
+                        onClose={() => setIsCreateModalOpen(false)}
+                        clientTypes={types}
+                        quotationId={quotationId}
+                        onSuccess={handleClientCreated}
+                    />
+                )}
+                {isEditModalOpen && selectedCompany && (
+                    <EditModal
+                        isOpen={isEditModalOpen}
+                        onClose={() => {
+                            setIsEditModalOpen(false);
+                            setSelectedCompany(null);
+                        }}
+                        company={selectedCompany}
+                        clientTypes={types}
+                        onUpdate={handleUpdateSuccess}
+                    />
+                )}
+
+                {isDeleteModalOpen && (
+                    <DeleteModal
+                        isOpen={isDeleteModalOpen}
+                        onClose={() => {
+                            setIsDeleteModalOpen(false);
+                            setSelectedCompany(null);
+                        }}
+                        company={selectedCompany}
+                        onDelete={handleDeleteSuccess}
+                    />
+                )}
 
                 {/* Stat Cards */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
@@ -223,7 +324,11 @@ const CompaniesIndex = () => {
                                 <div className="mt-3 md:mt-4">
                                     <button 
                                         onClick={() => handleTypeFilter(typeData.id)}
-                                        className={`text-xs md:text-sm ${selectedType === typeData.id ? colors.bg + ' ' + colors.color : 'text-gray-600 hover:text-gray-900'} px-2 md:px-3 py-1 rounded-full hover:bg-gray-100 transition w-full text-center`}
+                                        className={`text-xs md:text-sm ${
+                                            selectedType === typeData.id 
+                                                ? `${colors.bg} ${colors.color} font-medium` 
+                                                : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+                                        } px-2 md:px-3 py-1 rounded-full transition w-full text-center`}
                                     >
                                         {selectedType === typeData.id ? '✓ Filtered' : 'View All'}
                                     </button>
@@ -241,9 +346,9 @@ const CompaniesIndex = () => {
                             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4 md:w-5 md:h-5" />
                             <input
                                 type="text"
-                                placeholder="Search clients..."
+                                placeholder="Search clients by name, email, or phone..."
                                 value={search}
-                                onChange={(e) => handleSearch(e.target.value)}
+                                onChange={(e) => setSearch(e.target.value)}
                                 className="w-full pl-10 pr-4 py-2 md:py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-sm md:text-base"
                             />
                         </div>
@@ -255,7 +360,7 @@ const CompaniesIndex = () => {
                                 onChange={(e) => handleTypeFilter(e.target.value)}
                                 className="px-3 md:px-4 py-2 md:py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-sm md:text-base flex-1"
                             >
-                                <option value="">All Types</option>
+                                <option value="">All Client Types</option>
                                 {types.map(type => (
                                     <option key={type.id} value={type.id}>{type.name}</option>
                                 ))}
@@ -264,8 +369,9 @@ const CompaniesIndex = () => {
                             {(search || selectedType) && (
                                 <button
                                     onClick={clearFilters}
-                                    className="px-3 md:px-4 py-2 md:py-2.5 text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-lg border border-gray-300 text-sm md:text-base"
+                                    className="px-3 md:px-4 py-2 md:py-2.5 text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-lg border border-gray-300 text-sm md:text-base flex items-center gap-2"
                                 >
+                                    <X className="w-4 h-4" />
                                     Clear Filters
                                 </button>
                             )}
@@ -304,6 +410,16 @@ const CompaniesIndex = () => {
                                             Client Type
                                         </label>
                                         <div className="grid grid-cols-2 gap-2">
+                                            <button
+                                                onClick={() => handleTypeFilter('')}
+                                                className={`px-3 py-2 rounded-lg border text-sm ${
+                                                    !selectedType
+                                                        ? 'bg-teal-50 border-teal-500 text-teal-700'
+                                                        : 'border-gray-300 hover:bg-gray-50'
+                                                }`}
+                                            >
+                                                All Types
+                                            </button>
                                             {types.map(type => (
                                                 <button
                                                     key={type.id}
@@ -323,8 +439,9 @@ const CompaniesIndex = () => {
                                     {(search || selectedType) && (
                                         <button
                                             onClick={clearFilters}
-                                            className="w-full px-4 py-2.5 bg-red-50 text-red-700 rounded-lg border border-red-200 text-sm font-medium hover:bg-red-100"
+                                            className="w-full px-4 py-2.5 bg-red-50 text-red-700 rounded-lg border border-red-200 text-sm font-medium hover:bg-red-100 flex items-center justify-center gap-2"
                                         >
+                                            <X className="w-4 h-4" />
                                             Clear All Filters
                                         </button>
                                     )}
@@ -334,279 +451,131 @@ const CompaniesIndex = () => {
                     </div>
                 </div>
 
-                {/* Companies Table */}
+                {/* Companies Table Section */}
                 <div className="bg-white rounded-lg shadow-sm overflow-hidden">
-                    <div className="overflow-x-auto">
-                        <TableLayout columns={visibleColumns}>
-                            {companies.data.length > 0 ? (
-                                companies.data.map((company) => {
-                                    const colors = getTypeColor(company.client_type_name);
-                                    
-                                    return (
-                                        <tr key={company.id} className="hover:bg-gray-50 transition-colors border-b border-gray-200">
-                                            {/* Client Name */}
-                                            <td className="px-3 md:px-6 py-3 md:py-4">
-                                                <div className="flex items-center">
-                                                    <div className="flex-shrink-0 h-8 w-8 md:h-10 md:w-10 bg-gray-100 rounded-lg flex items-center justify-center">
-                                                        <Building className="w-3 h-3 md:w-4 md:h-4 text-gray-600" />
-                                                    </div>
-                                                    <div className="ml-2 md:ml-4 min-w-0 flex-1">
-                                                        <div className="font-medium text-gray-900 text-sm md:text-base truncate">
-                                                            {company.name}
-                                                        </div>
-                                                        <div className="text-xs text-gray-500 flex items-center gap-1 mt-1 flex-wrap">
-                                                            <span className="bg-gray-100 px-1.5 md:px-2 py-0.5 rounded text-xs">
-                                                                {company.client_code}
-                                                            </span>
-                                                            {company.client_since && !isMobile && (
-                                                                <span className="hidden md:flex items-center gap-1 text-xs">
-                                                                    <Calendar className="w-3 h-3" />
-                                                                    Since {company.client_since}
-                                                                </span>
-                                                            )}
-                                                        </div>
-                                                        {isMobile && (
-                                                            <div className="mt-2 space-y-1">
-                                                                <div className="flex items-center gap-1">
-                                                                    <User className="w-3 h-3 text-gray-400" />
-                                                                    <span className="text-xs text-gray-700 truncate">
-                                                                        {company.contact_person}
-                                                                    </span>
-                                                                </div>
-                                                                <div className="flex items-center gap-1">
-                                                                    <Mail className="w-3 h-3 text-gray-400" />
-                                                                    <span className="text-xs text-gray-600 truncate">
-                                                                        {company.email}
-                                                                    </span>
-                                                                </div>
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                </div>
-                                            </td>
-
-                                            {/* Address - Hidden on mobile */}
-                                            {!isMobile && (
-                                                <td className="px-6 py-4">
-                                                    <div className="text-sm text-gray-900 max-w-xs truncate">
-                                                        {company.address || 'No address'}
-                                                    </div>
-                                                </td>
-                                            )}
-
-                                            {/* Contact Person - Hidden on mobile */}
-                                            {!isMobile && (
-                                                <td className="px-6 py-4">
-                                                    <div className="flex items-center">
-                                                        <div className="flex-shrink-0 h-8 w-8 bg-teal-100 rounded-full flex items-center justify-center">
-                                                            <User className="w-3 h-3 md:w-4 md:h-4 text-teal-700" />
-                                                        </div>
-                                                        <div className="ml-3 min-w-0 flex-1">
-                                                            <div className="text-sm font-medium text-gray-900 truncate">
-                                                                {company.contact_person}
-                                                            </div>
-                                                            <div className="text-xs text-gray-500 truncate">
-                                                                {company.position || 'Contact Person'}
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                </td>
-                                            )}
-
-                                            {/* Email & Phone */}
-                                            {!isMobile ? (
-                                                <td className="px-6 py-4">
-                                                    <div className="space-y-2">
-                                                        <div className="flex items-center gap-2">
-                                                            <Mail className="w-4 h-4 text-gray-400 flex-shrink-0" />
-                                                            <span className="text-sm text-gray-900 truncate">{company.email}</span>
-                                                        </div>
-                                                        <div className="flex items-center gap-2">
-                                                            <Phone className="w-4 h-4 text-gray-400 flex-shrink-0" />
-                                                            <span className="text-sm bg-yellow-200 px-2 md:px-3 py-1 md:py-1.5 rounded font-medium">
-                                                                {company.phone}
-                                                            </span>
-                                                        </div>
-                                                    </div>
-                                                </td>
-                                            ) : (
-                                                <td className="px-3 py-3">
-                                                    <div className="flex items-center gap-2">
-                                                        <Phone className="w-4 h-4 text-gray-400" />
-                                                        <span className="text-sm bg-yellow-200 px-2 py-1 rounded font-medium truncate">
-                                                            {company.phone}
-                                                        </span>
-                                                    </div>
-                                                </td>
-                                            )}
-
-                                            {/* Status */}
-                                            <td className="px-3 md:px-6 py-3 md:py-4">
-                                                <div className="space-y-1">
-                                                    <span className={`inline-flex items-center px-2 md:px-3 py-1 md:py-1.5 rounded-full text-xs font-medium border ${colors.badgeBorder} ${colors.badgeText} bg-white`}>
-                                                        <span className={`w-1.5 h-1.5 md:w-2 md:h-2 rounded-full mr-1 md:mr-2 ${colors.badgeText.replace('text-', 'bg-')}`}></span>
-                                                        <span className="truncate">{company.client_type_name}</span>
-                                                    </span>
-                                                    <span className={`inline-flex items-center px-1.5 md:px-2 py-0.5 md:py-1 rounded text-xs ${
-                                                        company.is_active 
-                                                            ? 'bg-green-100 text-green-800' 
-                                                            : 'bg-gray-100 text-gray-800'
-                                                    }`}>
-                                                        {company.is_active ? 'Active' : 'Inactive'}
-                                                    </span>
-                                                </div>
-                                            </td>
-
-                                            {/* Actions */}
-                                            <td className="px-3 md:px-6 py-3 md:py-4">
-                                                <div className="flex items-center gap-1 md:gap-2">
-                                                    <Link
-                                                        href={route('companies.edit', company.id)}
-                                                        className="text-blue-600 hover:text-blue-900 p-1.5 md:p-2 hover:bg-blue-50 rounded-lg transition"
-                                                        title="Edit"
-                                                    >
-                                                        <Edit className="w-4 h-4 md:w-5 md:h-5" />
-                                                    </Link>
-                                                    <button
-                                                        onClick={() => {
-                                                            if (confirm('Are you sure you want to delete this client?')) {
-                                                                router.delete(route('companies.destroy', company.id));
-                                                            }
-                                                        }}
-                                                        className="text-red-600 hover:text-red-900 p-1.5 md:p-2 hover:bg-red-50 rounded-lg transition"
-                                                        title="Delete"
-                                                    >
-                                                        <Trash2 className="w-4 h-4 md:w-5 md:h-5" />
-                                                    </button>
-                                                    {isMobile && (
-                                                        <button
-                                                            className="text-gray-600 hover:text-gray-900 p-1.5 hover:bg-gray-100 rounded-lg transition"
-                                                            title="More options"
-                                                        >
-                                                            <MoreVertical className="w-4 h-4" />
-                                                        </button>
-                                                    )}
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    );
-                                })
-                            ) : (
-                                <tr>
-                                    <td colSpan={visibleColumns.length} className="px-3 md:px-6 py-8 md:py-12 text-center">
-                                        <div className="text-gray-500">
-                                            <Building className="w-12 h-12 md:w-16 md:h-16 mx-auto mb-3 md:mb-4 text-gray-300" />
-                                            <div className="text-base md:text-lg font-medium mb-2">No clients found</div>
-                                            <p className="text-xs md:text-sm text-gray-400 mb-4 px-4">
-                                                {search || selectedType ? 'Try adjusting your search or filter' : 'Get started by adding your first client'}
-                                            </p>
-                                            <button 
-                                                onClick={() => setIsCreateModalOpen(true)}
-                                                className="inline-flex items-center gap-2 bg-teal-700 hover:bg-teal-800 text-white px-3 md:px-4 py-2 md:py-2 rounded-lg font-medium transition-colors text-sm md:text-base"
-                                            >
-                                                <FileText className="w-4 h-4 md:w-5 md:h-5" />
-                                                Add Client
-                                            </button>
-                                        </div>
-                                    </td>
-                                </tr>
-                            )}
-                        </TableLayout>
-                    </div>
-
-                    {/* Pagination */}
-                    {companies.data.length > 0 && (
-                        <div className="px-3 md:px-6 py-3 md:py-4 border-t border-gray-200">
-                            <div className="flex flex-col sm:flex-row items-center justify-between gap-3 md:gap-4">
-                                <div className="text-xs md:text-sm text-gray-700">
-                                    Showing <span className="font-medium">{companies.from}</span> to{' '}
-                                    <span className="font-medium">{companies.to}</span> of{' '}
-                                    <span className="font-medium">{companies.total}</span> results
+                    <div className="p-4 border-b border-gray-200">
+                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                            <div>
+                                <h2 className="text-lg font-semibold text-gray-900">Client List</h2>
+                                <p className="text-sm text-gray-600 mt-1">
+                                    {companies.total} total clients • {statistics.active} active • {statistics.inactive} inactive
+                                </p>
+                            </div>
+                            <div className="flex items-center gap-3">
+                                <div className="text-sm text-gray-600">
+                                    Showing {companies.from || 0} to {companies.to || 0} of {companies.total || 0} results
                                 </div>
-                                
-                                <nav className="flex items-center">
-                                    {isMobile ? (
-                                        <div className="flex items-center gap-2">
-                                            {companies.links[0].url && (
-                                                <Link
-                                                    href={companies.links[0].url}
-                                                    className="p-2 border border-gray-300 rounded-lg bg-white text-gray-500 hover:bg-gray-50"
-                                                    title="Previous"
-                                                >
-                                                    <ChevronLeft className="w-4 h-4" />
-                                                </Link>
-                                            )}
-                                            <div className="text-sm text-gray-700">
-                                                Page {companies.current_page} of {companies.last_page}
-                                            </div>
-                                            {companies.links[companies.links.length - 1].url && (
-                                                <Link
-                                                    href={companies.links[companies.links.length - 1].url}
-                                                    className="p-2 border border-gray-300 rounded-lg bg-white text-gray-500 hover:bg-gray-50"
-                                                    title="Next"
-                                                >
-                                                    <ChevronRight className="w-4 h-4" />
-                                                </Link>
-                                            )}
-                                        </div>
-                                    ) : (
-                                        <div className="flex items-center gap-1">
-                                            {companies.links.map((link, index) => (
-                                                <Link
-                                                    key={index}
-                                                    href={link.url || '#'}
-                                                    className={`relative inline-flex items-center px-2 md:px-3 py-1.5 md:py-2 text-sm font-medium border ${
-                                                        link.active
-                                                            ? 'z-10 bg-teal-50 border-teal-500 text-teal-600'
-                                                            : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
-                                                    } ${index === 0 ? 'rounded-l-md' : ''} ${
-                                                        index === companies.links.length - 1 ? 'rounded-r-md' : ''
-                                                    }`}
-                                                    dangerouslySetInnerHTML={{ __html: link.label }}
-                                                />
-                                            ))}
-                                        </div>
-                                    )}
-                                </nav>
                             </div>
                         </div>
-                    )}
+                    </div>
+
+                    {/* Companies Table Component */}
+                    <CompaniesTable 
+                        companies={companies}
+                        filters={{ search, client_type_id: selectedType }}
+                        onSearch={handleSearch}
+                        onFilterChange={handleTypeFilter}
+                        showActions={true}
+                    />
                 </div>
 
                 {/* Quick Summary */}
                 <div className="bg-white rounded-lg shadow-sm p-3 md:p-6">
                     <h3 className="text-base md:text-lg font-semibold text-gray-900 mb-3 md:mb-4">Quick Summary</h3>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-4">
-                        <div className="text-center p-2 md:p-4 border border-gray-200 rounded-lg">
-                            <div className="text-lg md:text-2xl font-bold text-gray-900">{statistics.total}</div>
+                        <div className="text-center p-2 md:p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+                            <div className="text-lg md:text-2xl font-bold text-gray-900">{statistics.total || 0}</div>
                             <div className="text-xs md:text-sm text-gray-600">Total Clients</div>
                         </div>
-                        <div className="text-center p-2 md:p-4 border border-gray-200 rounded-lg">
-                            <div className="text-lg md:text-2xl font-bold text-green-600">{statistics.active}</div>
+                        <div className="text-center p-2 md:p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+                            <div className="text-lg md:text-2xl font-bold text-green-600">{statistics.active || 0}</div>
                             <div className="text-xs md:text-sm text-gray-600">Active</div>
                         </div>
-                        <div className="text-center p-2 md:p-4 border border-gray-200 rounded-lg">
-                            <div className="text-lg md:text-2xl font-bold text-red-600">{statistics.inactive}</div>
+                        <div className="text-center p-2 md:p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+                            <div className="text-lg md:text-2xl font-bold text-red-600">{statistics.inactive || 0}</div>
                             <div className="text-xs md:text-sm text-gray-600">Inactive</div>
                         </div>
-                        <div className="text-center p-2 md:p-4 border border-gray-200 rounded-lg">
-                            <div className="text-lg md:text-2xl font-bold text-teal-600">{companies.total}</div>
-                            <div className="text-xs md:text-sm text-gray-600">Showing</div>
+                        <div className="text-center p-2 md:p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+                            <div className="text-lg md:text-2xl font-bold text-teal-600">{companies.data?.length || 0}</div>
+                            <div className="text-xs md:text-sm text-gray-600">Currently Displayed</div>
                         </div>
                     </div>
+                    
+                    {/* Additional Stats */}
+                    <div className="mt-4 md:mt-6 pt-4 md:pt-6 border-t border-gray-200">
+                        <h4 className="text-sm md:text-base font-medium text-gray-900 mb-2 md:mb-3">Client Distribution</h4>
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-4">
+                            {statistics.client_types?.map((type) => {
+                                const colors = getTypeColor(type.name);
+                                const percentage = statistics.total > 0 
+                                    ? Math.round((type.count / statistics.total) * 100) 
+                                    : 0;
+                                
+                                return (
+                                    <div key={type.id} className="text-center p-2 md:p-3 border border-gray-200 rounded-lg">
+                                        <div className={`text-base md:text-xl font-bold ${colors.color}`}>
+                                            {type.count}
+                                        </div>
+                                        <div className="text-xs text-gray-600 mt-1">{type.name}</div>
+                                        <div className="mt-1">
+                                            <div className="w-full bg-gray-200 rounded-full h-1.5">
+                                                <div 
+                                                    className={`h-1.5 rounded-full ${colors.bg.replace('bg-', 'bg-')}`}
+                                                    style={{ width: `${percentage}%` }}
+                                                ></div>
+                                            </div>
+                                            <div className="text-xs text-gray-500 mt-1">{percentage}%</div>
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </div>
+                </div>
+
+                {/* Help Section */}
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 md:p-6">
+                    <h3 className="text-base md:text-lg font-semibold text-blue-900 mb-2 flex items-center gap-2">
+                        <FileText className="w-5 h-5" />
+                        Need Help?
+                    </h3>
+                    <p className="text-sm text-blue-800 mb-3">
+                        Tips for managing your clients effectively:
+                    </p>
+                    <ul className="text-sm text-blue-700 space-y-1 list-disc pl-5">
+                        <li>Use the search bar to quickly find specific clients</li>
+                        <li>Filter by client type to organize your portfolio</li>
+                        <li>Click on any client to view detailed information</li>
+                        <li>Use the "Add New Client" button to expand your client base</li>
+                    </ul>
                 </div>
             </div>
 
             {/* Mobile bottom action bar */}
             {isMobile && (
                 <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-lg p-3 z-40 md:hidden">
-                    <button 
-                        onClick={() => setIsCreateModalOpen(true)}
-                        className="w-full flex items-center justify-center gap-2 bg-teal-700 hover:bg-teal-800 text-white px-4 py-3 rounded-lg font-medium transition-colors shadow-md"
-                    >
-                        <FileText className="w-5 h-5" />
-                        Add Quotation
-                    </button>
+                    <div className="flex items-center justify-between">
+                        <div className="text-xs text-gray-600">
+                            <div className="font-medium">{companies.total || 0} clients</div>
+                            <div className="flex items-center gap-2 mt-1">
+                                <span className="flex items-center gap-1">
+                                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                                    <span>{statistics.active || 0} active</span>
+                                </span>
+                                <span className="flex items-center gap-1">
+                                    <div className="w-2 h-2 bg-red-500 rounded-full"></div>
+                                    <span>{statistics.inactive || 0} inactive</span>
+                                </span>
+                            </div>
+                        </div>
+                        <button 
+                            onClick={() => setIsCreateModalOpen(true)}
+                            className="flex items-center justify-center gap-2 bg-teal-700 hover:bg-teal-800 text-white px-4 py-3 rounded-lg font-medium transition-colors shadow-md"
+                        >
+                            <FileText className="w-5 h-5" />
+                            Add Client
+                        </button>
+                    </div>
                 </div>
             )}
         </HeaderLayout>

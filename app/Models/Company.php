@@ -4,10 +4,12 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Facades\Storage;
 
 class Company extends Model
 {
-    use HasFactory;
+    use HasFactory, SoftDeletes;
 
     protected $table = 'companies';
     protected $primaryKey = 'id';
@@ -22,6 +24,9 @@ class Company extends Model
         'client_code',
         'name',
         'address',
+        'city',
+        'province',
+        'country',
         'contact_person',
         'position',
         'email',
@@ -29,14 +34,13 @@ class Company extends Model
         'client_since',
         'postal_code',
         'vat_number',
+        'nib',
+        'website',
+        'logo_path',
         'is_active',
-        'nib',           // Tambahkan
-        'website',       // Tambahkan
-        'logo_path',     // Tambahkan
         'created_by',
         'updated_by',
         'deleted_by',
-        'deleted_at',
         'deleted'
     ];
 
@@ -45,8 +49,13 @@ class Company extends Model
         'postal_code' => 'integer',
         'vat_number' => 'integer',
         'is_active' => 'boolean',
-        'deleted' => 'boolean'
+        'deleted' => 'boolean',
+        'created_at' => 'datetime',
+        'updated_at' => 'datetime',
+        'deleted_at' => 'datetime'
     ];
+
+    protected $appends = ['logo_url', 'status'];
 
     public static function boot()
     {
@@ -79,15 +88,36 @@ class Company extends Model
     protected static function booted()
     {
         static::addGlobalScope('active', function ($query) {
-            $query->where('deleted', 0)
-                  ->whereNull('deleted_at');
+            $query->where('deleted', 0);
         });
     }
 
+    // Accessors
     public function getLogoUrlAttribute()
     {
         return $this->logo_path ? Storage::url($this->logo_path) : null;
     }
+
+    public function getStatusAttribute()
+    {
+        return $this->is_active ? 'Active' : 'Inactive';
+    }
+
+    public function getTypeAttribute()
+    {
+        return $this->clientType ? $this->clientType->name : null;
+    }
+
+    public function getClientSinceFormattedAttribute()
+    {
+        return $this->client_since ? $this->client_since->format('d M Y') : 'N/A';
+    }
+
+    public function getVatNumberFormattedAttribute()
+    {
+        return $this->vat_number ? number_format($this->vat_number, 0, ',', '.') : 'N/A';
+    }
+
     // Relationships
     public function clientType()
     {
@@ -135,24 +165,14 @@ class Company extends Model
         return $query->where('client_type_id', $typeId);
     }
 
-    // Accessors
-    public function getTypeAttribute()
+    public function scopeSearch($query, $search)
     {
-        return $this->clientType ? $this->clientType->name : null;
-    }
-
-    public function getStatusAttribute()
-    {
-        return $this->is_active ? 'Active' : 'Inactive';
-    }
-
-    public function getClientSinceFormattedAttribute()
-    {
-        return $this->client_since ? $this->client_since->format('d M Y') : 'N/A';
-    }
-
-    public function getVatNumberFormattedAttribute()
-    {
-        return $this->vat_number ? number_format($this->vat_number, 0, ',', '.') : 'N/A';
+        return $query->where(function ($q) use ($search) {
+            $q->where('name', 'like', "%{$search}%")
+              ->orWhere('client_code', 'like', "%{$search}%")
+              ->orWhere('email', 'like', "%{$search}%")
+              ->orWhere('phone', 'like', "%{$search}%")
+              ->orWhere('contact_person', 'like', "%{$search}%");
+        });
     }
 }
