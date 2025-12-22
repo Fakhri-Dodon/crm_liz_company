@@ -1,4 +1,3 @@
-// database/migrations/2024_01_01_000002_create_companies_table.php
 <?php
 
 use Illuminate\Database\Migrations\Migration;
@@ -17,6 +16,9 @@ return new class extends Migration
             $table->string('client_code', 50)->nullable();
             $table->string('name');
             $table->text('address')->nullable();
+            $table->string('city')->nullable(); // HAPUS 'after('address')'
+            $table->string('province')->nullable(); // HAPUS 'after('city')'
+            $table->string('country')->nullable(); // HAPUS 'after('province')'
             $table->string('contact_person');
             $table->string('position')->nullable();
             $table->string('email');
@@ -24,6 +26,9 @@ return new class extends Migration
             $table->date('client_since')->nullable();
             $table->unsignedBigInteger('postal_code')->nullable();
             $table->unsignedBigInteger('vat_number')->nullable();
+            $table->string('nib')->nullable(); // HAPUS 'after('vat_number')'
+            $table->string('website')->nullable(); // HAPUS 'after('nib')'
+            $table->string('logo_path')->nullable(); // HAPUS 'after('website')'
             $table->boolean('is_active')->default(true);
             $table->char('created_by', 36)->nullable();
             $table->char('updated_by', 36)->nullable();

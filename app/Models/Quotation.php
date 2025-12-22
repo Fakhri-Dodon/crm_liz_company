@@ -23,10 +23,10 @@ class Quotation extends Model
         'tax',
         'total',
         'accepted_at',
-        'accepted_by', // PERUBAHAN: integer (BIGINT) sesuai database
-        'created_by', // PERUBAHAN: integer (BIGINT)
-        'updated_by', // PERUBAHAN: integer (BIGINT)
-        'deleted_by', // PERUBAHAN: integer (BIGINT)
+        'accepted_by',
+        'created_by',
+        'updated_by',
+        'deleted_by',
         'deleted'
     ];
 
@@ -37,7 +37,6 @@ class Quotation extends Model
         'total' => 'decimal:2',
         'accepted_at' => 'datetime',
         'deleted' => 'boolean',
-        // **TAMBAHKAN casting untuk user-related fields**
         'accepted_by' => 'integer',
         'created_by' => 'integer',
         'updated_by' => 'integer',
@@ -63,7 +62,12 @@ class Quotation extends Model
 
     public function lead()
     {
-        return $this->belongsTo(Lead::class);
+        return $this->belongsTo(Lead::class, 'lead_id');
+    }
+
+    public function company()
+    {
+        return $this->hasOne(Company::class, 'quotation_id');
     }
 
     public function creator()
@@ -76,7 +80,6 @@ class Quotation extends Model
         return $this->belongsTo(User::class, 'updated_by');
     }
 
-    // **TAMBAHKAN relationship untuk accepted_by dan deleted_by**
     public function acceptor()
     {
         return $this->belongsTo(User::class, 'accepted_by');

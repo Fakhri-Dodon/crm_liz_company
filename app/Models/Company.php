@@ -30,6 +30,9 @@ class Company extends Model
         'postal_code',
         'vat_number',
         'is_active',
+        'nib',           // Tambahkan
+        'website',       // Tambahkan
+        'logo_path',     // Tambahkan
         'created_by',
         'updated_by',
         'deleted_by',
@@ -81,6 +84,10 @@ class Company extends Model
         });
     }
 
+    public function getLogoUrlAttribute()
+    {
+        return $this->logo_path ? Storage::url($this->logo_path) : null;
+    }
     // Relationships
     public function clientType()
     {

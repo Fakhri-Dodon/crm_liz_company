@@ -33,4 +33,15 @@ class Lead extends Model
             $model->id = (string) Str::uuid();
         });
     }
+
+    // Relationships
+    public function quotations()
+    {
+        return $this->hasMany(Quotation::class, 'lead_id');
+    }
+
+    public function company()
+    {
+        return $this->hasOne(Company::class, 'lead_id');
+    }
 }

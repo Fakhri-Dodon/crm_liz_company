@@ -41,8 +41,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
         // General
         Route::prefix('general')->name('general.')->group(function () {
             Route::get('/', [SettingController::class, 'general']);
-            Route::post('/store', [AppConfigController::class, 'store'])->name('store');
-            Route::post('/upload-logo', [AppConfigController::class, 'uploadLogo'])->name('upload-logo');
+            // KOMENTARI ROUTE YANG ERROR
+            // Route::post('/store', [AppConfigController::class, 'store'])->name('store');
+            // Route::post('/upload-logo', [AppConfigController::class, 'uploadLogo'])->name('upload-logo');
         });
         
         // User Roles & Permissions
@@ -50,16 +51,18 @@ Route::middleware(['auth', 'verified'])->group(function () {
             Route::get('/', [SettingController::class, 'userRoles']);
             Route::post('/store', [SettingController::class, 'userRolesStore'])->name('store');
             Route::put('/{id}', [SettingController::class, 'userRolesUpdate'])->name('update');
-            Route::post('/role-store', [RolesController::class, 'roleStore'])->name('roles.store');
+            // KOMENTARI ROUTE YANG ERROR
+            // Route::post('/role-store', [RolesController::class, 'roleStore'])->name('roles.store');
         });
         
         // Leads Settings
         Route::get('/leads', [SettingController::class, 'leads'])->name('leads');
         Route::get('/proposals', [SettingController::class, 'proposals'])->name('proposals');
-        Route::post('/proposal_numbering/update/{id}', [ProposalNumberFormated::class, 'update'])->name('proposal_numbering.update');
-        Route::post('/proposal-status/store', [ProposalStatusesController::class, 'store'])->name('proposal-status.store');
-        Route::put('/proposal-status/update/{id}', [ProposalStatusesController::class, 'update'])->name('proposal-status.update');
-        Route::delete('/proposal-status/destroy/{id}', [ProposalStatusesController::class, 'destroy'])->name('proposal-status.delete');
+        // KOMENTARI ROUTE YANG ERROR
+        // Route::post('/proposal_numbering/update/{id}', [ProposalNumberFormated::class, 'update'])->name('proposal_numbering.update');
+        // Route::post('/proposal-status/store', [ProposalStatusesController::class, 'store'])->name('proposal-status.store');
+        // Route::put('/proposal-status/update/{id}', [ProposalStatusesController::class, 'update'])->name('proposal-status.update');
+        // Route::delete('/proposal-status/destroy/{id}', [ProposalStatusesController::class, 'destroy'])->name('proposal-status.delete');
 
         // Emails
         Route::prefix('email')->name('email.')->group(function () {
@@ -70,33 +73,34 @@ Route::middleware(['auth', 'verified'])->group(function () {
         });
     });
 
-
     // Header menus
     Route::get('/language', fn() => Inertia::render('Language/Index'))->name('language.index');
     Route::get('/notifications', fn() => Inertia::render('Notifications/Index'))->name('notifications.index');
 });
 
 Route::middleware(['auth', 'verified'])->group(function () {
-    // ... route lainnya ...
-    
     // Projects routes
     Route::resource('projects', ProjectController::class);
-    
-    // **TAMBAHKAN INI: Route khusus untuk update status**
     Route::put('/projects/{project}/status', [ProjectController::class, 'updateStatus'])
         ->name('projects.status.update');
 });
 
+// routes/web.php - BENAR
 Route::middleware(['auth:sanctum', 'verified'])->group(function () {
-    // Company Routes
+    // Company Routes - SPESIFIK DULU, BARU GENERAL
     Route::get('/companies', [CompanyController::class, 'index'])->name('companies.index');
     Route::get('/companies/create', [CompanyController::class, 'create'])->name('companies.create');
     Route::post('/companies', [CompanyController::class, 'store'])->name('companies.store');
+    
+    // ⬇⬇⬇ ROUTE SPESIFIK HARUS SEBELUM {parameter} ⬇⬇⬇
+    Route::get('/companies/get-leads', [CompanyController::class, 'getLeadsForCreation'])
+        ->name('companies.get-leads');
+    
+    // ⬇⬇⬇ ROUTE DENGAN PARAMETER SETELAH SPESIFIK ⬇⬇⬇
     Route::get('/companies/{company}', [CompanyController::class, 'show'])->name('companies.show');
     Route::get('/companies/{company}/edit', [CompanyController::class, 'edit'])->name('companies.edit');
     Route::put('/companies/{company}', [CompanyController::class, 'update'])->name('companies.update');
     Route::delete('/companies/{company}', [CompanyController::class, 'destroy'])->name('companies.destroy');
-    
 });
 
 require __DIR__.'/auth.php';
