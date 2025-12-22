@@ -1,3 +1,5 @@
+
+
 <?php
 
 use App\Http\Controllers\LeadController;
@@ -10,6 +12,7 @@ use App\Http\Controllers\ProposalStatusesController;
 use App\Http\Controllers\AppConfigController;
 use App\Http\Controllers\ProjectController;
 use App\Http\Controllers\EmailSettingsController;
+use App\Http\Controllers\ProposalController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -103,4 +106,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('/projects/{project}/status', [ProjectController::class, 'updateStatus'])
         ->name('projects.status.update.post');
 });
+
+// Route untuk halaman tambah proposal
+Route::get('/proposal/add', fn() => Inertia::render('Proposals/AddProposal'))->name('proposal.add');
+Route::get('/proposal/html/{id}', [ProposalController::class, 'show']);
+
 require __DIR__.'/auth.php';

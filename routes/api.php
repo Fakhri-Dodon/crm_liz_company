@@ -20,13 +20,4 @@ Route::prefix('leads')->group(function () {
 });
 
 
-Route::prefix('proposal/sections')->group(function () {
-    Route::get('/', [SectionController::class, 'index']);
-    Route::get('/{id}', [SectionController::class, 'show']);
-    Route::post('/', [SectionController::class, 'store']);
-    Route::put('/{id}', [SectionController::class, 'update']);
-    Route::delete('/{id}', [SectionController::class, 'destroy']);
-    Route::patch('/reorder', [SectionController::class, 'reorder']);
-});
-
 
