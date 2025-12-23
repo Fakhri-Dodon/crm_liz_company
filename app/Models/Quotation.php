@@ -5,6 +5,8 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use App\Models\User;
+use App\Models\Lead;
 
 class Quotation extends Model
 {
@@ -18,7 +20,14 @@ class Quotation extends Model
         'lead_id',
         'quotation_number',
         'status',
-        'subtotal',
+        'subject',
+        'payment_terms',
+        'note',
+        'date',
+        'valid_until',  
+        'revision_note',
+        'pdf_path',
+        'sub_total',
         'discount',
         'tax',
         'total',
@@ -37,10 +46,6 @@ class Quotation extends Model
         'total' => 'decimal:2',
         'accepted_at' => 'datetime',
         'deleted' => 'boolean',
-        'accepted_by' => 'integer',
-        'created_by' => 'integer',
-        'updated_by' => 'integer',
-        'deleted_by' => 'integer',
     ];
 
     public static function boot()
@@ -62,17 +67,17 @@ class Quotation extends Model
 
     public function lead()
     {
-        return $this->belongsTo(Lead::class, 'lead_id');
+        return $this->belongsTo(Lead::class, 'lead_id', 'id');
     }
-
-    public function company()
+    
+    public function items()
     {
-        return $this->hasOne(Company::class, 'quotation_id');
+        return $this->hasMany(QuotationItem::class, 'quotation_id', 'id');
     }
 
     public function creator()
     {
-        return $this->belongsTo(User::class, 'created_by');
+        return $this->belongsTo(User::class, 'created_by', 'id');
     }
 
     public function updater()

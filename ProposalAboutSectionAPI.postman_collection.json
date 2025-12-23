@@ -1,0 +1,106 @@
+{
+    "info": {
+        "_postman_id": "b7e1e7e2-21d2-4b7a-9e7e-20251221about",
+        "name": "Proposal About Section API",
+        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+        "description": "Kumpulan endpoint Proposal About Section API untuk testing dan dokumentasi."
+    },
+    "item": [
+        {
+            "name": "List All Sections",
+            "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                    "raw": "{{base_url}}/api/proposal/sections/about",
+                    "host": ["{{base_url}}"],
+                    "path": ["api", "proposal", "sections", "about"]
+                }
+            }
+        },
+        {
+            "name": "Get Section by ID",
+            "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                    "raw": "{{base_url}}/api/proposal/sections/about/1",
+                    "host": ["{{base_url}}"],
+                    "path": ["api", "proposal", "sections", "about", "1"]
+                }
+            }
+        },
+        {
+            "name": "Create Section",
+            "request": {
+                "method": "POST",
+                "header": [
+                    { "key": "Content-Type", "value": "application/json" }
+                ],
+                "body": {
+                    "mode": "raw",
+                    "raw": "{\n  \"title\": \"Judul\",\n  \"content\": \"Isi paragraf\",\n  \"image_path\": \"/images/about1.png\",\n  \"type\": \"text_image\",\n  \"order\": 0\n}"
+                },
+                "url": {
+                    "raw": "{{base_url}}/api/proposal/sections/about",
+                    "host": ["{{base_url}}"],
+                    "path": ["api", "proposal", "sections", "about"]
+                }
+            }
+        },
+        {
+            "name": "Update Section",
+            "request": {
+                "method": "PUT",
+                "header": [
+                    { "key": "Content-Type", "value": "application/json" }
+                ],
+                "body": {
+                    "mode": "raw",
+                    "raw": "{\n  \"title\": \"Judul Update\",\n  \"content\": \"Isi update\",\n  \"image_path\": \"/images/about2.png\",\n  \"type\": \"text\",\n  \"order\": 1\n}"
+                },
+                "url": {
+                    "raw": "{{base_url}}/api/proposal/sections/about/1",
+                    "host": ["{{base_url}}"],
+                    "path": ["api", "proposal", "sections", "about", "1"]
+                }
+            }
+        },
+        {
+            "name": "Delete Section",
+            "request": {
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                    "raw": "{{base_url}}/api/proposal/sections/about/1",
+                    "host": ["{{base_url}}"],
+                    "path": ["api", "proposal", "sections", "about", "1"]
+                }
+            }
+        },
+        {
+            "name": "Reorder Sections",
+            "request": {
+                "method": "PATCH",
+                "header": [
+                    { "key": "Content-Type", "value": "application/json" }
+                ],
+                "body": {
+                    "mode": "raw",
+                    "raw": "{\n  \"order\": [3,1,2]\n}"
+                },
+                "url": {
+                    "raw": "{{base_url}}/api/proposal/sections/about/reorder",
+                    "host": ["{{base_url}}"],
+                    "path": ["api", "proposal", "sections", "about", "reorder"]
+                }
+            }
+        }
+    ],
+    "variable": [
+        {
+            "key": "base_url",
+            "value": "http://localhost:8000"
+        }
+    ]
+}

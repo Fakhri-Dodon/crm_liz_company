@@ -1,3 +1,5 @@
+
+
 <?php
 
 use App\Http\Controllers\LeadController;
@@ -6,6 +8,8 @@ use App\Http\Controllers\SettingController;
 use App\Http\Controllers\ProjectController;
 use App\Http\Controllers\EmailSettingsController;
 use App\Http\Controllers\CompanyController;
+use App\Http\Controllers\Quotation\QuotationController;
+use App\Http\Controllers\ProposalController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -31,11 +35,27 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // Leads
     Route::get('/lead', [LeadController::class, 'index'])->name('lead.index');
     Route::get('/proposal', fn() => Inertia::render('Proposals/Index'))->name('proposal.index');
-    Route::get('/quotation', fn() => Inertia::render('Quotations/Index'))->name('quotation.index');
+    
+    //Quotation Modul
+    Route::prefix('quotation')->name('quotation.')->group(function() {
+        Route::get('/', [QuotationController::class, 'index'])->name('index');
+        Route::get('/create', [QuotationController::class, 'create'])->name('create');
+        Route::post('/store', [QuotationController::class, 'store'])->name('store');
+        Route::patch('/{quotation}/status', [QuotationController::class, 'updateStatus'])->name('update-status');
+        Route::get('/edit/{quotation}', [QuotationController::class, 'edit'])->name('edit');
+        Route::patch('/update/{quotation}', [QuotationController::class, 'update'])->name('update');
+        Route::delete('/destroy/{quotation}', [QuotationController::class, 'destroy'])->name('destroy');
+    });
+
     Route::get('/invoice', fn() => Inertia::render('Invoices/Index'))->name('invoice.index');
     Route::get('/payment', fn() => Inertia::render('Payments/Index'))->name('payment.index');
     Route::get('/email', fn() => Inertia::render('Email/Index'))->name('email.index');
     Route::get('/user', fn() => Inertia::render('Users/Index'))->name('user.index');
+    Route::get('/project', fn() => Inertia::render('Projects/Index'))->name('project.index');
+    Route::get('/email-inbox', fn() => Inertia::render('Email/Index'))->name('email.index');
+    Route::get('/user-management', fn() => Inertia::render('Users/Index'))->name('user.index');
+    Route::get('/email', fn() => Inertia::render('Email/Index'))->name('email.inbox');
+    Route::get('/user', fn() => Inertia::render('Users/Index'))->name('user.management');
 
     Route::prefix('setting')->name('settings.')->group(function () {
         // General
@@ -112,5 +132,17 @@ Route::middleware(['auth:sanctum', 'verified'])->group(function () {
     Route::post('/companies/{company}/restore', [CompanyController::class, 'restore'])
         ->name('companies.restore');
 });
+    
+//     // **TAMBAHKAN INI: Route khusus untuk update status**
+//     Route::patch('/projects/{project}/status', [ProjectController::class, 'updateStatus'])
+//         ->name('projects.status.update');
+//     // Atau jika ingin menggunakan POST:
+//     Route::post('/projects/{project}/status', [ProjectController::class, 'updateStatus'])
+//         ->name('projects.status.update.post');
+// });
+
+// Route untuk halaman tambah proposal
+Route::get('/proposal/add', fn() => Inertia::render('Proposals/AddProposal'))->name('proposal.add');
+Route::get('/proposal/html/{id}', [ProposalController::class, 'show']);
 
 require __DIR__.'/auth.php';
