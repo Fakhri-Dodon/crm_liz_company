@@ -85,25 +85,32 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->name('projects.status.update');
 });
 
-// routes/web.php - BENAR
+
 Route::middleware(['auth:sanctum', 'verified'])->group(function () {
-    // Company Routes - SPESIFIK DULU, BARU GENERAL
+    // Company Routes
     Route::get('/companies', [CompanyController::class, 'index'])->name('companies.index');
     Route::get('/companies/create', [CompanyController::class, 'create'])->name('companies.create');
     Route::post('/companies', [CompanyController::class, 'store'])->name('companies.store');
     
-    // ⬇⬇⬇ ROUTE SPESIFIK HARUS SEBELUM {parameter} ⬇⬇⬇
+    // Specific routes before parameter routes
     Route::get('/companies/get-leads', [CompanyController::class, 'getLeadsForCreation'])
         ->name('companies.get-leads');
+    Route::get('/companies/statistics', [CompanyController::class, 'getStatistics'])
+        ->name('companies.statistics');
     
-    // ⬇⬇⬇ ROUTE DENGAN PARAMETER SETELAH SPESIFIK ⬇⬇⬇
+    // Parameter routes
     Route::get('/companies/{company}', [CompanyController::class, 'show'])->name('companies.show');
     Route::get('/companies/{company}/edit', [CompanyController::class, 'edit'])->name('companies.edit');
     Route::put('/companies/{company}', [CompanyController::class, 'update'])->name('companies.update');
+    
+    // Delete routes
     Route::delete('/companies/{company}', [CompanyController::class, 'destroy'])->name('companies.destroy');
-    // Tambahkan route ini
-    Route::delete('/companies/force-delete/{id}', [CompanyController::class, 'forceDelete'])
+    Route::delete('/companies/force-delete/{company}', [CompanyController::class, 'forceDelete'])
         ->name('companies.force-delete');
+    
+    // Restore route
+    Route::post('/companies/{company}/restore', [CompanyController::class, 'restore'])
+        ->name('companies.restore');
 });
 
 require __DIR__.'/auth.php';

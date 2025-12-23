@@ -20,48 +20,37 @@ const CompaniesTable = ({
     filters = {}, 
     onSearch, 
     onFilterChange,
-    showActions = true 
+    showActions = true,
+    onEditClick,  // Prop untuk handle edit action
+    onDeleteClick // Prop untuk handle delete action
 }) => {
+    // State untuk responsive design dan search
     const [isMobile, setIsMobile] = useState(false);
     const [search, setSearch] = useState(filters.search || '');
-    const [selectedCompany, setSelectedCompany] = useState(null);
 
-    // Check screen size
+    // Effect untuk mendeteksi ukuran layar
     useEffect(() => {
         const checkMobile = () => setIsMobile(window.innerWidth < 768);
-        checkMobile();
-        window.addEventListener('resize', checkMobile);
+        checkMobile(); // Check saat komponen mount
+        window.addEventListener('resize', checkMobile); // Listen resize event
+        
+        // Cleanup event listener
         return () => window.removeEventListener('resize', checkMobile);
     }, []);
 
-    // Debounced search
+    // Effect untuk debounced search
     useEffect(() => {
         const timer = setTimeout(() => {
+            // Panggil onSearch hanya jika nilai search berbeda dengan filter saat ini
             if (search !== filters.search && onSearch) {
                 onSearch(search);
             }
-        }, 500);
-        return () => clearTimeout(timer);
+        }, 500); // Debounce 500ms
+        
+        return () => clearTimeout(timer); // Cleanup timer
     }, [search, filters.search, onSearch]);
 
-    // Handle page change
-    const handlePageChange = (url) => {
-        if (url) {
-            const params = new URL(url).searchParams;
-            const page = params.get('page');
-            
-            router.get('/companies', { 
-                ...filters,
-                page: page
-            }, {
-                preserveState: true,
-                replace: true,
-                only: ['companies', 'filters']
-            });
-        }
-    };
-
-    // Define color mapping for different client types
+    // Fungsi untuk menentukan warna berdasarkan tipe client
     const getTypeColor = (typeName) => {
         const colorMap = {
             'PMDN': {
@@ -86,6 +75,7 @@ const CompaniesTable = ({
             }
         };
 
+        // Warna default jika tipe tidak dikenali
         const defaultColors = {
             badgeBorder: 'border-gray-200',
             badgeText: 'text-gray-700',
@@ -95,16 +85,11 @@ const CompaniesTable = ({
         return colorMap[typeName] || defaultColors;
     };
 
-    // View company details
-    const viewCompanyDetails = (company) => {
-        setSelectedCompany(company);
-    };
-
-    // Mobile view
+    // ============= MOBILE VIEW =============
     if (isMobile) {
         return (
             <div className="space-y-3 p-4">
-                {/* Search Bar */}
+                {/* Search Bar untuk mobile */}
                 <div className="relative">
                     <input
                         type="text"
@@ -113,6 +98,7 @@ const CompaniesTable = ({
                         onChange={(e) => setSearch(e.target.value)}
                         className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-sm"
                     />
+                    {/* Search icon SVG */}
                     <svg className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" 
                          fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
@@ -120,12 +106,12 @@ const CompaniesTable = ({
                     </svg>
                 </div>
 
-                {/* Results Count */}
+                {/* Results count untuk mobile */}
                 <div className="text-sm text-gray-600">
                     Showing {companies.from || 0} to {companies.to || 0} of {companies.total || 0} clients
                 </div>
 
-                {/* Mobile Cards */}
+                {/* Mobile Cards Layout */}
                 {companies.data && companies.data.length > 0 ? (
                     <div className="space-y-3">
                         {companies.data.map((company) => {
@@ -134,7 +120,9 @@ const CompaniesTable = ({
                             return (
                                 <div key={company.id} className="bg-white rounded-lg border border-gray-200 p-4 shadow-sm">
                                     <div className="flex justify-between items-start">
+                                        {/* Left content - Company info */}
                                         <div className="flex-1">
+                                            {/* Company header dengan icon */}
                                             <div className="flex items-center gap-2 mb-3">
                                                 <div className="bg-gray-100 p-2 rounded-lg">
                                                     <Building className="w-4 h-4 text-gray-600" />
@@ -145,6 +133,7 @@ const CompaniesTable = ({
                                                 </div>
                                             </div>
                                             
+                                            {/* Contact details */}
                                             <div className="space-y-2">
                                                 <div className="flex items-center gap-2">
                                                     <User className="w-3 h-3 text-gray-400 flex-shrink-0" />
@@ -162,6 +151,7 @@ const CompaniesTable = ({
                                                 </div>
                                             </div>
 
+                                            {/* Tags/Badges */}
                                             <div className="mt-3 flex flex-wrap gap-2">
                                                 <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium border ${colors.badgeBorder} ${colors.badgeText} ${colors.bgColor}`}>
                                                     {company.client_type_name}
@@ -176,33 +166,28 @@ const CompaniesTable = ({
                                             </div>
                                         </div>
                                         
+                                        {/* Right content - Action buttons */}
                                         {showActions && (
                                             <div className="flex flex-col gap-1">
-                                                <button
-                                                    onClick={() => viewCompanyDetails(company)}
+                                                {/* View details button */}
+                                                <Link
+                                                    href={route('companies.show', company.id)}
                                                     className="text-teal-600 hover:text-teal-900 p-1.5 hover:bg-teal-50 rounded-lg transition"
                                                     title="View Details"
                                                 >
                                                     <Eye className="w-4 h-4" />
-                                                </button>
-                                                <Link
-                                                    href={route('companies.edit', company.id)}
+                                                </Link>
+                                                {/* Edit button */}
+                                                <button
+                                                    onClick={() => onEditClick && onEditClick(company)}
                                                     className="text-blue-600 hover:text-blue-900 p-1.5 hover:bg-blue-50 rounded-lg transition"
                                                     title="Edit"
                                                 >
                                                     <Edit className="w-4 h-4" />
-                                                </Link>
+                                                </button>
+                                                {/* Delete button */}
                                                 <button
-                                                    onClick={() => {
-                                                        if (confirm('Are you sure you want to delete this client?')) {
-                                                            router.delete(route('companies.destroy', company.id), {
-                                                                preserveScroll: true,
-                                                                onSuccess: () => {
-                                                                    router.reload({ only: ['companies', 'statistics'] });
-                                                                }
-                                                            });
-                                                        }
-                                                    }}
+                                                    onClick={() => onDeleteClick && onDeleteClick(company)}
                                                     className="text-red-600 hover:text-red-900 p-1.5 hover:bg-red-50 rounded-lg transition"
                                                     title="Delete"
                                                 >
@@ -216,6 +201,7 @@ const CompaniesTable = ({
                         })}
                     </div>
                 ) : (
+                    // Empty state untuk mobile
                     <div className="text-center py-8">
                         <Building className="w-12 h-12 mx-auto mb-3 text-gray-300" />
                         <div className="text-base font-medium text-gray-500">No clients found</div>
@@ -228,26 +214,29 @@ const CompaniesTable = ({
                 {/* Mobile Pagination */}
                 {companies.data && companies.data.length > 0 && (
                     <div className="flex items-center justify-center gap-2 pt-4">
+                        {/* Previous button */}
                         {companies.links[0].url && (
-                            <button
-                                onClick={() => handlePageChange(companies.links[0].url)}
-                                className="p-2 border border-gray-300 rounded-lg bg-white text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                            <Link
+                                href={companies.links[0].url}
+                                className="p-2 border border-gray-300 rounded-lg bg-white text-gray-500 hover:bg-gray-50"
                                 title="Previous"
                             >
                                 <ChevronLeft className="w-4 h-4" />
-                            </button>
+                            </Link>
                         )}
+                        {/* Page info */}
                         <div className="text-sm text-gray-700">
                             Page {companies.current_page} of {companies.last_page}
                         </div>
+                        {/* Next button */}
                         {companies.links[companies.links.length - 1].url && (
-                            <button
-                                onClick={() => handlePageChange(companies.links[companies.links.length - 1].url)}
-                                className="p-2 border border-gray-300 rounded-lg bg-white text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                            <Link
+                                href={companies.links[companies.links.length - 1].url}
+                                className="p-2 border border-gray-300 rounded-lg bg-white text-gray-500 hover:bg-gray-50"
                                 title="Next"
                             >
                                 <ChevronRight className="w-4 h-4" />
-                            </button>
+                            </Link>
                         )}
                     </div>
                 )}
@@ -255,9 +244,10 @@ const CompaniesTable = ({
         );
     }
 
-    // Desktop view
+    // ============= DESKTOP VIEW =============
     return (
         <div className="bg-white rounded-lg shadow-sm overflow-hidden">
+            {/* Table container */}
             <div className="overflow-x-auto">
                 <table className="min-w-full divide-y divide-gray-200">
                     <thead className="bg-gray-50">
@@ -291,7 +281,7 @@ const CompaniesTable = ({
                                 
                                 return (
                                     <tr key={company.id} className="hover:bg-gray-50 transition-colors">
-                                        {/* Client Name */}
+                                        {/* Client Name Column */}
                                         <td className="px-6 py-4">
                                             <div className="flex items-center">
                                                 <div className="flex-shrink-0 h-10 w-10 bg-gray-100 rounded-lg flex items-center justify-center">
@@ -305,6 +295,7 @@ const CompaniesTable = ({
                                                         <span className="bg-gray-100 px-2 py-0.5 rounded text-xs">
                                                             {company.client_code}
                                                         </span>
+                                                        {/* Client since date jika ada */}
                                                         {company.client_since && (
                                                             <span className="flex items-center gap-1 text-xs">
                                                                 <Calendar className="w-3 h-3" />
@@ -316,11 +307,12 @@ const CompaniesTable = ({
                                             </div>
                                         </td>
 
-                                        {/* Address */}
+                                        {/* Address Column */}
                                         <td className="px-6 py-4">
                                             <div className="text-sm text-gray-900 max-w-xs truncate">
                                                 {company.address || 'No address'}
                                             </div>
+                                            {/* City, province, country jika ada */}
                                             {(company.city || company.province || company.country) && (
                                                 <div className="text-xs text-gray-500 mt-1 truncate">
                                                     {[company.city, company.province, company.country].filter(Boolean).join(', ')}
@@ -328,7 +320,7 @@ const CompaniesTable = ({
                                             )}
                                         </td>
 
-                                        {/* Contact Person */}
+                                        {/* Contact Person Column */}
                                         <td className="px-6 py-4">
                                             <div className="flex items-center">
                                                 <div className="flex-shrink-0 h-8 w-8 bg-teal-100 rounded-full flex items-center justify-center">
@@ -345,7 +337,7 @@ const CompaniesTable = ({
                                             </div>
                                         </td>
 
-                                        {/* Email & Phone */}
+                                        {/* Email & Phone Column */}
                                         <td className="px-6 py-4">
                                             <div className="space-y-2">
                                                 <div className="flex items-center gap-2">
@@ -361,13 +353,15 @@ const CompaniesTable = ({
                                             </div>
                                         </td>
 
-                                        {/* Status */}
+                                        {/* Status Column */}
                                         <td className="px-6 py-4">
                                             <div className="space-y-1">
+                                                {/* Client type badge */}
                                                 <span className={`inline-flex items-center px-3 py-1.5 rounded-full text-xs font-medium border ${colors.badgeBorder} ${colors.badgeText} bg-white`}>
                                                     <span className={`w-2 h-2 rounded-full mr-2 ${colors.badgeText.replace('text-', 'bg-')}`}></span>
                                                     {company.client_type_name}
                                                 </span>
+                                                {/* Active/Inactive badge */}
                                                 <span className={`inline-flex items-center px-2 py-1 rounded text-xs ${
                                                     company.is_active 
                                                         ? 'bg-green-100 text-green-800' 
@@ -378,10 +372,11 @@ const CompaniesTable = ({
                                             </div>
                                         </td>
 
-                                        {/* Actions */}
+                                        {/* Actions Column */}
                                         {showActions && (
                                             <td className="px-6 py-4">
                                                 <div className="flex items-center gap-2">
+                                                    {/* View details link */}
                                                     <Link
                                                         href={route('companies.show', company.id)}
                                                         className="text-teal-600 hover:text-teal-900 p-2 hover:bg-teal-50 rounded-lg transition"
@@ -389,24 +384,17 @@ const CompaniesTable = ({
                                                     >
                                                         <Eye className="w-5 h-5" />
                                                     </Link>
-                                                    <Link
-                                                        href={route('companies.edit', company.id)}
+                                                    {/* Edit button */}
+                                                    <button
+                                                        onClick={() => onEditClick && onEditClick(company)}
                                                         className="text-blue-600 hover:text-blue-900 p-2 hover:bg-blue-50 rounded-lg transition"
                                                         title="Edit"
                                                     >
                                                         <Edit className="w-5 h-5" />
-                                                    </Link>
+                                                    </button>
+                                                    {/* Delete button */}
                                                     <button
-                                                        onClick={() => {
-                                                            if (confirm('Are you sure you want to delete this client?')) {
-                                                                router.delete(route('companies.destroy', company.id), {
-                                                                    preserveScroll: true,
-                                                                    onSuccess: () => {
-                                                                        router.reload({ only: ['companies', 'statistics'] });
-                                                                    }
-                                                                });
-                                                            }
-                                                        }}
+                                                        onClick={() => onDeleteClick && onDeleteClick(company)}
                                                         className="text-red-600 hover:text-red-900 p-2 hover:bg-red-50 rounded-lg transition"
                                                         title="Delete"
                                                     >
@@ -419,6 +407,7 @@ const CompaniesTable = ({
                                 );
                             })
                         ) : (
+                            // Empty state untuk desktop
                             <tr>
                                 <td colSpan={showActions ? 6 : 5} className="px-6 py-12 text-center">
                                     <div className="text-gray-500">
@@ -439,27 +428,29 @@ const CompaniesTable = ({
             {companies.data && companies.data.length > 0 && (
                 <div className="px-6 py-4 border-t border-gray-200">
                     <div className="flex items-center justify-between">
+                        {/* Results info */}
                         <div className="text-sm text-gray-700">
                             Showing <span className="font-medium">{companies.from}</span> to{' '}
                             <span className="font-medium">{companies.to}</span> of{' '}
                             <span className="font-medium">{companies.total}</span> results
                         </div>
                         
+                        {/* Pagination links */}
                         <nav className="flex items-center">
                             <div className="flex items-center gap-1">
                                 {companies.links.map((link, index) => (
-                                    <button
+                                    <Link
                                         key={index}
-                                        onClick={() => handlePageChange(link.url)}
-                                        disabled={!link.url || link.active}
+                                        href={link.url || '#'}
                                         className={`relative inline-flex items-center px-3 py-2 text-sm font-medium border ${
                                             link.active
-                                                ? 'z-10 bg-teal-50 border-teal-500 text-teal-600 cursor-default'
+                                                ? 'z-10 bg-teal-50 border-teal-500 text-teal-600'
                                                 : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
                                         } ${index === 0 ? 'rounded-l-md' : ''} ${
                                             index === companies.links.length - 1 ? 'rounded-r-md' : ''
-                                        } ${!link.url ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                                        }`}
                                         dangerouslySetInnerHTML={{ __html: link.label }}
+                                        // Note: dangerouslySetInnerHTML digunakan karena label bisa berisi HTML (&laquo;, &raquo;)
                                     />
                                 ))}
                             </div>
@@ -471,5 +462,4 @@ const CompaniesTable = ({
     );
 };
 
-// INI YANG PENTING: Export sebagai default
 export default CompaniesTable;

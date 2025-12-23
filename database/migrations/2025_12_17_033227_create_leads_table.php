@@ -17,7 +17,7 @@ return new class extends Migration {
             $table->string('email')->nullable();
             $table->string('phone', 50)->nullable();
 
-            $table->enum('status', ['new', 'sent'])->default('new');
+            $table->enum('status', ['new', 'sent', 'converted'])->default('new');
             $table->string('assigned_to')->nullable();
 
             $table->char('created_by', 36)->nullable()->index();

@@ -20,6 +20,17 @@ import {
 
 const CompaniesIndex = () => {
     const { companies, statistics, types, filters, fromQuotation, quotationId } = usePage().props;
+    
+    // Debug props yang diterima
+    console.log('Props received:', { 
+        companies: companies?.data?.length, 
+        statistics, 
+        types: types?.length,
+        filters,
+        fromQuotation,
+        quotationId 
+    });
+    
     const [search, setSearch] = useState(filters.search || '');
     const [selectedType, setSelectedType] = useState(filters.client_type_id || '');
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -40,13 +51,16 @@ const CompaniesIndex = () => {
 
     // Auto-open modal if coming from quotation
     useEffect(() => {
+        console.log('Auto-open modal check:', { fromQuotation, quotationId });
         if (fromQuotation && quotationId) {
+            console.log('Opening modal for quotation:', quotationId);
             setIsCreateModalOpen(true);
         }
     }, [fromQuotation, quotationId]);
 
-    // Handle search
+    // Handle search dengan debounce
     const handleSearch = useCallback((value) => {
+        console.log('Searching for:', value);
         router.get('/companies', { 
             search: value,
             client_type_id: selectedType,
@@ -60,6 +74,7 @@ const CompaniesIndex = () => {
     // Handle type filter
     const handleTypeFilter = useCallback((typeId) => {
         const newType = typeId === selectedType ? '' : typeId;
+        console.log('Filter by type:', newType);
         setSelectedType(newType);
         router.get('/companies', { 
             search,
@@ -74,6 +89,7 @@ const CompaniesIndex = () => {
 
     // Clear all filters
     const clearFilters = () => {
+        console.log('Clearing filters');
         setSearch('');
         setSelectedType('');
         router.get('/companies', {}, {
@@ -85,6 +101,7 @@ const CompaniesIndex = () => {
 
     // Handle successful client creation
     const handleClientCreated = () => {
+        console.log('Client created successfully');
         setIsCreateModalOpen(false);
         // Refresh the page data without full reload
         router.reload({ 
@@ -95,18 +112,21 @@ const CompaniesIndex = () => {
 
     // Fungsi untuk handle edit
     const handleEditClick = (company) => {
+        console.log('Edit clicked for company:', company.id);
         setSelectedCompany(company);
         setIsEditModalOpen(true);
     };
 
     // Fungsi untuk handle delete
     const handleDeleteClick = (company) => {
+        console.log('Delete clicked for company:', company.id);
         setSelectedCompany(company);
         setIsDeleteModalOpen(true);
     };
 
     // Fungsi untuk handle update success
     const handleUpdateSuccess = (updatedCompany) => {
+        console.log('Update success for company:', updatedCompany.id);
         setIsEditModalOpen(false);
         setSelectedCompany(null);
         // Refresh data
@@ -118,6 +138,7 @@ const CompaniesIndex = () => {
 
     // Fungsi untuk handle delete success
     const handleDeleteSuccess = async (deleteType) => {
+        console.log('Delete success, type:', deleteType);
         if (!selectedCompany) return;
 
         try {
@@ -127,6 +148,8 @@ const CompaniesIndex = () => {
             if (deleteType === 'permanent') {
                 url = `/companies/force-delete/${selectedCompany.id}`;
             }
+
+            console.log('Deleting company:', selectedCompany.id, 'URL:', url);
 
             const response = await fetch(url, {
                 method: deleteType === 'permanent' ? 'DELETE' : 'POST',
@@ -138,6 +161,7 @@ const CompaniesIndex = () => {
             });
 
             const data = await response.json();
+            console.log('Delete response:', data);
 
             if (!response.ok) {
                 throw new Error(data.message || 'Failed to delete');
@@ -158,19 +182,11 @@ const CompaniesIndex = () => {
         }
     };
 
-    // Fungsi untuk bulk delete
-    const handleBulkDelete = () => {
-        if (selectedCompanies.length === 0) {
-            alert('Please select at least one client to delete.');
-            return;
-        }
-        setIsDeleteModalOpen(true);
-    };
-
     // Handle search input with debounce
     useEffect(() => {
         const timer = setTimeout(() => {
             if (search !== filters.search) {
+                console.log('Debounced search:', search);
                 handleSearch(search);
             }
         }, 500);
@@ -224,6 +240,7 @@ const CompaniesIndex = () => {
 
     return (
         <HeaderLayout>
+        <div className="px-8 py-6">
             <Head title="CLIENT MANAGEMENT" />
 
             <div className="space-y-4 md:space-y-6 px-3 md:px-0 pb-16 md:pb-0">
@@ -241,11 +258,14 @@ const CompaniesIndex = () => {
                                 <div className="flex items-center gap-2">
                                     <FileText className="w-5 h-5 text-blue-600" />
                                     <span className="text-sm font-medium text-blue-900">
-                                        Creating client from quotation
+                                        Creating client from quotation #{quotationId}
                                     </span>
                                 </div>
                                 <button
-                                    onClick={() => router.get('/companies')}
+                                    onClick={() => {
+                                        console.log('Skipping quotation creation');
+                                        router.get('/companies');
+                                    }}
                                     className="text-blue-600 hover:text-blue-800 text-sm font-medium"
                                 >
                                     Skip
@@ -255,7 +275,10 @@ const CompaniesIndex = () => {
                     )}
                     
                     <button 
-                        onClick={() => setIsCreateModalOpen(true)}
+                        onClick={() => {
+                            console.log('Opening create modal manually');
+                            setIsCreateModalOpen(true);
+                        }}
                         className="w-full sm:w-auto flex items-center justify-center gap-2 bg-teal-700 hover:bg-teal-800 text-white px-4 md:px-6 py-2.5 md:py-3 rounded-lg font-medium transition-colors shadow-md"
                     >
                         <FileText className="w-4 h-4 md:w-5 md:h-5" />
@@ -267,16 +290,21 @@ const CompaniesIndex = () => {
                 {isCreateModalOpen && (
                     <Create 
                         isOpen={isCreateModalOpen}
-                        onClose={() => setIsCreateModalOpen(false)}
+                        onClose={() => {
+                            console.log('Closing create modal');
+                            setIsCreateModalOpen(false);
+                        }}
                         clientTypes={types}
                         quotationId={quotationId}
                         onSuccess={handleClientCreated}
                     />
                 )}
+                
                 {isEditModalOpen && selectedCompany && (
                     <EditModal
                         isOpen={isEditModalOpen}
                         onClose={() => {
+                            console.log('Closing edit modal');
                             setIsEditModalOpen(false);
                             setSelectedCompany(null);
                         }}
@@ -290,6 +318,7 @@ const CompaniesIndex = () => {
                     <DeleteModal
                         isOpen={isDeleteModalOpen}
                         onClose={() => {
+                            console.log('Closing delete modal');
                             setIsDeleteModalOpen(false);
                             setSelectedCompany(null);
                         }}
@@ -323,7 +352,10 @@ const CompaniesIndex = () => {
                                 </div>
                                 <div className="mt-3 md:mt-4">
                                     <button 
-                                        onClick={() => handleTypeFilter(typeData.id)}
+                                        onClick={() => {
+                                            console.log('Filter by type:', typeData.id);
+                                            handleTypeFilter(typeData.id);
+                                        }}
                                         className={`text-xs md:text-sm ${
                                             selectedType === typeData.id 
                                                 ? `${colors.bg} ${colors.color} font-medium` 
@@ -348,7 +380,10 @@ const CompaniesIndex = () => {
                                 type="text"
                                 placeholder="Search clients by name, email, or phone..."
                                 value={search}
-                                onChange={(e) => setSearch(e.target.value)}
+                                onChange={(e) => {
+                                    console.log('Search input:', e.target.value);
+                                    setSearch(e.target.value);
+                                }}
                                 className="w-full pl-10 pr-4 py-2 md:py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-sm md:text-base"
                             />
                         </div>
@@ -357,7 +392,10 @@ const CompaniesIndex = () => {
                         <div className="hidden md:flex items-center gap-3">
                             <select
                                 value={selectedType}
-                                onChange={(e) => handleTypeFilter(e.target.value)}
+                                onChange={(e) => {
+                                    console.log('Type filter changed:', e.target.value);
+                                    handleTypeFilter(e.target.value);
+                                }}
                                 className="px-3 md:px-4 py-2 md:py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-sm md:text-base flex-1"
                             >
                                 <option value="">All Client Types</option>
@@ -379,7 +417,10 @@ const CompaniesIndex = () => {
 
                         {/* Mobile Filter Button */}
                         <button
-                            onClick={() => setShowMobileFilters(!showMobileFilters)}
+                            onClick={() => {
+                                console.log('Mobile filter toggled');
+                                setShowMobileFilters(!showMobileFilters);
+                            }}
                             className="md:hidden flex items-center justify-center gap-2 px-4 py-2.5 border border-gray-300 rounded-lg hover:bg-gray-50 text-sm font-medium"
                         >
                             <Filter className="w-4 h-4" />
@@ -476,6 +517,8 @@ const CompaniesIndex = () => {
                         onSearch={handleSearch}
                         onFilterChange={handleTypeFilter}
                         showActions={true}
+                        onEditClick={handleEditClick}
+                        onDeleteClick={handleDeleteClick}
                     />
                 </div>
 
@@ -578,6 +621,7 @@ const CompaniesIndex = () => {
                     </div>
                 </div>
             )}
+        </div>
         </HeaderLayout>
     );
 };

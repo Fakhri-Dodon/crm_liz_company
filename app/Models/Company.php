@@ -4,12 +4,10 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes;
-use Illuminate\Support\Facades\Storage;
 
 class Company extends Model
 {
-    use HasFactory, SoftDeletes;
+    use HasFactory;
 
     protected $table = 'companies';
     protected $primaryKey = 'id';
@@ -55,7 +53,7 @@ class Company extends Model
         'deleted_at' => 'datetime'
     ];
 
-    protected $appends = ['logo_url', 'status'];
+    protected $appends = ['logo_url', 'status', 'client_type_name'];
 
     public static function boot()
     {
@@ -103,7 +101,7 @@ class Company extends Model
         return $this->is_active ? 'Active' : 'Inactive';
     }
 
-    public function getTypeAttribute()
+    public function getClientTypeNameAttribute()
     {
         return $this->clientType ? $this->clientType->name : null;
     }

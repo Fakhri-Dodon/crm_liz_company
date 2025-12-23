@@ -1,9 +1,19 @@
 // resources/js/Components/Companies/Create.jsx
 import React, { useState, useEffect } from 'react';
 import { X, Upload, Building, User, Mail, Phone, MapPin, Globe, FileText, AlertCircle, Check } from 'lucide-react';
-import { router } from '@inertiajs/react'; // TAMBAHKAN IMPORT INI
+import { router } from '@inertiajs/react';
 
-const Create = ({ isOpen, onClose, clientTypes, quotationId }) => {
+const Create = ({ isOpen, onClose, clientTypes, quotationId, onSuccess }) => {
+    // Debug props
+    console.log('Create modal props:', { 
+        isOpen, 
+        clientTypesLength: clientTypes?.length, 
+        quotationId,
+        onClose: typeof onClose,
+        onSuccess: typeof onSuccess 
+    });
+
+    // State untuk menyimpan data form
     const [formData, setFormData] = useState({
         company_name: '',
         client_type_id: '',
@@ -21,7 +31,8 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId }) => {
         contact_phone: '',
         contact_position: '',
         logo: null,
-        quotation_id: quotationId || ''
+        quotation_id: quotationId || '', // Pastikan quotation_id ada
+        lead_id: '' // Tambahkan lead_id
     });
 
     const [errors, setErrors] = useState({});
@@ -33,10 +44,12 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId }) => {
     // Reset form ketika modal dibuka
     useEffect(() => {
         if (isOpen) {
+            console.log('Modal opened, fetching leads...');
             fetchLeads();
             setFormData(prev => ({
                 ...prev,
-                quotation_id: quotationId || ''
+                quotation_id: quotationId || '', // Set quotation_id dari props
+                lead_id: '' // Reset lead_id
             }));
         }
     }, [isOpen, quotationId]);
@@ -45,6 +58,8 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId }) => {
         setLoadingLeads(true);
         try {
             const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+            console.log('Fetching leads with CSRF:', csrfToken);
+            
             const response = await fetch('/companies/get-leads', {
                 headers: {
                     'Accept': 'application/json',
@@ -54,11 +69,20 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId }) => {
                 credentials: 'include',
             });
 
-            if (!response.ok) throw new Error('Failed to fetch leads');
+            console.log('Leads response status:', response.status);
+            
+            if (!response.ok) {
+                throw new Error(`Failed to fetch leads: ${response.status}`);
+            }
             
             const data = await response.json();
+            console.log('Leads data received:', data);
+            
             if (data.success) {
                 setLeads(data.data || []);
+                console.log('Leads set:', data.data?.length || 0);
+            } else {
+                console.error('Leads API not successful:', data);
             }
         } catch (error) {
             console.error('Error fetching leads:', error);
@@ -68,21 +92,27 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId }) => {
     };
 
     const handleLeadSelect = (lead) => {
+        console.log('Lead selected:', lead);
         setSelectedLead(lead);
         setFormData(prev => ({
             ...prev,
-            company_name: lead.company_name,
-            contact_email: lead.email,
-            contact_phone: lead.phone,
+            company_name: lead.company_name || '',
+            contact_email: lead.email || '',
+            contact_phone: lead.phone || '',
             contact_person: lead.contact_person || 'Contact Person',
+            lead_id: lead.id // Set lead_id
         }));
     };
 
     const handleInputChange = (e) => {
         const { name, value, type, files } = e.target;
+        const newValue = type === 'file' ? files[0] : value;
+        
+        console.log(`Input changed: ${name} = ${newValue}`);
+        
         setFormData(prev => ({
             ...prev,
-            [name]: type === 'file' ? files[0] : value
+            [name]: newValue
         }));
         
         // Clear error for this field
@@ -96,26 +126,35 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId }) => {
         setIsSubmitting(true);
         setErrors({});
 
+        console.log('=== FORM SUBMISSION STARTED ===');
+        console.log('Form data before submit:', formData);
+        console.log('Selected lead:', selectedLead);
+        console.log('Quotation ID from props:', quotationId);
+
         try {
             const formDataToSend = new FormData();
-            
-            console.log('=== SUBMITTING FORM DATA ===');
-            console.log('Form data:', formData);
-            
             const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
-            console.log('CSRF Token:', csrfToken);
             
-            // Append semua data form
+            // Append semua data form termasuk lead_id dan quotation_id
             Object.keys(formData).forEach(key => {
                 const value = formData[key];
-                if (value !== null && value !== undefined && value !== '') {
+                // Kirim semua nilai termasuk string kosong (kecuali null/undefined)
+                if (value !== null && value !== undefined) {
                     formDataToSend.append(key, value);
+                    console.log(`Appended ${key}:`, value);
                 }
             });
 
-            // Jika ada quotation_id dari prop, tambahkan
-            if (quotationId) {
+            // Backup: Jika ada quotation_id dari prop tapi tidak ada di formData
+            if (quotationId && !formData.quotation_id) {
                 formDataToSend.append('quotation_id', quotationId);
+                console.log('Added quotation_id from prop:', quotationId);
+            }
+
+            // Debug: Tampilkan semua entries
+            console.log('=== FORM DATA ENTRIES ===');
+            for (let [key, value] of formDataToSend.entries()) {
+                console.log(`${key}: ${value}`);
             }
 
             const response = await fetch('/companies', {
@@ -137,7 +176,6 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId }) => {
                     console.error('Validation errors:', data.errors);
                     setErrors(data.errors);
                     
-                    // Tampilkan alert khusus untuk email duplikat
                     if (data.errors.contact_email && data.errors.contact_email.includes('already been taken')) {
                         alert(`Email "${formData.contact_email}" sudah terdaftar di sistem. Silakan gunakan email lain.`);
                     }
@@ -147,13 +185,13 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId }) => {
                     throw new Error(data.message || `Failed to create client (${response.status})`);
                 }
             } else {
-                // SUCCESS: Tampilkan pesan dan refresh data
+                // SUCCESS
                 alert(data.message || 'Client created successfully!');
                 
-                // 1. Tutup modal
+                // Tutup modal
                 onClose();
                 
-                // 2. Reset form
+                // Reset form
                 setFormData({
                     company_name: '',
                     client_type_id: '',
@@ -171,15 +209,21 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId }) => {
                     contact_phone: '',
                     contact_position: '',
                     logo: null,
-                    quotation_id: ''
+                    quotation_id: '',
+                    lead_id: ''
                 });
                 setSelectedLead(null);
                 
-                // 3. Refresh data di table menggunakan Inertia.js
+                // Panggil callback success jika ada
+                if (onSuccess) {
+                    onSuccess();
+                }
+                
+                // Refresh data menggunakan Inertia
                 console.log('Refreshing companies data...');
                 router.reload({
-                    only: ['companies', 'statistics'], // Hanya reload data companies dan statistics
-                    preserveScroll: true, // Pertahankan posisi scroll
+                    only: ['companies', 'statistics'],
+                    preserveScroll: true,
                     onSuccess: () => {
                         console.log('Companies data refreshed successfully');
                     },
@@ -190,7 +234,6 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId }) => {
             }
         } catch (error) {
             console.error('Error creating client:', error);
-            // Jangan tampilkan error jika sudah dihandle oleh validasi
             if (!error.message.includes('Validation failed')) {
                 setErrors(prev => ({ 
                     ...prev, 
@@ -213,9 +256,17 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId }) => {
                     <div>
                         <h2 className="text-2xl font-bold text-gray-900">Create New Client</h2>
                         <p className="text-gray-600 mt-1">Add a new client to your portfolio</p>
+                        {quotationId && (
+                            <div className="mt-1 text-sm text-blue-600">
+                                Creating from quotation: <strong>{quotationId}</strong>
+                            </div>
+                        )}
                     </div>
                     <button
-                        onClick={onClose}
+                        onClick={() => {
+                            console.log('Close button clicked');
+                            onClose();
+                        }}
                         className="p-2 hover:bg-gray-100 rounded-lg transition"
                     >
                         <X className="w-6 h-6 text-gray-500" />
@@ -225,6 +276,12 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId }) => {
                 {/* Form */}
                 <form onSubmit={handleSubmit} className="overflow-y-auto max-h-[calc(90vh-200px)]">
                     <div className="p-6 space-y-6">
+                        {/* Debug Info (optional) */}
+                        <div className="text-xs text-gray-500">
+                            <div>Lead ID: {formData.lead_id || 'Not selected'}</div>
+                            <div>Quotation ID: {formData.quotation_id || 'None'}</div>
+                        </div>
+
                         {/* Error Alert */}
                         {errors.submit && (
                             <div className="bg-red-50 border border-red-200 rounded-lg p-4">
@@ -286,6 +343,10 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId }) => {
                             )}
                         </div>
 
+                        {/* Hidden fields untuk IDs */}
+                        <input type="hidden" name="lead_id" value={formData.lead_id || ''} />
+                        <input type="hidden" name="quotation_id" value={formData.quotation_id || ''} />
+
                         {/* Company Information */}
                         <div className="space-y-6">
                             <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
@@ -329,7 +390,7 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId }) => {
                                         required
                                     >
                                         <option value="">Select Type</option>
-                                        {clientTypes.map(type => (
+                                        {clientTypes && clientTypes.map(type => (
                                             <option key={type.id} value={type.id}>{type.name}</option>
                                         ))}
                                     </select>
@@ -344,12 +405,15 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId }) => {
                                         VAT Number
                                     </label>
                                     <input
-                                        type="text"
+                                        type="number"
                                         name="vat_number"
                                         value={formData.vat_number}
                                         onChange={handleInputChange}
                                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
                                     />
+                                    {errors.vat_number && (
+                                        <p className="mt-1 text-sm text-red-600">{errors.vat_number}</p>
+                                    )}
                                 </div>
 
                                 {/* NIB */}
@@ -396,7 +460,7 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId }) => {
 
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        City *
+                                        City
                                     </label>
                                     <input
                                         type="text"
@@ -406,7 +470,6 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId }) => {
                                         className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 ${
                                             errors.city ? 'border-red-300' : 'border-gray-300'
                                         }`}
-                                        required
                                     />
                                     {errors.city && (
                                         <p className="mt-1 text-sm text-red-600">{errors.city}</p>
@@ -415,7 +478,7 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId }) => {
 
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        Province *
+                                        Province
                                     </label>
                                     <input
                                         type="text"
@@ -425,7 +488,6 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId }) => {
                                         className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 ${
                                             errors.province ? 'border-red-300' : 'border-gray-300'
                                         }`}
-                                        required
                                     />
                                     {errors.province && (
                                         <p className="mt-1 text-sm text-red-600">{errors.province}</p>
@@ -434,7 +496,7 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId }) => {
 
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        Country *
+                                        Country
                                     </label>
                                     <input
                                         type="text"
@@ -444,7 +506,6 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId }) => {
                                         className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 ${
                                             errors.country ? 'border-red-300' : 'border-gray-300'
                                         }`}
-                                        required
                                     />
                                     {errors.country && (
                                         <p className="mt-1 text-sm text-red-600">{errors.country}</p>
@@ -456,7 +517,7 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId }) => {
                                         Postal Code
                                     </label>
                                     <input
-                                        type="text"
+                                        type="number"
                                         name="postal_code"
                                         value={formData.postal_code}
                                         onChange={handleInputChange}
@@ -627,7 +688,10 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId }) => {
                     <div className="bg-gray-50 px-6 py-4 border-t flex justify-end gap-3">
                         <button
                             type="button"
-                            onClick={onClose}
+                            onClick={() => {
+                                console.log('Cancel button clicked');
+                                onClose();
+                            }}
                             disabled={isSubmitting}
                             className="px-4 py-2 text-gray-700 hover:text-gray-900 font-medium disabled:opacity-50"
                         >

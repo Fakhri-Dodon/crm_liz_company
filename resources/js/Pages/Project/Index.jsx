@@ -167,6 +167,7 @@ export default function Index({
 
     return (
         <HeaderLayout>
+        <div className="px-8 py-6">
             <Head title="Project Management" />
             
             {/* Header Section */}
@@ -392,6 +393,7 @@ export default function Index({
                     />
                 </>
             )}
+        </div>
         </HeaderLayout>
     );
 }
