@@ -19,8 +19,17 @@ class UpdateLeadRequest extends FormRequest
             'contact_person' => 'sometimes|required|string|max:100',
             'email' => 'nullable|email|max:255',
             'phone' => 'nullable|string|max:50',
-            'status' => 'nullable|in:new,sent',
+            'lead_statuses_id' => 'required|exists:lead_statuses,id', // INI YANG PERLU DIPERBAIKI
             'assigned_to' => 'nullable|string|max:255',
+            'company_id' => 'nullable|exists:companies,id',
+        ];
+    }
+    
+    public function messages()
+    {
+        return [
+            'lead_statuses_id.required' => 'Status is required.',
+            'lead_statuses_id.exists' => 'Selected status does not exist.',
         ];
     }
 }

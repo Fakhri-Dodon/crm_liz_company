@@ -15,7 +15,12 @@ import {
     Calendar,
     Phone,
     Mail,
-    User
+    User,
+    Plus,
+    Download,
+    Eye,
+    Edit,
+    Trash2
 } from 'lucide-react';
 
 const CompaniesIndex = () => {
@@ -97,6 +102,7 @@ const CompaniesIndex = () => {
             replace: true,
             only: ['companies', 'filters', 'statistics']
         });
+        setShowMobileFilters(false);
     };
 
     // Handle successful client creation
@@ -238,14 +244,49 @@ const CompaniesIndex = () => {
         return colorMap[typeName] || defaultColors;
     };
 
+    // Function to export data
+    const handleExport = () => {
+        alert('Export feature will be implemented soon!');
+    };
+
+    // Function to handle bulk actions
+    const handleBulkAction = (action) => {
+        if (selectedCompanies.length === 0) {
+            alert('Please select companies first');
+            return;
+        }
+        
+        console.log(`Bulk ${action} for:`, selectedCompanies);
+        alert(`Bulk ${action} for ${selectedCompanies.length} companies will be implemented soon!`);
+    };
+
+    // Handle company selection for bulk actions
+    const handleCompanySelect = (companyId, isSelected) => {
+        if (isSelected) {
+            setSelectedCompanies(prev => [...prev, companyId]);
+        } else {
+            setSelectedCompanies(prev => prev.filter(id => id !== companyId));
+        }
+    };
+
+    // Handle select all companies
+    const handleSelectAll = (isSelected) => {
+        if (isSelected) {
+            const allIds = companies.data.map(company => company.id);
+            setSelectedCompanies(allIds);
+        } else {
+            setSelectedCompanies([]);
+        }
+    };
+
     return (
         <HeaderLayout>
-        <div className="px-8 py-6">
+        <div className="px-4 md:px-8 py-4 md:py-6">
             <Head title="CLIENT MANAGEMENT" />
 
-            <div className="space-y-4 md:space-y-6 px-3 md:px-0 pb-16 md:pb-0">
+            <div className="space-y-4 md:space-y-6 pb-16 md:pb-0">
                 {/* Header Section */}
-                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pt-4 md:pt-0">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                     <div>
                         <h1 className="text-2xl md:text-3xl font-bold text-gray-900">CLIENT MANAGEMENT</h1>
                         <p className="text-sm md:text-base text-gray-600 mt-1">Manage your client portfolio</p>
@@ -253,12 +294,12 @@ const CompaniesIndex = () => {
                     
                     {/* Quotation Notification Banner */}
                     {fromQuotation && quotationId && (
-                        <div className="w-full sm:w-auto bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4 sm:mb-0">
+                        <div className="w-full sm:w-auto bg-blue-50 border border-blue-200 rounded-lg p-3 mb-2 sm:mb-0">
                             <div className="flex items-center justify-between">
                                 <div className="flex items-center gap-2">
                                     <FileText className="w-5 h-5 text-blue-600" />
                                     <span className="text-sm font-medium text-blue-900">
-                                        Creating client from quotation #{quotationId}
+                                        Creating client from accepted quotation
                                     </span>
                                 </div>
                                 <button
@@ -274,19 +315,29 @@ const CompaniesIndex = () => {
                         </div>
                     )}
                     
-                    <button 
-                        onClick={() => {
-                            console.log('Opening create modal manually');
-                            setIsCreateModalOpen(true);
-                        }}
-                        className="w-full sm:w-auto flex items-center justify-center gap-2 bg-teal-700 hover:bg-teal-800 text-white px-4 md:px-6 py-2.5 md:py-3 rounded-lg font-medium transition-colors shadow-md"
-                    >
-                        <FileText className="w-4 h-4 md:w-5 md:h-5" />
-                        <span className="text-sm md:text-base">Add New Client</span>
-                    </button>
+                    <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+                        <button 
+                            onClick={() => {
+                                console.log('Opening create modal manually');
+                                setIsCreateModalOpen(true);
+                            }}
+                            className="w-full sm:w-auto flex items-center justify-center gap-2 bg-teal-700 hover:bg-teal-800 text-white px-4 md:px-6 py-2.5 md:py-3 rounded-lg font-medium transition-colors shadow-md"
+                        >
+                            <Plus className="w-4 h-4 md:w-5 md:h-5" />
+                            <span className="text-sm md:text-base">Add New Client</span>
+                        </button>
+                        
+                        <button 
+                            onClick={handleExport}
+                            className="w-full sm:w-auto flex items-center justify-center gap-2 bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 px-4 md:px-6 py-2.5 md:py-3 rounded-lg font-medium transition-colors"
+                        >
+                            <Download className="w-4 h-4 md:w-5 md:h-5" />
+                            <span className="text-sm md:text-base">Export</span>
+                        </button>
+                    </div>
                 </div>
 
-                {/* Create Modal */}
+                {/* Modals */}
                 {isCreateModalOpen && (
                     <Create 
                         isOpen={isCreateModalOpen}
@@ -358,11 +409,11 @@ const CompaniesIndex = () => {
                                         }}
                                         className={`text-xs md:text-sm ${
                                             selectedType === typeData.id 
-                                                ? `${colors.bg} ${colors.color} font-medium` 
-                                                : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
-                                        } px-2 md:px-3 py-1 rounded-full transition w-full text-center`}
+                                                ? `${colors.bg} ${colors.color} font-medium px-3 py-1 rounded-full` 
+                                                : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100 px-3 py-1 rounded-full'
+                                        } transition w-full text-center`}
                                     >
-                                        {selectedType === typeData.id ? '✓ Filtered' : 'View All'}
+                                        {selectedType === typeData.id ? '✓ Filter Applied' : 'View Clients'}
                                     </button>
                                 </div>
                             </div>
@@ -378,7 +429,7 @@ const CompaniesIndex = () => {
                             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4 md:w-5 md:h-5" />
                             <input
                                 type="text"
-                                placeholder="Search clients by name, email, or phone..."
+                                placeholder="Search clients by name, email, phone, or company..."
                                 value={search}
                                 onChange={(e) => {
                                     console.log('Search input:', e.target.value);
@@ -389,29 +440,56 @@ const CompaniesIndex = () => {
                         </div>
 
                         {/* Desktop Filters */}
-                        <div className="hidden md:flex items-center gap-3">
-                            <select
-                                value={selectedType}
-                                onChange={(e) => {
-                                    console.log('Type filter changed:', e.target.value);
-                                    handleTypeFilter(e.target.value);
-                                }}
-                                className="px-3 md:px-4 py-2 md:py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-sm md:text-base flex-1"
-                            >
-                                <option value="">All Client Types</option>
-                                {types.map(type => (
-                                    <option key={type.id} value={type.id}>{type.name}</option>
-                                ))}
-                            </select>
-                            
-                            {(search || selectedType) && (
-                                <button
-                                    onClick={clearFilters}
-                                    className="px-3 md:px-4 py-2 md:py-2.5 text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-lg border border-gray-300 text-sm md:text-base flex items-center gap-2"
+                        <div className="hidden md:flex items-center justify-between gap-3">
+                            <div className="flex items-center gap-3 flex-1">
+                                <select
+                                    value={selectedType}
+                                    onChange={(e) => {
+                                        console.log('Type filter changed:', e.target.value);
+                                        handleTypeFilter(e.target.value);
+                                    }}
+                                    className="px-3 md:px-4 py-2 md:py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-sm md:text-base min-w-[200px]"
                                 >
-                                    <X className="w-4 h-4" />
-                                    Clear Filters
-                                </button>
+                                    <option value="">All Client Types</option>
+                                    {types.map(type => (
+                                        <option key={type.id} value={type.id}>{type.name}</option>
+                                    ))}
+                                </select>
+                                
+                                {(search || selectedType) && (
+                                    <button
+                                        onClick={clearFilters}
+                                        className="px-3 md:px-4 py-2 md:py-2.5 text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-lg border border-gray-300 text-sm md:text-base flex items-center gap-2"
+                                    >
+                                        <X className="w-4 h-4" />
+                                        Clear Filters
+                                    </button>
+                                )}
+                            </div>
+                            
+                            {/* Bulk Actions (Desktop) */}
+                            {selectedCompanies.length > 0 && (
+                                <div className="flex items-center gap-2">
+                                    <span className="text-sm text-gray-600">
+                                        {selectedCompanies.length} selected
+                                    </span>
+                                    <select
+                                        onChange={(e) => handleBulkAction(e.target.value)}
+                                        className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-sm"
+                                    >
+                                        <option value="">Bulk Actions</option>
+                                        <option value="export">Export Selected</option>
+                                        <option value="activate">Mark as Active</option>
+                                        <option value="deactivate">Mark as Inactive</option>
+                                        <option value="delete">Delete Selected</option>
+                                    </select>
+                                    <button
+                                        onClick={() => setSelectedCompanies([])}
+                                        className="px-3 py-2 text-sm text-gray-600 hover:text-gray-900"
+                                    >
+                                        Clear
+                                    </button>
+                                </div>
                             )}
                         </div>
 
@@ -425,9 +503,9 @@ const CompaniesIndex = () => {
                         >
                             <Filter className="w-4 h-4" />
                             Filters
-                            {(search || selectedType) && (
+                            {(search || selectedType || selectedCompanies.length > 0) && (
                                 <span className="bg-teal-100 text-teal-800 text-xs px-2 py-0.5 rounded-full">
-                                    Active
+                                    {selectedCompanies.length > 0 ? selectedCompanies.length + ' selected' : 'Active'}
                                 </span>
                             )}
                         </button>
@@ -436,7 +514,7 @@ const CompaniesIndex = () => {
                         {showMobileFilters && (
                             <div className="md:hidden bg-gray-50 border border-gray-200 rounded-lg p-4 space-y-3">
                                 <div className="flex justify-between items-center">
-                                    <h3 className="font-medium text-gray-900">Filters</h3>
+                                    <h3 className="font-medium text-gray-900">Filters & Actions</h3>
                                     <button
                                         onClick={() => setShowMobileFilters(false)}
                                         className="p-1 hover:bg-gray-200 rounded"
@@ -476,6 +554,31 @@ const CompaniesIndex = () => {
                                             ))}
                                         </div>
                                     </div>
+                                    
+                                    {/* Bulk Actions (Mobile) */}
+                                    {selectedCompanies.length > 0 && (
+                                        <div className="border-t pt-3">
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                                Bulk Actions ({selectedCompanies.length} selected)
+                                            </label>
+                                            <select
+                                                onChange={(e) => handleBulkAction(e.target.value)}
+                                                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm mb-2"
+                                            >
+                                                <option value="">Select Action</option>
+                                                <option value="export">Export Selected</option>
+                                                <option value="activate">Mark as Active</option>
+                                                <option value="deactivate">Mark as Inactive</option>
+                                                <option value="delete">Delete Selected</option>
+                                            </select>
+                                            <button
+                                                onClick={() => setSelectedCompanies([])}
+                                                className="w-full px-3 py-2 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg border"
+                                            >
+                                                Clear Selection
+                                            </button>
+                                        </div>
+                                    )}
 
                                     {(search || selectedType) && (
                                         <button
@@ -511,15 +614,183 @@ const CompaniesIndex = () => {
                     </div>
 
                     {/* Companies Table Component */}
-                    <CompaniesTable 
-                        companies={companies}
-                        filters={{ search, client_type_id: selectedType }}
-                        onSearch={handleSearch}
-                        onFilterChange={handleTypeFilter}
-                        showActions={true}
-                        onEditClick={handleEditClick}
-                        onDeleteClick={handleDeleteClick}
-                    />
+                    <div className="overflow-x-auto">
+                        <table className="min-w-full divide-y divide-gray-200">
+                            <thead className="bg-gray-50">
+                                <tr>
+                                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-10">
+                                        <input
+                                            type="checkbox"
+                                            onChange={(e) => handleSelectAll(e.target.checked)}
+                                            checked={selectedCompanies.length === companies.data?.length && companies.data?.length > 0}
+                                            className="h-4 w-4 text-teal-600 focus:ring-teal-500 border-gray-300 rounded"
+                                        />
+                                    </th>
+                                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Client
+                                    </th>
+                                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Type
+                                    </th>
+                                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Contact
+                                    </th>
+                                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Status
+                                    </th>
+                                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Created
+                                    </th>
+                                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Actions
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody className="bg-white divide-y divide-gray-200">
+                                {companies.data?.length > 0 ? (
+                                    companies.data.map((company) => {
+                                        const isSelected = selectedCompanies.includes(company.id);
+                                        const typeColors = getTypeColor(company.client_type?.name || 'Unknown');
+                                        
+                                        return (
+                                            <tr 
+                                                key={company.id} 
+                                                className={`hover:bg-gray-50 ${isSelected ? 'bg-blue-50' : ''}`}
+                                            >
+                                                <td className="px-6 py-4 whitespace-nowrap">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={isSelected}
+                                                        onChange={(e) => handleCompanySelect(company.id, e.target.checked)}
+                                                        className="h-4 w-4 text-teal-600 focus:ring-teal-500 border-gray-300 rounded"
+                                                    />
+                                                </td>
+                                                <td className="px-6 py-4 whitespace-nowrap">
+                                                    <div className="flex items-center">
+                                                        <div className="flex-shrink-0 h-10 w-10">
+                                                            {company.logo_path ? (
+                                                                <img 
+                                                                    className="h-10 w-10 rounded-full object-cover" 
+                                                                    src={company.logo_path.startsWith('http') ? company.logo_path : `/storage/${company.logo_path}`}
+                                                                    alt={company.name}
+                                                                />
+                                                            ) : (
+                                                                <div className="h-10 w-10 rounded-full bg-gray-200 flex items-center justify-center">
+                                                                    <Building className="h-6 w-6 text-gray-500" />
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                        <div className="ml-4">
+                                                            <div className="text-sm font-medium text-gray-900">
+                                                                {company.name}
+                                                            </div>
+                                                            <div className="text-sm text-gray-500">
+                                                                {company.client_code}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                                <td className="px-6 py-4 whitespace-nowrap">
+                                                    <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${typeColors.bg} ${typeColors.badgeText}`}>
+                                                        {company.client_type?.name || 'Unknown'}
+                                                    </span>
+                                                </td>
+                                                <td className="px-6 py-4 whitespace-nowrap">
+                                                    <div className="text-sm text-gray-900">{company.contact_person}</div>
+                                                    <div className="text-sm text-gray-500">{company.email}</div>
+                                                </td>
+                                                <td className="px-6 py-4 whitespace-nowrap">
+                                                    <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                                                        company.is_active 
+                                                            ? 'bg-green-100 text-green-800' 
+                                                            : 'bg-red-100 text-red-800'
+                                                    }`}>
+                                                        {company.is_active ? 'Active' : 'Inactive'}
+                                                    </span>
+                                                </td>
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                                    {new Date(company.created_at).toLocaleDateString()}
+                                                </td>
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                                    <div className="flex items-center space-x-2">
+                                                        <Link 
+                                                            href={`/companies/${company.id}`}
+                                                            className="text-blue-600 hover:text-blue-900 p-1"
+                                                        >
+                                                            <Eye className="w-4 h-4" />
+                                                        </Link>
+                                                        <button
+                                                            onClick={() => handleEditClick(company)}
+                                                            className="text-green-600 hover:text-green-900 p-1"
+                                                        >
+                                                            <Edit className="w-4 h-4" />
+                                                        </button>
+                                                        <button
+                                                            onClick={() => handleDeleteClick(company)}
+                                                            className="text-red-600 hover:text-red-900 p-1"
+                                                        >
+                                                            <Trash2 className="w-4 h-4" />
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        );
+                                    })
+                                ) : (
+                                    <tr>
+                                        <td colSpan="7" className="px-6 py-12 text-center">
+                                            <div className="text-gray-500">
+                                                <Building className="h-12 w-12 mx-auto text-gray-300" />
+                                                <p className="mt-4 text-lg font-medium">No clients found</p>
+                                                <p className="mt-1">
+                                                    {search || selectedType 
+                                                        ? 'Try adjusting your search or filter' 
+                                                        : 'Get started by adding your first client'
+                                                    }
+                                                </p>
+                                                {!search && !selectedType && (
+                                                    <button
+                                                        onClick={() => setIsCreateModalOpen(true)}
+                                                        className="mt-4 inline-flex items-center gap-2 bg-teal-700 hover:bg-teal-800 text-white px-4 py-2 rounded-lg"
+                                                    >
+                                                        <Plus className="w-4 h-4" />
+                                                        Add New Client
+                                                    </button>
+                                                )}
+                                            </div>
+                                        </td>
+                                    </tr>
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    {/* Pagination */}
+                    {companies.links && companies.links.length > 3 && (
+                        <div className="px-6 py-4 border-t border-gray-200">
+                            <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
+                                <div className="text-sm text-gray-700">
+                                    Showing <span className="font-medium">{companies.from}</span> to <span className="font-medium">{companies.to}</span> of{' '}
+                                    <span className="font-medium">{companies.total}</span> results
+                                </div>
+                                <div className="flex items-center space-x-1">
+                                    {companies.links.map((link, index) => (
+                                        <Link
+                                            key={index}
+                                            href={link.url || '#'}
+                                            preserveScroll
+                                            className={`px-3 py-1 rounded-md text-sm font-medium ${
+                                                link.active
+                                                    ? 'bg-teal-700 text-white'
+                                                    : 'text-gray-700 hover:bg-gray-100'
+                                            } ${!link.url ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                            dangerouslySetInnerHTML={{ __html: link.label }}
+                                        />
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+                    )}
                 </div>
 
                 {/* Quick Summary */}
@@ -590,6 +861,7 @@ const CompaniesIndex = () => {
                         <li>Filter by client type to organize your portfolio</li>
                         <li>Click on any client to view detailed information</li>
                         <li>Use the "Add New Client" button to expand your client base</li>
+                        <li>Select multiple clients for bulk actions</li>
                     </ul>
                 </div>
             </div>
@@ -615,7 +887,7 @@ const CompaniesIndex = () => {
                             onClick={() => setIsCreateModalOpen(true)}
                             className="flex items-center justify-center gap-2 bg-teal-700 hover:bg-teal-800 text-white px-4 py-3 rounded-lg font-medium transition-colors shadow-md"
                         >
-                            <FileText className="w-5 h-5" />
+                            <Plus className="w-5 h-5" />
                             Add Client
                         </button>
                     </div>

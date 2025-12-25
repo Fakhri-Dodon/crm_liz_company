@@ -2,12 +2,13 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Facades\Storage;
 
 class Company extends Model
 {
-    use HasFactory;
+    use SoftDeletes;
 
     protected $table = 'companies';
     protected $primaryKey = 'id';
@@ -39,6 +40,7 @@ class Company extends Model
         'created_by',
         'updated_by',
         'deleted_by',
+        'deleted_at',
         'deleted'
     ];
 
@@ -53,39 +55,53 @@ class Company extends Model
         'deleted_at' => 'datetime'
     ];
 
-    protected $appends = ['logo_url', 'status', 'client_type_name'];
-
-    public static function boot()
+    protected static function boot()
     {
         parent::boot();
 
         static::creating(function ($model) {
             if (empty($model->id)) {
-                $model->id = (string) \Illuminate\Support\Str::orderedUuid();
+                $model->id = (string) \Illuminate\Support\Str::uuid();
             }
             if (empty($model->client_code)) {
                 $model->client_code = 'CL-' . strtoupper(uniqid());
             }
-            // Set created_by from authenticated user
             if (auth()->check()) {
                 $model->created_by = auth()->id();
+            }
+            // Default is_active ke true sesuai database
+            if (!isset($model->is_active)) {
+                $model->is_active = true;
+            }
+            // Default deleted ke false
+            if (!isset($model->deleted)) {
+                $model->deleted = false;
             }
         });
 
         static::updating(function ($model) {
-            // Set updated_by from authenticated user
             if (auth()->check()) {
                 $model->updated_by = auth()->id();
             }
         });
+
+        static::deleting(function ($model) {
+            // Soft delete
+            $model->deleted = true;
+            $model->deleted_at = now();
+            if (auth()->check()) {
+                $model->deleted_by = auth()->id();
+            }
+            return false; // Mencegah hard delete
+        });
     }
 
     /**
-     * Global scope untuk data aktif
+     * Global scope untuk data yang tidak dihapus
      */
     protected static function booted()
     {
-        static::addGlobalScope('active', function ($query) {
+        static::addGlobalScope('notDeleted', function ($query) {
             $query->where('deleted', 0);
         });
     }
@@ -93,7 +109,13 @@ class Company extends Model
     // Accessors
     public function getLogoUrlAttribute()
     {
-        return $this->logo_path ? Storage::url($this->logo_path) : null;
+        if (!$this->logo_path) return null;
+        
+        if (filter_var($this->logo_path, FILTER_VALIDATE_URL)) {
+            return $this->logo_path;
+        }
+        
+        return Storage::url($this->logo_path);
     }
 
     public function getStatusAttribute()
@@ -119,32 +141,32 @@ class Company extends Model
     // Relationships
     public function clientType()
     {
-        return $this->belongsTo(ClientType::class, 'client_type_id');
+        return $this->belongsTo(ClientType::class, 'client_type_id', 'id');
     }
 
     public function lead()
     {
-        return $this->belongsTo(Lead::class, 'lead_id');
+        return $this->belongsTo(Lead::class, 'lead_id', 'id');
     }
 
     public function quotation()
     {
-        return $this->belongsTo(Quotation::class, 'quotation_id');
+        return $this->belongsTo(Quotation::class, 'quotation_id', 'id');
     }
 
     public function creator()
     {
-        return $this->belongsTo(User::class, 'created_by');
+        return $this->belongsTo(User::class, 'created_by', 'id');
     }
 
     public function updater()
     {
-        return $this->belongsTo(User::class, 'updated_by');
+        return $this->belongsTo(User::class, 'updated_by', 'id');
     }
 
     public function deleter()
     {
-        return $this->belongsTo(User::class, 'deleted_by');
+        return $this->belongsTo(User::class, 'deleted_by', 'id');
     }
 
     // Scopes
@@ -172,5 +194,15 @@ class Company extends Model
               ->orWhere('phone', 'like', "%{$search}%")
               ->orWhere('contact_person', 'like', "%{$search}%");
         });
+    }
+
+    public function scopeWithTrashed($query)
+    {
+        return $query->withoutGlobalScope('notDeleted');
+    }
+
+    public function scopeOnlyTrashed($query)
+    {
+        return $query->withoutGlobalScope('notDeleted')->where('deleted', 1);
     }
 }

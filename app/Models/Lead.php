@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 
 class Lead extends Model
@@ -21,11 +22,10 @@ class Lead extends Model
         'contact_person',
         'email',
         'phone',
-        'status',
         'assigned_to',
-        'converted_to_company', // Tambahkan jika migration dijalankan
-        'converted_at', // Tambahkan jika migration dijalankan
-        'company_id', // Tambahkan jika migration dijalankan
+        'converted_to_company',
+        'converted_at',
+        'company_id',
         'created_by',
         'updated_by',
         'deleted_by',
@@ -35,6 +35,9 @@ class Lead extends Model
         'converted_to_company' => 'boolean',
         'converted_at' => 'datetime',
     ];
+
+    // Append status_name for easier access
+    protected $appends = ['status_name'];
 
     protected static function booted()
     {
@@ -49,9 +52,10 @@ class Lead extends Model
         return $this->hasMany(Quotation::class, 'lead_id');
     }
 
-    public function statuses()
+    // FIXED: Use belongsTo for foreign key relationship
+    public function status()
     {
-        return $this->hasOne(LeadStatuses::class);
+        return $this->belongsTo(LeadStatuses::class, 'lead_statuses_id');
     }
 
     public function company()
@@ -63,22 +67,47 @@ class Lead extends Model
     {
         return $this->hasOne(Company::class, 'lead_id');
     }
+
+    // Accessor for status name
+    public function getStatusNameAttribute()
+    {
+        return $this->status ? $this->status->name : null;
+    }
+
+    // Optional: Accessor for status color
+    public function getStatusColorAttribute()
+    {
+        return $this->status ? $this->status->color : null;
+    }
     
-    // Scope untuk leads yang sudah di-convert
+    // FIXED scopes - remove references to non-existent 'status' column
     public function scopeConverted($query)
     {
         if (Schema::hasColumn('leads', 'converted_to_company')) {
             return $query->where('converted_to_company', true);
         }
-        return $query->where('status', 'sent'); // Fallback
+        // Alternative fallback if needed
+        return $query->whereHas('status', function($q) {
+            $q->where('name', 'converted'); // Assuming you have a status named 'converted'
+        });
     }
     
-    // Scope untuk leads yang belum di-convert
     public function scopeNotConverted($query)
     {
         if (Schema::hasColumn('leads', 'converted_to_company')) {
             return $query->where('converted_to_company', false);
         }
-        return $query->where('status', '!=', 'sent')->orWhereNull('status'); // Fallback
+        // Alternative fallback if needed
+        return $query->whereHas('status', function($q) {
+            $q->where('name', '!=', 'converted');
+        })->orDoesntHave('status');
+    }
+
+    // Optional: Scope for specific status
+    public function scopeWithStatus($query, $statusName)
+    {
+        return $query->whereHas('status', function($q) use ($statusName) {
+            $q->where('name', $statusName);
+        });
     }
 }
