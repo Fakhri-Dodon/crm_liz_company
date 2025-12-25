@@ -1,7 +1,7 @@
 import React from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/services/api';
-import GeneralSettings from '@/components/settings/GeneralSettings';
+import GeneralSettings from '@/Components/Settings/GeneralSettings';
 import SettingsLayout from '@/Layouts/SettingsLayout';
 
 export default function GeneralPage() {

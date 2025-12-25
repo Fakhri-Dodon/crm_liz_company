@@ -1,5 +1,5 @@
 import React from 'react';
-import UserRoleSettings from '@/components/settings/UserRoleSettings';
+import UserRoleSettings from '@/Components/Settings/UserRoleSettings';
 import SettingsLayout from '@/Layouts/SettingsLayout';
 
 export default function UserRolesPage() {

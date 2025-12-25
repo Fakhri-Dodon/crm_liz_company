@@ -1,5 +1,5 @@
 import React from 'react';
-import LeadSettings from '@/components/settings/LeadSettings';
+import LeadSettings from '@/Components/Settings/LeadSettings';
 import SettingsLayout from '@/Layouts/SettingsLayout';
 
 export default function LeadsPage() {

@@ -1,6 +1,6 @@
 import React from 'react';
 import SettingsLayout from '@/Layouts/SettingsLayout';
-import ProposalSettings from '@/components/settings/ProposalSettings';
+import ProposalSettings from '@/Components/Settings/ProposalSettings';
 
 export default function LeadsPage() {
     return (
