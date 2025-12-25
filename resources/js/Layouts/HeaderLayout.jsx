@@ -1,6 +1,6 @@
 import Dropdown from "@/Components/Dropdown";
 import NavLink from "@/Components/NavLink";
-import DateTime from "@/components/DateTime";
+import DateTime from "@/Components/DateTime";
 import ResponsiveNavLink from "@/Components/ResponsiveNavLink";
 import { Settings, User, Bell, Globe } from "lucide-react";
 import { Link, usePage } from "@inertiajs/react";
