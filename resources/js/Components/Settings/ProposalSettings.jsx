@@ -529,6 +529,7 @@ export default function ProposalSettings() {
                                         Orange: "#F97316",
                                         Blue: "#3B82F6",
                                         Green: "#22C55E",
+                                        Red: "#ef4444",
                                         Gray: "#6B7280",
                                     };
                                     setData((prev) => ({
@@ -540,6 +541,7 @@ export default function ProposalSettings() {
                             >
                                 <option value="">-- Choose Color --</option>
                                 <option value="Orange">Orange</option>
+                                <option value="Red">Red</option>
                                 <option value="Blue">Blue</option>
                                 <option value="Green">Green</option>
                                 <option value="Gray">Gray</option>

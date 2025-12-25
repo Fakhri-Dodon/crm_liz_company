@@ -22,6 +22,7 @@ return new class extends Migration
             $table->char('created_by', 36)->nullable();
             $table->char('updated_by', 36)->nullable();
             $table->char('deleted_by', 36)->nullable();
+            $table->tinyInteger('deleted')->default(0);
             $table->timestamps();
             $table->softDeletes();
         });

@@ -7,6 +7,7 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\SettingController;
 use App\Http\Controllers\LeadStatusesController;
 use App\Http\Controllers\AppConfigController;
+use App\Http\Controllers\ProposalStatusesController;
 use App\Http\Controllers\ProjectController;
 use App\Http\Controllers\EmailSettingsController;
 use App\Http\Controllers\CompanyController;

@@ -22,6 +22,7 @@ class DatabaseSeeder extends Seeder
             UserSeeder::class,
             ClientTypeSeeder::class,
             MenuSeeder::class,
+            ProposalNumberFormatedSeeder::class
         ]);
     }
 }

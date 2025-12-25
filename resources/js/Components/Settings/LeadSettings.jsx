@@ -9,7 +9,7 @@ import SimpleModal from "@/components/ui/SimpleModal";
 
 export default function LeadSettings() {
     const { config, statuses } = usePage().props;
-
+    const [isProcessing, setIsProcessing] = useState(false);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingStatus, setEditingStatus] = useState(null);
 
@@ -252,7 +252,7 @@ export default function LeadSettings() {
                                             key={`vis-${localSettings.lead_user_base_visibility}`}
                                             checked={localSettings.lead_user_base_visibility}
                                             onCheckedChange={() => handleToggle("lead_user_base_visibility", localSettings.lead_user_base_visibility)}
-                                            disabled={processing}
+                                            disabled={isProcessing}
                                         />
                                         <span className={`text-[10px] font-black uppercase ${localSettings.lead_user_base_visibility ? "text-green-600" : "text-red-600"}`}>
                                             {localSettings.lead_user_base_visibility ? "ON" : "OFF"}
@@ -280,7 +280,7 @@ export default function LeadSettings() {
                                             key={`fil-${localSettings.lead_default_filter_by_login}`}
                                             checked={localSettings.lead_default_filter_by_login}
                                             onCheckedChange={() => handleToggle("lead_default_filter_by_login", localSettings.lead_default_filter_by_login)}
-                                            disabled={processing}
+                                            disabled={isProcessing}
                                         />
                                         <span className={`text-[10px] font-black uppercase ${localSettings.lead_default_filter_by_login ? "text-green-600" : "text-red-600"}`}>
                                             {localSettings.lead_default_filter_by_login ? "ON" : "OFF"}
@@ -300,7 +300,7 @@ export default function LeadSettings() {
             </div>
 
             {/* SYNC LOADING INDICATOR */}
-            {processing && (
+            {isProcessing && (
                 <div className="fixed bottom-6 right-6 bg-teal-900 text-white px-6 py-3 rounded-full shadow-2xl flex items-center gap-3 animate-bounce z-50">
                     <Loader2 className="w-5 h-5 animate-spin text-teal-300" />
                     <span className="font-bold text-sm tracking-widest uppercase">Syncing...</span>
