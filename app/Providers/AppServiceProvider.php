@@ -23,6 +23,9 @@ class AppServiceProvider extends ServiceProvider
     {
         if (app()->environment('production')) {
             \Illuminate\Support\Facades\URL::forceScheme('https');
+
+            config(['session.same_site' => 'lax']);
+            config(['session.secure' => true]);
         }
     }
 }
