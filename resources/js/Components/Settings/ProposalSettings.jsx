@@ -13,7 +13,7 @@ import { Edit, Trash2, Loader2, Plus } from "lucide-react";
 import { api } from "@/services/api";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Switch } from "@/Components/ui/Switch";
+import { Switch } from "@/Components/ui/switch";
 import SimpleModal from "@/Components/ui/SimpleModal";
 
 export default function ProposalSettings() {
