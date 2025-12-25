@@ -2,13 +2,14 @@
 FROM node:20-alpine AS frontend
 WORKDIR /app
 COPY package*.json ./
+RUN npm install && npm install @rollup/rollup-linux-x64-musl
 RUN npm install
 COPY . .
 # Perintah ini akan menghasilkan folder public/build
 RUN npm run build
 
 # --- Tahap 2: Backend (PHP 8.3 + Nginx) ---
-FROM php:8.3-fpm-alpine AS backend
+FROM php:8.2-fpm-alpine AS backend
 WORKDIR /var/www/html
 
 # 1. Instal dependensi sistem yang dibutuhkan Laravel
