@@ -1,38 +1,46 @@
-# --- Tahap 1: Build Frontend (Node.js/NPM) ---
-# Menggunakan image Node.js LTS terbaru (ganti '20' jika versi lokal Anda berbeda)
+# --- Tahap 1: Build Frontend (Vite) ---
 FROM node:20-alpine AS frontend
 WORKDIR /app
 COPY package*.json ./
-# Jalankan npm install
 RUN npm install
 COPY . .
-# Jalankan build vite/react
+# Perintah ini akan menghasilkan folder public/build
 RUN npm run build
 
-# --- Tahap 2: Build Backend (PHP/Composer) dan Gabungkan Aset ---
-# Menggunakan image PHP FPM LTS terbaru (ganti '8.3' jika versi lokal Anda berbeda)
+# --- Tahap 2: Backend (PHP 8.3 + Nginx) ---
 FROM php:8.3-fpm-alpine AS backend
 WORKDIR /var/www/html
 
-# Instal dependensi sistem yang dibutuhkan PHP (git, nginx, dll)
-RUN apk add --no-cache nginx git
+# 1. Instal dependensi sistem yang dibutuhkan Laravel
+RUN apk add --no-cache \
+    nginx \
+    git \
+    icu-dev \
+    libpng-dev \
+    libzip-dev \
+    zip \
+    unzip
 
-# Salin file konfigurasi Nginx kustom yang akan kita buat di Langkah 2
+# 2. Instal Composer secara resmi
+COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
+
+# 3. Salin konfigurasi Nginx
 COPY nginx.conf /etc/nginx/http.d/default.conf
 
-# Salin aset React yang sudah di-build dari tahap frontend ke public folder Laravel
-COPY --from=frontend /app/public /var/www/html/public
-
-# Salin sisa kode Laravel Anda
+# 4. Salin seluruh kode project
 COPY . .
 
-# Instal Composer dependencies
+# 5. Salin hasil build Vite dari tahap frontend ke folder public
+# Laravel Vite meletakkan hasilnya di public/build
+COPY --from=frontend /app/public/build /var/www/html/public/build
+
+# 6. Jalankan Composer Install
 RUN composer install --no-dev --optimize-autoloader
 
-# Atur permission storage/bootstrap cache
-RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache
-RUN chmod -R 775 /var/www/html/storage
+# 7. Atur Permissions untuk Laravel
+RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache && \
+    chmod -R 775 /var/www/html/storage /var/www/html/bootstrap/cache
 
-# Expose port 8000 dan jalankan Nginx (Nginx akan mengurus serving React & PHP)
+# 8. Jalankan PHP-FPM dan Nginx
 EXPOSE 8000
-CMD ["nginx", "-g", "daemon off;"]
+CMD php-fpm -D && nginx -g "daemon off;"
