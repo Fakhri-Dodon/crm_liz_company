@@ -1,15 +1,15 @@
 import React, { useState, useEffect } from "react";
 import { useForm, router } from "@inertiajs/react";
-import { Input } from "@/components/ui/Input";
-import { Label } from "@/components/ui/Label";
-import { Button } from "@/components/ui/Button";
+import { Input } from "@/Components/ui/Input";
+import { Label } from "@/Components/ui/Label";
+import { Button } from "@/Components/ui/Button";
 import {
     Select,
     SelectContent,
     SelectItem,
     SelectTrigger,
     SelectValue,
-} from "@/components/ui/select";
+} from "@/Components/ui/select";
 import { Image as ImageIcon, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
