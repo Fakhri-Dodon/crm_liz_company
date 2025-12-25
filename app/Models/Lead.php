@@ -15,6 +15,7 @@ class Lead extends Model
     public $incrementing = false;
 
     protected $fillable = [
+        'lead_statuses_id',
         'company_name',
         'address',
         'contact_person',
@@ -46,6 +47,11 @@ class Lead extends Model
     public function quotations()
     {
         return $this->hasMany(Quotation::class, 'lead_id');
+    }
+
+    public function statuses()
+    {
+        return $this->hasOne(LeadStatuses::class);
     }
 
     public function company()

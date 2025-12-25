@@ -12,17 +12,18 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('proposal_number_formated', function (Blueprint $table) {
-            $table->uuid('id')->primary();
+            $table->char('id', 36)->primary();
             $table->string('prefix')->default('PRO-');
             $table->string('prefix_description')->default('Fixed text added at the beginning of the proposal number.');
             $table->integer('padding')->default(5);
             $table->string('padding_description')->default('Sets the length of the numeric part. Extra zeros are added to maintain consistent length.');
             $table->integer('next_number')->default(1);
             $table->string('next_number_description')->default('The sequential number for the next generated proposal.');
-            $table->boolean('deleted')->default(false);
-            $table->uuid('created_by')->nullable();
-            $table->uuid('updated_by')->nullable();
-            $table->uuid('deleted_by')->nullable();
+            $table->char('created_by', 36)->nullable();
+            $table->char('updated_by', 36)->nullable();
+            $table->char('deleted_by', 36)->nullable();
+            $table->tinyInteger('deleted')->default(0);
+            $table->softDeletes();
             $table->timestamps();
         });
     }

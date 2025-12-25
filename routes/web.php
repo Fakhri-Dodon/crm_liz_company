@@ -5,6 +5,8 @@
 use App\Http\Controllers\LeadController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\SettingController;
+use App\Http\Controllers\LeadStatusesController;
+use App\Http\Controllers\AppConfigController;
 use App\Http\Controllers\ProjectController;
 use App\Http\Controllers\EmailSettingsController;
 use App\Http\Controllers\CompanyController;
@@ -15,8 +17,7 @@ use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
 Route::get('/', function () {
-    return Inertia::render('Welcome', [
-        'canLogin' => Route::has('login'),
+    return Inertia::render('Auth/Login', [
         'canRegister' => Route::has('register'),
         'laravelVersion' => Application::VERSION,
         'phpVersion' => PHP_VERSION,
@@ -62,8 +63,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::prefix('general')->name('general.')->group(function () {
             Route::get('/', [SettingController::class, 'general']);
             // KOMENTARI ROUTE YANG ERROR
-            // Route::post('/store', [AppConfigController::class, 'store'])->name('store');
-            // Route::post('/upload-logo', [AppConfigController::class, 'uploadLogo'])->name('upload-logo');
+            Route::post('/store', [AppConfigController::class, 'store'])->name('store');
+            Route::post('/upload-logo', [AppConfigController::class, 'uploadLogo'])->name('upload-logo');
         });
         
         // User Roles & Permissions
@@ -72,17 +73,20 @@ Route::middleware(['auth', 'verified'])->group(function () {
             Route::post('/store', [SettingController::class, 'userRolesStore'])->name('store');
             Route::put('/{id}', [SettingController::class, 'userRolesUpdate'])->name('update');
             // KOMENTARI ROUTE YANG ERROR
-            // Route::post('/role-store', [RolesController::class, 'roleStore'])->name('roles.store');
+            Route::post('/role-store', [RolesController::class, 'roleStore'])->name('roles.store');
         });
         
         // Leads Settings
         Route::get('/leads', [SettingController::class, 'leads'])->name('leads');
+        Route::post('/lead-status/store', [LeadStatusesController::class, 'store'])->name('lead-status.store');
+        Route::put('/lead-status/update/{id}', [LeadStatusesController::class, 'update'])->name('lead-status.update');
+        Route::delete('/lead-status/destroy/{id}', [LeadStatusesController::class, 'destroy'])->name('lead-status.delete');
         Route::get('/proposals', [SettingController::class, 'proposals'])->name('proposals');
         // KOMENTARI ROUTE YANG ERROR
-        // Route::post('/proposal_numbering/update/{id}', [ProposalNumberFormated::class, 'update'])->name('proposal_numbering.update');
-        // Route::post('/proposal-status/store', [ProposalStatusesController::class, 'store'])->name('proposal-status.store');
-        // Route::put('/proposal-status/update/{id}', [ProposalStatusesController::class, 'update'])->name('proposal-status.update');
-        // Route::delete('/proposal-status/destroy/{id}', [ProposalStatusesController::class, 'destroy'])->name('proposal-status.delete');
+        Route::post('/proposal_numbering/update/{id}', [ProposalNumberFormated::class, 'update'])->name('proposal_numbering.update');
+        Route::post('/proposal-status/store', [ProposalStatusesController::class, 'store'])->name('proposal-status.store');
+        Route::put('/proposal-status/update/{id}', [ProposalStatusesController::class, 'update'])->name('proposal-status.update');
+        Route::delete('/proposal-status/destroy/{id}', [ProposalStatusesController::class, 'destroy'])->name('proposal-status.delete');
 
         // Emails
         Route::prefix('email')->name('email.')->group(function () {

@@ -9,19 +9,19 @@ return new class extends Migration
     /**
      * Run the migrations.
      */
-    public function up(): void
-    {
+    public function up() {
         Schema::create('lead_statuses', function (Blueprint $table) {
-            $table->uuid('id')->primary();
+            $table->char('id', 36)->primary();
             $table->string('name');
             $table->text('note')->nullable();
-            $table->string('color'); 
+            $table->string('color');
+            $table->string('color_name', 100);
             $table->integer('order')->default(0);
-            $table->boolean('is_system')->default(false);
-            $table->boolean('deleted')->default(false);
-            $table->uuid('created_by')->nullable();
-            $table->uuid('updated_by')->nullable();
-            $table->uuid('deleted_by')->nullable();
+            $table->boolean('is_system')->default(0);
+            $table->tinyInteger('deleted')->default(0);
+            $table->char('created_by', 36)->nullable();
+            $table->char('updated_by', 36)->nullable();
+            $table->char('deleted_by', 36)->nullable();
             $table->timestamps();
         });
     }
@@ -31,6 +31,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('lead_statuses_');
+        Schema::dropIfExists('lead_statuses');
     }
 };
