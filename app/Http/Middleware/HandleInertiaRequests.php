@@ -34,6 +34,8 @@ class HandleInertiaRequests extends Middleware
                     'email' => $request->user()->email,
                 ] : null,
             ],
+            
+            'csrf_token' => csrf_token(),
         ]);
     }
 }

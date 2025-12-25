@@ -36,6 +36,11 @@
         }
     },
     "scripts": {
+        "post-install-cmd": [
+            "@php artisan core:link",
+            "@php artisan config:clear",
+            "@php artisan view:clear"
+        ],
         "setup": [
             "composer install",
             "@php -r \"file_exists('.env') || copy('.env.example', '.env');\"",
