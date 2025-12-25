@@ -1,7 +1,7 @@
 import React from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/services/api';
-import EmailSettings from '@/components/settings/EmailSettings';
+import EmailSettings from '@/Components/Settings/EmailSettings';
 import SettingsLayout from '@/Layouts/SettingsLayout';
 
 export default function EmailPage() {
