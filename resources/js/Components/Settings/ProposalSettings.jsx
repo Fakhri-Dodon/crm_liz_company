@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useForm, router, usePage } from "@inertiajs/react";
-import { Button } from "@/components/ui/button";
+import { Button } from "@/Components/ui/Button";
 import {
     Table,
     TableBody,
@@ -8,13 +8,13 @@ import {
     TableHead,
     TableHeader,
     TableRow,
-} from "@/components/ui/table";
+} from "@/Components/ui/Table";
 import { Edit, Trash2, Loader2, Plus } from "lucide-react";
 import { api } from "@/services/api";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Switch } from "@/components/ui/switch";
-import SimpleModal from "@/components/ui/SimpleModal";
+import { Switch } from "@/Components/ui/Switch";
+import SimpleModal from "@/Components/ui/SimpleModal";
 
 export default function ProposalSettings() {
     const { numbering, config, statuses } = usePage().props;

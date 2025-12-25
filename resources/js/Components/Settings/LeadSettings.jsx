@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from "react";
 import { useForm, router, usePage } from "@inertiajs/react";
-import { Switch } from "@/components/ui/switch";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Button } from "@/components/ui/button";
+import { Switch } from "@/Components/ui/Switch";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/Components/ui/Table";
+import { Button } from "@/Components/ui/Button";
 import { Edit, Trash2, Loader2, Plus } from "lucide-react";
 import { toast } from "sonner";
-import SimpleModal from "@/components/ui/SimpleModal";
+import SimpleModal from "@/Components/ui/SimpleModal";
 
 export default function LeadSettings() {
     const { config, statuses } = usePage().props;
