@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Button } from "@/components/ui/button";
+import { Input } from "@/Components/ui/Input";
+import { Label } from "@/Components/ui/Label";
+import { Button } from "@/Components/ui/Button";
 import {
     Table,
     TableBody,
@@ -9,7 +9,7 @@ import {
     TableHead,
     TableHeader,
     TableRow,
-} from "@/components/ui/table";
+} from "@/Components/ui/Table";
 import { BookOpen, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { router, usePage } from "@inertiajs/react";
