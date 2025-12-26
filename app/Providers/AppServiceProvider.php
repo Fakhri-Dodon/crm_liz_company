@@ -21,14 +21,18 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // Cek environment dari .env
         if (app()->environment('production')) {
-            URL::forceScheme('https');
+            \Illuminate\Support\Facades\URL::forceScheme('https');
 
             $this->app['request']->server->set('HTTPS', true);
 
-            config(['session.secure' => true]);
-            config(['session.same_site' => 'lax']);
-            config(['session.http_only' => true]);
+            config([
+                'session.secure' => true,
+                'session.http_only' => true,
+                'session.same_site' => 'lax',
+                'session.domain' => null,
+            ]);
         }
     }
 }
