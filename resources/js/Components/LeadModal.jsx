@@ -7,25 +7,68 @@ export default function LeadModal({ open, onClose, onSubmit, initialData }) {
     contact_person: "",
     email: "",
     phone: "",
-    status: "new",
+    status: "",
     assigned_to: "",
   });
 
-  // Reset form ketika modal dibuka/tutup
+  const [statuses, setStatuses] = useState([]);
+  const [loadingStatuses, setLoadingStatuses] = useState(false);
+
+  // Fetch statuses when modal opens
   useEffect(() => {
-    if (initialData) {
-      setForm(initialData);
-    } else {
-      // Reset form jika menambah data baru
-      setForm({
-        company_name: "",
-        address: "",
-        contact_person: "",
-        email: "",
-        phone: "",
-        status: "new",
-        assigned_to: "",
-      });
+    if (open) {
+      fetchStatuses();
+    }
+  }, [open]);
+
+  // Fetch available statuses from API
+  const fetchStatuses = async () => {
+    try {
+      setLoadingStatuses(true);
+      const response = await fetch('/api/lead-statuses');
+      const data = await response.json();
+      setStatuses(data);
+      
+      // Set default status if none selected
+      if (!initialData && data.length > 0 && !form.status) {
+        const defaultStatus = data.find(s => s.name.toLowerCase() === 'new') || data[0];
+        setForm(prev => ({
+          ...prev,
+          status: defaultStatus.id,
+        }));
+      }
+    } catch (err) {
+      console.error('Failed to fetch statuses:', err);
+      setStatuses([]);
+    } finally {
+      setLoadingStatuses(false);
+    }
+  };
+
+  // Reset form when modal opens/closes or initialData changes
+  useEffect(() => {
+    if (open) {
+      if (initialData) {
+        setForm({
+          company_name: initialData.company_name || "",
+          address: initialData.address || "",
+          contact_person: initialData.contact_person || "",
+          email: initialData.email || "",
+          phone: initialData.phone || "",
+          status: initialData.lead_statuses_id || "",
+          assigned_to: initialData.assigned_to || "",
+        });
+      } else {
+        setForm({
+          company_name: "",
+          address: "",
+          contact_person: "",
+          email: "",
+          phone: "",
+          status: "",
+          assigned_to: "",
+        });
+      }
     }
   }, [initialData, open]);
 
@@ -35,10 +78,42 @@ export default function LeadModal({ open, onClose, onSubmit, initialData }) {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
-  const handleSubmit = (e) => {
+// In LeadModal.jsx - handleSubmit
+const handleSubmit = (e) => {
     e.preventDefault();
-    onSubmit(form);
-  };
+    
+    // Debug
+    console.log('Form status value:', form.status);
+    console.log('Statuses available:', statuses);
+    
+    // Cari status object berdasarkan ID
+    const selectedStatus = statuses.find(s => s.id === form.status);
+    
+    if (!selectedStatus) {
+        alert('Please select a valid status');
+        return;
+    }
+    
+    // Prepare payload - KIRIM lead_statuses_id, bukan status
+    const payload = {
+        company_name: form.company_name,
+        address: form.address,
+        contact_person: form.contact_person,
+        email: form.email,
+        phone: form.phone,
+        assigned_to: form.assigned_to,
+        lead_statuses_id: form.status, // INI YANG DIBUTUHKAN API
+    };
+    
+    console.log('Payload being sent:', payload);
+    
+    // If editing, include the ID
+    if (initialData?.id) {
+        payload.id = initialData.id;
+    }
+    
+    onSubmit(payload);
+};
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto">
@@ -138,6 +213,7 @@ export default function LeadModal({ open, onClose, onSubmit, initialData }) {
                 </label>
                 <input
                   name="email"
+                  type="email"
                   placeholder="contact@company.com"
                   value={form.email}
                   onChange={handleChange}
@@ -164,15 +240,32 @@ export default function LeadModal({ open, onClose, onSubmit, initialData }) {
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Status
                 </label>
-                <select
-                  name="status"
-                  value={form.status}
-                  onChange={handleChange}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none bg-white"
-                >
-                  <option value="new">New</option>
-                  <option value="sent">Sent</option>
-                </select>
+                {loadingStatuses ? (
+                  <div className="w-full border border-gray-300 rounded-lg px-3 py-2.5">
+                    <div className="flex items-center">
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 mr-2"></div>
+                      <span className="text-gray-500">Loading statuses...</span>
+                    </div>
+                  </div>
+                ) : statuses.length === 0 ? (
+                  <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+                    No statuses available. Please create statuses first in Settings.
+                  </div>
+                ) : (
+                  <select
+                    name="status"
+                    value={form.status}
+                    onChange={handleChange}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none bg-white"
+                  >
+                    <option value="">Select a status</option>
+                    {statuses.map((status) => (
+                      <option key={status.id} value={status.id}>
+                        {status.name}
+                      </option>
+                    ))}
+                  </select>
+                )}
               </div>
 
               {/* Assigned To */}
@@ -205,7 +298,12 @@ export default function LeadModal({ open, onClose, onSubmit, initialData }) {
                 </button>
                 <button
                   type="submit"
-                  className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors duration-200 flex items-center gap-2"
+                  disabled={statuses.length === 0 || !form.status}
+                  className={`px-6 py-2.5 font-medium rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-2 transition-colors duration-200 flex items-center gap-2 ${
+                    (statuses.length === 0 || !form.status)
+                      ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                      : 'bg-blue-600 hover:bg-blue-700 text-white focus:ring-blue-500'
+                  }`}
                 >
                   {initialData ? (
                     <>

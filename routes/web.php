@@ -120,6 +120,10 @@ Route::middleware(['auth:sanctum', 'verified'])->group(function () {
     // Specific routes before parameter routes
     Route::get('/companies/get-leads', [CompanyController::class, 'getLeadsForCreation'])
         ->name('companies.get-leads');
+    Route::get('/companies/get-accepted-quotations', [CompanyController::class, 'getAcceptedQuotations'])
+        ->name('companies.get-accepted-quotations');
+    Route::get('/companies/get-lead-from-quotation/{quotation}', [CompanyController::class, 'getLeadFromQuotation'])
+        ->name('companies.get-lead-from-quotation');
     Route::get('/companies/statistics', [CompanyController::class, 'getStatistics'])
         ->name('companies.statistics');
     

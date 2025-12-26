@@ -59,15 +59,34 @@ export default function LeadsIndex({ leads: initialLeads = [] }) {
         {
             key: "status",
             label: "Status",
-            render: (value) => (
-                <span className={`inline-flex px-3 py-1 rounded-full text-xs font-semibold ${
-                    value === 'new' 
-                        ? 'bg-blue-100 text-blue-800' 
-                        : 'bg-green-100 text-green-800'
-                }`}>
-                    {value || 'NEW'}
-                </span>
-            ),
+            render: (value, row) => {
+                // Handle both string and object for status
+                let statusName = 'NEW';
+                let isNew = false;
+                
+                if (typeof value === 'string') {
+                    statusName = value;
+                    isNew = value.toLowerCase() === 'new';
+                } else if (value && typeof value === 'object') {
+                    // If value is an object, get the name property
+                    statusName = value.name || 'NEW';
+                    isNew = statusName.toLowerCase() === 'new';
+                } else if (row.status_name) {
+                    // Use status_name if available
+                    statusName = row.status_name;
+                    isNew = statusName.toLowerCase() === 'new';
+                }
+                
+                return (
+                    <span className={`inline-flex px-3 py-1 rounded-full text-xs font-semibold ${
+                        isNew 
+                            ? 'bg-blue-100 text-blue-800' 
+                            : 'bg-green-100 text-green-800'
+                    }`}>
+                        {statusName}
+                    </span>
+                );
+            },
         },
     ];
 
@@ -85,7 +104,27 @@ export default function LeadsIndex({ leads: initialLeads = [] }) {
             const res = await leadsService.getAll();
             
             if (Array.isArray(res.data)) {
-                setLeads(res.data);
+                // Transform the data to ensure status is a string
+                const transformedLeads = res.data.map(lead => {
+                    let statusName = 'NEW';
+                    
+                    // Extract status name from object if needed
+                    if (lead.status && typeof lead.status === 'object') {
+                        statusName = lead.status.name || 'NEW';
+                    } else if (lead.status_name) {
+                        statusName = lead.status_name;
+                    } else if (typeof lead.status === 'string') {
+                        statusName = lead.status;
+                    }
+                    
+                    return {
+                        ...lead,
+                        status_name: statusName, // Add status_name for easy access
+                        status: statusName, // Ensure status is a string
+                    };
+                });
+                
+                setLeads(transformedLeads);
             } else {
                 setLeads([]);
                 showNotification('error', 'Data Error', 'Invalid data format received');
@@ -96,6 +135,19 @@ export default function LeadsIndex({ leads: initialLeads = [] }) {
         } finally {
             setLoading(false);
         }
+    };
+
+    // Transform lead data for editing
+    const transformLeadForEdit = (lead) => {
+        if (!lead) return null;
+        
+        // Ensure we have the right structure for editing
+        return {
+            ...lead,
+            // If lead.status is an object, use its ID, otherwise use lead_statuses_id
+            lead_statuses_id: lead.lead_statuses_id || (lead.status?.id || ''),
+            // Keep other fields as they are
+        };
     };
 
     // Show notification function
@@ -110,9 +162,10 @@ export default function LeadsIndex({ leads: initialLeads = [] }) {
         setModalOpen(true);
     };
 
-    // Edit lead
+    // Edit lead - transform data before passing to modal
     const handleEdit = (row) => {
-        setSelectedLead(row);
+        const transformedLead = transformLeadForEdit(row);
+        setSelectedLead(transformedLead);
         setModalOpen(true);
     };
 

@@ -5,8 +5,6 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
-use App\Models\User;
-use App\Models\Lead;
 
 class Quotation extends Model
 {
@@ -14,6 +12,9 @@ class Quotation extends Model
 
     protected $keyType = 'string';
     public $incrementing = false;
+    
+    // Tambahkan properti table jika nama tabel berbeda
+    protected $table = 'quotations';
 
     protected $fillable = [
         'id',
@@ -23,11 +24,9 @@ class Quotation extends Model
         'subject',
         'payment_terms',
         'note',
-        'date',
-        'valid_until',  
         'revision_note',
         'pdf_path',
-        'sub_total',
+        'subtotal', // Perbaiki dari 'sub_total' ke 'subtotal'
         'discount',
         'tax',
         'total',
@@ -46,6 +45,9 @@ class Quotation extends Model
         'total' => 'decimal:2',
         'accepted_at' => 'datetime',
         'deleted' => 'boolean',
+        'created_at' => 'datetime',
+        'updated_at' => 'datetime',
+        'deleted_at' => 'datetime'
     ];
 
     public static function boot()
@@ -70,6 +72,12 @@ class Quotation extends Model
         return $this->belongsTo(Lead::class, 'lead_id', 'id');
     }
     
+    // TAMBAHKAN RELATIONSHIP COMPANY
+    public function company()
+    {
+        return $this->hasOne(Company::class, 'quotation_id', 'id');
+    }
+    
     public function items()
     {
         return $this->hasMany(QuotationItem::class, 'quotation_id', 'id');
@@ -82,16 +90,27 @@ class Quotation extends Model
 
     public function updater()
     {
-        return $this->belongsTo(User::class, 'updated_by');
+        return $this->belongsTo(User::class, 'updated_by', 'id');
     }
 
     public function acceptor()
     {
-        return $this->belongsTo(User::class, 'accepted_by');
+        return $this->belongsTo(User::class, 'accepted_by', 'id');
     }
 
     public function deleter()
     {
-        return $this->belongsTo(User::class, 'deleted_by');
+        return $this->belongsTo(User::class, 'deleted_by', 'id');
+    }
+    
+    // Scopes
+    public function scopeAccepted($query)
+    {
+        return $query->where('status', 'accepted');
+    }
+    
+    public function scopeNotConverted($query)
+    {
+        return $query->whereDoesntHave('company');
     }
 }
