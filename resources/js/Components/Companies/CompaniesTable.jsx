@@ -1,5 +1,5 @@
 // resources/js/Components/Companies/CompaniesTable.jsx
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link, router } from '@inertiajs/react';
 import { 
     Edit, 
@@ -12,7 +12,11 @@ import {
     MoreVertical,
     ChevronLeft,
     ChevronRight,
-    Eye
+    Eye,
+    Search,
+    Filter,
+    ChevronDown,
+    ChevronUp
 } from 'lucide-react';
 
 const CompaniesTable = ({ 
@@ -21,34 +25,67 @@ const CompaniesTable = ({
     onSearch, 
     onFilterChange,
     showActions = true,
-    onEditClick,  // Prop untuk handle edit action
-    onDeleteClick // Prop untuk handle delete action
+    onEditClick,
+    onDeleteClick,
+    bulkSelect = false,
+    selectedIds = [],
+    onBulkSelect = null
 }) => {
-    // State untuk responsive design dan search
+    // State untuk responsive design
     const [isMobile, setIsMobile] = useState(false);
+    const [isTablet, setIsTablet] = useState(false);
     const [search, setSearch] = useState(filters.search || '');
+    const [showFilters, setShowFilters] = useState(false);
+    const [sortConfig, setSortConfig] = useState({
+        key: '',
+        direction: 'asc'
+    });
+    const searchInputRef = useRef(null);
 
     // Effect untuk mendeteksi ukuran layar
     useEffect(() => {
-        const checkMobile = () => setIsMobile(window.innerWidth < 768);
-        checkMobile(); // Check saat komponen mount
-        window.addEventListener('resize', checkMobile); // Listen resize event
+        const checkScreenSize = () => {
+            const width = window.innerWidth;
+            setIsMobile(width < 640);
+            setIsTablet(width >= 640 && width < 1024);
+        };
         
-        // Cleanup event listener
-        return () => window.removeEventListener('resize', checkMobile);
+        checkScreenSize();
+        window.addEventListener('resize', checkScreenSize);
+        
+        return () => window.removeEventListener('resize', checkScreenSize);
     }, []);
 
-    // Effect untuk debounced search
+    // Effect untuk debounced search dengan auto-focus
     useEffect(() => {
+        if (searchInputRef.current) {
+            searchInputRef.current.focus();
+        }
+        
         const timer = setTimeout(() => {
-            // Panggil onSearch hanya jika nilai search berbeda dengan filter saat ini
             if (search !== filters.search && onSearch) {
                 onSearch(search);
             }
-        }, 500); // Debounce 500ms
+        }, 500);
         
-        return () => clearTimeout(timer); // Cleanup timer
+        return () => clearTimeout(timer);
     }, [search, filters.search, onSearch]);
+
+    // Handle sort
+    const handleSort = (key) => {
+        let direction = 'asc';
+        if (sortConfig.key === key && sortConfig.direction === 'asc') {
+            direction = 'desc';
+        }
+        setSortConfig({ key, direction });
+        
+        if (onFilterChange) {
+            onFilterChange({
+                sort_by: key,
+                sort_order: direction
+            });
+        }
+    };
 
     // Fungsi untuk menentukan warna berdasarkan tipe client
     const getTypeColor = (typeName) => {
@@ -75,7 +112,6 @@ const CompaniesTable = ({
             }
         };
 
-        // Warna default jika tipe tidak dikenali
         const defaultColors = {
             badgeBorder: 'border-gray-200',
             badgeText: 'text-gray-700',
@@ -85,114 +121,342 @@ const CompaniesTable = ({
         return colorMap[typeName] || defaultColors;
     };
 
-    // ============= MOBILE VIEW =============
+    // Format phone number
+    const formatPhoneNumber = (phone) => {
+        if (!phone) return 'N/A';
+        return phone.replace(/(\d{4})(\d{4})(\d+)/, '$1-$2-$3');
+    };
+
+    // Tablet View
+    if (isTablet) {
+        return (
+            <div className="space-y-4">
+                {/* Search and Filter Bar */}
+                <div className="bg-white rounded-lg shadow-sm p-4">
+                    <div className="flex flex-col gap-3">
+                        {/* Search input */}
+                        <div className="relative">
+                            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                            <input
+                                ref={searchInputRef}
+                                type="text"
+                                placeholder="Search clients by name, code, or email..."
+                                value={search}
+                                onChange={(e) => setSearch(e.target.value)}
+                                className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-sm"
+                            />
+                        </div>
+                        
+                        {/* Filter toggle */}
+                        <button
+                            onClick={() => setShowFilters(!showFilters)}
+                            className="flex items-center justify-center gap-2 px-4 py-2.5 border border-gray-300 rounded-lg hover:bg-gray-50"
+                        >
+                            <Filter className="w-4 h-4" />
+                            <span className="text-sm font-medium">Filters</span>
+                            {showFilters ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                        </button>
+                        
+                        {/* Results count */}
+                        <div className="text-sm text-gray-600">
+                            {companies.total || 0} client{companies.total !== 1 ? 's' : ''} found
+                        </div>
+                    </div>
+                </div>
+
+                {/* Tablet Cards Layout */}
+                {companies.data && companies.data.length > 0 ? (
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                        {companies.data.map((company) => {
+                            const colors = getTypeColor(company.client_type_name);
+                            const isSelected = bulkSelect && selectedIds.includes(company.id);
+                            
+                            return (
+                                <div 
+                                    key={company.id} 
+                                    className={`bg-white rounded-lg border transition-all ${isSelected ? 'border-teal-500 ring-2 ring-teal-100' : 'border-gray-200'}`}
+                                >
+                                    <div className="p-4">
+                                        {/* Header with checkbox and actions */}
+                                        <div className="flex items-start justify-between mb-4">
+                                            <div className="flex items-center gap-3 flex-1">
+                                                {bulkSelect && onBulkSelect && (
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={isSelected}
+                                                        onChange={(e) => onBulkSelect(company.id, e.target.checked)}
+                                                        className="h-4 w-4 text-teal-600 rounded border-gray-300 focus:ring-teal-500"
+                                                    />
+                                                )}
+                                                <Link 
+                                                    href={route('companies.show', company.id)}
+                                                    className="flex items-center gap-3 flex-1"
+                                                >
+                                                    <div className="bg-gray-100 p-2 rounded-lg hover:bg-gray-200 transition-colors">
+                                                        <Building className="w-5 h-5 text-gray-600" />
+                                                    </div>
+                                                    <div className="flex-1 min-w-0">
+                                                        <h3 className="font-semibold text-gray-900 text-sm truncate hover:text-teal-600 transition-colors">
+                                                            {company.name}
+                                                        </h3>
+                                                        <p className="text-xs text-gray-500">{company.client_code}</p>
+                                                    </div>
+                                                </Link>
+                                            </div>
+                                            
+                                            {/* Action buttons - Hanya icon mata dan lainnya, bukan nama perusahaan */}
+                                            {showActions && (
+                                                <div className="flex items-center gap-1">
+                                                    <button
+                                                        onClick={() => onEditClick && onEditClick(company)}
+                                                        className="p-1.5 text-blue-600 hover:text-blue-900 hover:bg-blue-50 rounded-lg transition"
+                                                        title="Edit"
+                                                    >
+                                                        <Edit className="w-4 h-4" />
+                                                    </button>
+                                                    <button
+                                                        onClick={() => onDeleteClick && onDeleteClick(company)}
+                                                        className="p-1.5 text-red-600 hover:text-red-900 hover:bg-red-50 rounded-lg transition"
+                                                        title="Delete"
+                                                    >
+                                                        <Trash2 className="w-4 h-4" />
+                                                    </button>
+                                                </div>
+                                            )}
+                                        </div>
+                                        
+                                        {/* Company details */}
+                                        <div className="space-y-3">
+                                            {/* Contact info */}
+                                            <div className="grid grid-cols-2 gap-3">
+                                                <div className="space-y-1">
+                                                    <div className="flex items-center gap-2">
+                                                        <User className="w-3 h-3 text-gray-400" />
+                                                        <span className="text-xs font-medium text-gray-600">Contact:</span>
+                                                    </div>
+                                                    <p className="text-sm text-gray-900 pl-5 truncate">{company.contact_person}</p>
+                                                </div>
+                                                
+                                                <div className="space-y-1">
+                                                    <div className="flex items-center gap-2">
+                                                        <Phone className="w-3 h-3 text-gray-400" />
+                                                        <span className="text-xs font-medium text-gray-600">Phone:</span>
+                                                    </div>
+                                                    <p className="text-sm text-gray-900 pl-5">{formatPhoneNumber(company.phone)}</p>
+                                                </div>
+                                            </div>
+                                            
+                                            {/* Email */}
+                                            <div className="space-y-1">
+                                                <div className="flex items-center gap-2">
+                                                    <Mail className="w-3 h-3 text-gray-400" />
+                                                    <span className="text-xs font-medium text-gray-600">Email:</span>
+                                                </div>
+                                                <p className="text-sm text-gray-900 pl-5 truncate">{company.email}</p>
+                                            </div>
+                                            
+                                            {/* Address */}
+                                            {company.address && (
+                                                <div className="space-y-1">
+                                                    <span className="text-xs font-medium text-gray-600">Address:</span>
+                                                    <p className="text-xs text-gray-600 line-clamp-2">{company.address}</p>
+                                                </div>
+                                            )}
+                                            
+                                            {/* Badges */}
+                                            <div className="flex flex-wrap gap-2 pt-2">
+                                                <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${colors.bgColor} ${colors.badgeText} border ${colors.badgeBorder}`}>
+                                                    {company.client_type_name}
+                                                </span>
+                                                <span className={`inline-flex items-center px-2.5 py-1 rounded text-xs ${
+                                                    company.is_active 
+                                                        ? 'bg-green-100 text-green-800 border border-green-200' 
+                                                        : 'bg-gray-100 text-gray-800 border border-gray-200'
+                                                }`}>
+                                                    {company.is_active ? 'Active' : 'Inactive'}
+                                                </span>
+                                                {company.client_since && (
+                                                    <span className="inline-flex items-center px-2.5 py-1 rounded text-xs bg-purple-100 text-purple-800 border border-purple-200">
+                                                        <Calendar className="w-3 h-3 mr-1" />
+                                                        Since {company.client_since}
+                                                    </span>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
+                ) : (
+                    <div className="bg-white rounded-lg shadow-sm p-8 text-center">
+                        <Building className="w-16 h-16 mx-auto mb-4 text-gray-300" />
+                        <div className="text-lg font-medium text-gray-500 mb-2">No clients found</div>
+                        <p className="text-sm text-gray-400">
+                            {search ? 'Try adjusting your search' : 'Get started by adding your first client'}
+                        </p>
+                    </div>
+                )}
+
+                {/* Tablet Pagination */}
+                {companies.data && companies.data.length > 0 && (
+                    <div className="bg-white rounded-lg shadow-sm p-4">
+                        <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+                            {/* Results info */}
+                            <div className="text-sm text-gray-700">
+                                Showing <span className="font-medium">{companies.from}</span> to{' '}
+                                <span className="font-medium">{companies.to}</span> of{' '}
+                                <span className="font-medium">{companies.total}</span> results
+                            </div>
+                            
+                            {/* Pagination buttons */}
+                            <div className="flex items-center gap-2">
+                                {companies.links[0].url && (
+                                    <Link
+                                        href={companies.links[0].url}
+                                        className="inline-flex items-center px-3 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+                                    >
+                                        <ChevronLeft className="w-4 h-4 mr-1" />
+                                        Previous
+                                    </Link>
+                                )}
+                                
+                                <div className="flex items-center gap-1">
+                                    {companies.links.slice(1, -1).map((link, index) => (
+                                        <Link
+                                            key={index}
+                                            href={link.url || '#'}
+                                            className={`inline-flex items-center px-3 py-2 text-sm font-medium border ${
+                                                link.active
+                                                    ? 'z-10 bg-teal-50 border-teal-500 text-teal-600'
+                                                    : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
+                                            } rounded-lg`}
+                                            dangerouslySetInnerHTML={{ __html: link.label }}
+                                        />
+                                    ))}
+                                </div>
+                                
+                                {companies.links[companies.links.length - 1].url && (
+                                    <Link
+                                        href={companies.links[companies.links.length - 1].url}
+                                        className="inline-flex items-center px-3 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+                                    >
+                                        Next
+                                        <ChevronRight className="w-4 h-4 ml-1" />
+                                    </Link>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                )}
+            </div>
+        );
+    }
+
+    // Mobile View
     if (isMobile) {
         return (
-            <div className="space-y-3 p-4">
-                {/* Search Bar untuk mobile */}
-                <div className="relative">
-                    <input
-                        type="text"
-                        placeholder="Search clients..."
-                        value={search}
-                        onChange={(e) => setSearch(e.target.value)}
-                        className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-sm"
-                    />
-                    {/* Search icon SVG */}
-                    <svg className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" 
-                         fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
-                              d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                    </svg>
+            <div className="space-y-3">
+                {/* Mobile Search */}
+                <div className="sticky top-0 z-10 bg-white p-3 border-b">
+                    <div className="relative">
+                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                        <input
+                            ref={searchInputRef}
+                            type="text"
+                            placeholder="Search clients..."
+                            value={search}
+                            onChange={(e) => setSearch(e.target.value)}
+                            className="w-full pl-9 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-sm"
+                        />
+                    </div>
                 </div>
 
-                {/* Results count untuk mobile */}
-                <div className="text-sm text-gray-600">
-                    Showing {companies.from || 0} to {companies.to || 0} of {companies.total || 0} clients
-                </div>
-
-                {/* Mobile Cards Layout */}
+                {/* Mobile Cards */}
                 {companies.data && companies.data.length > 0 ? (
-                    <div className="space-y-3">
+                    <div className="px-3 space-y-3 pb-4">
                         {companies.data.map((company) => {
                             const colors = getTypeColor(company.client_type_name);
                             
                             return (
                                 <div key={company.id} className="bg-white rounded-lg border border-gray-200 p-4 shadow-sm">
-                                    <div className="flex justify-between items-start">
-                                        {/* Left content - Company info */}
-                                        <div className="flex-1">
-                                            {/* Company header dengan icon */}
-                                            <div className="flex items-center gap-2 mb-3">
-                                                <div className="bg-gray-100 p-2 rounded-lg">
+                                    <div className="space-y-3">
+                                        {/* Company header - Logo dan nama bisa diklik */}
+                                        <div className="flex items-start justify-between">
+                                            <Link 
+                                                href={route('companies.show', company.id)}
+                                                className="flex items-center gap-3 flex-1"
+                                            >
+                                                <div className="bg-gray-100 p-2 rounded-lg hover:bg-gray-200 transition-colors">
                                                     <Building className="w-4 h-4 text-gray-600" />
                                                 </div>
-                                                <div className="flex-1">
-                                                    <h3 className="font-medium text-gray-900 text-sm">{company.name}</h3>
-                                                    <p className="text-xs text-gray-500">{company.client_code}</p>
+                                                <div className="flex-1 min-w-0">
+                                                    <h3 className="font-semibold text-gray-900 text-sm truncate hover:text-teal-600 transition-colors">
+                                                        {company.name}
+                                                    </h3>
+                                                    <p className="text-xs text-gray-500 truncate">{company.client_code}</p>
                                                 </div>
-                                            </div>
+                                            </Link>
                                             
-                                            {/* Contact details */}
-                                            <div className="space-y-2">
-                                                <div className="flex items-center gap-2">
-                                                    <User className="w-3 h-3 text-gray-400 flex-shrink-0" />
-                                                    <span className="text-xs text-gray-700 truncate">{company.contact_person}</span>
+                                            {/* Status badge */}
+                                            <span className={`text-xs px-2 py-1 rounded ${
+                                                company.is_active 
+                                                    ? 'bg-green-100 text-green-800' 
+                                                    : 'bg-gray-100 text-gray-800'
+                                            }`}>
+                                                {company.is_active ? 'Active' : 'Inactive'}
+                                            </span>
+                                        </div>
+                                        
+                                        {/* Client type */}
+                                        <div className="flex items-center justify-between">
+                                            <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${colors.bgColor} ${colors.badgeText}`}>
+                                                {company.client_type_name}
+                                            </span>
+                                            
+                                            {/* Action buttons - Hanya tombol edit dan delete */}
+                                            {showActions && (
+                                                <div className="flex items-center gap-1">
+                                                    <button
+                                                        onClick={() => onEditClick && onEditClick(company)}
+                                                        className="p-1.5 text-blue-600 hover:text-blue-900 hover:bg-blue-50 rounded-lg transition"
+                                                        title="Edit"
+                                                    >
+                                                        <Edit className="w-4 h-4" />
+                                                    </button>
+                                                    <button
+                                                        onClick={() => onDeleteClick && onDeleteClick(company)}
+                                                        className="p-1.5 text-red-600 hover:text-red-900 hover:bg-red-50 rounded-lg transition"
+                                                        title="Delete"
+                                                    >
+                                                        <Trash2 className="w-4 h-4" />
+                                                    </button>
                                                 </div>
-                                                <div className="flex items-center gap-2">
-                                                    <Mail className="w-3 h-3 text-gray-400 flex-shrink-0" />
-                                                    <span className="text-xs text-gray-600 truncate">{company.email}</span>
-                                                </div>
-                                                <div className="flex items-center gap-2">
-                                                    <Phone className="w-3 h-3 text-gray-400 flex-shrink-0" />
-                                                    <span className="text-xs bg-yellow-200 px-2 py-1 rounded font-medium">
-                                                        {company.phone}
-                                                    </span>
-                                                </div>
+                                            )}
+                                        </div>
+                                        
+                                        {/* Contact info */}
+                                        <div className="space-y-2 border-t pt-3">
+                                            <div className="flex items-center gap-2">
+                                                <User className="w-3 h-3 text-gray-400 flex-shrink-0" />
+                                                <span className="text-xs text-gray-700 truncate">{company.contact_person}</span>
                                             </div>
-
-                                            {/* Tags/Badges */}
-                                            <div className="mt-3 flex flex-wrap gap-2">
-                                                <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium border ${colors.badgeBorder} ${colors.badgeText} ${colors.bgColor}`}>
-                                                    {company.client_type_name}
+                                            <div className="flex items-center gap-2">
+                                                <Phone className="w-3 h-3 text-gray-400 flex-shrink-0" />
+                                                <span className="text-xs font-medium bg-yellow-100 px-2 py-1 rounded">
+                                                    {formatPhoneNumber(company.phone)}
                                                 </span>
-                                                <span className={`inline-flex items-center px-2 py-1 rounded text-xs ${
-                                                    company.is_active 
-                                                        ? 'bg-green-100 text-green-800' 
-                                                        : 'bg-gray-100 text-gray-800'
-                                                }`}>
-                                                    {company.is_active ? 'Active' : 'Inactive'}
-                                                </span>
+                                            </div>
+                                            <div className="flex items-center gap-2">
+                                                <Mail className="w-3 h-3 text-gray-400 flex-shrink-0" />
+                                                <span className="text-xs text-gray-600 truncate">{company.email}</span>
                                             </div>
                                         </div>
                                         
-                                        {/* Right content - Action buttons */}
-                                        {showActions && (
-                                            <div className="flex flex-col gap-1">
-                                                {/* View details button */}
-                                                <Link
-                                                    href={route('companies.show', company.id)}
-                                                    className="text-teal-600 hover:text-teal-900 p-1.5 hover:bg-teal-50 rounded-lg transition"
-                                                    title="View Details"
-                                                >
-                                                    <Eye className="w-4 h-4" />
-                                                </Link>
-                                                {/* Edit button */}
-                                                <button
-                                                    onClick={() => onEditClick && onEditClick(company)}
-                                                    className="text-blue-600 hover:text-blue-900 p-1.5 hover:bg-blue-50 rounded-lg transition"
-                                                    title="Edit"
-                                                >
-                                                    <Edit className="w-4 h-4" />
-                                                </button>
-                                                {/* Delete button */}
-                                                <button
-                                                    onClick={() => onDeleteClick && onDeleteClick(company)}
-                                                    className="text-red-600 hover:text-red-900 p-1.5 hover:bg-red-50 rounded-lg transition"
-                                                    title="Delete"
-                                                >
-                                                    <Trash2 className="w-4 h-4" />
-                                                </button>
+                                        {/* Address if available */}
+                                        {company.address && (
+                                            <div className="pt-2 border-t">
+                                                <p className="text-xs text-gray-600 line-clamp-2">{company.address}</p>
                                             </div>
                                         )}
                                     </div>
@@ -201,8 +465,7 @@ const CompaniesTable = ({
                         })}
                     </div>
                 ) : (
-                    // Empty state untuk mobile
-                    <div className="text-center py-8">
+                    <div className="px-3 py-8 text-center">
                         <Building className="w-12 h-12 mx-auto mb-3 text-gray-300" />
                         <div className="text-base font-medium text-gray-500">No clients found</div>
                         <p className="text-sm text-gray-400 mt-1">
@@ -213,31 +476,34 @@ const CompaniesTable = ({
 
                 {/* Mobile Pagination */}
                 {companies.data && companies.data.length > 0 && (
-                    <div className="flex items-center justify-center gap-2 pt-4">
-                        {/* Previous button */}
-                        {companies.links[0].url && (
-                            <Link
-                                href={companies.links[0].url}
-                                className="p-2 border border-gray-300 rounded-lg bg-white text-gray-500 hover:bg-gray-50"
-                                title="Previous"
-                            >
-                                <ChevronLeft className="w-4 h-4" />
-                            </Link>
-                        )}
-                        {/* Page info */}
-                        <div className="text-sm text-gray-700">
-                            Page {companies.current_page} of {companies.last_page}
+                    <div className="sticky bottom-0 bg-white border-t p-3">
+                        <div className="flex items-center justify-between">
+                            {/* Page info */}
+                            <div className="text-xs text-gray-700">
+                                Page {companies.current_page} of {companies.last_page}
+                            </div>
+                            
+                            {/* Navigation buttons */}
+                            <div className="flex items-center gap-2">
+                                {companies.links[0].url && (
+                                    <Link
+                                        href={companies.links[0].url}
+                                        className="inline-flex items-center px-3 py-2 border border-gray-300 rounded-lg text-xs font-medium text-gray-700 bg-white hover:bg-gray-50"
+                                    >
+                                        <ChevronLeft className="w-3 h-3" />
+                                    </Link>
+                                )}
+                                
+                                {companies.links[companies.links.length - 1].url && (
+                                    <Link
+                                        href={companies.links[companies.links.length - 1].url}
+                                        className="inline-flex items-center px-3 py-2 border border-gray-300 rounded-lg text-xs font-medium text-gray-700 bg-white hover:bg-gray-50"
+                                    >
+                                        <ChevronRight className="w-3 h-3" />
+                                    </Link>
+                                )}
+                            </div>
                         </div>
-                        {/* Next button */}
-                        {companies.links[companies.links.length - 1].url && (
-                            <Link
-                                href={companies.links[companies.links.length - 1].url}
-                                className="p-2 border border-gray-300 rounded-lg bg-white text-gray-500 hover:bg-gray-50"
-                                title="Next"
-                            >
-                                <ChevronRight className="w-4 h-4" />
-                            </Link>
-                        )}
                     </div>
                 )}
             </div>
@@ -247,22 +513,62 @@ const CompaniesTable = ({
     // ============= DESKTOP VIEW =============
     return (
         <div className="bg-white rounded-lg shadow-sm overflow-hidden">
+            {/* Table header with search and filters */}
+            <div className="p-4 border-b border-gray-200">
+                <div className="flex items-center justify-between">
+                    <div className="relative w-64">
+                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                        <input
+                            ref={searchInputRef}
+                            type="text"
+                            placeholder="Search clients..."
+                            value={search}
+                            onChange={(e) => setSearch(e.target.value)}
+                            className="w-full pl-9 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-sm"
+                        />
+                    </div>
+                    
+                    {/* Results count */}
+                    <div className="text-sm text-gray-600">
+                        {companies.total || 0} client{companies.total !== 1 ? 's' : ''} found
+                    </div>
+                </div>
+            </div>
+
             {/* Table container */}
             <div className="overflow-x-auto">
                 <table className="min-w-full divide-y divide-gray-200">
                     <thead className="bg-gray-50">
                         <tr>
-                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Client Name
+                            {bulkSelect && (
+                                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    <input
+                                        type="checkbox"
+                                        className="h-4 w-4 text-teal-600 rounded border-gray-300 focus:ring-teal-500"
+                                        onChange={(e) => {
+                                            if (onBulkSelect) {
+                                                companies.data.forEach(company => {
+                                                    onBulkSelect(company.id, e.target.checked);
+                                                });
+                                            }
+                                        }}
+                                    />
+                                </th>
+                            )}
+                            <th 
+                                scope="col" 
+                                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                                onClick={() => handleSort('name')}
+                            >
+                                <div className="flex items-center gap-1">
+                                    Client Name
+                                    {sortConfig.key === 'name' && (
+                                        sortConfig.direction === 'asc' ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />
+                                    )}
+                                </div>
                             </th>
                             <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Address
-                            </th>
-                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Contact Person
-                            </th>
-                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Email & Phone
+                                Contact Details
                             </th>
                             <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                 Status
@@ -278,127 +584,133 @@ const CompaniesTable = ({
                         {companies.data && companies.data.length > 0 ? (
                             companies.data.map((company) => {
                                 const colors = getTypeColor(company.client_type_name);
+                                const isSelected = bulkSelect && selectedIds.includes(company.id);
                                 
                                 return (
-                                    <tr key={company.id} className="hover:bg-gray-50 transition-colors">
-                                        {/* Client Name Column */}
+                                    <tr 
+                                        key={company.id} 
+                                        className={`transition-colors ${isSelected ? 'bg-teal-50' : 'hover:bg-gray-50'}`}
+                                    >
+                                        {bulkSelect && (
+                                            <td className="px-6 py-4">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={isSelected}
+                                                    onChange={(e) => onBulkSelect && onBulkSelect(company.id, e.target.checked)}
+                                                    className="h-4 w-4 text-teal-600 rounded border-gray-300 focus:ring-teal-500"
+                                                />
+                                            </td>
+                                        )}
+                                        
+                                        {/* Client Name Column - Logo dan Nama bisa diklik */}
                                         <td className="px-6 py-4">
                                             <div className="flex items-center">
-                                                <div className="flex-shrink-0 h-10 w-10 bg-gray-100 rounded-lg flex items-center justify-center">
-                                                    <Building className="w-5 h-5 text-gray-600" />
-                                                </div>
-                                                <div className="ml-4 min-w-0 flex-1">
-                                                    <div className="font-medium text-gray-900 truncate">
-                                                        {company.name}
+                                                <Link 
+                                                    href={route('companies.show', company.id)}
+                                                    className="flex items-center flex-1 hover:opacity-90 transition-opacity"
+                                                >
+                                                    <div className="flex-shrink-0 h-10 w-10 bg-gray-100 rounded-lg flex items-center justify-center hover:bg-gray-200 transition-colors">
+                                                        <Building className="w-5 h-5 text-gray-600" />
                                                     </div>
-                                                    <div className="text-sm text-gray-500 flex items-center gap-2 mt-1">
-                                                        <span className="bg-gray-100 px-2 py-0.5 rounded text-xs">
-                                                            {company.client_code}
-                                                        </span>
-                                                        {/* Client since date jika ada */}
-                                                        {company.client_since && (
-                                                            <span className="flex items-center gap-1 text-xs">
-                                                                <Calendar className="w-3 h-3" />
-                                                                Since {company.client_since}
+                                                    <div className="ml-4 min-w-0 flex-1">
+                                                        <div className="font-medium text-gray-900 truncate hover:text-teal-600 transition-colors">
+                                                            {company.name}
+                                                        </div>
+                                                        <div className="text-sm text-gray-500 flex items-center gap-2 mt-1">
+                                                            <span className="bg-gray-100 px-2 py-0.5 rounded text-xs">
+                                                                {company.client_code}
                                                             </span>
+                                                            {company.client_since && (
+                                                                <span className="flex items-center gap-1 text-xs">
+                                                                    <Calendar className="w-3 h-3" />
+                                                                    Since {company.client_since}
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                        {company.address && (
+                                                            <div className="text-xs text-gray-400 mt-1 truncate max-w-xs">
+                                                                {company.address}
+                                                            </div>
                                                         )}
                                                     </div>
-                                                </div>
+                                                </Link>
                                             </div>
                                         </td>
 
-                                        {/* Address Column */}
-                                        <td className="px-6 py-4">
-                                            <div className="text-sm text-gray-900 max-w-xs truncate">
-                                                {company.address || 'No address'}
-                                            </div>
-                                            {/* City, province, country jika ada */}
-                                            {(company.city || company.province || company.country) && (
-                                                <div className="text-xs text-gray-500 mt-1 truncate">
-                                                    {[company.city, company.province, company.country].filter(Boolean).join(', ')}
-                                                </div>
-                                            )}
-                                        </td>
-
-                                        {/* Contact Person Column */}
-                                        <td className="px-6 py-4">
-                                            <div className="flex items-center">
-                                                <div className="flex-shrink-0 h-8 w-8 bg-teal-100 rounded-full flex items-center justify-center">
-                                                    <User className="w-4 h-4 text-teal-700" />
-                                                </div>
-                                                <div className="ml-3 min-w-0 flex-1">
-                                                    <div className="text-sm font-medium text-gray-900 truncate">
-                                                        {company.contact_person}
-                                                    </div>
-                                                    <div className="text-xs text-gray-500 truncate">
-                                                        {company.position || 'Contact Person'}
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </td>
-
-                                        {/* Email & Phone Column */}
+                                        {/* Contact Details Column */}
                                         <td className="px-6 py-4">
                                             <div className="space-y-2">
-                                                <div className="flex items-center gap-2">
-                                                    <Mail className="w-4 h-4 text-gray-400 flex-shrink-0" />
-                                                    <span className="text-sm text-gray-900 truncate">{company.email}</span>
+                                                <div className="flex items-center gap-3">
+                                                    <div className="flex-shrink-0 h-8 w-8 bg-teal-100 rounded-full flex items-center justify-center">
+                                                        <User className="w-4 h-4 text-teal-700" />
+                                                    </div>
+                                                    <div className="min-w-0 flex-1">
+                                                        <div className="text-sm font-medium text-gray-900 truncate">
+                                                            {company.contact_person}
+                                                        </div>
+                                                        <div className="text-xs text-gray-500 truncate">
+                                                            {company.position || 'Contact Person'}
+                                                        </div>
+                                                    </div>
                                                 </div>
-                                                <div className="flex items-center gap-2">
-                                                    <Phone className="w-4 h-4 text-gray-400 flex-shrink-0" />
-                                                    <span className="text-sm bg-yellow-200 px-3 py-1.5 rounded font-medium">
-                                                        {company.phone}
-                                                    </span>
+                                                <div className="space-y-1.5 pl-11">
+                                                    <div className="flex items-center gap-2">
+                                                        <Mail className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                                                        <span className="text-sm text-gray-900 truncate">{company.email}</span>
+                                                    </div>
+                                                    <div className="flex items-center gap-2">
+                                                        <Phone className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                                                        <span className="text-sm bg-yellow-100 px-3 py-1 rounded font-medium">
+                                                            {formatPhoneNumber(company.phone)}
+                                                        </span>
+                                                    </div>
                                                 </div>
                                             </div>
                                         </td>
 
                                         {/* Status Column */}
                                         <td className="px-6 py-4">
-                                            <div className="space-y-1">
-                                                {/* Client type badge */}
-                                                <span className={`inline-flex items-center px-3 py-1.5 rounded-full text-xs font-medium border ${colors.badgeBorder} ${colors.badgeText} bg-white`}>
+                                            <div className="space-y-2">
+                                                <span className={`inline-flex items-center px-3 py-1.5 rounded-full text-xs font-medium ${colors.bgColor} ${colors.badgeText} border ${colors.badgeBorder}`}>
                                                     <span className={`w-2 h-2 rounded-full mr-2 ${colors.badgeText.replace('text-', 'bg-')}`}></span>
                                                     {company.client_type_name}
                                                 </span>
-                                                {/* Active/Inactive badge */}
-                                                <span className={`inline-flex items-center px-2 py-1 rounded text-xs ${
-                                                    company.is_active 
-                                                        ? 'bg-green-100 text-green-800' 
-                                                        : 'bg-gray-100 text-gray-800'
-                                                }`}>
-                                                    {company.is_active ? 'Active' : 'Inactive'}
-                                                </span>
+                                                <div className="flex items-center gap-2">
+                                                    <span className={`inline-flex items-center px-2.5 py-1 rounded text-xs ${
+                                                        company.is_active 
+                                                            ? 'bg-green-100 text-green-800 border border-green-200' 
+                                                            : 'bg-gray-100 text-gray-800 border border-gray-200'
+                                                    }`}>
+                                                        {company.is_active ? 'Active' : 'Inactive'}
+                                                    </span>
+                                                    {company.updated_at && (
+                                                        <span className="text-xs text-gray-400">
+                                                            Updated: {new Date(company.updated_at).toLocaleDateString()}
+                                                        </span>
+                                                    )}
+                                                </div>
                                             </div>
                                         </td>
 
-                                        {/* Actions Column */}
+                                        {/* Actions Column - Hanya tombol Edit dan Delete, View dihapus */}
                                         {showActions && (
                                             <td className="px-6 py-4">
                                                 <div className="flex items-center gap-2">
-                                                    {/* View details link */}
-                                                    <Link
-                                                        href={route('companies.show', company.id)}
-                                                        className="text-teal-600 hover:text-teal-900 p-2 hover:bg-teal-50 rounded-lg transition"
-                                                        title="View Details"
-                                                    >
-                                                        <Eye className="w-5 h-5" />
-                                                    </Link>
-                                                    {/* Edit button */}
                                                     <button
                                                         onClick={() => onEditClick && onEditClick(company)}
-                                                        className="text-blue-600 hover:text-blue-900 p-2 hover:bg-blue-50 rounded-lg transition"
+                                                        className="inline-flex items-center px-3 py-1.5 text-sm text-blue-600 hover:text-blue-900 hover:bg-blue-50 rounded-lg transition"
                                                         title="Edit"
                                                     >
-                                                        <Edit className="w-5 h-5" />
+                                                        <Edit className="w-4 h-4 mr-1" />
+                                                        Edit
                                                     </button>
-                                                    {/* Delete button */}
                                                     <button
                                                         onClick={() => onDeleteClick && onDeleteClick(company)}
-                                                        className="text-red-600 hover:text-red-900 p-2 hover:bg-red-50 rounded-lg transition"
+                                                        className="inline-flex items-center px-3 py-1.5 text-sm text-red-600 hover:text-red-900 hover:bg-red-50 rounded-lg transition"
                                                         title="Delete"
                                                     >
-                                                        <Trash2 className="w-5 h-5" />
+                                                        <Trash2 className="w-4 h-4 mr-1" />
+                                                        Delete
                                                     </button>
                                                 </div>
                                             </td>
@@ -407,9 +719,8 @@ const CompaniesTable = ({
                                 );
                             })
                         ) : (
-                            // Empty state untuk desktop
                             <tr>
-                                <td colSpan={showActions ? 6 : 5} className="px-6 py-12 text-center">
+                                <td colSpan={showActions ? (bulkSelect ? 5 : 4) : (bulkSelect ? 4 : 3)} className="px-6 py-12 text-center">
                                     <div className="text-gray-500">
                                         <Building className="w-16 h-16 mx-auto mb-4 text-gray-300" />
                                         <div className="text-lg font-medium mb-2">No clients found</div>
@@ -450,7 +761,6 @@ const CompaniesTable = ({
                                             index === companies.links.length - 1 ? 'rounded-r-md' : ''
                                         }`}
                                         dangerouslySetInnerHTML={{ __html: link.label }}
-                                        // Note: dangerouslySetInnerHTML digunakan karena label bisa berisi HTML (&laquo;, &raquo;)
                                     />
                                 ))}
                             </div>
