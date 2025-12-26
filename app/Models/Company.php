@@ -15,22 +15,17 @@ class Company extends Model
     public $incrementing = false;
     protected $keyType = 'string';
     
+ // SESUAIKAN dengan kolom yang ADA di database
     protected $fillable = [
         'id',
         'client_type_id',
         'lead_id',
         'quotation_id',
-        'client_code',
-        'name',
-        'address',
+        'client_code', 
+        'client_since',
         'city',
         'province',
         'country',
-        'contact_person',
-        'position',
-        'email',
-        'phone',
-        'client_since',
         'postal_code',
         'vat_number',
         'nib',
@@ -40,8 +35,8 @@ class Company extends Model
         'created_by',
         'updated_by',
         'deleted_by',
-        'deleted_at',
-        'deleted'
+        'deleted',
+        'deleted_at'
     ];
 
     protected $casts = [

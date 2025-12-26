@@ -1,25 +1,17 @@
 // resources/js/Components/Companies/Create.jsx
 import React, { useState, useEffect } from 'react';
 import { X, Upload, Building, User, Mail, Phone, MapPin, Globe, FileText, AlertCircle, Check, ChevronDown, Search } from 'lucide-react';
-import { router } from '@inertiajs/react';
+import { router, usePage } from '@inertiajs/react';
+import axios from 'axios';
 
 const Create = ({ isOpen, onClose, clientTypes, quotationId, onSuccess }) => {
-    // Debug props
-    console.log('Create modal props:', { 
-        isOpen, 
-        clientTypes: clientTypes || [], 
-        clientTypesLength: clientTypes?.length || 0, 
-        quotationId,
-        onClose: typeof onClose,
-        onSuccess: typeof onSuccess 
-    });
-
+    const { flash } = usePage().props;
+    
     // State untuk menyimpan data form
     const [formData, setFormData] = useState({
-        company_name: '',
+        company_name: '', // Akan disimpan sebagai client_code
         client_type_id: '',
         status: 'active',
-        address: '',
         city: '',
         province: '',
         country: '',
@@ -27,10 +19,6 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId, onSuccess }) => {
         vat_number: '',
         nib: '',
         website: '',
-        contact_person: '',
-        contact_email: '',
-        contact_phone: '',
-        contact_position: '',
         logo: null,
         quotation_id: quotationId || '',
         lead_id: ''
@@ -38,8 +26,9 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId, onSuccess }) => {
 
     const [errors, setErrors] = useState({});
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [logoPreview, setLogoPreview] = useState(null);
     
-    // State baru untuk quotations
+    // State untuk quotations
     const [quotations, setQuotations] = useState([]);
     const [loadingQuotations, setLoadingQuotations] = useState(false);
     const [selectedQuotation, setSelectedQuotation] = useState(null);
@@ -49,25 +38,33 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId, onSuccess }) => {
     const [quotationLead, setQuotationLead] = useState(null);
     const [loadingLead, setLoadingLead] = useState(false);
 
+    // Setup axios defaults
+    useEffect(() => {
+        axios.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest';
+        axios.defaults.withCredentials = true;
+        
+        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+        if (csrfToken) {
+            axios.defaults.headers.common['X-CSRF-TOKEN'] = csrfToken;
+        }
+    }, []);
+
     // Reset form ketika modal dibuka
     useEffect(() => {
         if (isOpen) {
-            console.log('Modal opened, fetching accepted quotations...');
-            console.log('Client types available:', clientTypes?.length || 0);
+            console.log('Modal opened...');
             
-            // Log semua client types untuk debugging
-            if (clientTypes && clientTypes.length > 0) {
-                console.log('Available client types:', clientTypes.map(ct => ({ id: ct.id, name: ct.name })));
+            if (!quotationId) {
+                fetchAcceptedQuotations();
+            } else {
+                fetchLeadFromQuotation(quotationId);
             }
             
-            fetchAcceptedQuotations();
-            
-            // Reset semua state
+            // Reset state
             setFormData({
                 company_name: '',
                 client_type_id: '',
                 status: 'active',
-                address: '',
                 city: '',
                 province: '',
                 country: '',
@@ -75,10 +72,6 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId, onSuccess }) => {
                 vat_number: '',
                 nib: '',
                 website: '',
-                contact_person: '',
-                contact_email: '',
-                contact_phone: '',
-                contact_position: '',
                 logo: null,
                 quotation_id: quotationId || '',
                 lead_id: ''
@@ -86,6 +79,7 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId, onSuccess }) => {
             setSelectedQuotation(null);
             setQuotationLead(null);
             setQuotationSearch('');
+            setLogoPreview(null);
         }
     }, [isOpen, quotationId]);
 
@@ -93,59 +87,25 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId, onSuccess }) => {
     const fetchAcceptedQuotations = async () => {
         setLoadingQuotations(true);
         try {
-            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+            const response = await axios.get('/companies/get-accepted-quotations');
             
-            console.log('Fetching accepted quotations...');
-            
-            const response = await fetch('/companies/get-accepted-quotations', {
-                headers: {
-                    'Accept': 'application/json',
-                    'X-Requested-With': 'XMLHttpRequest',
-                    'X-CSRF-TOKEN': csrfToken,
-                },
-                credentials: 'include',
-            });
-
-            console.log('Quotations response status:', response.status);
-            
-            if (!response.ok) {
-                const errorData = await response.json();
-                console.error('API Error:', errorData);
-                
-                // Jika server return success dengan data kosong
-                if (errorData.success && Array.isArray(errorData.data)) {
-                    setQuotations([]);
-                    console.log('No quotations available:', errorData.message || '');
-                    return;
-                }
-                
-                throw new Error(errorData.message || `Server error: ${response.status}`);
-            }
-            
-            const data = await response.json();
-            console.log('Quotations data received:', data);
-            
-            if (data.success) {
-                setQuotations(data.data || []);
-                console.log('Quotations loaded:', data.data?.length || 0, 'items');
+            if (response && response.data && response.data.success) {
+                setQuotations(response.data.data || []);
                 
                 // Jika ada quotationId dari props, auto-select
-                if (quotationId && data.data && data.data.length > 0) {
-                    const foundQuotation = data.data.find(q => q.id === quotationId);
+                if (quotationId && response.data.data && response.data.data.length > 0) {
+                    const foundQuotation = response.data.data.find(q => q.id === quotationId);
                     if (foundQuotation) {
-                        console.log('Auto-selecting quotation from props:', quotationId);
                         await handleQuotationSelect(foundQuotation);
-                    } else {
-                        console.warn('Quotation not found in list:', quotationId);
                     }
                 }
             } else {
-                console.warn('API returned not successful:', data);
                 setQuotations([]);
             }
         } catch (error) {
             console.error('Error fetching quotations:', error);
             setQuotations([]);
+            alert(`Failed to load quotations: ${error.response?.data?.message || error.message}`);
         } finally {
             setLoadingQuotations(false);
         }
@@ -153,15 +113,14 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId, onSuccess }) => {
 
     // Handle quotation selection
     const handleQuotationSelect = async (quotation) => {
-        console.log('Quotation selected:', quotation);
         setSelectedQuotation(quotation);
-        setQuotationLead(null); // Reset lead sebelumnya
+        setQuotationLead(null);
         
         // Set quotation_id di form
         setFormData(prev => ({
             ...prev,
             quotation_id: quotation.id,
-            lead_id: '' // Reset lead_id dulu, akan diisi setelah fetch lead
+            lead_id: ''
         }));
         
         // Fetch lead data dari quotation ini
@@ -170,57 +129,35 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId, onSuccess }) => {
 
     // Fetch lead data dari quotation
     const fetchLeadFromQuotation = async (quotationId) => {
+        if (!quotationId) return;
+        
         setLoadingLead(true);
         try {
-            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+            const response = await axios.get(`/companies/get-lead-from-quotation/${quotationId}`);
             
-            const response = await fetch(`/companies/get-lead-from-quotation/${quotationId}`, {
-                headers: {
-                    'Accept': 'application/json',
-                    'X-Requested-With': 'XMLHttpRequest',
-                    'X-CSRF-TOKEN': csrfToken,
-                },
-                credentials: 'include',
-            });
-
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.message || `Failed to fetch lead: ${response.status}`);
-            }
-            
-            const data = await response.json();
-            console.log('Lead from quotation data:', data);
-            
-            if (data.success && data.data) {
-                const lead = data.data;
-                setQuotationLead(lead);
+            if (response && response.data && response.data.success) {
+                const leadData = response.data.data;
+                setQuotationLead(leadData);
                 
-                // Auto-fill form dengan data lead
+                // Auto-fill form dengan data lead (hanya field yang ada di companies)
                 setFormData(prev => ({
                     ...prev,
-                    company_name: lead.company_name || prev.company_name,
-                    contact_person: lead.contact_person || prev.contact_person,
-                    contact_email: lead.email || prev.contact_email,
-                    contact_phone: lead.phone || prev.contact_phone,
-                    lead_id: lead.id || '',
-                    // Tambahkan field alamat jika ada di lead
-                    address: lead.address || prev.address,
-                    city: lead.city || prev.city,
-                    province: lead.province || prev.province,
-                    country: lead.country || prev.country,
-                    // Reset fields lain agar tidak ter-overwrite
+                    company_name: leadData.company_name || prev.company_name,
+                    city: leadData.city || prev.city,
+                    province: leadData.province || prev.province,
+                    country: leadData.country || prev.country,
+                    lead_id: leadData.id || '',
                 }));
             } else {
-                console.warn('No lead found for this quotation');
                 // Jika tidak ada lead, tetap set quotation_id
                 setFormData(prev => ({
                     ...prev,
-                    lead_id: '' // Kosongkan lead_id
+                    lead_id: ''
                 }));
             }
         } catch (error) {
             console.error('Error fetching lead from quotation:', error);
-            alert(`Error: ${error.message}`);
+            alert('Failed to load lead data: ' + (error.response?.data?.message || error.message));
         } finally {
             setLoadingLead(false);
         }
@@ -235,10 +172,6 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId, onSuccess }) => {
             quotation_id: '',
             lead_id: '',
             company_name: '',
-            contact_person: '',
-            contact_email: '',
-            contact_phone: '',
-            address: '',
             city: '',
             province: '',
             country: ''
@@ -262,14 +195,27 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId, onSuccess }) => {
     // Handle input change
     const handleInputChange = (e) => {
         const { name, value, type, files } = e.target;
-        const newValue = type === 'file' ? files[0] : value;
         
-        console.log(`Input changed: ${name} = ${newValue}`);
-        
-        setFormData(prev => ({
-            ...prev,
-            [name]: newValue
-        }));
+        if (type === 'file') {
+            const file = files[0];
+            setFormData(prev => ({ ...prev, [name]: file }));
+            
+            // Create preview
+            if (file) {
+                const reader = new FileReader();
+                reader.onloadend = () => {
+                    setLogoPreview(reader.result);
+                };
+                reader.readAsDataURL(file);
+            } else {
+                setLogoPreview(null);
+            }
+        } else {
+            setFormData(prev => ({
+                ...prev,
+                [name]: value
+            }));
+        }
         
         // Clear error for this field
         if (errors[name]) {
@@ -277,7 +223,7 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId, onSuccess }) => {
         }
     };
 
-    // Handle submit
+    // Handle submit - SIMPLIFIED VERSION
     const handleSubmit = async (e) => {
         e.preventDefault();
         setIsSubmitting(true);
@@ -285,31 +231,10 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId, onSuccess }) => {
 
         console.log('=== FORM SUBMISSION STARTED ===');
         console.log('Form data before submit:', formData);
-        console.log('Selected quotation:', selectedQuotation);
-        console.log('Quotation lead:', quotationLead);
-        console.log('Quotation ID from props:', quotationId);
 
-        // Validasi sebelum submit
+        // Validasi hanya field yang diperlukan
         if (!formData.company_name) {
             setErrors({ submit: 'Company name is required' });
-            setIsSubmitting(false);
-            return;
-        }
-
-        if (!formData.contact_email) {
-            setErrors({ submit: 'Contact email is required' });
-            setIsSubmitting(false);
-            return;
-        }
-
-        if (!formData.contact_person) {
-            setErrors({ submit: 'Contact person is required' });
-            setIsSubmitting(false);
-            return;
-        }
-
-        if (!formData.contact_phone) {
-            setErrors({ submit: 'Contact phone is required' });
             setIsSubmitting(false);
             return;
         }
@@ -322,66 +247,33 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId, onSuccess }) => {
 
         try {
             const formDataToSend = new FormData();
-            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
             
-            // Append semua data form
-            Object.keys(formData).forEach(key => {
-                const value = formData[key];
-                if (value !== null && value !== undefined) {
+            // Append hanya data yang akan dikirim ke backend
+            Object.entries(formData).forEach(([key, value]) => {
+                if (value !== null && value !== undefined && value !== '') {
                     if (key === 'logo' && value instanceof File) {
                         formDataToSend.append(key, value);
-                    } else if (value !== '') {
-                        formDataToSend.append(key, value);
+                    } else {
+                        formDataToSend.append(key, value.toString());
                     }
-                    console.log(`Appended ${key}:`, value);
                 }
             });
 
-            // Backup: Jika ada quotation_id dari prop tapi tidak ada di formData
+            // Jika ada quotation_id dari prop
             if (quotationId && !formData.quotation_id) {
                 formDataToSend.append('quotation_id', quotationId);
-                console.log('Added quotation_id from prop:', quotationId);
             }
 
-            // Debug: Tampilkan semua entries
-            console.log('=== FORM DATA ENTRIES ===');
-            for (let [key, value] of formDataToSend.entries()) {
-                console.log(`${key}: ${value}`);
-            }
-
-            const response = await fetch('/companies', {
-                method: 'POST',
+            const response = await axios.post('/companies', formDataToSend, {
                 headers: {
-                    'X-CSRF-TOKEN': csrfToken,
-                    'X-Requested-With': 'XMLHttpRequest',
-                    'Accept': 'application/json',
+                    'Content-Type': 'multipart/form-data',
                 },
-                body: formDataToSend,
-                credentials: 'include',
             });
 
-            const data = await response.json();
-            console.log('Server response:', data);
+            console.log('Server response:', response);
 
-            if (!response.ok) {
-                if (response.status === 422 && data.errors) {
-                    console.error('Validation errors:', data.errors);
-                    setErrors(data.errors);
-                    
-                    if (data.errors.contact_email) {
-                        const errorMsg = Array.isArray(data.errors.contact_email) 
-                            ? data.errors.contact_email.join(', ')
-                            : data.errors.contact_email;
-                        alert(`Email error: ${errorMsg}`);
-                    }
-                    
-                    throw new Error('Validation failed');
-                } else {
-                    throw new Error(data.message || `Failed to create client (${response.status})`);
-                }
-            } else {
-                // SUCCESS
-                alert(data.message || 'Client created successfully!');
+            if (response && response.data && response.data.success) {
+                alert(response.data.message);
                 
                 // Tutup modal
                 onClose();
@@ -391,7 +283,6 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId, onSuccess }) => {
                     company_name: '',
                     client_type_id: '',
                     status: 'active',
-                    address: '',
                     city: '',
                     province: '',
                     country: '',
@@ -399,43 +290,41 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId, onSuccess }) => {
                     vat_number: '',
                     nib: '',
                     website: '',
-                    contact_person: '',
-                    contact_email: '',
-                    contact_phone: '',
-                    contact_position: '',
                     logo: null,
                     quotation_id: '',
                     lead_id: ''
                 });
                 setSelectedQuotation(null);
                 setQuotationLead(null);
+                setLogoPreview(null);
                 
                 // Panggil callback success jika ada
                 if (onSuccess) {
                     onSuccess();
                 }
                 
-                // Refresh data menggunakan Inertia
-                console.log('Refreshing companies data...');
+                // Refresh data
                 router.reload({
                     only: ['companies', 'statistics'],
                     preserveScroll: true,
-                    onSuccess: () => {
-                        console.log('Companies data refreshed successfully');
-                    },
-                    onError: (errors) => {
-                        console.error('Error refreshing data:', errors);
-                    }
                 });
+            } else {
+                setErrors(response?.data?.errors || {});
+                alert(response?.data?.message || 'Failed to create client');
             }
+
         } catch (error) {
             console.error('Error creating client:', error);
-            if (!error.message.includes('Validation failed')) {
+            
+            if (error.response?.status === 422) {
+                setErrors(error.response.data.errors || {});
+                alert('Please check the form for errors.');
+            } else {
                 setErrors(prev => ({ 
                     ...prev, 
-                    submit: error.message || 'An error occurred. Please try again.' 
+                    submit: error.response?.data?.message || error.message || 'An error occurred.' 
                 }));
-                alert(error.message || 'Failed to create client. Please try again.');
+                alert(`Error creating client: ${error.response?.data?.message || error.message}`);
             }
         } finally {
             setIsSubmitting(false);
@@ -457,17 +346,15 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId, onSuccess }) => {
                                 Creating from quotation: <strong>{quotationId}</strong>
                             </div>
                         )}
-                        {/* Debug info */}
-                        <div className="mt-1 text-xs text-gray-400">
-                            Client Types: {clientTypes?.length || 0} available | 
-                            Quotations: {quotations.length} available
-                        </div>
+                        {/* Info: Data kontak akan disimpan di lead jika ada */}
+                        {formData.lead_id && (
+                            <div className="mt-1 text-sm text-green-600">
+                                ✓ Data kontak akan diambil dari lead
+                            </div>
+                        )}
                     </div>
                     <button
-                        onClick={() => {
-                            console.log('Close button clicked');
-                            onClose();
-                        }}
+                        onClick={onClose}
                         className="p-2 hover:bg-gray-100 rounded-lg transition"
                     >
                         <X className="w-6 h-6 text-gray-500" />
@@ -484,9 +371,20 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId, onSuccess }) => {
                                     <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
                                     <div>
                                         <p className="text-sm font-medium text-red-800">{errors.submit}</p>
-                                        <p className="text-sm text-red-600 mt-1">Please check your inputs and try again.</p>
                                     </div>
                                 </div>
+                            </div>
+                        )}
+
+                        {/* Flash Messages */}
+                        {flash?.success && (
+                            <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                                <p className="text-green-700">{flash.success}</p>
+                            </div>
+                        )}
+                        {flash?.error && (
+                            <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                                <p className="text-red-700">{flash.error}</p>
                             </div>
                         )}
 
@@ -498,7 +396,7 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId, onSuccess }) => {
                                     <div>
                                         <p className="text-sm font-medium text-yellow-800">No Client Types Available</p>
                                         <p className="text-sm text-yellow-600 mt-1">
-                                            Please contact administrator to set up client types before creating a client.
+                                            Please contact administrator to set up client types.
                                         </p>
                                     </div>
                                 </div>
@@ -506,140 +404,127 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId, onSuccess }) => {
                         )}
 
                         {/* Quotation Selection Section */}
-                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                            <h3 className="font-medium text-blue-900 mb-3 flex items-center gap-2">
-                                <FileText className="w-5 h-5" />
-                                Select from Accepted Quotation (Optional)
-                            </h3>
-                            <p className="text-sm text-blue-700 mb-4">
-                                Select an accepted quotation to auto-fill client data from its lead
-                            </p>
-                            
-                            {loadingQuotations ? (
-                                <div className="text-center py-4">
-                                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-                                    <p className="text-sm text-gray-600 mt-2">Loading accepted quotations...</p>
-                                </div>
-                            ) : (
-                                <div className="space-y-3">
-                                    {/* Selected Quotation Display */}
-                                    {selectedQuotation && (
-                                        <div className="bg-white border border-green-300 rounded-lg p-4">
-                                            <div className="flex justify-between items-start">
-                                                <div>
-                                                    <div className="flex items-center gap-2">
-                                                        <span className="font-medium text-green-700">
-                                                            {selectedQuotation.quotation_number}
-                                                        </span>
-                                                        <span className="px-2 py-1 text-xs bg-green-100 text-green-800 rounded">
-                                                            Accepted
-                                                        </span>
-                                                    </div>
-                                                    <div className="text-sm text-gray-600 mt-1">
-                                                        {selectedQuotation.subject}
-                                                    </div>
-                                                    {quotationLead && (
-                                                        <div className="mt-2 text-sm">
-                                                            <div className="font-medium text-gray-700">
-                                                                {quotationLead.company_name}
-                                                            </div>
-                                                            <div className="text-gray-600 flex items-center gap-2 mt-1">
-                                                                <Mail className="w-3 h-3" /> {quotationLead.email || 'No email'}
-                                                                <Phone className="w-3 h-3 ml-2" /> {quotationLead.phone || 'No phone'}
-                                                            </div>
+                        {!quotationId && (
+                            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                                <h3 className="font-medium text-blue-900 mb-3 flex items-center gap-2">
+                                    <FileText className="w-5 h-5" />
+                                    Select from Accepted Quotation (Optional)
+                                </h3>
+                                <p className="text-sm text-blue-700 mb-4">
+                                    Select an accepted quotation to auto-fill company data from its lead
+                                </p>
+                                
+                                {loadingQuotations ? (
+                                    <div className="text-center py-4">
+                                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+                                        <p className="text-sm text-gray-600 mt-2">Loading accepted quotations...</p>
+                                    </div>
+                                ) : (
+                                    <div className="space-y-3">
+                                        {/* Selected Quotation Display */}
+                                        {selectedQuotation && (
+                                            <div className="bg-white border border-green-300 rounded-lg p-4">
+                                                <div className="flex justify-between items-start">
+                                                    <div>
+                                                        <div className="flex items-center gap-2">
+                                                            <span className="font-medium text-green-700">
+                                                                {selectedQuotation.quotation_number}
+                                                            </span>
+                                                            <span className="px-2 py-1 text-xs bg-green-100 text-green-800 rounded">
+                                                                Accepted
+                                                            </span>
                                                         </div>
-                                                    )}
-                                                    {loadingLead && (
-                                                        <div className="mt-2 text-sm text-gray-500">
-                                                            Loading lead data...
+                                                        <div className="text-sm text-gray-600 mt-1">
+                                                            {selectedQuotation.subject}
                                                         </div>
-                                                    )}
-                                                </div>
-                                                <button
-                                                    type="button"
-                                                    onClick={clearQuotationSelection}
-                                                    className="text-gray-400 hover:text-gray-600 p-1"
-                                                >
-                                                    <X className="w-5 h-5" />
-                                                </button>
-                                            </div>
-                                        </div>
-                                    )}
-
-                                    {/* Quotation List (jika belum ada yang dipilih) */}
-                                    {!selectedQuotation && (
-                                        <>
-                                            {quotations.length > 0 ? (
-                                                <>
-                                                    {/* Search Input */}
-                                                    <div className="relative">
-                                                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-                                                        <input
-                                                            type="text"
-                                                            placeholder="Search by quotation number, subject, or company name..."
-                                                            value={quotationSearch}
-                                                            onChange={(e) => setQuotationSearch(e.target.value)}
-                                                            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                                        />
-                                                    </div>
-
-                                                    <div className="max-h-60 overflow-y-auto border border-gray-200 rounded-lg">
-                                                        {filteredQuotations.map(quotation => (
-                                                            <div
-                                                                key={quotation.id}
-                                                                onClick={() => handleQuotationSelect(quotation)}
-                                                                className="p-3 border-b border-gray-100 hover:bg-gray-50 cursor-pointer transition last:border-b-0"
-                                                            >
-                                                                <div className="flex justify-between items-start">
-                                                                    <div>
-                                                                        <div className="font-medium text-gray-900">
-                                                                            {quotation.quotation_number}
-                                                                        </div>
-                                                                        <div className="text-sm text-gray-600 mt-1">
-                                                                            {quotation.subject}
-                                                                        </div>
-                                                                        {quotation.lead && (
-                                                                            <div className="text-xs text-gray-500 mt-1">
-                                                                                From: {quotation.lead.company_name}
-                                                                            </div>
-                                                                        )}
-                                                                        <div className="mt-2">
-                                                                            <span className="px-2 py-1 text-xs bg-green-100 text-green-800 rounded">
-                                                                                Accepted
-                                                                            </span>
-                                                                            {quotation.accepted_at && (
-                                                                                <span className="text-xs text-gray-500 ml-2">
-                                                                                    {new Date(quotation.accepted_at).toLocaleDateString()}
-                                                                                </span>
-                                                                            )}
-                                                                        </div>
-                                                                    </div>
-                                                                    <ChevronDown className="w-5 h-5 text-gray-400" />
+                                                        {quotationLead && (
+                                                            <div className="mt-2 text-sm">
+                                                                <div className="font-medium text-gray-700">
+                                                                    {quotationLead.company_name}
+                                                                </div>
+                                                                <div className="text-gray-600 flex items-center gap-2 mt-1">
+                                                                    <Mail className="w-3 h-3" /> {quotationLead.email || 'No email'}
+                                                                    <Phone className="w-3 h-3 ml-2" /> {quotationLead.phone || 'No phone'}
+                                                                </div>
+                                                                <div className="text-xs text-gray-500 mt-1">
+                                                                    Data kontak akan diambil dari lead ini
                                                                 </div>
                                                             </div>
-                                                        ))}
+                                                        )}
+                                                        {loadingLead && (
+                                                            <div className="mt-2 flex items-center">
+                                                                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 mr-2"></div>
+                                                                <span className="text-sm text-gray-500">Loading lead data...</span>
+                                                            </div>
+                                                        )}
                                                     </div>
-                                                </>
-                                            ) : (
-                                                <div className="text-center py-6 border border-gray-200 rounded-lg bg-white">
-                                                    <FileText className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-                                                    <p className="text-sm text-gray-600 font-medium">No accepted quotations found</p>
-                                                    <p className="text-xs text-gray-500 mt-1">
-                                                        You can still create a client manually below.
-                                                    </p>
-                                                    <div className="mt-3 text-xs text-gray-400">
-                                                        <p>To create from quotation:</p>
-                                                        <p>1. Create a lead first</p>
-                                                        <p>2. Create a quotation for that lead</p>
-                                                        <p>3. Mark the quotation as "accepted"</p>
-                                                    </div>
+                                                    <button
+                                                        type="button"
+                                                        onClick={clearQuotationSelection}
+                                                        className="text-gray-400 hover:text-gray-600 p-1"
+                                                    >
+                                                        <X className="w-5 h-5" />
+                                                    </button>
                                                 </div>
-                                            )}
-                                        </>
-                                    )}
-                                </div>
-                            )}
-                        </div>
+                                            </div>
+                                        )}
+
+                                        {/* Quotation List */}
+                                        {!selectedQuotation && quotations.length > 0 && (
+                                            <>
+                                                <div className="relative">
+                                                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                                                    <input
+                                                        type="text"
+                                                        placeholder="Search by quotation number, subject, or company name..."
+                                                        value={quotationSearch}
+                                                        onChange={(e) => setQuotationSearch(e.target.value)}
+                                                        className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                                    />
+                                                </div>
+
+                                                <div className="max-h-60 overflow-y-auto border border-gray-200 rounded-lg">
+                                                    {filteredQuotations.map(quotation => (
+                                                        <div
+                                                            key={quotation.id}
+                                                            onClick={() => handleQuotationSelect(quotation)}
+                                                            className="p-3 border-b border-gray-100 hover:bg-gray-50 cursor-pointer transition last:border-b-0"
+                                                        >
+                                                            <div className="flex justify-between items-start">
+                                                                <div>
+                                                                    <div className="font-medium text-gray-900">
+                                                                        {quotation.quotation_number}
+                                                                    </div>
+                                                                    <div className="text-sm text-gray-600 mt-1">
+                                                                        {quotation.subject}
+                                                                    </div>
+                                                                    {quotation.lead && (
+                                                                        <div className="text-xs text-gray-500 mt-1">
+                                                                            From: {quotation.lead.company_name}
+                                                                        </div>
+                                                                    )}
+                                                                </div>
+                                                                <ChevronDown className="w-5 h-5 text-gray-400" />
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </>
+                                        )}
+
+                                        {!selectedQuotation && quotations.length === 0 && (
+                                            <div className="text-center py-6 border border-gray-200 rounded-lg bg-white">
+                                                <FileText className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+                                                <p className="text-sm text-gray-600 font-medium">No accepted quotations found</p>
+                                                <p className="text-xs text-gray-500 mt-1">
+                                                    You can create a client manually below.
+                                                </p>
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+                        )}
 
                         {/* Hidden fields */}
                         <input type="hidden" name="lead_id" value={formData.lead_id || ''} />
@@ -669,9 +554,9 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId, onSuccess }) => {
                                         required
                                         placeholder="Enter company name"
                                     />
-                                    {errors.company_name && (
-                                        <p className="mt-1 text-sm text-red-600">{errors.company_name}</p>
-                                    )}
+                                    <p className="text-xs text-gray-500 mt-1">
+                                        Akan disimpan sebagai client code
+                                    </p>
                                 </div>
 
                                 {/* Client Type */}
@@ -692,22 +577,80 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId, onSuccess }) => {
                                         <option value="">Select Client Type</option>
                                         {clientTypes && clientTypes.length > 0 ? (
                                             clientTypes.map(type => (
-                                                <option key={type.id} value={type.id}>{type.name}</option>
+                                                <option key={type.id} value={type.id}>{type.name} - {type.information}</option>
                                             ))
                                         ) : (
                                             <option value="" disabled>No client types available</option>
                                         )}
                                     </select>
-                                    {errors.client_type_id && (
-                                        <p className="mt-1 text-sm text-red-600">{errors.client_type_id}</p>
-                                    )}
-                                    {(!clientTypes || clientTypes.length === 0) && (
-                                        <p className="mt-1 text-sm text-yellow-600">
-                                            ⚠️ No client types configured. Please contact administrator.
-                                        </p>
-                                    )}
+                                </div>
+                            </div>
+
+                            {/* Additional Info */}
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                {/* City */}
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                        City
+                                    </label>
+                                    <input
+                                        type="text"
+                                        name="city"
+                                        value={formData.city}
+                                        onChange={handleInputChange}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                                        placeholder="Enter city"
+                                    />
                                 </div>
 
+                                {/* Province */}
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                        Province
+                                    </label>
+                                    <input
+                                        type="text"
+                                        name="province"
+                                        value={formData.province}
+                                        onChange={handleInputChange}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                                        placeholder="Enter province"
+                                    />
+                                </div>
+
+                                {/* Country */}
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                        Country
+                                    </label>
+                                    <input
+                                        type="text"
+                                        name="country"
+                                        value={formData.country}
+                                        onChange={handleInputChange}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                                        placeholder="Enter country"
+                                    />
+                                </div>
+
+                                {/* Postal Code */}
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                        Postal Code
+                                    </label>
+                                    <input
+                                        type="text"
+                                        name="postal_code"
+                                        value={formData.postal_code}
+                                        onChange={handleInputChange}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                                        placeholder="Enter postal code"
+                                    />
+                                </div>
+                            </div>
+
+                            {/* Business Details */}
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 {/* VAT Number */}
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -721,9 +664,6 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId, onSuccess }) => {
                                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
                                         placeholder="Enter VAT number"
                                     />
-                                    {errors.vat_number && (
-                                        <p className="mt-1 text-sm text-red-600">{errors.vat_number}</p>
-                                    )}
                                 </div>
 
                                 {/* NIB */}
@@ -739,114 +679,9 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId, onSuccess }) => {
                                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
                                         placeholder="Enter NIB"
                                     />
-                                    {errors.nib && (
-                                        <p className="mt-1 text-sm text-red-600">{errors.nib}</p>
-                                    )}
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Address Information */}
-                        <div className="space-y-6">
-                            <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-                                <MapPin className="w-5 h-5" />
-                                Address Information
-                            </h3>
-
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div className="md:col-span-2">
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        Address
-                                    </label>
-                                    <textarea
-                                        name="address"
-                                        value={formData.address}
-                                        onChange={handleInputChange}
-                                        rows="3"
-                                        className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 ${
-                                            errors.address ? 'border-red-300' : 'border-gray-300'
-                                        }`}
-                                        placeholder="Enter company address"
-                                    />
-                                    {errors.address && (
-                                        <p className="mt-1 text-sm text-red-600">{errors.address}</p>
-                                    )}
                                 </div>
 
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        City
-                                    </label>
-                                    <input
-                                        type="text"
-                                        name="city"
-                                        value={formData.city}
-                                        onChange={handleInputChange}
-                                        className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 ${
-                                            errors.city ? 'border-red-300' : 'border-gray-300'
-                                        }`}
-                                        placeholder="Enter city"
-                                    />
-                                    {errors.city && (
-                                        <p className="mt-1 text-sm text-red-600">{errors.city}</p>
-                                    )}
-                                </div>
-
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        Province
-                                    </label>
-                                    <input
-                                        type="text"
-                                        name="province"
-                                        value={formData.province}
-                                        onChange={handleInputChange}
-                                        className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 ${
-                                            errors.province ? 'border-red-300' : 'border-gray-300'
-                                        }`}
-                                        placeholder="Enter province"
-                                    />
-                                    {errors.province && (
-                                        <p className="mt-1 text-sm text-red-600">{errors.province}</p>
-                                    )}
-                                </div>
-
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        Country
-                                    </label>
-                                    <input
-                                        type="text"
-                                        name="country"
-                                        value={formData.country}
-                                        onChange={handleInputChange}
-                                        className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 ${
-                                            errors.country ? 'border-red-300' : 'border-gray-300'
-                                        }`}
-                                        placeholder="Enter country"
-                                    />
-                                    {errors.country && (
-                                        <p className="mt-1 text-sm text-red-600">{errors.country}</p>
-                                    )}
-                                </div>
-
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        Postal Code
-                                    </label>
-                                    <input
-                                        type="text"
-                                        name="postal_code"
-                                        value={formData.postal_code}
-                                        onChange={handleInputChange}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
-                                        placeholder="Enter postal code"
-                                    />
-                                    {errors.postal_code && (
-                                        <p className="mt-1 text-sm text-red-600">{errors.postal_code}</p>
-                                    )}
-                                </div>
-
+                                {/* Website */}
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">
                                         Website
@@ -859,100 +694,6 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId, onSuccess }) => {
                                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
                                         placeholder="https://example.com"
                                     />
-                                    {errors.website && (
-                                        <p className="mt-1 text-sm text-red-600">{errors.website}</p>
-                                    )}
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Contact Person */}
-                        <div className="space-y-6">
-                            <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-                                <User className="w-5 h-5" />
-                                Contact Person
-                            </h3>
-
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        Contact Person Name *
-                                    </label>
-                                    <input
-                                        type="text"
-                                        name="contact_person"
-                                        value={formData.contact_person}
-                                        onChange={handleInputChange}
-                                        className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 ${
-                                            errors.contact_person ? 'border-red-300' : 'border-gray-300'
-                                        }`}
-                                        required
-                                        placeholder="Enter contact person name"
-                                    />
-                                    {errors.contact_person && (
-                                        <p className="mt-1 text-sm text-red-600">{errors.contact_person}</p>
-                                    )}
-                                </div>
-
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        Position
-                                    </label>
-                                    <input
-                                        type="text"
-                                        name="contact_position"
-                                        value={formData.contact_position}
-                                        onChange={handleInputChange}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
-                                        placeholder="Enter position"
-                                    />
-                                    {errors.contact_position && (
-                                        <p className="mt-1 text-sm text-red-600">{errors.contact_position}</p>
-                                    )}
-                                </div>
-
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        Email *
-                                    </label>
-                                    <input
-                                        type="email"
-                                        name="contact_email"
-                                        value={formData.contact_email}
-                                        onChange={handleInputChange}
-                                        className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 ${
-                                            errors.contact_email ? 'border-red-300' : 'border-gray-300'
-                                        }`}
-                                        required
-                                        placeholder="Enter email address"
-                                    />
-                                    {errors.contact_email && (
-                                        <div className="mt-1 text-sm text-red-600">
-                                            {Array.isArray(errors.contact_email) 
-                                                ? errors.contact_email.join(', ')
-                                                : errors.contact_email}
-                                        </div>
-                                    )}
-                                </div>
-
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        Phone *
-                                    </label>
-                                    <input
-                                        type="tel"
-                                        name="contact_phone"
-                                        value={formData.contact_phone}
-                                        onChange={handleInputChange}
-                                        className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 ${
-                                            errors.contact_phone ? 'border-red-300' : 'border-gray-300'
-                                        }`}
-                                        required
-                                        placeholder="Enter phone number"
-                                    />
-                                    {errors.contact_phone && (
-                                        <p className="mt-1 text-sm text-red-600">{errors.contact_phone}</p>
-                                    )}
                                 </div>
                             </div>
                         </div>
@@ -985,46 +726,58 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId, onSuccess }) => {
                                         <span className="ml-2 text-gray-700">Inactive</span>
                                     </label>
                                 </div>
-                                {errors.status && (
-                                    <p className="mt-1 text-sm text-red-600">{errors.status}</p>
-                                )}
                             </div>
 
                             <div>
                                 <h3 className="text-lg font-semibold text-gray-900 mb-3">Company Logo</h3>
-                                <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center">
-                                    <Upload className="w-8 h-8 text-gray-400 mx-auto mb-2" />
-                                    <label className="cursor-pointer">
-                                        <input
-                                            type="file"
-                                            name="logo"
-                                            onChange={handleInputChange}
-                                            className="hidden"
-                                            accept="image/*"
-                                        />
-                                        <span className="text-sm text-teal-600 hover:text-teal-800 font-medium">
-                                            Click to upload logo
-                                        </span>
-                                        <p className="text-xs text-gray-500 mt-1">PNG, JPG, GIF up to 2MB</p>
-                                    </label>
-                                    {formData.logo && (
-                                        <div className="mt-2 text-sm text-green-600">
-                                            ✓ {formData.logo.name || 'File selected'}
+                                <div className="border-2 border-dashed border-gray-300 rounded-lg p-4">
+                                    <div className="flex items-center space-x-4">
+                                        <div className="flex-1">
+                                            <input
+                                                type="file"
+                                                name="logo"
+                                                onChange={handleInputChange}
+                                                accept="image/*"
+                                                className="w-full border border-gray-300 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                            />
+                                            <p className="text-xs text-gray-500 mt-1">Max size: 2MB (JPEG, PNG, JPG, GIF)</p>
                                         </div>
-                                    )}
+                                        {logoPreview && (
+                                            <div className="w-16 h-16">
+                                                <img 
+                                                    src={logoPreview} 
+                                                    alt="Logo preview" 
+                                                    className="w-full h-full object-cover rounded-lg border border-gray-300"
+                                                />
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
                             </div>
                         </div>
+
+                        {/* Info about contact data */}
+                        {!formData.lead_id && (
+                            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                                <div className="flex items-start gap-3">
+                                    <AlertCircle className="w-5 h-5 text-yellow-600 flex-shrink-0 mt-0.5" />
+                                    <div>
+                                        <p className="text-sm font-medium text-yellow-800">Contact Information Note</p>
+                                        <p className="text-sm text-yellow-600 mt-1">
+                                            Data kontak (email, phone, contact person) akan disimpan di tabel Leads jika membuat dari quotation.
+                                            Untuk client manual, data kontak bisa ditambahkan nanti melalui menu edit.
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
                     </div>
 
                     {/* Footer */}
                     <div className="bg-gray-50 px-6 py-4 border-t flex justify-end gap-3">
                         <button
                             type="button"
-                            onClick={() => {
-                                console.log('Cancel button clicked');
-                                onClose();
-                            }}
+                            onClick={onClose}
                             disabled={isSubmitting}
                             className="px-4 py-2 text-gray-700 hover:text-gray-900 font-medium disabled:opacity-50"
                         >
