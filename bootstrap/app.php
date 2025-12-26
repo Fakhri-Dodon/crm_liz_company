@@ -12,19 +12,14 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware) {
-        $middleware->trustProxies(at: '*', headers: 
-            \Illuminate\Http\Request::HEADER_X_FORWARDED_FOR | 
-            \Illuminate\Http\Request::HEADER_X_FORWARDED_HOST | 
-            \Illuminate\Http\Request::HEADER_X_FORWARDED_PORT | 
-            \Illuminate\Http\Request::HEADER_X_FORWARDED_PROTO
-        );
-        
+        $middleware->trustProxies(at: '*');
+    
+        // Pastikan stateful untuk Sanctum/Inertia
+        $middleware->statefulApi();
+
         $middleware->web(append: [
             \App\Http\Middleware\HandleInertiaRequests::class,
-        ]);
-        
-        $middleware->validateCsrfTokens(except: [
-            'api/*',
+            \Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse::class,
         ]); 
     })
     ->withExceptions(function (Exceptions $exceptions) {

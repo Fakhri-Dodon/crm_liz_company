@@ -22,10 +22,13 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         if (app()->environment('production')) {
-            \Illuminate\Support\Facades\URL::forceScheme('https');
+            URL::forceScheme('https');
 
-            config(['session.same_site' => 'lax']);
+            $this->app['request']->server->set('HTTPS', true);
+
             config(['session.secure' => true]);
+            config(['session.same_site' => 'lax']);
+            config(['session.http_only' => true]);
         }
     }
 }
