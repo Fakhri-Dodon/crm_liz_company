@@ -24,6 +24,8 @@ class Quotation extends Model
         'subject',
         'payment_terms',
         'note',
+        'date',
+        'valid_until',
         'revision_note',
         'pdf_path',
         'subtotal', // Perbaiki dari 'sub_total' ke 'subtotal'

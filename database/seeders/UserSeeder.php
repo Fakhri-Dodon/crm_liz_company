@@ -54,6 +54,7 @@ class UserSeeder extends Seeder
             'name' => 'Admin',
             'password' => bcrypt('Tanyadodon'),
             'role_id' => $adminRole->id,
+            'position' => 'Admin',
             'phone' => '086753423456',
             'created_by' => 'admin',
             'created_at' => now(),

@@ -20,8 +20,8 @@ return new class extends Migration
             $table->enum('status', ['draft', 'sent', 'accepted', 'rejected', 'expired'])->default('draft');
             $table->string('subject', 255);
             $table->string('payment_terms', 255);
-            $table->string('note', 255);
-            $table->string('revision_note', 255);
+            $table->string('note', 255)->nullable();
+            $table->string('revision_note', 255)->nullable();
             $table->string('pdf_path', 255);
             $table->decimal('subtotal', 15, 2)->default(0.00);
             $table->decimal('discount', 15, 2)->default(0.00);

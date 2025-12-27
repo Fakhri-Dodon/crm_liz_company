@@ -3,7 +3,7 @@ import { Head } from '@inertiajs/react';
 import PDFPreview from '@/Components/PDF_Builder/Preview';
 import { quotationPDFPreview } from '@/Components/PDF_Builder/PDFGenerator';
 
-export default function Builder({ title, data, setData, renderEditor, renderPreview, onSave }) {
+export default function Builder({ title, data, setData, renderEditor, renderPreview, onSave, onBack }) {
     const updateField = (name, value) => setData(prev => ({ ...prev, [name]: value }));
     
     const updateItem = (id, field, value) => {
@@ -51,11 +51,21 @@ export default function Builder({ title, data, setData, renderEditor, renderPrev
                 <div className="p-4 bg-white border-b flex justify-between items-center px-10 shadow-sm">
                     <span className="font-bold text-gray-400 uppercase text-[10px] tracking-widest">Draft</span>
                     <div className="flex gap-3">
+                        {onBack && (
+                            <button 
+                                className="border-2 border-[#c8e1b5] text-[#7a9466] px-5 py-2 rounded-lg font-bold text-xs uppercase transition-all hover:bg-[#c8e1b5] hover:text-white active:scale-95"
+                                onClick={() => onBack(data)}
+                            >
+                                Back
+                            </button>
+                        )}
+
+
                         <button 
                             className="bg-[#065f46] hover:bg-[#047857] text-white px-6 py-2 rounded font-bold text-xs uppercase shadow-md transition-all"
                             onClick={() => quotationPDFPreview(data)}
                         >
-                            Lihat Preview
+                            Preview
                         </button>
                         <button onClick={() => onSave(data)} className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded font-bold text-xs uppercase shadow-md transition-all">Save</button>
                     </div>

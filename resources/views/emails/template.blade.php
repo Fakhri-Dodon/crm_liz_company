@@ -9,28 +9,37 @@
         .header { background: #1a202c; padding: 25px; text-align: center; color: #ffffff; }
         .content { padding: 30px; }
         .footer { background: #f9fafb; padding: 20px; text-align: center; font-size: 12px; color: #718096; }
-        .button { display: inline-block; padding: 12px 25px; background-color: #3182ce; color: white; text-decoration: none; border-radius: 5px; font-weight: bold; margin-top: 20px; }
         hr { border: 0; border-top: 1px solid #edf2f7; margin: 25px 0; }
+        .message-body { font-size: 16px; color: #2d3748; white-space: pre-line; }
     </style>
 </head>
 <body>
     <div class="wrapper">
         <div class="container">
             <div class="header">
-                <h1 style="margin:0; font-size: 20px;">AdminPanel System</h1>
+                {{-- Nama sistem bisa dibuat dinamis atau tetap --}}
+                <h1 style="margin:0; font-size: 20px; color: #ffffff;">AdminPanel Official</h1>
             </div>
             <div class="content">
-                <h2 style="color: #2d3748; margin-top: 0;">{{ $subjectText }}</h2>
-                <p style="font-size: 16px;">{!! nl2br(e($messageBody)) !!}</p>
+                {{-- Subjek sebagai Judul Pesan --}}
+                <h2 style="color: #2d3748; margin-top: 0; border-bottom: 2px solid #3182ce; display: inline-block; padding-bottom: 5px;">
+                    {{ $subjectText }}
+                </h2>
+                
+                <div class="message-body" style="margin-top: 20px;">
+                    {{-- Menggunakan {!! !!} agar format HTML dari database seperti <br> atau <b> muncul --}}
+                    {!! $messageBody !!}
+                </div>
                 
                 <hr>
                 
                 <p style="font-size: 14px; color: #4a5568;">
-                    Jika Anda memiliki pertanyaan, silakan balas email ini atau hubungi tim support kami.
+                    Email ini dikirim secara otomatis oleh sistem. Jika Anda memiliki pertanyaan, silakan hubungi tim kami melalui kontak resmi.
                 </p>
             </div>
             <div class="footer">
                 <p>&copy; {{ date('Y') }} AdminPanel. All rights reserved.</p>
+                <p style="margin-top: 5px;">Sentul, Jawa Barat, Indonesia</p>
             </div>
         </div>
     </div>

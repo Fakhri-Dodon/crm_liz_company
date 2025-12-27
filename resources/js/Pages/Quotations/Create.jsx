@@ -140,6 +140,10 @@ export default function Create({ nextNumber, leads = [], companies = [] }) {
         }
     };
 
+    const handleBack = () => {
+        router.get("/quotation");
+    };
+
     const updateField = (field, value) => {
         console.log(`Updating ${field} to:`, value);
         setData(field, value);
@@ -404,6 +408,7 @@ export default function Create({ nextNumber, leads = [], companies = [] }) {
                 data={data}
                 setData={setData}
                 onSave={handleSave}
+                onBack={handleBack}
                 renderEditor={({ updateField: builderUpdate }) => {
                     const nameIsLocked = !data.client_type;
                     const calculateAndSyncTotals = (

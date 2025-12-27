@@ -9,10 +9,12 @@ return new class extends Migration {
             $table->char('id', 36)->primary();
             $table->char('role_id', 36);
             $table->string('name', 100);
+            $table->string('position', 100);
             $table->string('password', 255);
             $table->string('email', 100)->unique();
             $table->string('phone', 20)->nullable();
             $table->tinyInteger('deleted')->default(0);
+            $table->timestamp('last_seen')->nullable();
             $table->rememberToken();
             $table->char('created_by', 36)->nullable();
             $table->char('updated_by', 36)->nullable();

@@ -7,7 +7,7 @@ use App\Models\Quotation;
 use App\Models\QuotationItem;
 use App\Models\Lead;
 use App\Models\User;
-use App\Models\Companies;
+use App\Models\Company;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\DB;
@@ -89,14 +89,14 @@ class QuotationController extends Controller {
 
     public function create() {
         $nextNumber = Quotation::count() + 1;
-        $existingLeadIds = Companies::where('deleted', 0)
+        $existingLeadIds = Company::where('deleted', 0)
             ->whereNotNull('lead_id')
             ->pluck('lead_id');
         $availableLeads = Lead::where('deleted', 0)
             ->whereNotIn('id', $existingLeadIds)
             ->select(['id', 'company_name', 'address', 'contact_person', 'email', 'phone'])
             ->get();
-        $companies = Companies::where('deleted', 0)->with(['quotation', 'contactPersons' => function($query) {$query->where('deleted', 0);}, 'contactPersons.lead', 'lead'])->get();
+        $companies = Company::where('deleted', 0)->with(['quotation', 'contactPersons' => function($query) {$query->where('deleted', 0);}, 'contactPersons.lead', 'lead'])->get();
         
         return Inertia::render('Quotations/Create', [
             'companies' => $companies,
@@ -139,7 +139,7 @@ class QuotationController extends Controller {
                 $leadId = null;
 
                 if ($validated['client_type'] === 'Client') {
-                    $company = Companies::find($validated['company_id']);
+                    $company = Company::find($validated['company_id']);
                     
                 if (!$company) {
                     throw new \Exception("Data Client tidak ditemukan.");
@@ -200,7 +200,7 @@ class QuotationController extends Controller {
 
     public function edit(Quotation $quotation)
     {
-        $existingLeadIds = Companies::where('deleted', 0)
+        $existingLeadIds = Company::where('deleted', 0)
             ->whereNotNull('lead_id')
             ->pluck('lead_id');
 
@@ -209,7 +209,7 @@ class QuotationController extends Controller {
             ->select(['id', 'company_name', 'address', 'contact_person', 'email', 'phone'])
             ->get();
 
-        $companies = Companies::where('deleted', 0)
+        $companies = Company::where('deleted', 0)
             ->with([
                 'quotation', 
                 'contactPersons' => function($query) {
@@ -282,7 +282,7 @@ class QuotationController extends Controller {
             $leadId = null;
 
             if ($validated['client_type'] === 'Client') {
-                $company = Companies::find($validated['company_id']);
+                $company = Company::find($validated['company_id']);
                 
             if (!$company) {
                 throw new \Exception("Data Client tidak ditemukan.");

@@ -1,7 +1,6 @@
-
-
 <?php
 
+use App\Http\Controllers\UserController;
 use App\Http\Controllers\LeadController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\SettingController;
@@ -57,13 +56,18 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/email-inbox', fn() => Inertia::render('Email/Index'))->name('email.index');
     Route::get('/user-management', fn() => Inertia::render('Users/Index'))->name('user.index');
     Route::get('/email', fn() => Inertia::render('Email/Index'))->name('email.inbox');
-    Route::get('/user', fn() => Inertia::render('Users/Index'))->name('user.management');
+    Route::prefix('user')->name('user.')->group(function () {
+        Route::get('/', [UserController::class, 'index']);
+        Route::post('/store', [UserController::class, 'store'])->name('store');
+        Route::patch('/update/{id}', [UserController::class, 'update'])->name('update');
+        Route::delete('/destroy/{id}', [UserController::class, 'destroy'])->name('destroy');
+        Route::post('/send-email/{id}', [UserController::class, 'sendUserEmail'])->name('send-email');
+    });
 
     Route::prefix('setting')->name('settings.')->group(function () {
         // General
         Route::prefix('general')->name('general.')->group(function () {
             Route::get('/', [SettingController::class, 'general']);
-            // KOMENTARI ROUTE YANG ERROR
             Route::post('/store', [AppConfigController::class, 'store'])->name('store');
             Route::post('/upload-logo', [AppConfigController::class, 'uploadLogo'])->name('upload-logo');
         });
@@ -73,7 +77,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
             Route::get('/', [SettingController::class, 'userRoles']);
             Route::post('/store', [SettingController::class, 'userRolesStore'])->name('store');
             Route::put('/{id}', [SettingController::class, 'userRolesUpdate'])->name('update');
-            // KOMENTARI ROUTE YANG ERROR
             Route::post('/role-store', [RolesController::class, 'roleStore'])->name('roles.store');
         });
         
@@ -83,7 +86,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::put('/lead-status/update/{id}', [LeadStatusesController::class, 'update'])->name('lead-status.update');
         Route::delete('/lead-status/destroy/{id}', [LeadStatusesController::class, 'destroy'])->name('lead-status.delete');
         Route::get('/proposals', [SettingController::class, 'proposals'])->name('proposals');
-        // KOMENTARI ROUTE YANG ERROR
         Route::post('/proposal_numbering/update/{id}', [ProposalNumberFormated::class, 'update'])->name('proposal_numbering.update');
         Route::post('/proposal-status/store', [ProposalStatusesController::class, 'store'])->name('proposal-status.store');
         Route::put('/proposal-status/update/{id}', [ProposalStatusesController::class, 'update'])->name('proposal-status.update');

@@ -24,6 +24,10 @@ class DatabaseSeeder extends Seeder
             MenuSeeder::class,
             ProposalNumberFormatedSeeder::class,
             // QuotationsTableSeeder::class,
+            AppConfigsSeeder::class,
+            LeadStatusesSeeder::class,
+            ProposalStatusesSeeder::class,
+            EmailTemplateSeeder::class,
         ]);
     }
 }
