@@ -149,6 +149,19 @@ class Company extends Model
         return $this->belongsTo(Quotation::class, 'quotation_id', 'id');
     }
 
+    public function contacts()
+    {
+        return $this->hasMany(CompanyContactPerson::class, 'company_id', 'id');
+    }
+
+    public function primaryContact()
+    {
+        return $this->hasOne(CompanyContactPerson::class, 'company_id', 'id')
+                    ->where('is_primary', true)
+                    ->where('is_active', true)
+                    ->where('deleted', 0);
+    }
+
     public function creator()
     {
         return $this->belongsTo(User::class, 'created_by', 'id');

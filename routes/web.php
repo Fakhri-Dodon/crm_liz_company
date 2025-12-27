@@ -113,13 +113,14 @@ Route::middleware(['auth', 'verified'])->group(function () {
 });
 
 
-Route::middleware(['auth:sanctum', 'verified'])->group(function () {
-    // Company Routes
+Route::middleware(['auth', 'verified'])->group(function () {
+    // ====================== COMPANY ROUTES ======================
+    // Company List & Creation
     Route::get('/companies', [CompanyController::class, 'index'])->name('companies.index');
     Route::get('/companies/create', [CompanyController::class, 'create'])->name('companies.create');
     Route::post('/companies', [CompanyController::class, 'store'])->name('companies.store');
     
-    // Specific routes before parameter routes
+    // Specific routes before parameter routes (harus didefinisikan sebelum {company})
     Route::get('/companies/get-leads', [CompanyController::class, 'getLeadsForCreation'])
         ->name('companies.get-leads');
     Route::get('/companies/get-accepted-quotations', [CompanyController::class, 'getAcceptedQuotations'])
@@ -129,19 +130,84 @@ Route::middleware(['auth:sanctum', 'verified'])->group(function () {
     Route::get('/companies/statistics', [CompanyController::class, 'getStatistics'])
         ->name('companies.statistics');
     
-    // Parameter routes
+    // ====================== COMPANY DETAIL & PROFILE ROUTES ======================
+    // Company Detail - ROUTE UTAMA untuk halaman profil
     Route::get('/companies/{company}', [CompanyController::class, 'show'])->name('companies.show');
+    
+    // Company Edit & Update
     Route::get('/companies/{company}/edit', [CompanyController::class, 'edit'])->name('companies.edit');
     Route::put('/companies/{company}', [CompanyController::class, 'update'])->name('companies.update');
     
-    // Delete routes
+    // Delete & Restore routes
     Route::delete('/companies/{company}', [CompanyController::class, 'destroy'])->name('companies.destroy');
     Route::delete('/companies/force-delete/{company}', [CompanyController::class, 'forceDelete'])
         ->name('companies.force-delete');
-    
-    // Restore route
     Route::post('/companies/{company}/restore', [CompanyController::class, 'restore'])
         ->name('companies.restore');
+    
+    // ====================== COMPANY API DATA ENDPOINTS ======================
+    // Untuk mengambil data spesifik perusahaan (AJAX/API)
+    Route::prefix('api/companies/{company}')->group(function () {
+        // Quotation data
+        Route::get('/quotations', [CompanyController::class, 'getCompanyQuotations'])
+            ->name('companies.quotations.index');
+        Route::get('/quotations/summary', [CompanyController::class, 'getQuotationSummary'])
+            ->name('companies.quotations.summary');
+        Route::get('/quotations/recent', [CompanyController::class, 'getRecentQuotations'])
+            ->name('companies.quotations.recent');
+        
+        // Invoice data
+        Route::get('/invoices', [CompanyController::class, 'getCompanyInvoices'])
+            ->name('companies.invoices.index');
+        Route::get('/invoices/summary', [CompanyController::class, 'getInvoiceSummary'])
+            ->name('companies.invoices.summary');
+        Route::get('/invoices/recent', [CompanyController::class, 'getRecentInvoices'])
+            ->name('companies.invoices.recent');
+        
+        // Statistics & Dashboard data
+        Route::get('/statistics', [CompanyController::class, 'getCompanyStatistics'])
+            ->name('companies.dashboard.statistics');
+        Route::get('/activities', [CompanyController::class, 'getCompanyActivities'])
+            ->name('companies.activities');
+        Route::get('/documents', [CompanyController::class, 'getCompanyDocuments'])
+            ->name('companies.documents');
+        Route::get('/contracts', [CompanyController::class, 'getCompanyContracts'])
+            ->name('companies.contracts');
+        Route::get('/projects', [CompanyController::class, 'getCompanyProjects'])
+            ->name('companies.projects');
+    });
+    
+    // ====================== RELATED ENTITY ROUTES ======================
+    // Quotation routes (dengan company context)
+    Route::prefix('companies/{company}')->group(function () {
+        Route::get('/quotations/create', [QuotationController::class, 'createForCompany'])
+            ->name('companies.quotations.create');
+        Route::post('/quotations', [QuotationController::class, 'storeForCompany'])
+            ->name('companies.quotations.store');
+    });
+    
+    // Invoice routes (dengan company context)
+    Route::prefix('companies/{company}')->group(function () {
+        Route::get('/invoices/create', [InvoiceController::class, 'createForCompany'])
+            ->name('companies.invoices.create');
+        Route::post('/invoices', [InvoiceController::class, 'storeForCompany'])
+            ->name('companies.invoices.store');
+    });
+    
+    // ====================== TRASH/ARCHIVE ROUTES ======================
+    Route::prefix('companies')->group(function () {
+        Route::get('/trash', [CompanyController::class, 'trash'])->name('companies.trash.index');
+        Route::get('/trash/{company}', [CompanyController::class, 'showTrashed'])
+            ->name('companies.trash.show');
+    });
+    
+    // ====================== EXPORT/IMPORT ROUTES ======================
+    Route::prefix('companies')->group(function () {
+        Route::get('/export', [CompanyController::class, 'export'])->name('companies.export');
+        Route::post('/import', [CompanyController::class, 'import'])->name('companies.import');
+        Route::get('/template', [CompanyController::class, 'downloadTemplate'])
+            ->name('companies.download-template');
+    });
 });
     
 //     // **TAMBAHKAN INI: Route khusus untuk update status**

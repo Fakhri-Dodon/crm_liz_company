@@ -16,7 +16,9 @@ import {
     Search,
     Filter,
     ChevronDown,
-    ChevronUp
+    ChevronUp,
+    ExternalLink,
+    ChevronRight as RightArrow
 } from 'lucide-react';
 
 const CompaniesTable = ({ 
@@ -127,6 +129,11 @@ const CompaniesTable = ({
         return phone.replace(/(\d{4})(\d{4})(\d+)/, '$1-$2-$3');
     };
 
+    // Handle view click
+    const handleViewClick = (company) => {
+        router.visit(route('companies.show', company.id));
+    };
+
     // Tablet View
     if (isTablet) {
         return (
@@ -174,7 +181,8 @@ const CompaniesTable = ({
                             return (
                                 <div 
                                     key={company.id} 
-                                    className={`bg-white rounded-lg border transition-all ${isSelected ? 'border-teal-500 ring-2 ring-teal-100' : 'border-gray-200'}`}
+                                    className={`bg-white rounded-lg border transition-all cursor-pointer group hover:border-teal-300 hover:shadow-md ${isSelected ? 'border-teal-500 ring-2 ring-teal-100' : 'border-gray-200'}`}
+                                    onClick={() => handleViewClick(company)}
                                 >
                                     <div className="p-4">
                                         {/* Header with checkbox and actions */}
@@ -184,38 +192,55 @@ const CompaniesTable = ({
                                                     <input
                                                         type="checkbox"
                                                         checked={isSelected}
-                                                        onChange={(e) => onBulkSelect(company.id, e.target.checked)}
-                                                        className="h-4 w-4 text-teal-600 rounded border-gray-300 focus:ring-teal-500"
+                                                        onChange={(e) => {
+                                                            e.stopPropagation();
+                                                            onBulkSelect(company.id, e.target.checked);
+                                                        }}
+                                                        className="h-4 w-4 text-teal-600 rounded border-gray-300 focus:ring-teal-500 z-10"
                                                     />
                                                 )}
-                                                <Link 
-                                                    href={route('companies.show', company.id)}
-                                                    className="flex items-center gap-3 flex-1"
-                                                >
-                                                    <div className="bg-gray-100 p-2 rounded-lg hover:bg-gray-200 transition-colors">
-                                                        <Building className="w-5 h-5 text-gray-600" />
+                                                <div className="flex items-center gap-3 flex-1">
+                                                    <div className="bg-gray-100 group-hover:bg-teal-50 p-2 rounded-lg transition-colors">
+                                                        <Building className="w-5 h-5 text-gray-600 group-hover:text-teal-600 transition-colors" />
                                                     </div>
                                                     <div className="flex-1 min-w-0">
-                                                        <h3 className="font-semibold text-gray-900 text-sm truncate hover:text-teal-600 transition-colors">
+                                                        <h3 className="font-semibold text-gray-900 text-sm truncate group-hover:text-teal-600 transition-colors flex items-center gap-1">
                                                             {company.name}
+                                                            <RightArrow className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
                                                         </h3>
                                                         <p className="text-xs text-gray-500">{company.client_code}</p>
                                                     </div>
-                                                </Link>
+                                                </div>
                                             </div>
                                             
-                                            {/* Action buttons - Hanya icon mata dan lainnya, bukan nama perusahaan */}
+                                            {/* Action buttons */}
                                             {showActions && (
-                                                <div className="flex items-center gap-1">
+                                                <div className="flex items-center gap-1 z-10" onClick={(e) => e.stopPropagation()}>
                                                     <button
-                                                        onClick={() => onEditClick && onEditClick(company)}
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            handleViewClick(company);
+                                                        }}
+                                                        className="p-1.5 text-teal-600 hover:text-teal-900 hover:bg-teal-50 rounded-lg transition"
+                                                        title="View Details"
+                                                    >
+                                                        <Eye className="w-4 h-4" />
+                                                    </button>
+                                                    <button
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            onEditClick && onEditClick(company);
+                                                        }}
                                                         className="p-1.5 text-blue-600 hover:text-blue-900 hover:bg-blue-50 rounded-lg transition"
                                                         title="Edit"
                                                     >
                                                         <Edit className="w-4 h-4" />
                                                     </button>
                                                     <button
-                                                        onClick={() => onDeleteClick && onDeleteClick(company)}
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            onDeleteClick && onDeleteClick(company);
+                                                        }}
                                                         className="p-1.5 text-red-600 hover:text-red-900 hover:bg-red-50 rounded-lg transition"
                                                         title="Delete"
                                                     >
@@ -379,24 +404,26 @@ const CompaniesTable = ({
                             const colors = getTypeColor(company.client_type_name);
                             
                             return (
-                                <div key={company.id} className="bg-white rounded-lg border border-gray-200 p-4 shadow-sm">
+                                <div 
+                                    key={company.id} 
+                                    className="bg-white rounded-lg border border-gray-200 p-4 shadow-sm cursor-pointer group hover:border-teal-300 hover:shadow-md transition-all"
+                                    onClick={() => handleViewClick(company)}
+                                >
                                     <div className="space-y-3">
-                                        {/* Company header - Logo dan nama bisa diklik */}
+                                        {/* Company header */}
                                         <div className="flex items-start justify-between">
-                                            <Link 
-                                                href={route('companies.show', company.id)}
-                                                className="flex items-center gap-3 flex-1"
-                                            >
-                                                <div className="bg-gray-100 p-2 rounded-lg hover:bg-gray-200 transition-colors">
-                                                    <Building className="w-4 h-4 text-gray-600" />
+                                            <div className="flex items-center gap-3 flex-1">
+                                                <div className="bg-gray-100 group-hover:bg-teal-50 p-2 rounded-lg transition-colors">
+                                                    <Building className="w-4 h-4 text-gray-600 group-hover:text-teal-600 transition-colors" />
                                                 </div>
                                                 <div className="flex-1 min-w-0">
-                                                    <h3 className="font-semibold text-gray-900 text-sm truncate hover:text-teal-600 transition-colors">
+                                                    <h3 className="font-semibold text-gray-900 text-sm truncate group-hover:text-teal-600 transition-colors flex items-center gap-1">
                                                         {company.name}
+                                                        <RightArrow className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
                                                     </h3>
                                                     <p className="text-xs text-gray-500 truncate">{company.client_code}</p>
                                                 </div>
-                                            </Link>
+                                            </div>
                                             
                                             {/* Status badge */}
                                             <span className={`text-xs px-2 py-1 rounded ${
@@ -414,22 +441,28 @@ const CompaniesTable = ({
                                                 {company.client_type_name}
                                             </span>
                                             
-                                            {/* Action buttons - Hanya tombol edit dan delete */}
+                                            {/* Action buttons */}
                                             {showActions && (
-                                                <div className="flex items-center gap-1">
+                                                <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
                                                     <button
-                                                        onClick={() => onEditClick && onEditClick(company)}
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            handleViewClick(company);
+                                                        }}
+                                                        className="p-1.5 text-teal-600 hover:text-teal-900 hover:bg-teal-50 rounded-lg transition"
+                                                        title="View Details"
+                                                    >
+                                                        <Eye className="w-4 h-4" />
+                                                    </button>
+                                                    <button
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            onEditClick && onEditClick(company);
+                                                        }}
                                                         className="p-1.5 text-blue-600 hover:text-blue-900 hover:bg-blue-50 rounded-lg transition"
                                                         title="Edit"
                                                     >
                                                         <Edit className="w-4 h-4" />
-                                                    </button>
-                                                    <button
-                                                        onClick={() => onDeleteClick && onDeleteClick(company)}
-                                                        className="p-1.5 text-red-600 hover:text-red-900 hover:bg-red-50 rounded-lg transition"
-                                                        title="Delete"
-                                                    >
-                                                        <Trash2 className="w-4 h-4" />
                                                     </button>
                                                 </div>
                                             )}
@@ -541,7 +574,7 @@ const CompaniesTable = ({
                     <thead className="bg-gray-50">
                         <tr>
                             {bulkSelect && (
-                                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-10">
                                     <input
                                         type="checkbox"
                                         className="h-4 w-4 text-teal-600 rounded border-gray-300 focus:ring-teal-500"
@@ -589,7 +622,7 @@ const CompaniesTable = ({
                                 return (
                                     <tr 
                                         key={company.id} 
-                                        className={`transition-colors ${isSelected ? 'bg-teal-50' : 'hover:bg-gray-50'}`}
+                                        className={`group transition-colors ${isSelected ? 'bg-teal-50' : 'hover:bg-gray-50'}`}
                                     >
                                         {bulkSelect && (
                                             <td className="px-6 py-4">
@@ -604,36 +637,37 @@ const CompaniesTable = ({
                                         
                                         {/* Client Name Column - Logo dan Nama bisa diklik */}
                                         <td className="px-6 py-4">
-                                            <div className="flex items-center">
-                                                <Link 
-                                                    href={route('companies.show', company.id)}
-                                                    className="flex items-center flex-1 hover:opacity-90 transition-opacity"
-                                                >
-                                                    <div className="flex-shrink-0 h-10 w-10 bg-gray-100 rounded-lg flex items-center justify-center hover:bg-gray-200 transition-colors">
-                                                        <Building className="w-5 h-5 text-gray-600" />
-                                                    </div>
-                                                    <div className="ml-4 min-w-0 flex-1">
-                                                        <div className="font-medium text-gray-900 truncate hover:text-teal-600 transition-colors">
+                                            <div 
+                                                className="flex items-center cursor-pointer"
+                                                onClick={() => handleViewClick(company)}
+                                            >
+                                                <div className="flex-shrink-0 h-10 w-10 bg-gray-100 group-hover:bg-teal-100 rounded-lg flex items-center justify-center hover:bg-gray-200 transition-colors">
+                                                    <Building className="w-5 h-5 text-gray-600 group-hover:text-teal-600 transition-colors" />
+                                                </div>
+                                                <div className="ml-4 min-w-0 flex-1">
+                                                    <div className="flex items-center gap-2">
+                                                        <div className="font-medium text-gray-900 truncate group-hover:text-teal-600 transition-colors">
                                                             {company.name}
                                                         </div>
-                                                        <div className="text-sm text-gray-500 flex items-center gap-2 mt-1">
-                                                            <span className="bg-gray-100 px-2 py-0.5 rounded text-xs">
-                                                                {company.client_code}
+                                                        <ExternalLink className="w-3 h-3 text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                                    </div>
+                                                    <div className="text-sm text-gray-500 flex items-center gap-2 mt-1">
+                                                        <span className="bg-gray-100 px-2 py-0.5 rounded text-xs">
+                                                            {company.client_code}
+                                                        </span>
+                                                        {company.client_since && (
+                                                            <span className="flex items-center gap-1 text-xs">
+                                                                <Calendar className="w-3 h-3" />
+                                                                Since {company.client_since}
                                                             </span>
-                                                            {company.client_since && (
-                                                                <span className="flex items-center gap-1 text-xs">
-                                                                    <Calendar className="w-3 h-3" />
-                                                                    Since {company.client_since}
-                                                                </span>
-                                                            )}
-                                                        </div>
-                                                        {company.address && (
-                                                            <div className="text-xs text-gray-400 mt-1 truncate max-w-xs">
-                                                                {company.address}
-                                                            </div>
                                                         )}
                                                     </div>
-                                                </Link>
+                                                    {company.address && (
+                                                        <div className="text-xs text-gray-400 mt-1 truncate max-w-xs">
+                                                            {company.address}
+                                                        </div>
+                                                    )}
+                                                </div>
                                             </div>
                                         </td>
 
@@ -692,24 +726,32 @@ const CompaniesTable = ({
                                             </div>
                                         </td>
 
-                                        {/* Actions Column - Hanya tombol Edit dan Delete, View dihapus */}
+                                        {/* Actions Column dengan tombol View, Edit, Delete */}
                                         {showActions && (
                                             <td className="px-6 py-4">
                                                 <div className="flex items-center gap-2">
                                                     <button
+                                                        onClick={() => handleViewClick(company)}
+                                                        className="inline-flex items-center gap-2 px-3 py-1.5 text-sm text-teal-600 hover:text-teal-900 hover:bg-teal-50 rounded-lg border border-teal-200 transition"
+                                                        title="View Details"
+                                                    >
+                                                        <Eye className="w-4 h-4" />
+                                                        View
+                                                    </button>
+                                                    <button
                                                         onClick={() => onEditClick && onEditClick(company)}
-                                                        className="inline-flex items-center px-3 py-1.5 text-sm text-blue-600 hover:text-blue-900 hover:bg-blue-50 rounded-lg transition"
+                                                        className="inline-flex items-center gap-2 px-3 py-1.5 text-sm text-blue-600 hover:text-blue-900 hover:bg-blue-50 rounded-lg border border-blue-200 transition"
                                                         title="Edit"
                                                     >
-                                                        <Edit className="w-4 h-4 mr-1" />
+                                                        <Edit className="w-4 h-4" />
                                                         Edit
                                                     </button>
                                                     <button
                                                         onClick={() => onDeleteClick && onDeleteClick(company)}
-                                                        className="inline-flex items-center px-3 py-1.5 text-sm text-red-600 hover:text-red-900 hover:bg-red-50 rounded-lg transition"
+                                                        className="inline-flex items-center gap-2 px-3 py-1.5 text-sm text-red-600 hover:text-red-900 hover:bg-red-50 rounded-lg border border-red-200 transition"
                                                         title="Delete"
                                                     >
-                                                        <Trash2 className="w-4 h-4 mr-1" />
+                                                        <Trash2 className="w-4 h-4" />
                                                         Delete
                                                     </button>
                                                 </div>

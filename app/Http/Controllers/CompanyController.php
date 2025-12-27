@@ -6,6 +6,7 @@ use App\Models\Company;
 use App\Models\Lead;
 use App\Models\ClientType;
 use App\Models\Quotation;
+use App\Models\CompanyContactPerson;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -18,101 +19,118 @@ class CompanyController extends Controller
     /**
      * Display a listing of companies.
      */
-    public function index(Request $request)
-    {
-        try {
-            \Log::info('Companies index accessed');
-            
-            // Query companies dengan relasi
-            $query = Company::with(['clientType'])
-                ->orderBy('created_at', 'desc');
+public function index(Request $request)
+{
+    try {
+        \Log::info('Companies index accessed - AUTH USER: ' . auth()->id());
+        
+        // Pastikan user authenticated
+        if (!auth()->check()) {
+            \Log::warning('User not authenticated, redirecting to login');
+            return redirect()->route('login');
+        }
+        
+        // Query companies dengan relasi
+        $query = Company::with(['clientType', 'primaryContact'])
+            ->orderBy('created_at', 'desc');
 
-            // Apply search filter
-            if ($request->has('search') && !empty($request->search)) {
-                $search = $request->search;
-                $query->where(function($q) use ($search) {
-                    $q->where('name', 'like', "%{$search}%")
-                      ->orWhere('client_code', 'like', "%{$search}%")
-                      ->orWhere('email', 'like', "%{$search}%")
-                      ->orWhere('phone', 'like', "%{$search}%")
-                      ->orWhere('contact_person', 'like', "%{$search}%");
-                });
-            }
+        // Apply search filter
+        if ($request->has('search') && !empty($request->search)) {
+            $search = $request->search;
+            $query->where(function($q) use ($search) {
+                $q->where('client_code', 'like', "%{$search}%")
+                  ->orWhereHas('primaryContact', function($subQuery) use ($search) {
+                      $subQuery->where('name', 'like', "%{$search}%")
+                               ->orWhere('email', 'like', "%{$search}%")
+                               ->orWhere('phone', 'like', "%{$search}%");
+                  });
+            });
+        }
 
-            // Apply client type filter
-            if ($request->has('client_type_id') && !empty($request->client_type_id)) {
-                $query->where('client_type_id', $request->client_type_id);
-            }
+        // Apply client type filter
+        if ($request->has('client_type_id') && !empty($request->client_type_id)) {
+            $query->where('client_type_id', $request->client_type_id);
+        }
 
-            // Get statistics
-            $totalClients = Company::count();
-            $activeClients = Company::where('is_active', true)->count();
-            $inactiveClients = Company::where('is_active', false)->count();
-            
-            // Get client types with counts
-            $clientTypes = ClientType::withCount(['companies' => function($query) {
-                $query->where('deleted', 0);
-            }])->get();
+        // Get statistics - FIX ERROR: pastikan pakai correct table name
+        $totalClients = Company::count();
+        $activeClients = Company::where('is_active', true)->count();
+        $inactiveClients = Company::where('is_active', false)->count();
+        
+        // Get client types with counts - PASTIKAN TABLE NAME BENAR
+        // Table: client_types atau client_type?
+        $clientTypes = ClientType::withCount(['companies' => function($query) {
+            $query->where('deleted', 0);
+        }])->get();
 
-            // Paginate results
-            $companies = $query->paginate(15)->withQueryString();
+        // Paginate results - TAMBAHKAN DEFAULT
+        $perPage = $request->get('per_page', 15);
+        $companies = $query->paginate($perPage)->withQueryString();
 
-            // Prepare statistics array
-            $statistics = [
-                'total' => $totalClients,
-                'active' => $activeClients,
-                'inactive' => $inactiveClients,
-                'client_types' => $clientTypes->map(function($type) {
-                    return [
-                        'id' => $type->id,
-                        'name' => $type->name,
-                        'label' => $type->information ?? $type->name,
-                        'count' => $type->companies_count
-                    ];
-                })
-            ];
+        \Log::info('Companies fetched: ' . $companies->total());
 
-            // Get all client types for filter
-            $types = ClientType::all()->map(function($type) {
+        // Prepare statistics array
+        $statistics = [
+            'total' => $totalClients,
+            'active' => $activeClients,
+            'inactive' => $inactiveClients,
+            'client_types' => $clientTypes->map(function($type) {
                 return [
                     'id' => $type->id,
                     'name' => $type->name,
-                    'information' => $type->information,
-                    'created_at' => $type->created_at,
-                    'updated_at' => $type->updated_at
+                    'label' => $type->information ?? $type->name,
+                    'count' => $type->companies_count ?? 0
                 ];
-            });
+            })
+        ];
 
-            // Check if coming from quotation
-            $fromQuotation = $request->has('from_quotation') && $request->from_quotation == 'true';
-            $quotationId = $request->get('quotation_id');
+        // Get all client types for filter
+        $types = ClientType::all()->map(function($type) {
+            return [
+                'id' => $type->id,
+                'name' => $type->name,
+                'information' => $type->information,
+                'created_at' => $type->created_at,
+                'updated_at' => $type->updated_at
+            ];
+        });
 
-            return Inertia::render('Companies/Index', [
-                'companies' => $companies,
-                'statistics' => $statistics,
-                'types' => $types,
-                'filters' => [
-                    'search' => $request->search ?? '',
-                    'client_type_id' => $request->client_type_id ?? ''
-                ],
-                'fromQuotation' => $fromQuotation,
-                'quotationId' => $quotationId
-            ]);
+        // Check if coming from quotation
+        $fromQuotation = $request->has('from_quotation') && $request->from_quotation == 'true';
+        $quotationId = $request->get('quotation_id');
 
-        } catch (\Exception $e) {
-            \Log::error('Error in companies index: ' . $e->getMessage());
-            \Log::error('Stack trace: ' . $e->getTraceAsString());
-            
-            if ($request->wantsJson()) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Failed to load companies'
-                ], 500);
-            }
-            
-            return back()->with('error', 'Failed to load companies');
+        return Inertia::render('Companies/Index', [
+            'companies' => $companies,
+            'statistics' => $statistics,
+            'types' => $types,
+            'filters' => [
+                'search' => $request->search ?? '',
+                'client_type_id' => $request->client_type_id ?? ''
+            ],
+            'fromQuotation' => $fromQuotation,
+            'quotationId' => $quotationId
+        ]);
+
+    } catch (\Exception $e) {
+        \Log::error('Error in companies index: ' . $e->getMessage());
+        \Log::error('Stack trace: ' . $e->getTraceAsString());
+        \Log::error('User ID: ' . (auth()->check() ? auth()->id() : 'Not authenticated'));
+        
+        // Return error response
+        if ($request->wantsJson()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to load companies: ' . $e->getMessage()
+            ], 500);
         }
+        
+        // For web, render error page
+        return Inertia::render('Error', [
+            'message' => 'Failed to load companies',
+            'error' => $e->getMessage()
+        ])->withStatus(500);
     }
+}
 
     /**
      * Show the form for creating a new company.
@@ -151,172 +169,289 @@ class CompanyController extends Controller
     /**
      * Store a newly created company.
      */
-public function store(Request $request)
-{
-    DB::beginTransaction();
-    try {
-        \Log::info('=== STORE COMPANY REQUEST ===');
-        \Log::info('Request data:', $request->all());
-        
-        // **VALIDASI HANYA UNTUK FIELD YANG DIPERLUKAN**
-        $validator = Validator::make($request->all(), [
-            'company_name' => 'required|string|max:255',
-            'client_type_id' => 'required|exists:client_type,id',
-            'contact_person' => 'nullable|string|max:255', // Karena tidak ada di table
-            'contact_email' => 'nullable|email', // Karena tidak ada di table
-            'contact_phone' => 'nullable|string|max:20', // Karena tidak ada di table
-            'city' => 'nullable|string|max:255',
-            'province' => 'nullable|string|max:255',
-            'country' => 'nullable|string|max:255',
-            'postal_code' => 'nullable|integer',
-            'vat_number' => 'nullable|integer',
-            'nib' => 'nullable|string|max:255',
-            'website' => 'nullable|url|max:255',
-            'contact_position' => 'nullable|string|max:100', // Karena tidak ada di table
-            'logo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
-            'status' => 'required|in:active,inactive',
-            'quotation_id' => 'nullable|exists:quotations,id',
-            'lead_id' => 'nullable|exists:leads,id'
-        ], [
-            'client_type_id.exists' => 'Tipe klien tidak valid.',
-            'quotation_id.exists' => 'Quotation tidak ditemukan.',
-            'lead_id.exists' => 'Lead tidak ditemukan.',
-            'postal_code.integer' => 'Kode pos harus berupa angka.',
-            'vat_number.integer' => 'VAT number harus berupa angka.'
-        ]);
+    public function store(Request $request)
+    {
+        DB::beginTransaction();
+        try {
+            \Log::info('=== STORE COMPANY REQUEST ===');
+            \Log::info('Request data:', $request->all());
+            
+            // **VALIDASI UNTUK SEMUA FIELD**
+            $validator = Validator::make($request->all(), [
+                'company_name' => 'required|string|max:255',
+                'client_type_id' => 'required|exists:client_type,id',
+                'contact_person' => 'required|string|max:255',
+                'contact_email' => 'required|email|max:255',
+                'contact_phone' => 'required|string|max:20',
+                'contact_position' => 'nullable|string|max:100',
+                'city' => 'nullable|string|max:255',
+                'province' => 'nullable|string|max:255',
+                'country' => 'nullable|string|max:255',
+                'postal_code' => 'nullable|integer',
+                'vat_number' => 'nullable|integer',
+                'nib' => 'nullable|string|max:255',
+                'website' => 'nullable|url|max:255',
+                'logo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+                'status' => 'required|in:active,inactive',
+                'quotation_id' => 'nullable|exists:quotations,id',
+                'lead_id' => 'nullable|exists:leads,id'
+            ], [
+                'client_type_id.exists' => 'Tipe klien tidak valid.',
+                'quotation_id.exists' => 'Quotation tidak ditemukan.',
+                'lead_id.exists' => 'Lead tidak ditemukan.',
+                'postal_code.integer' => 'Kode pos harus berupa angka.',
+                'vat_number.integer' => 'VAT number harus berupa angka.',
+                'contact_person.required' => 'Nama kontak wajib diisi.',
+                'contact_email.required' => 'Email kontak wajib diisi.',
+                'contact_phone.required' => 'Telepon kontak wajib diisi.'
+            ]);
 
-        if ($validator->fails()) {
-            \Log::error('Validation failed:', $validator->errors()->toArray());
+            if ($validator->fails()) {
+                \Log::error('Validation failed:', $validator->errors()->toArray());
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Validasi gagal',
+                    'errors' => $validator->errors()
+                ], 422);
+            }
+
+            // **CEK QUOTATION JIKA ADA**
+            $quotationData = null;
+            $leadId = $request->lead_id;
+            
+            if ($request->quotation_id) {
+                $quotation = Quotation::with(['lead'])
+                    ->where('id', $request->quotation_id)
+                    ->where('status', 'accepted')
+                    ->where('deleted', 0)
+                    ->first();
+
+                if (!$quotation) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Quotation tidak ditemukan atau belum diterima'
+                    ], 404);
+                }
+
+                // Check if already has company
+                if ($quotation->company) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Perusahaan sudah dibuat dari quotation ini'
+                    ], 400);
+                }
+
+                $quotationData = $quotation;
+                $leadId = $quotation->lead_id;
+                
+                \Log::info('Membuat perusahaan dari quotation:', [
+                    'quotation_id' => $quotation->id,
+                    'lead_id' => $leadId
+                ]);
+            }
+
+            // Handle logo upload
+            $logoPath = null;
+            if ($request->hasFile('logo') && $request->file('logo')->isValid()) {
+                $logoPath = $request->file('logo')->store('companies/logos', 'public');
+            }
+
+            // **SIMPAN DATA PERUSAHAAN**
+            $companyData = [
+                'client_type_id' => $request->client_type_id,
+                'lead_id' => $leadId,
+                'quotation_id' => $request->quotation_id,
+                'client_code' => $request->company_name, // Nama perusahaan
+                'city' => $request->city,
+                'province' => $request->province,
+                'country' => $request->country,
+                'postal_code' => $request->postal_code,
+                'vat_number' => $request->vat_number,
+                'nib' => $request->nib,
+                'website' => $request->website,
+                'logo_path' => $logoPath,
+                'client_since' => now(),
+                'is_active' => $request->status === 'active',
+                'deleted' => false
+            ];
+
+            $company = Company::create($companyData);
+
+            \Log::info('Perusahaan berhasil dibuat:', [
+                'id' => $company->id,
+                'client_code' => $company->client_code
+            ]);
+
+            // **SIMPAN DATA KONTAK KE TABLE company_contact_persons**
+            $contactData = [
+                'company_id' => $company->id,
+                'lead_id' => $leadId,
+                'name' => $request->contact_person,
+                'email' => $request->contact_email,
+                'phone' => $request->contact_phone,
+                'position' => $request->contact_position,
+                'is_primary' => true,
+                'is_active' => true,
+                'deleted' => false
+            ];
+
+            $contact = CompanyContactPerson::create($contactData);
+
+            \Log::info('Kontak perusahaan berhasil dibuat:', [
+                'id' => $contact->id,
+                'name' => $contact->name,
+                'company_id' => $company->id
+            ]);
+
+            // **UPDATE QUOTATION NOTE SAJA**
+            if ($request->quotation_id && $quotationData) {
+                $quotationData->update([
+                    'note' => ($quotationData->note ?? '') . "\n\n[Converted to Company: " . $company->client_code . " on " . now()->format('Y-m-d H:i:s') . "]",
+                    'updated_at' => now()
+                ]);
+                \Log::info('Quotation updated with conversion note:', ['quotation_id' => $quotationData->id]);
+            }
+
+            DB::commit();
+
+            // Load relationships untuk response
+            $company->load(['clientType', 'lead', 'quotation', 'primaryContact']);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Klien berhasil dibuat!',
+                'data' => [
+                    'id' => $company->id,
+                    'client_code' => $company->client_code,
+                    'name' => $company->client_code,
+                    'city' => $company->city,
+                    'province' => $company->province,
+                    'country' => $company->country,
+                    'client_type' => $company->clientType ? $company->clientType->name : null,
+                    'primary_contact' => $company->primaryContact ? [
+                        'id' => $company->primaryContact->id,
+                        'name' => $company->primaryContact->name,
+                        'email' => $company->primaryContact->email,
+                        'phone' => $company->primaryContact->phone,
+                        'position' => $company->primaryContact->position
+                    ] : null,
+                    'lead' => $company->lead ? [
+                        'id' => $company->lead->id,
+                        'company_name' => $company->lead->company_name,
+                        'contact_person' => $company->lead->contact_person,
+                        'email' => $company->lead->email,
+                        'phone' => $company->lead->phone,
+                        'address' => $company->lead->address
+                    ] : null,
+                    'quotation' => $company->quotation ? [
+                        'id' => $company->quotation->id,
+                        'quotation_number' => $company->quotation->quotation_number
+                    ] : null
+                ]
+            ], 201);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            \Log::error('Error creating company: ' . $e->getMessage());
+            \Log::error('Stack trace: ' . $e->getTraceAsString());
+            
             return response()->json([
                 'success' => false,
-                'message' => 'Validation failed',
-                'errors' => $validator->errors()
-            ], 422);
+                'message' => 'Gagal membuat klien: ' . $e->getMessage()
+            ], 500);
         }
+    }
 
-        // **JIKA ADA QUOTATION_ID, CEK SAJA TANPA UPDATE LEAD**
-        $quotationData = null;
-        $leadId = $request->lead_id;
-        
-        if ($request->quotation_id) {
-            $quotation = Quotation::with(['lead'])
-                ->where('id', $request->quotation_id)
-                ->where('status', 'accepted')
-                ->where('deleted', 0)
-                ->first();
-
-            if (!$quotation) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Quotation not found or not accepted'
-                ], 404);
-            }
-
-            // Check if already has company
-            if ($quotation->company) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'A company already exists for this quotation'
-                ], 400);
-            }
-
-            $quotationData = $quotation;
-            $leadId = $quotation->lead_id;
-            
-            \Log::info('Creating company from quotation:', [
-                'quotation_id' => $quotation->id,
-                'lead_id' => $leadId
-            ]);
-        }
-
-        // Handle logo upload
-        $logoPath = null;
-        if ($request->hasFile('logo') && $request->file('logo')->isValid()) {
-            $logoPath = $request->file('logo')->store('companies/logos', 'public');
-        }
-
-        // **SIMPAN HANYA DATA YANG ADA KOLOMNYA DI TABLE**
-        $companyData = [
-            'client_type_id' => $request->client_type_id,
-            'lead_id' => $leadId,
-            'quotation_id' => $request->quotation_id,
-            'client_code' => $request->company_name, // Simpan nama perusahaan di sini
-            'city' => $request->city,
-            'province' => $request->province,
-            'country' => $request->country,
-            'postal_code' => $request->postal_code,
-            'vat_number' => $request->vat_number,
-            'nib' => $request->nib,
-            'website' => $request->website,
-            'logo_path' => $logoPath,
-            'client_since' => now(),
-            'is_active' => $request->status === 'active',
-            'deleted' => false
-            // **TIDAK MASUKKAN: name, email, contact_person, position, address, phone**
-        ];
-
-        $company = Company::create($companyData);
-
-        \Log::info('Company created successfully:', [
-            'id' => $company->id,
-            'client_code' => $company->client_code,
-            'client_type_id' => $company->client_type_id,
-            'lead_id' => $company->lead_id,
-            'quotation_id' => $company->quotation_id
+    /**
+     * Show company details.
+     */
+    public function show(Company $company)
+    {
+        // Eager load relationships
+        $company->load([
+            'clientType',
+            'lead',
+            'quotation',
+            'contacts' => function($query) {
+                $query->where('is_active', true)->where('deleted', 0)->orderBy('is_primary', 'desc');
+            },
+            'creator',
+            'updater'
         ]);
 
-        // **UPDATE QUOTATION NOTE SAJA, TANPA UPDATE LEAD**
-        if ($request->quotation_id && $quotationData) {
-            $quotationData->update([
-                'note' => ($quotationData->note ?? '') . "\n\n[Converted to Company: " . $company->client_code . " on " . now()->format('Y-m-d H:i:s') . "]",
-                'updated_at' => now()
-            ]);
-            \Log::info('Quotation updated with conversion note:', ['quotation_id' => $quotationData->id]);
-        }
+        // Get statistics
+        $statistics = [
+            'total_quotations' => 0,
+            'accepted_quotations' => 0,
+            'expired_quotations' => 0,
+            'cancelled_quotations' => 0,
+            'total_invoices' => 0,
+            'paid_invoices' => 0,
+            'pending_invoices' => 0,
+            'overdue_invoices' => 0,
+        ];
 
-        DB::commit();
+        // Format contacts data
+        $contacts = $company->contacts->map(function($contact) {
+            return [
+                'id' => $contact->id,
+                'name' => $contact->name,
+                'email' => $contact->email,
+                'phone' => $contact->phone,
+                'position' => $contact->position,
+                'is_primary' => $contact->is_primary,
+                'is_active' => $contact->is_active,
+                'created_at' => $contact->created_at,
+                'updated_at' => $contact->updated_at
+            ];
+        });
 
-        // Load relationships untuk response
-        $company->load(['clientType', 'lead', 'quotation']);
+        // Get primary contact
+        $primaryContact = $company->contacts->firstWhere('is_primary', true);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Client created successfully!',
-            'data' => [
+        return Inertia::render('Companies/Show', [
+            'company' => [
                 'id' => $company->id,
+                'name' => $company->client_code,
                 'client_code' => $company->client_code,
-                'name' => $company->client_code, // Nama dari client_code
+                'client_type' => $company->clientType ? [
+                    'id' => $company->clientType->id,
+                    'name' => $company->clientType->name
+                ] : null,
                 'city' => $company->city,
                 'province' => $company->province,
                 'country' => $company->country,
-                'client_type' => $company->clientType ? $company->clientType->name : null,
-                // Data kontak bisa diambil dari lead jika ada
+                'postal_code' => $company->postal_code,
+                'vat_number' => $company->vat_number,
+                'nib' => $company->nib,
+                'website' => $company->website,
+                'logo_path' => $company->logo_path,
+                'logo_url' => $company->logo_path ? Storage::url($company->logo_path) : null,
+                'client_since' => $company->client_since ? $company->client_since->format('Y-m-d') : null,
+                'is_active' => $company->is_active,
                 'lead' => $company->lead ? [
                     'id' => $company->lead->id,
                     'company_name' => $company->lead->company_name,
-                    'contact_person' => $company->lead->contact_person,
-                    'email' => $company->lead->email,
-                    'phone' => $company->lead->phone,
                     'address' => $company->lead->address
                 ] : null,
                 'quotation' => $company->quotation ? [
                     'id' => $company->quotation->id,
                     'quotation_number' => $company->quotation->quotation_number
-                ] : null
-            ]
-        ], 201);
-
-    } catch (\Exception $e) {
-        DB::rollBack();
-        \Log::error('Error creating company: ' . $e->getMessage());
-        \Log::error('Stack trace: ' . $e->getTraceAsString());
-        
-        return response()->json([
-            'success' => false,
-            'message' => 'Failed to create client: ' . $e->getMessage()
-        ], 500);
+                ] : null,
+                'primary_contact' => $primaryContact ? [
+                    'name' => $primaryContact->name,
+                    'email' => $primaryContact->email,
+                    'phone' => $primaryContact->phone,
+                    'position' => $primaryContact->position
+                ] : null,
+                'contacts' => $contacts,
+                'created_at' => $company->created_at,
+                'updated_at' => $company->updated_at
+            ],
+            'statistics' => $statistics,
+            'contacts' => $contacts
+        ]);
     }
-}
 
     /**
      * Get accepted quotations for company creation (AJAX endpoint).
@@ -445,14 +580,6 @@ public function store(Request $request)
                 ], 400);
             }
 
-            if ($quotation->lead->converted_to_company) {
-                \Log::warning('Lead already converted to company: ' . $quotation->lead->id);
-                return response()->json([
-                    'success' => false,
-                    'message' => 'This lead has already been converted to a company'
-                ], 400);
-            }
-
             \Log::info('Found lead for quotation: ' . $quotationId);
 
             return response()->json([
@@ -486,333 +613,370 @@ public function store(Request $request)
         }
     }
 
-public function update(Request $request, $id)
-{
-    DB::beginTransaction();
-    try {
-        \Log::info('=== UPDATE COMPANY REQUEST ===');
-        \Log::info('Company ID: ' . $id);
-        \Log::info('Request data received');
-        
-        $company = Company::findOrFail($id);
+    /**
+     * Update company.
+     */
+    public function update(Request $request, $id)
+    {
+        DB::beginTransaction();
+        try {
+            \Log::info('=== UPDATE COMPANY REQUEST ===');
+            \Log::info('Company ID: ' . $id);
+            
+            $company = Company::findOrFail($id);
 
-        // **PERBAIKAN**: Log data satu per satu untuk menghindari error
-        $logData = [
-            'company_name' => $request->company_name,
-            'client_type_id' => $request->client_type_id,
-            'status' => $request->status,
-            'city' => $request->city,
-            'province' => $request->province,
-            'country' => $request->country,
-            'postal_code' => $request->postal_code,
-            'vat_number' => $request->vat_number,
-            'nib' => $request->nib,
-            'website' => $request->website,
-            'has_logo' => $request->hasFile('logo'),
-            'delete_logo' => $request->has('delete_logo') ? $request->delete_logo : false
-        ];
-        
-        \Log::info('Request fields: ', $logData);
+            // **VALIDASI DATA**
+            $validator = Validator::make($request->all(), [
+                'company_name' => 'required|string|max:255',
+                'client_type_id' => 'required|exists:client_type,id',
+                'contact_person' => 'required|string|max:255',
+                'contact_email' => 'required|email|max:255',
+                'contact_phone' => 'required|string|max:20',
+                'contact_position' => 'nullable|string|max:100',
+                'city' => 'nullable|string|max:255',
+                'province' => 'nullable|string|max:255',
+                'country' => 'nullable|string|max:255',
+                'postal_code' => 'nullable|integer',
+                'vat_number' => 'nullable|integer',
+                'nib' => 'nullable|string|max:255',
+                'website' => 'nullable|url|max:255',
+                'logo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+                'status' => 'required|in:active,inactive',
+                'delete_logo' => 'nullable|boolean'
+            ], [
+                'client_type_id.exists' => 'Tipe klien tidak valid.',
+                'postal_code.integer' => 'Kode pos harus berupa angka.',
+                'vat_number.integer' => 'VAT number harus berupa angka.',
+                'website.url' => 'Format website tidak valid.',
+                'contact_person.required' => 'Nama kontak wajib diisi.',
+                'contact_email.required' => 'Email kontak wajib diisi.',
+                'contact_phone.required' => 'Telepon kontak wajib diisi.'
+            ]);
 
-        // **PERBAIKAN**: Validasi harus sama dengan store() method
-        $validator = Validator::make($request->all(), [
-            'company_name' => 'required|string|max:255',
-            'client_type_id' => 'required|exists:client_type,id',
-            'city' => 'nullable|string|max:255',
-            'province' => 'nullable|string|max:255',
-            'country' => 'nullable|string|max:255',
-            'postal_code' => 'nullable|integer',
-            'vat_number' => 'nullable|integer',
-            'nib' => 'nullable|string|max:255',
-            'website' => 'nullable|url|max:255',
-            'logo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
-            'status' => 'required|in:active,inactive'
-        ], [
-            'client_type_id.exists' => 'Tipe klien tidak valid.',
-            'postal_code.integer' => 'Kode pos harus berupa angka.',
-            'vat_number.integer' => 'VAT number harus berupa angka.',
-            'website.url' => 'Format website tidak valid.'
-        ]);
+            if ($validator->fails()) {
+                \Log::error('Validation failed: ' . json_encode($validator->errors()));
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Validasi gagal',
+                    'errors' => $validator->errors()
+                ], 422);
+            }
 
-        if ($validator->fails()) {
-            \Log::error('Validation failed: ' . json_encode($validator->errors()));
+            // Handle logo upload
+            if ($request->hasFile('logo') && $request->file('logo')->isValid()) {
+                \Log::info('Uploading new logo');
+                if ($company->logo_path) {
+                    Storage::disk('public')->delete($company->logo_path);
+                }
+                $logoPath = $request->file('logo')->store('companies/logos', 'public');
+                $company->logo_path = $logoPath;
+                \Log::info('Logo uploaded to: ' . $logoPath);
+            }
+
+            // Handle logo deletion
+            if ($request->has('delete_logo') && $request->delete_logo == '1') {
+                \Log::info('Deleting logo');
+                if ($company->logo_path) {
+                    Storage::disk('public')->delete($company->logo_path);
+                    $company->logo_path = null;
+                    \Log::info('Logo deleted');
+                }
+            }
+
+            // Update company data
+            $updateData = [
+                'client_type_id' => $request->client_type_id,
+                'client_code' => $request->company_name,
+                'city' => $request->city,
+                'province' => $request->province,
+                'country' => $request->country,
+                'postal_code' => $request->postal_code,
+                'vat_number' => $request->vat_number,
+                'nib' => $request->nib,
+                'website' => $request->website,
+                'is_active' => $request->status === 'active',
+                'updated_by' => auth()->check() ? auth()->id() : null,
+                'updated_at' => now()
+            ];
+
+            \Log::info('Updating company with data: ', $updateData);
+            $company->update($updateData);
+
+            // **UPDATE ATAU BUAT KONTAK UTAMA**
+            $primaryContact = CompanyContactPerson::where('company_id', $company->id)
+                ->where('is_primary', true)
+                ->where('deleted', 0)
+                ->first();
+
+            if ($primaryContact) {
+                // Update existing primary contact
+                $primaryContact->update([
+                    'name' => $request->contact_person,
+                    'email' => $request->contact_email,
+                    'phone' => $request->contact_phone,
+                    'position' => $request->contact_position,
+                    'updated_at' => now()
+                ]);
+                \Log::info('Primary contact updated: ' . $primaryContact->id);
+            } else {
+                // Create new primary contact
+                $contactData = [
+                    'company_id' => $company->id,
+                    'lead_id' => $company->lead_id,
+                    'name' => $request->contact_person,
+                    'email' => $request->contact_email,
+                    'phone' => $request->contact_phone,
+                    'position' => $request->contact_position,
+                    'is_primary' => true,
+                    'is_active' => true,
+                    'deleted' => false
+                ];
+                $primaryContact = CompanyContactPerson::create($contactData);
+                \Log::info('Primary contact created: ' . $primaryContact->id);
+            }
+
+            \Log::info('Company updated successfully: ', [
+                'id' => $company->id,
+                'client_code' => $company->client_code
+            ]);
+
+            DB::commit();
+
+            // Load fresh data with relationships
+            $company->load(['clientType', 'primaryContact']);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Klien berhasil diperbarui!',
+                'data' => $company
+            ]);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            \Log::error('Error updating company ' . $id . ': ' . $e->getMessage());
+            \Log::error('Stack trace: ' . $e->getTraceAsString());
+            
             return response()->json([
                 'success' => false,
-                'message' => 'Validation failed',
-                'errors' => $validator->errors()
-            ], 422);
+                'message' => 'Gagal memperbarui klien: ' . $e->getMessage()
+            ], 500);
         }
-
-        // Handle logo upload
-        if ($request->hasFile('logo') && $request->file('logo')->isValid()) {
-            \Log::info('Uploading new logo');
-            if ($company->logo_path) {
-                Storage::disk('public')->delete($company->logo_path);
-            }
-            $logoPath = $request->file('logo')->store('companies/logos', 'public');
-            $company->logo_path = $logoPath;
-            \Log::info('Logo uploaded to: ' . $logoPath);
-        }
-
-        // Handle logo deletion
-        if ($request->has('delete_logo') && $request->delete_logo == '1') {
-            \Log::info('Deleting logo');
-            if ($company->logo_path) {
-                Storage::disk('public')->delete($company->logo_path);
-                $company->logo_path = null;
-                \Log::info('Logo deleted');
-            }
-        }
-
-        // Update company - HANYA kolom yang ada di database
-        $updateData = [
-            'client_type_id' => $request->client_type_id,
-            'client_code' => $request->company_name, // Update nama di client_code
-            'city' => $request->city,
-            'province' => $request->province,
-            'country' => $request->country,
-            'postal_code' => $request->postal_code,
-            'vat_number' => $request->vat_number,
-            'nib' => $request->nib,
-            'website' => $request->website,
-            'is_active' => $request->status === 'active',
-            'updated_by' => auth()->check() ? auth()->id() : null,
-            'updated_at' => now()
-        ];
-
-        \Log::info('Updating company with data: ', $updateData);
-        
-        $company->update($updateData);
-
-        \Log::info('Company updated successfully: ', [
-            'id' => $company->id,
-            'client_code' => $company->client_code,
-            'client_type_id' => $company->client_type_id,
-            'status' => $request->status
-        ]);
-
-        DB::commit();
-
-        // Load fresh data with relationships
-        $company->load(['clientType']);
-
-        $message = 'Client updated successfully!';
-        
-        return response()->json([
-            'success' => true,
-            'message' => $message,
-            'data' => $company
-        ]);
-
-    } catch (\Exception $e) {
-        DB::rollBack();
-        \Log::error('Error updating company ' . $id . ': ' . $e->getMessage());
-        \Log::error('Stack trace: ' . $e->getTraceAsString());
-        
-        return response()->json([
-            'success' => false,
-            'message' => 'Failed to update client: ' . $e->getMessage()
-        ], 500);
     }
-}
 
     /**
      * Remove the specified company (soft delete).
      */
-/**
- * Remove the specified company (soft delete).
- */
-public function destroy($id)
-{
-    DB::beginTransaction();
-    try {
-        \Log::info('=== DELETE COMPANY REQUEST ===');
-        \Log::info('Company ID: ' . $id);
-        
-        $company = Company::findOrFail($id);
-        
-        // Check if already deleted
-        if ($company->deleted) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Client has already been deleted'
-            ], 400);
-        }
-        
-        // Soft delete
-        $company->update([
-            'deleted' => true,
-            'deleted_at' => now(),
-            'deleted_by' => auth()->check() ? auth()->id() : null
-        ]);
-
-        \Log::info('Company soft deleted: ' . $company->id);
-
-        DB::commit();
-
-        $message = 'Client moved to trash successfully.';
-        
-        return response()->json([
-            'success' => true,
-            'message' => $message,
-            'data' => [
-                'id' => $company->id,
-                'client_code' => $company->client_code,
-                'deleted_at' => $company->deleted_at
-            ]
-        ]);
-
-    } catch (\Exception $e) {
-        DB::rollBack();
-        \Log::error('Error deleting company ' . $id . ': ' . $e->getMessage());
-        \Log::error('Stack trace: ' . $e->getTraceAsString());
-        
-        return response()->json([
-            'success' => false,
-            'message' => 'Failed to delete client: ' . $e->getMessage()
-        ], 500);
-    }
-}
-
-/**
- * Force delete (permanent deletion).
- */
-public function forceDestroy($id)
-{
-    DB::beginTransaction();
-    try {
-        \Log::info('=== FORCE DELETE COMPANY REQUEST ===');
-        \Log::info('Company ID: ' . $id);
-        
-        $company = Company::withTrashed()->find($id);
-        
-        if (!$company) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Company not found'
-            ], 404);
-        }
-        
-        // Delete logo file if exists
-        if ($company->logo_path) {
-            Storage::disk('public')->delete($company->logo_path);
-        }
-        
-        // Force delete from database
-        $companyId = $company->id;
-        $companyCode = $company->client_code;
-        $company->forceDelete();
-
-        \Log::info('Company permanently deleted: ' . $companyId);
-
-        DB::commit();
-
-        $message = 'Client permanently deleted.';
-        
-        return response()->json([
-            'success' => true,
-            'message' => $message,
-            'data' => [
-                'id' => $companyId,
-                'client_code' => $companyCode,
-                'permanently_deleted' => true
-            ]
-        ]);
-
-    } catch (\Exception $e) {
-        DB::rollBack();
-        \Log::error('Error force deleting company ' . $id . ': ' . $e->getMessage());
-        \Log::error('Stack trace: ' . $e->getTraceAsString());
-        
-        return response()->json([
-            'success' => false,
-            'message' => 'Failed to permanently delete client: ' . $e->getMessage()
-        ], 500);
-    }
-}
-
-/**
- * Bulk delete companies.
- */
-public function bulkDestroy(Request $request)
-{
-    DB::beginTransaction();
-    try {
-        \Log::info('=== BULK DELETE REQUEST ===');
-        \Log::info('Company IDs: ' . json_encode($request->ids));
-        \Log::info('Permanent: ' . ($request->permanent ? 'true' : 'false'));
-        
-        $ids = $request->ids;
-        
-        if (empty($ids) || !is_array($ids)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'No companies selected for deletion'
-            ], 400);
-        }
-        
-        $deletedCount = 0;
-        $errors = [];
-        
-        foreach ($ids as $id) {
-            try {
-                if ($request->permanent) {
-                    // Permanent delete
-                    $company = Company::withTrashed()->find($id);
-                    if ($company) {
-                        if ($company->logo_path) {
-                            Storage::disk('public')->delete($company->logo_path);
-                        }
-                        $company->forceDelete();
-                        $deletedCount++;
-                    }
-                } else {
-                    // Soft delete
-                    $company = Company::find($id);
-                    if ($company && !$company->deleted) {
-                        $company->update([
-                            'deleted' => true,
-                            'deleted_at' => now(),
-                            'deleted_by' => auth()->check() ? auth()->id() : null
-                        ]);
-                        $deletedCount++;
-                    }
-                }
-            } catch (\Exception $e) {
-                $errors[] = "ID {$id}: " . $e->getMessage();
-                \Log::error("Error deleting company {$id}: " . $e->getMessage());
+    public function destroy($id)
+    {
+        DB::beginTransaction();
+        try {
+            \Log::info('=== DELETE COMPANY REQUEST ===');
+            \Log::info('Company ID: ' . $id);
+            
+            $company = Company::findOrFail($id);
+            
+            // Check if already deleted
+            if ($company->deleted) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Klien sudah dihapus'
+                ], 400);
             }
-        }
-        
-        DB::commit();
+            
+            // Soft delete company
+            $company->update([
+                'deleted' => true,
+                'deleted_at' => now(),
+                'deleted_by' => auth()->check() ? auth()->id() : null
+            ]);
 
-        $message = $deletedCount . ' client' . ($deletedCount !== 1 ? 's' : '') . 
-                  ' ' . ($request->permanent ? 'permanently deleted' : 'moved to trash') . '.';
-        
-        if (!empty($errors)) {
-            $message .= ' Some errors occurred: ' . implode('; ', $errors);
-        }
-        
-        return response()->json([
-            'success' => true,
-            'message' => $message,
-            'data' => [
-                'deleted_count' => $deletedCount,
-                'permanent' => $request->permanent,
-                'errors' => $errors
-            ]
-        ]);
+            // Soft delete associated contacts
+            CompanyContactPerson::where('company_id', $id)
+                ->where('deleted', 0)
+                ->update([
+                    'deleted' => true,
+                    'deleted_at' => now(),
+                    'deleted_by' => auth()->check() ? auth()->id() : null
+                ]);
 
-    } catch (\Exception $e) {
-        DB::rollBack();
-        \Log::error('Error in bulk delete: ' . $e->getMessage());
-        
-        return response()->json([
-            'success' => false,
-            'message' => 'Failed to delete companies: ' . $e->getMessage()
-        ], 500);
+            \Log::info('Company and contacts soft deleted: ' . $company->id);
+
+            DB::commit();
+
+            $message = 'Klien berhasil dipindahkan ke tong sampah.';
+            
+            return response()->json([
+                'success' => true,
+                'message' => $message,
+                'data' => [
+                    'id' => $company->id,
+                    'client_code' => $company->client_code,
+                    'deleted_at' => $company->deleted_at
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            \Log::error('Error deleting company ' . $id . ': ' . $e->getMessage());
+            \Log::error('Stack trace: ' . $e->getTraceAsString());
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal menghapus klien: ' . $e->getMessage()
+            ], 500);
+        }
     }
-}
+
+    /**
+     * Force delete (permanent deletion).
+     */
+    public function forceDestroy($id)
+    {
+        DB::beginTransaction();
+        try {
+            \Log::info('=== FORCE DELETE COMPANY REQUEST ===');
+            \Log::info('Company ID: ' . $id);
+            
+            $company = Company::withTrashed()->find($id);
+            
+            if (!$company) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Perusahaan tidak ditemukan'
+                ], 404);
+            }
+            
+            // Delete logo file if exists
+            if ($company->logo_path) {
+                Storage::disk('public')->delete($company->logo_path);
+            }
+            
+            // Delete associated contacts
+            CompanyContactPerson::where('company_id', $id)->forceDelete();
+            
+            // Force delete company
+            $companyId = $company->id;
+            $companyCode = $company->client_code;
+            $company->forceDelete();
+
+            \Log::info('Company and contacts permanently deleted: ' . $companyId);
+
+            DB::commit();
+
+            $message = 'Klien berhasil dihapus secara permanen.';
+            
+            return response()->json([
+                'success' => true,
+                'message' => $message,
+                'data' => [
+                    'id' => $companyId,
+                    'client_code' => $companyCode,
+                    'permanently_deleted' => true
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            \Log::error('Error force deleting company ' . $id . ': ' . $e->getMessage());
+            \Log::error('Stack trace: ' . $e->getTraceAsString());
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal menghapus klien secara permanen: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Bulk delete companies.
+     */
+    public function bulkDestroy(Request $request)
+    {
+        DB::beginTransaction();
+        try {
+            \Log::info('=== BULK DELETE REQUEST ===');
+            \Log::info('Company IDs: ' . json_encode($request->ids));
+            \Log::info('Permanent: ' . ($request->permanent ? 'true' : 'false'));
+            
+            $ids = $request->ids;
+            
+            if (empty($ids) || !is_array($ids)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Tidak ada klien yang dipilih untuk dihapus'
+                ], 400);
+            }
+            
+            $deletedCount = 0;
+            $errors = [];
+            
+            foreach ($ids as $id) {
+                try {
+                    if ($request->permanent) {
+                        // Permanent delete
+                        $company = Company::withTrashed()->find($id);
+                        if ($company) {
+                            if ($company->logo_path) {
+                                Storage::disk('public')->delete($company->logo_path);
+                            }
+                            CompanyContactPerson::where('company_id', $id)->forceDelete();
+                            $company->forceDelete();
+                            $deletedCount++;
+                        }
+                    } else {
+                        // Soft delete
+                        $company = Company::find($id);
+                        if ($company && !$company->deleted) {
+                            $company->update([
+                                'deleted' => true,
+                                'deleted_at' => now(),
+                                'deleted_by' => auth()->check() ? auth()->id() : null
+                            ]);
+                            CompanyContactPerson::where('company_id', $id)
+                                ->where('deleted', 0)
+                                ->update([
+                                    'deleted' => true,
+                                    'deleted_at' => now(),
+                                    'deleted_by' => auth()->check() ? auth()->id() : null
+                                ]);
+                            $deletedCount++;
+                        }
+                    }
+                } catch (\Exception $e) {
+                    $errors[] = "ID {$id}: " . $e->getMessage();
+                    \Log::error("Error deleting company {$id}: " . $e->getMessage());
+                }
+            }
+            
+            DB::commit();
+
+            $message = $deletedCount . ' klien' . ($deletedCount !== 1 ? '' : '') . 
+                      ' ' . ($request->permanent ? 'berhasil dihapus permanen' : 'berhasil dipindahkan ke tong sampah') . '.';
+        
+            if (!empty($errors)) {
+                $message .= ' Beberapa error terjadi: ' . implode('; ', $errors);
+            }
+            
+            return response()->json([
+                'success' => true,
+                'message' => $message,
+                'data' => [
+                    'deleted_count' => $deletedCount,
+                    'permanent' => $request->permanent,
+                    'errors' => $errors
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            \Log::error('Error in bulk delete: ' . $e->getMessage());
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal menghapus klien: ' . $e->getMessage()
+            ], 500);
+        }
+    }
 
     /**
      * Restore soft deleted company.
@@ -823,7 +987,7 @@ public function bulkDestroy(Request $request)
             $company = Company::withTrashed()->find($id);
             
             if (!$company) {
-                throw new \Exception('Company not found');
+                throw new \Exception('Perusahaan tidak ditemukan');
             }
             
             $company->update([
@@ -832,13 +996,22 @@ public function bulkDestroy(Request $request)
                 'deleted_by' => null
             ]);
 
-            $message = 'Client restored successfully.';
+            // Restore associated contacts
+            CompanyContactPerson::where('company_id', $id)
+                ->where('deleted', 1)
+                ->update([
+                    'deleted' => false,
+                    'deleted_at' => null,
+                    'deleted_by' => null
+                ]);
+
+            $message = 'Klien berhasil dipulihkan.';
             
             if (request()->wantsJson()) {
                 return response()->json([
                     'success' => true,
                     'message' => $message,
-                    'data' => $company->fresh()
+                    'data' => $company->fresh(['clientType', 'primaryContact'])
                 ]);
             }
 
@@ -851,11 +1024,11 @@ public function bulkDestroy(Request $request)
             if (request()->wantsJson()) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Failed to restore client: ' . $e->getMessage()
+                    'message' => 'Gagal memulihkan klien: ' . $e->getMessage()
                 ], 500);
             }
             
-            return back()->with('error', 'Failed to restore client: ' . $e->getMessage());
+            return back()->with('error', 'Gagal memulihkan klien: ' . $e->getMessage());
         }
     }
 }
