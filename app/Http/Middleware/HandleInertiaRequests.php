@@ -37,11 +37,11 @@ class HandleInertiaRequests extends Middleware
                 ] : null,
             ],
             'app_config' => [
-                'default_language' => $config->default_language ?? 'Indonesia',
-                'allow_language_change' => (bool) $config->allow_language_change,
-                'logo_path'             => $config->logo_path,
-                'doc_logo_path'         => $config->doc_logo_path,
-                'company_name'          => $config->company_name,
+                'default_language'      => $config->default_language ?? 'Indonesia',
+                'allow_language_change' => (bool) ($config->allow_language_change ?? true),
+                'logo_path'             => $config->logo_path ?? null,
+                'doc_logo_path'         => $config->doc_logo_path ?? null,
+                'company_name'          => $config->company_name ?? 'Liz Company',
             ],
             
             'csrf_token' => csrf_token(),
