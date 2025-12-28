@@ -75,7 +75,7 @@ export default function UsersIndex({ users, roles, templates }) {
         e.preventDefault();
 
         if (editId) {
-            router.put(`/user/update/${editId}`, data, {
+            router.patch(`/user/update/${editId}`, data, {
                 onSuccess: () => {
                     setIsModalOpen(false);
                     setEditId(null);

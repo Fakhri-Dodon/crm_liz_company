@@ -96,7 +96,7 @@ class QuotationController extends Controller {
             ->whereNotIn('id', $existingLeadIds)
             ->select(['id', 'company_name', 'address', 'contact_person', 'email', 'phone'])
             ->get();
-        $companies = Company::where('deleted', 0)->with(['quotation', 'contactPersons' => function($query) {$query->where('deleted', 0);}, 'contactPersons.lead', 'lead'])->get();
+        $companies = Company::where('deleted', 0)->with(['quotation', 'contacts' => function($query) {$query->where('deleted', 0);}, 'contactPersons.lead', 'lead'])->get();
         
         return Inertia::render('Quotations/Create', [
             'companies' => $companies,
