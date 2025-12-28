@@ -128,6 +128,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/companies/create', [CompanyController::class, 'create'])->name('companies.create');
     Route::post('/companies', [CompanyController::class, 'store'])->name('companies.store');
     
+    // **HAPUS INI: HANYA 1 ROUTE UNTUK SHOW**
+    // Route::get('/companies/{company}/show', [CompanyController::class, 'show'])->name('companies.show'); // HAPUS BARIS INI
+    
     // Specific routes before parameter routes (harus didefinisikan sebelum {company})
     Route::get('/companies/get-leads', [CompanyController::class, 'getLeadsForCreation'])
         ->name('companies.get-leads');
@@ -140,7 +143,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     
     // ====================== COMPANY DETAIL & PROFILE ROUTES ======================
     // Company Detail - ROUTE UTAMA untuk halaman profil
-    Route::get('/companies/{company}', [CompanyController::class, 'show'])->name('companies.show');
+    Route::get('/companies/{company}', [CompanyController::class, 'show'])->name('companies.show'); // INI SATU-SATUNYA
     
     // Company Edit & Update
     Route::get('/companies/{company}/edit', [CompanyController::class, 'edit'])->name('companies.edit');
@@ -184,6 +187,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/projects', [CompanyController::class, 'getCompanyProjects'])
             ->name('companies.projects');
     });
+        Route::get('/api/companies/{company}/primary-contact', [CompanyController::class, 'getPrimaryContact'])
+        ->name('companies.primary-contact');
     
     // ====================== RELATED ENTITY ROUTES ======================
     // Quotation routes (dengan company context)

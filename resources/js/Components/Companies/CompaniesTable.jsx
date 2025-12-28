@@ -1,4 +1,3 @@
-// resources/js/Components/Companies/CompaniesTable.jsx
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, router } from '@inertiajs/react';
 import { 
@@ -18,7 +17,10 @@ import {
     ChevronDown,
     ChevronUp,
     ExternalLink,
-    ChevronRight as RightArrow
+    ChevronRight as RightArrow,
+    MapPin,
+    CheckCircle,
+    XCircle
 } from 'lucide-react';
 
 const CompaniesTable = ({ 
@@ -92,32 +94,61 @@ const CompaniesTable = ({
     // Fungsi untuk menentukan warna berdasarkan tipe client
     const getTypeColor = (typeName) => {
         const colorMap = {
+            'Corporate': {
+                badgeBorder: 'border-blue-200',
+                badgeText: 'text-blue-700',
+                bgColor: 'bg-blue-100',
+                dotColor: 'bg-blue-500'
+            },
+            'Government': {
+                badgeBorder: 'border-green-200',
+                badgeText: 'text-green-700',
+                bgColor: 'bg-green-100',
+                dotColor: 'bg-green-500'
+            },
+            'Individual': {
+                badgeBorder: 'border-orange-200',
+                badgeText: 'text-orange-700',
+                bgColor: 'bg-orange-100',
+                dotColor: 'bg-orange-500'
+            },
+            'NGO': {
+                badgeBorder: 'border-purple-200',
+                badgeText: 'text-purple-700',
+                bgColor: 'bg-purple-100',
+                dotColor: 'bg-purple-500'
+            },
             'PMDN': {
                 badgeBorder: 'border-blue-200',
                 badgeText: 'text-blue-700',
-                bgColor: 'bg-blue-100'
+                bgColor: 'bg-blue-100',
+                dotColor: 'bg-blue-500'
             },
             'PMA': {
                 badgeBorder: 'border-green-200',
                 badgeText: 'text-green-700',
-                bgColor: 'bg-green-100'
+                bgColor: 'bg-green-100',
+                dotColor: 'bg-green-500'
             },
             'KPPA': {
                 badgeBorder: 'border-orange-200',
                 badgeText: 'text-orange-700',
-                bgColor: 'bg-orange-100'
+                bgColor: 'bg-orange-100',
+                dotColor: 'bg-orange-500'
             },
             'BUMN': {
                 badgeBorder: 'border-red-200',
                 badgeText: 'text-red-700',
-                bgColor: 'bg-red-100'
+                bgColor: 'bg-red-100',
+                dotColor: 'bg-red-500'
             }
         };
 
         const defaultColors = {
             badgeBorder: 'border-gray-200',
             badgeText: 'text-gray-700',
-            bgColor: 'bg-gray-100'
+            bgColor: 'bg-gray-100',
+            dotColor: 'bg-gray-500'
         };
 
         return colorMap[typeName] || defaultColors;
@@ -125,13 +156,91 @@ const CompaniesTable = ({
 
     // Format phone number
     const formatPhoneNumber = (phone) => {
-        if (!phone) return 'N/A';
-        return phone.replace(/(\d{4})(\d{4})(\d+)/, '$1-$2-$3');
+        if (!phone || phone === 'N/A') return 'N/A';
+        
+        // Remove all non-numeric characters
+        const numericPhone = phone.replace(/\D/g, '');
+        
+        if (numericPhone.length === 0) return 'N/A';
+        
+        // Format for Indonesian phone numbers
+        if (numericPhone.length === 10) {
+            return numericPhone.replace(/(\d{4})(\d{4})(\d{2})/, '$1-$2-$3');
+        } else if (numericPhone.length === 11) {
+            return numericPhone.replace(/(\d{4})(\d{4})(\d{3})/, '$1-$2-$3');
+        } else if (numericPhone.length === 12) {
+            return numericPhone.replace(/(\d{4})(\d{4})(\d{4})/, '$1-$2-$3');
+        } else if (numericPhone.length === 13) {
+            return numericPhone.replace(/(\d{4})(\d{4})(\d{5})/, '$1-$2-$3');
+        }
+        
+        // Default formatting
+        return numericPhone.replace(/(\d{4})(?=\d)/g, '$1-');
     };
 
-    // Handle view click
-    const handleViewClick = (company) => {
-        router.visit(route('companies.show', company.id));
+// Fungsi handleViewClick yang diperbaiki
+const handleViewClick = (company) => {
+    console.log('=== CLICK COMPANY DETAIL ===');
+    console.log('Company ID:', company.id);
+    console.log('Company Name:', company.name);
+    console.log('Route name:', route('companies.show', company.id));
+    console.log('Full route URL:', route('companies.show', { company: company.id }));
+    
+    // Debug: Cek apakah route ada
+    try {
+        const routeUrl = route('companies.show', company.id);
+        console.log('Route URL generated:', routeUrl);
+        
+        // Visit dengan timeout untuk debugging
+        setTimeout(() => {
+            router.visit(routeUrl, {
+                onStart: () => console.log('Navigation started...'),
+                onFinish: () => console.log('Navigation finished'),
+                onError: (error) => console.error('Navigation error:', error)
+            });
+        }, 100);
+        
+    } catch (error) {
+        console.error('Route generation error:', error);
+        console.error('Available routes:', window.routes || 'Not available');
+        
+        // Fallback: Gunakan URL langsung
+        const directUrl = `/companies/${company.id}`;
+        console.log('Using direct URL:', directUrl);
+        router.visit(directUrl);
+    }
+};
+
+    // Format date
+    const formatDate = (dateString) => {
+        if (!dateString) return 'N/A';
+        const date = new Date(dateString);
+        return date.toLocaleDateString('id-ID', {
+            day: 'numeric',
+            month: 'short',
+            year: 'numeric'
+        });
+    };
+
+    // Get initial for avatar
+    const getInitials = (name) => {
+        if (!name || name === 'N/A') return '?';
+        return name
+            .split(' ')
+            .map(word => word[0])
+            .join('')
+            .toUpperCase()
+            .substring(0, 2);
+    };
+
+    // Get contact person data
+    const getContactPerson = (company) => {
+        return {
+            name: company.contact_person || company.primary_contact?.name || 'N/A',
+            email: company.email || company.primary_contact?.email || company.contact_email || 'N/A',
+            phone: company.phone || company.primary_contact?.phone || company.contact_phone || 'N/A',
+            position: company.position || company.primary_contact?.position || company.contact_position || 'Contact Person'
+        };
     };
 
     // Tablet View
@@ -177,6 +286,8 @@ const CompaniesTable = ({
                         {companies.data.map((company) => {
                             const colors = getTypeColor(company.client_type_name);
                             const isSelected = bulkSelect && selectedIds.includes(company.id);
+                            const contact = getContactPerson(company);
+                            const initials = getInitials(contact.name);
                             
                             return (
                                 <div 
@@ -200,9 +311,17 @@ const CompaniesTable = ({
                                                     />
                                                 )}
                                                 <div className="flex items-center gap-3 flex-1">
-                                                    <div className="bg-gray-100 group-hover:bg-teal-50 p-2 rounded-lg transition-colors">
-                                                        <Building className="w-5 h-5 text-gray-600 group-hover:text-teal-600 transition-colors" />
-                                                    </div>
+                                                    {company.logo_url ? (
+                                                        <img 
+                                                            src={company.logo_url} 
+                                                            alt={company.name}
+                                                            className="w-12 h-12 rounded-lg object-cover border border-gray-200"
+                                                        />
+                                                    ) : (
+                                                        <div className="bg-gradient-to-br from-[#054748] to-[#0a5d5e] w-12 h-12 rounded-lg flex items-center justify-center">
+                                                            <Building className="w-6 h-6 text-white" />
+                                                        </div>
+                                                    )}
                                                     <div className="flex-1 min-w-0">
                                                         <h3 className="font-semibold text-gray-900 text-sm truncate group-hover:text-teal-600 transition-colors flex items-center gap-1">
                                                             {company.name}
@@ -253,44 +372,54 @@ const CompaniesTable = ({
                                         {/* Company details */}
                                         <div className="space-y-3">
                                             {/* Contact info */}
-                                            <div className="grid grid-cols-2 gap-3">
-                                                <div className="space-y-1">
-                                                    <div className="flex items-center gap-2">
-                                                        <User className="w-3 h-3 text-gray-400" />
-                                                        <span className="text-xs font-medium text-gray-600">Contact:</span>
+                                            <div className="space-y-2">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="flex-shrink-0">
+                                                        <div className="w-8 h-8 bg-teal-100 rounded-full flex items-center justify-center">
+                                                            <span className="text-xs font-bold text-teal-700">
+                                                                {initials}
+                                                            </span>
+                                                        </div>
                                                     </div>
-                                                    <p className="text-sm text-gray-900 pl-5 truncate">{company.contact_person}</p>
+                                                    <div className="min-w-0 flex-1">
+                                                        <div className="text-sm font-medium text-gray-900 truncate">
+                                                            {contact.name}
+                                                        </div>
+                                                        <div className="text-xs text-gray-500 truncate">
+                                                            {contact.position}
+                                                        </div>
+                                                    </div>
                                                 </div>
                                                 
-                                                <div className="space-y-1">
+                                                <div className="space-y-1.5 pl-11">
                                                     <div className="flex items-center gap-2">
-                                                        <Phone className="w-3 h-3 text-gray-400" />
-                                                        <span className="text-xs font-medium text-gray-600">Phone:</span>
+                                                        <Mail className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                                                        <span className="text-xs text-gray-600 truncate">{contact.email}</span>
                                                     </div>
-                                                    <p className="text-sm text-gray-900 pl-5">{formatPhoneNumber(company.phone)}</p>
+                                                    <div className="flex items-center gap-2">
+                                                        <Phone className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                                                        <span className="text-xs font-medium bg-yellow-100 px-2 py-1 rounded">
+                                                            {formatPhoneNumber(contact.phone)}
+                                                        </span>
+                                                    </div>
                                                 </div>
-                                            </div>
-                                            
-                                            {/* Email */}
-                                            <div className="space-y-1">
-                                                <div className="flex items-center gap-2">
-                                                    <Mail className="w-3 h-3 text-gray-400" />
-                                                    <span className="text-xs font-medium text-gray-600">Email:</span>
-                                                </div>
-                                                <p className="text-sm text-gray-900 pl-5 truncate">{company.email}</p>
                                             </div>
                                             
                                             {/* Address */}
-                                            {company.address && (
-                                                <div className="space-y-1">
-                                                    <span className="text-xs font-medium text-gray-600">Address:</span>
-                                                    <p className="text-xs text-gray-600 line-clamp-2">{company.address}</p>
+                                            <div className="flex items-start gap-2">
+                                                <MapPin className="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" />
+                                                <div>
+                                                    <p className="text-xs text-gray-600">
+                                                        {company.city || ''} {company.province ? `, ${company.province}` : ''}
+                                                        {company.country ? `, ${company.country}` : ''}
+                                                    </p>
                                                 </div>
-                                            )}
+                                            </div>
                                             
                                             {/* Badges */}
                                             <div className="flex flex-wrap gap-2 pt-2">
                                                 <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${colors.bgColor} ${colors.badgeText} border ${colors.badgeBorder}`}>
+                                                    <span className={`w-2 h-2 rounded-full mr-1.5 ${colors.dotColor}`}></span>
                                                     {company.client_type_name}
                                                 </span>
                                                 <span className={`inline-flex items-center px-2.5 py-1 rounded text-xs ${
@@ -298,7 +427,17 @@ const CompaniesTable = ({
                                                         ? 'bg-green-100 text-green-800 border border-green-200' 
                                                         : 'bg-gray-100 text-gray-800 border border-gray-200'
                                                 }`}>
-                                                    {company.is_active ? 'Active' : 'Inactive'}
+                                                    {company.is_active ? (
+                                                        <>
+                                                            <CheckCircle className="w-3 h-3 mr-1" />
+                                                            Active
+                                                        </>
+                                                    ) : (
+                                                        <>
+                                                            <XCircle className="w-3 h-3 mr-1" />
+                                                            Inactive
+                                                        </>
+                                                    )}
                                                 </span>
                                                 {company.client_since && (
                                                     <span className="inline-flex items-center px-2.5 py-1 rounded text-xs bg-purple-100 text-purple-800 border border-purple-200">
@@ -402,6 +541,8 @@ const CompaniesTable = ({
                     <div className="px-3 space-y-3 pb-4">
                         {companies.data.map((company) => {
                             const colors = getTypeColor(company.client_type_name);
+                            const contact = getContactPerson(company);
+                            const initials = getInitials(contact.name);
                             
                             return (
                                 <div 
@@ -413,9 +554,17 @@ const CompaniesTable = ({
                                         {/* Company header */}
                                         <div className="flex items-start justify-between">
                                             <div className="flex items-center gap-3 flex-1">
-                                                <div className="bg-gray-100 group-hover:bg-teal-50 p-2 rounded-lg transition-colors">
-                                                    <Building className="w-4 h-4 text-gray-600 group-hover:text-teal-600 transition-colors" />
-                                                </div>
+                                                {company.logo_url ? (
+                                                    <img 
+                                                        src={company.logo_url} 
+                                                        alt={company.name}
+                                                        className="w-10 h-10 rounded-lg object-cover border border-gray-200"
+                                                    />
+                                                ) : (
+                                                    <div className="bg-gradient-to-br from-[#054748] to-[#0a5d5e] w-10 h-10 rounded-lg flex items-center justify-center">
+                                                        <Building className="w-5 h-5 text-white" />
+                                                    </div>
+                                                )}
                                                 <div className="flex-1 min-w-0">
                                                     <h3 className="font-semibold text-gray-900 text-sm truncate group-hover:text-teal-600 transition-colors flex items-center gap-1">
                                                         {company.name}
@@ -426,18 +575,29 @@ const CompaniesTable = ({
                                             </div>
                                             
                                             {/* Status badge */}
-                                            <span className={`text-xs px-2 py-1 rounded ${
+                                            <span className={`text-xs px-2 py-1 rounded flex items-center gap-1 ${
                                                 company.is_active 
                                                     ? 'bg-green-100 text-green-800' 
                                                     : 'bg-gray-100 text-gray-800'
                                             }`}>
-                                                {company.is_active ? 'Active' : 'Inactive'}
+                                                {company.is_active ? (
+                                                    <>
+                                                        <CheckCircle className="w-3 h-3" />
+                                                        <span className="hidden sm:inline">Active</span>
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <XCircle className="w-3 h-3" />
+                                                        <span className="hidden sm:inline">Inactive</span>
+                                                    </>
+                                                )}
                                             </span>
                                         </div>
                                         
                                         {/* Client type */}
                                         <div className="flex items-center justify-between">
                                             <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${colors.bgColor} ${colors.badgeText}`}>
+                                                <span className={`w-2 h-2 rounded-full mr-1.5 ${colors.dotColor}`}></span>
                                                 {company.client_type_name}
                                             </span>
                                             
@@ -471,25 +631,39 @@ const CompaniesTable = ({
                                         {/* Contact info */}
                                         <div className="space-y-2 border-t pt-3">
                                             <div className="flex items-center gap-2">
-                                                <User className="w-3 h-3 text-gray-400 flex-shrink-0" />
-                                                <span className="text-xs text-gray-700 truncate">{company.contact_person}</span>
+                                                <div className="w-6 h-6 bg-teal-100 rounded-full flex items-center justify-center flex-shrink-0">
+                                                    <span className="text-xs font-bold text-teal-700">{initials}</span>
+                                                </div>
+                                                <span className="text-xs text-gray-700 truncate">{contact.name}</span>
                                             </div>
                                             <div className="flex items-center gap-2">
                                                 <Phone className="w-3 h-3 text-gray-400 flex-shrink-0" />
                                                 <span className="text-xs font-medium bg-yellow-100 px-2 py-1 rounded">
-                                                    {formatPhoneNumber(company.phone)}
+                                                    {formatPhoneNumber(contact.phone)}
                                                 </span>
                                             </div>
                                             <div className="flex items-center gap-2">
                                                 <Mail className="w-3 h-3 text-gray-400 flex-shrink-0" />
-                                                <span className="text-xs text-gray-600 truncate">{company.email}</span>
+                                                <span className="text-xs text-gray-600 truncate">{contact.email}</span>
                                             </div>
                                         </div>
                                         
                                         {/* Address if available */}
-                                        {company.address && (
+                                        {(company.city || company.province) && (
+                                            <div className="pt-2 border-t flex items-center gap-2">
+                                                <MapPin className="w-3 h-3 text-gray-400 flex-shrink-0" />
+                                                <p className="text-xs text-gray-600 truncate">
+                                                    {company.city}{company.province ? `, ${company.province}` : ''}
+                                                </p>
+                                            </div>
+                                        )}
+                                        
+                                        {/* Client since */}
+                                        {company.client_since && (
                                             <div className="pt-2 border-t">
-                                                <p className="text-xs text-gray-600 line-clamp-2">{company.address}</p>
+                                                <p className="text-xs text-gray-500">
+                                                    Client since: {formatDate(company.client_since)}
+                                                </p>
                                             </div>
                                         )}
                                     </div>
@@ -600,11 +774,41 @@ const CompaniesTable = ({
                                     )}
                                 </div>
                             </th>
-                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Contact Details
+                            <th 
+                                scope="col" 
+                                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                                onClick={() => handleSort('contact_person')}
+                            >
+                                <div className="flex items-center gap-1">
+                                    Contact Person
+                                    {sortConfig.key === 'contact_person' && (
+                                        sortConfig.direction === 'asc' ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />
+                                    )}
+                                </div>
                             </th>
-                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Status
+                            <th 
+                                scope="col" 
+                                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                                onClick={() => handleSort('client_type_name')}
+                            >
+                                <div className="flex items-center gap-1">
+                                    Type & Status
+                                    {sortConfig.key === 'client_type_name' && (
+                                        sortConfig.direction === 'asc' ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />
+                                    )}
+                                </div>
+                            </th>
+                            <th 
+                                scope="col" 
+                                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                                onClick={() => handleSort('client_since')}
+                            >
+                                <div className="flex items-center gap-1">
+                                    Location & Date
+                                    {sortConfig.key === 'client_since' && (
+                                        sortConfig.direction === 'asc' ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />
+                                    )}
+                                </div>
                             </th>
                             {showActions && (
                                 <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -618,6 +822,8 @@ const CompaniesTable = ({
                             companies.data.map((company) => {
                                 const colors = getTypeColor(company.client_type_name);
                                 const isSelected = bulkSelect && selectedIds.includes(company.id);
+                                const contact = getContactPerson(company);
+                                const initials = getInitials(contact.name);
                                 
                                 return (
                                     <tr 
@@ -635,14 +841,24 @@ const CompaniesTable = ({
                                             </td>
                                         )}
                                         
-                                        {/* Client Name Column - Logo dan Nama bisa diklik */}
+                                        {/* Client Name Column */}
                                         <td className="px-6 py-4">
                                             <div 
                                                 className="flex items-center cursor-pointer"
                                                 onClick={() => handleViewClick(company)}
                                             >
-                                                <div className="flex-shrink-0 h-10 w-10 bg-gray-100 group-hover:bg-teal-100 rounded-lg flex items-center justify-center hover:bg-gray-200 transition-colors">
-                                                    <Building className="w-5 h-5 text-gray-600 group-hover:text-teal-600 transition-colors" />
+                                                <div className="flex-shrink-0">
+                                                    {company.logo_url ? (
+                                                        <img 
+                                                            src={company.logo_url} 
+                                                            alt={company.name}
+                                                            className="h-12 w-12 rounded-lg object-cover border border-gray-200 group-hover:border-teal-300 transition-colors"
+                                                        />
+                                                    ) : (
+                                                        <div className="h-12 w-12 bg-gradient-to-br from-[#054748] to-[#0a5d5e] rounded-lg flex items-center justify-center group-hover:scale-105 transition-transform">
+                                                            <Building className="w-6 h-6 text-white" />
+                                                        </div>
+                                                    )}
                                                 </div>
                                                 <div className="ml-4 min-w-0 flex-1">
                                                     <div className="flex items-center gap-2">
@@ -652,61 +868,54 @@ const CompaniesTable = ({
                                                         <ExternalLink className="w-3 h-3 text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity" />
                                                     </div>
                                                     <div className="text-sm text-gray-500 flex items-center gap-2 mt-1">
-                                                        <span className="bg-gray-100 px-2 py-0.5 rounded text-xs">
+                                                        <span className="bg-gray-100 px-2 py-0.5 rounded text-xs font-medium">
                                                             {company.client_code}
                                                         </span>
-                                                        {company.client_since && (
-                                                            <span className="flex items-center gap-1 text-xs">
-                                                                <Calendar className="w-3 h-3" />
-                                                                Since {company.client_since}
-                                                            </span>
-                                                        )}
                                                     </div>
-                                                    {company.address && (
-                                                        <div className="text-xs text-gray-400 mt-1 truncate max-w-xs">
-                                                            {company.address}
-                                                        </div>
-                                                    )}
                                                 </div>
                                             </div>
                                         </td>
 
-                                        {/* Contact Details Column */}
+                                        {/* Contact Person Column */}
                                         <td className="px-6 py-4">
                                             <div className="space-y-2">
                                                 <div className="flex items-center gap-3">
-                                                    <div className="flex-shrink-0 h-8 w-8 bg-teal-100 rounded-full flex items-center justify-center">
-                                                        <User className="w-4 h-4 text-teal-700" />
+                                                    <div className="flex-shrink-0">
+                                                        <div className="w-10 h-10 bg-teal-100 rounded-full flex items-center justify-center">
+                                                            <span className="text-sm font-bold text-teal-700">
+                                                                {initials}
+                                                            </span>
+                                                        </div>
                                                     </div>
                                                     <div className="min-w-0 flex-1">
                                                         <div className="text-sm font-medium text-gray-900 truncate">
-                                                            {company.contact_person}
+                                                            {contact.name}
                                                         </div>
                                                         <div className="text-xs text-gray-500 truncate">
-                                                            {company.position || 'Contact Person'}
+                                                            {contact.position}
                                                         </div>
                                                     </div>
                                                 </div>
-                                                <div className="space-y-1.5 pl-11">
+                                                <div className="space-y-1.5 pl-12">
                                                     <div className="flex items-center gap-2">
                                                         <Mail className="w-4 h-4 text-gray-400 flex-shrink-0" />
-                                                        <span className="text-sm text-gray-900 truncate">{company.email}</span>
+                                                        <span className="text-sm text-gray-900 truncate">{contact.email}</span>
                                                     </div>
                                                     <div className="flex items-center gap-2">
                                                         <Phone className="w-4 h-4 text-gray-400 flex-shrink-0" />
                                                         <span className="text-sm bg-yellow-100 px-3 py-1 rounded font-medium">
-                                                            {formatPhoneNumber(company.phone)}
+                                                            {formatPhoneNumber(contact.phone)}
                                                         </span>
                                                     </div>
                                                 </div>
                                             </div>
                                         </td>
 
-                                        {/* Status Column */}
+                                        {/* Type & Status Column */}
                                         <td className="px-6 py-4">
                                             <div className="space-y-2">
                                                 <span className={`inline-flex items-center px-3 py-1.5 rounded-full text-xs font-medium ${colors.bgColor} ${colors.badgeText} border ${colors.badgeBorder}`}>
-                                                    <span className={`w-2 h-2 rounded-full mr-2 ${colors.badgeText.replace('text-', 'bg-')}`}></span>
+                                                    <span className={`w-2 h-2 rounded-full mr-2 ${colors.dotColor}`}></span>
                                                     {company.client_type_name}
                                                 </span>
                                                 <div className="flex items-center gap-2">
@@ -715,18 +924,51 @@ const CompaniesTable = ({
                                                             ? 'bg-green-100 text-green-800 border border-green-200' 
                                                             : 'bg-gray-100 text-gray-800 border border-gray-200'
                                                     }`}>
-                                                        {company.is_active ? 'Active' : 'Inactive'}
+                                                        {company.is_active ? (
+                                                            <>
+                                                                <CheckCircle className="w-3 h-3 mr-1" />
+                                                                Active
+                                                            </>
+                                                        ) : (
+                                                            <>
+                                                                <XCircle className="w-3 h-3 mr-1" />
+                                                                Inactive
+                                                            </>
+                                                        )}
                                                     </span>
-                                                    {company.updated_at && (
-                                                        <span className="text-xs text-gray-400">
-                                                            Updated: {new Date(company.updated_at).toLocaleDateString()}
-                                                        </span>
+                                                </div>
+                                            </div>
+                                        </td>
+
+                                        {/* Location & Date Column */}
+                                        <td className="px-6 py-4">
+                                            <div className="space-y-2">
+                                                <div className="flex items-center gap-2">
+                                                    <MapPin className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                                                    <div className="text-sm text-gray-900">
+                                                        <div className="font-medium">{company.city || 'N/A'}</div>
+                                                        <div className="text-xs text-gray-500">
+                                                            {company.province || ''} {company.country ? `, ${company.country}` : ''}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div className="space-y-1">
+                                                    {company.client_since && (
+                                                        <div className="flex items-center gap-2 text-xs text-gray-600">
+                                                            <Calendar className="w-3 h-3" />
+                                                            <span>Client since: {formatDate(company.client_since)}</span>
+                                                        </div>
+                                                    )}
+                                                    {company.created_at && (
+                                                        <div className="text-xs text-gray-500">
+                                                            Created: {formatDate(company.created_at)}
+                                                        </div>
                                                     )}
                                                 </div>
                                             </div>
                                         </td>
 
-                                        {/* Actions Column dengan tombol View, Edit, Delete */}
+                                        {/* Actions Column */}
                                         {showActions && (
                                             <td className="px-6 py-4">
                                                 <div className="flex items-center gap-2">
@@ -762,7 +1004,7 @@ const CompaniesTable = ({
                             })
                         ) : (
                             <tr>
-                                <td colSpan={showActions ? (bulkSelect ? 5 : 4) : (bulkSelect ? 4 : 3)} className="px-6 py-12 text-center">
+                                <td colSpan={showActions ? (bulkSelect ? 6 : 5) : (bulkSelect ? 5 : 4)} className="px-6 py-12 text-center">
                                     <div className="text-gray-500">
                                         <Building className="w-16 h-16 mx-auto mb-4 text-gray-300" />
                                         <div className="text-lg font-medium mb-2">No clients found</div>

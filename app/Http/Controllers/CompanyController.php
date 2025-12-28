@@ -6,6 +6,9 @@ use App\Models\Company;
 use App\Models\Lead;
 use App\Models\ClientType;
 use App\Models\Quotation;
+use App\Models\Invoice;
+use App\Models\Payment;
+use App\Models\Project;
 use App\Models\CompanyContactPerson;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -19,118 +22,161 @@ class CompanyController extends Controller
     /**
      * Display a listing of companies.
      */
-public function index(Request $request)
-{
-    try {
-        \Log::info('Companies index accessed - AUTH USER: ' . auth()->id());
-        
-        // Pastikan user authenticated
-        if (!auth()->check()) {
-            \Log::warning('User not authenticated, redirecting to login');
-            return redirect()->route('login');
-        }
-        
-        // Query companies dengan relasi
-        $query = Company::with(['clientType', 'primaryContact'])
-            ->orderBy('created_at', 'desc');
+    /**
+     * Display a listing of companies.
+     */
+    public function index(Request $request)
+    {
+        try {
+            \Log::info('Companies index accessed - AUTH USER: ' . auth()->id());
+            
+            // Pastikan user authenticated
+            if (!auth()->check()) {
+                \Log::warning('User not authenticated, redirecting to login');
+                return redirect()->route('login');
+            }
+            
+            // Query companies dengan relasi
+            $query = Company::with(['clientType', 'primaryContact'])
+                ->orderBy('created_at', 'desc');
 
-        // Apply search filter
-        if ($request->has('search') && !empty($request->search)) {
-            $search = $request->search;
-            $query->where(function($q) use ($search) {
-                $q->where('client_code', 'like', "%{$search}%")
-                  ->orWhereHas('primaryContact', function($subQuery) use ($search) {
-                      $subQuery->where('name', 'like', "%{$search}%")
-                               ->orWhere('email', 'like', "%{$search}%")
-                               ->orWhere('phone', 'like', "%{$search}%");
-                  });
+            // Apply search filter
+            if ($request->has('search') && !empty($request->search)) {
+                $search = $request->search;
+                $query->where(function($q) use ($search) {
+                    $q->where('client_code', 'like', "%{$search}%")
+                      ->orWhereHas('primaryContact', function($subQuery) use ($search) {
+                          $subQuery->where('name', 'like', "%{$search}%")
+                                   ->orWhere('email', 'like', "%{$search}%")
+                                   ->orWhere('phone', 'like', "%{$search}%");
+                      });
+                });
+            }
+
+            // Apply client type filter
+            if ($request->has('client_type_id') && !empty($request->client_type_id)) {
+                $query->where('client_type_id', $request->client_type_id);
+            }
+
+            // Get statistics
+            $totalClients = Company::count();
+            $activeClients = Company::where('is_active', true)->count();
+            $inactiveClients = Company::where('is_active', false)->count();
+            
+            // Get client types with counts
+            $clientTypes = ClientType::withCount(['companies' => function($query) {
+                $query->where('deleted', 0);
+            }])->get();
+
+            // Paginate results
+            $perPage = $request->get('per_page', 15);
+            $companies = $query->paginate($perPage)->withQueryString();
+
+            \Log::info('Companies fetched: ' . $companies->total());
+
+            // **PERBAIKAN UTAMA: Format companies data untuk Inertia**
+            $formattedCompanies = $companies->through(function($company) {
+                return [
+                    'id' => $company->id,
+                    'name' => $company->client_code, // Nama perusahaan = client_code
+                    'client_code' => $company->client_code,
+                    'client_type_name' => $company->clientType->name ?? 'N/A',
+                    'client_type_id' => $company->client_type_id,
+                    // Data contact person dari primary contact
+                    'contact_person' => $company->primaryContact ? $company->primaryContact->name : 'N/A',
+                    'email' => $company->primaryContact ? $company->primaryContact->email : 'N/A',
+                    'phone' => $company->primaryContact ? $company->primaryContact->phone : 'N/A',
+                    'position' => $company->primaryContact ? $company->primaryContact->position : 'Contact Person',
+                    'address' => trim(implode(', ', array_filter([
+                        $company->city,
+                        $company->province,
+                        $company->country
+                    ])), ', '),
+                    'city' => $company->city,
+                    'province' => $company->province,
+                    'country' => $company->country,
+                    'postal_code' => $company->postal_code,
+                    'is_active' => (bool) $company->is_active,
+                    'client_since' => $company->client_since ? $company->client_since->format('Y-m-d') : null,
+                    'created_at' => $company->created_at,
+                    'updated_at' => $company->updated_at,
+                    'logo_url' => $company->logo_path ? Storage::url($company->logo_path) : null,
+                    // Additional info
+                    'vat_number' => $company->vat_number,
+                    'nib' => $company->nib,
+                    'website' => $company->website,
+                    // Primary contact object untuk konsistensi
+                    'primary_contact' => $company->primaryContact ? [
+                        'name' => $company->primaryContact->name,
+                        'email' => $company->primaryContact->email,
+                        'phone' => $company->primaryContact->phone,
+                        'position' => $company->primaryContact->position
+                    ] : null
+                ];
             });
-        }
 
-        // Apply client type filter
-        if ($request->has('client_type_id') && !empty($request->client_type_id)) {
-            $query->where('client_type_id', $request->client_type_id);
-        }
+            // Prepare statistics array
+            $statistics = [
+                'total' => $totalClients,
+                'active' => $activeClients,
+                'inactive' => $inactiveClients,
+                'client_types' => $clientTypes->map(function($type) {
+                    return [
+                        'id' => $type->id,
+                        'name' => $type->name,
+                        'label' => $type->information ?? $type->name,
+                        'count' => $type->companies_count ?? 0
+                    ];
+                })
+            ];
 
-        // Get statistics - FIX ERROR: pastikan pakai correct table name
-        $totalClients = Company::count();
-        $activeClients = Company::where('is_active', true)->count();
-        $inactiveClients = Company::where('is_active', false)->count();
-        
-        // Get client types with counts - PASTIKAN TABLE NAME BENAR
-        // Table: client_types atau client_type?
-        $clientTypes = ClientType::withCount(['companies' => function($query) {
-            $query->where('deleted', 0);
-        }])->get();
-
-        // Paginate results - TAMBAHKAN DEFAULT
-        $perPage = $request->get('per_page', 15);
-        $companies = $query->paginate($perPage)->withQueryString();
-
-        \Log::info('Companies fetched: ' . $companies->total());
-
-        // Prepare statistics array
-        $statistics = [
-            'total' => $totalClients,
-            'active' => $activeClients,
-            'inactive' => $inactiveClients,
-            'client_types' => $clientTypes->map(function($type) {
+            // Get all client types for filter
+            $types = ClientType::all()->map(function($type) {
                 return [
                     'id' => $type->id,
                     'name' => $type->name,
-                    'label' => $type->information ?? $type->name,
-                    'count' => $type->companies_count ?? 0
+                    'information' => $type->information,
+                    'created_at' => $type->created_at,
+                    'updated_at' => $type->updated_at
                 ];
-            })
-        ];
+            });
 
-        // Get all client types for filter
-        $types = ClientType::all()->map(function($type) {
-            return [
-                'id' => $type->id,
-                'name' => $type->name,
-                'information' => $type->information,
-                'created_at' => $type->created_at,
-                'updated_at' => $type->updated_at
-            ];
-        });
+            // Check if coming from quotation
+            $fromQuotation = $request->has('from_quotation') && $request->from_quotation == 'true';
+            $quotationId = $request->get('quotation_id');
 
-        // Check if coming from quotation
-        $fromQuotation = $request->has('from_quotation') && $request->from_quotation == 'true';
-        $quotationId = $request->get('quotation_id');
+            return Inertia::render('Companies/Index', [
+                'companies' => $formattedCompanies, // **Gunakan formattedCompanies**
+                'statistics' => $statistics,
+                'types' => $types,
+                'filters' => [
+                    'search' => $request->search ?? '',
+                    'client_type_id' => $request->client_type_id ?? ''
+                ],
+                'fromQuotation' => $fromQuotation,
+                'quotationId' => $quotationId
+            ]);
 
-        return Inertia::render('Companies/Index', [
-            'companies' => $companies,
-            'statistics' => $statistics,
-            'types' => $types,
-            'filters' => [
-                'search' => $request->search ?? '',
-                'client_type_id' => $request->client_type_id ?? ''
-            ],
-            'fromQuotation' => $fromQuotation,
-            'quotationId' => $quotationId
-        ]);
-
-    } catch (\Exception $e) {
-        \Log::error('Error in companies index: ' . $e->getMessage());
-        \Log::error('Stack trace: ' . $e->getTraceAsString());
-        \Log::error('User ID: ' . (auth()->check() ? auth()->id() : 'Not authenticated'));
-        
-        // Return error response
-        if ($request->wantsJson()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to load companies: ' . $e->getMessage()
-            ], 500);
+        } catch (\Exception $e) {
+            \Log::error('Error in companies index: ' . $e->getMessage());
+            \Log::error('Stack trace: ' . $e->getTraceAsString());
+            \Log::error('User ID: ' . (auth()->check() ? auth()->id() : 'Not authenticated'));
+            
+            // Return error response
+            if ($request->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Failed to load companies: ' . $e->getMessage()
+                ], 500);
+            }
+            
+            // For web, render error page
+            return Inertia::render('Error', [
+                'message' => 'Failed to load companies',
+                'error' => $e->getMessage()
+            ])->withStatus(500);
         }
-        
-        // For web, render error page
-        return Inertia::render('Error', [
-            'message' => 'Failed to load companies',
-            'error' => $e->getMessage()
-        ])->withStatus(500);
     }
-}
 
     /**
      * Show the form for creating a new company.
@@ -363,94 +409,386 @@ public function index(Request $request)
     }
 
     /**
-     * Show company details.
+     * Show company details with all related data.
      */
-    public function show(Company $company)
-    {
-        // Eager load relationships
-        $company->load([
+/**
+ * Show company details with all related data.
+ */
+public function show($id)
+{
+    try {
+        \Log::info('=== SHOW COMPANY REQUEST ===');
+        \Log::info('Company ID: ' . $id);
+        \Log::info('Request URL: ' . request()->fullUrl());
+        
+        // Cari company berdasarkan ID (UUID)
+        $company = Company::with([
             'clientType',
             'lead',
             'quotation',
             'contacts' => function($query) {
-                $query->where('is_active', true)->where('deleted', 0)->orderBy('is_primary', 'desc');
+                $query->where('is_active', true)
+                      ->where('deleted', 0)
+                      ->orderBy('is_primary', 'desc');
             },
             'creator',
             'updater'
+        ])->find($id);
+
+        if (!$company) {
+            \Log::error('Company not found: ' . $id);
+            return response()->json([
+                'success' => false,
+                'message' => 'Company not found'
+            ], 404);
+        }
+
+        \Log::info('Company found:', [
+            'id' => $company->id,
+            'client_code' => $company->client_code,
+            'name' => $company->client_code
         ]);
-
-        // Get statistics
-        $statistics = [
-            'total_quotations' => 0,
-            'accepted_quotations' => 0,
-            'expired_quotations' => 0,
-            'cancelled_quotations' => 0,
-            'total_invoices' => 0,
-            'paid_invoices' => 0,
-            'pending_invoices' => 0,
-            'overdue_invoices' => 0,
-        ];
-
-        // Format contacts data
-        $contacts = $company->contacts->map(function($contact) {
-            return [
-                'id' => $contact->id,
-                'name' => $contact->name,
-                'email' => $contact->email,
-                'phone' => $contact->phone,
-                'position' => $contact->position,
-                'is_primary' => $contact->is_primary,
-                'is_active' => $contact->is_active,
-                'created_at' => $contact->created_at,
-                'updated_at' => $contact->updated_at
-            ];
-        });
 
         // Get primary contact
         $primaryContact = $company->contacts->firstWhere('is_primary', true);
+        
+        \Log::info('Primary contact:', $primaryContact ? [
+            'name' => $primaryContact->name,
+            'email' => $primaryContact->email
+        ] : ['message' => 'No primary contact found']);
+
+        // Data company untuk response
+        $companyData = [
+            'id' => $company->id,
+            'name' => $company->client_code,
+            'client_code' => $company->client_code,
+            'client_type' => $company->clientType ? [
+                'id' => $company->clientType->id,
+                'name' => $company->clientType->name
+            ] : null,
+            'city' => $company->city,
+            'province' => $company->province,
+            'country' => $company->country,
+            'postal_code' => $company->postal_code,
+            'vat_number' => $company->vat_number,
+            'nib' => $company->nib,
+            'website' => $company->website,
+            'logo_path' => $company->logo_path,
+            'logo_url' => $company->logo_path ? Storage::url($company->logo_path) : null,
+            'client_since' => $company->client_since ? $company->client_since->format('Y-m-d') : null,
+            'is_active' => (bool) $company->is_active,
+            'lead' => $company->lead ? [
+                'id' => $company->lead->id,
+                'company_name' => $company->lead->company_name,
+                'address' => $company->lead->address
+            ] : null,
+            'quotation' => $company->quotation ? [
+                'id' => $company->quotation->id,
+                'quotation_number' => $company->quotation->quotation_number
+            ] : null,
+            // Data contact person
+            'contact_person' => $primaryContact ? $primaryContact->name : null,
+            'contact_email' => $primaryContact ? $primaryContact->email : null,
+            'contact_phone' => $primaryContact ? $primaryContact->phone : null,
+            'contact_position' => $primaryContact ? $primaryContact->position : null,
+            'primary_contact' => $primaryContact ? [
+                'name' => $primaryContact->name,
+                'email' => $primaryContact->email,
+                'phone' => $primaryContact->phone,
+                'position' => $primaryContact->position
+            ] : null,
+            'contacts' => $company->contacts->map(function($contact) {
+                return [
+                    'id' => $contact->id,
+                    'name' => $contact->name,
+                    'email' => $contact->email,
+                    'phone' => $contact->phone,
+                    'position' => $contact->position,
+                    'is_primary' => (bool) $contact->is_primary,
+                    'is_active' => (bool) $contact->is_active,
+                    'created_at' => $contact->created_at,
+                    'updated_at' => $contact->updated_at
+                ];
+            }),
+            'created_at' => $company->created_at ? $company->created_at->format('Y-m-d H:i:s') : null,
+            'updated_at' => $company->updated_at ? $company->updated_at->format('Y-m-d H:i:s') : null
+        ];
+
+        \Log::info('Company data prepared successfully');
+        \Log::info('Data structure:', array_keys($companyData));
+
+        // Data dummy untuk testing
+        $quotations = [
+            [
+                'id' => 1,
+                'quotation_number' => 'QUO-2024-001',
+                'date' => '2024-01-15',
+                'subject' => 'Website Development Project',
+                'total' => 75000000,
+                'status' => 'approved',
+                'company_id' => $company->id
+            ]
+        ];
+
+        $invoices = [
+            [
+                'id' => 1,
+                'invoice_number' => 'INV-2024-001',
+                'date' => '2024-01-25',
+                'invoice_amount' => 75000000,
+                'ppn' => 7500000,
+                'pph' => 1500000,
+                'amount_due' => 81000000,
+                'status' => 'paid',
+                'company_id' => $company->id
+            ]
+        ];
+
+        $payments = [
+            [
+                'id' => 1,
+                'invoice_id' => 1,
+                'invoice_number' => 'INV-2024-001',
+                'amount' => 81000000,
+                'method' => 'bank_transfer',
+                'date' => '2024-01-28',
+                'bank' => 'BCA',
+                'note' => 'Lunas',
+                'company_id' => $company->id
+            ]
+        ];
+
+        $projects = [
+            [
+                'id' => 1,
+                'project_description' => 'E-commerce Website Development',
+                'start_date' => '2024-01-01',
+                'deadline' => '2024-03-31',
+                'status' => 'in_progress',
+                'company_id' => $company->id
+            ]
+        ];
+
+        $statistics = [
+            'total_quotations' => 1,
+            'accepted_quotations' => 1,
+            'expired_quotations' => 0,
+            'cancelled_quotations' => 0,
+            'total_invoices' => 1,
+            'paid_invoices' => 1,
+            'pending_invoices' => 0,
+            'overdue_invoices' => 0,
+            'total_payments' => 1,
+            'total_projects' => 1,
+            'active_contacts' => count($companyData['contacts']),
+        ];
+
+        \Log::info('Rendering Inertia page...');
 
         return Inertia::render('Companies/Show', [
-            'company' => [
-                'id' => $company->id,
-                'name' => $company->client_code,
-                'client_code' => $company->client_code,
-                'client_type' => $company->clientType ? [
-                    'id' => $company->clientType->id,
-                    'name' => $company->clientType->name
-                ] : null,
-                'city' => $company->city,
-                'province' => $company->province,
-                'country' => $company->country,
-                'postal_code' => $company->postal_code,
-                'vat_number' => $company->vat_number,
-                'nib' => $company->nib,
-                'website' => $company->website,
-                'logo_path' => $company->logo_path,
-                'logo_url' => $company->logo_path ? Storage::url($company->logo_path) : null,
-                'client_since' => $company->client_since ? $company->client_since->format('Y-m-d') : null,
-                'is_active' => $company->is_active,
-                'lead' => $company->lead ? [
-                    'id' => $company->lead->id,
-                    'company_name' => $company->lead->company_name,
-                    'address' => $company->lead->address
-                ] : null,
-                'quotation' => $company->quotation ? [
-                    'id' => $company->quotation->id,
-                    'quotation_number' => $company->quotation->quotation_number
-                ] : null,
-                'primary_contact' => $primaryContact ? [
-                    'name' => $primaryContact->name,
-                    'email' => $primaryContact->email,
-                    'phone' => $primaryContact->phone,
-                    'position' => $primaryContact->position
-                ] : null,
-                'contacts' => $contacts,
-                'created_at' => $company->created_at,
-                'updated_at' => $company->updated_at
-            ],
-            'statistics' => $statistics,
-            'contacts' => $contacts
+            'company' => $companyData,
+            'quotations' => $quotations,
+            'invoices' => $invoices,
+            'payments' => $payments,
+            'projects' => $projects,
+            'contacts' => $companyData['contacts'],
+            'statistics' => $statistics
         ]);
+
+    } catch (\Exception $e) {
+        \Log::error('Error in company show: ' . $e->getMessage());
+        \Log::error('Stack trace: ' . $e->getTraceAsString());
+        
+        return response()->json([
+            'success' => false,
+            'message' => 'Server error: ' . $e->getMessage(),
+            'error' => $e->getMessage(),
+            'trace' => $e->getTraceAsString()
+        ], 500);
+    }
+}
+
+       /**
+     * Get company quotations (API endpoint)
+     */
+    public function getCompanyQuotations(Company $company)
+    {
+        try {
+            $quotations = Quotation::where('company_id', $company->id)
+                ->where('deleted', 0)
+                ->orderBy('created_at', 'desc')
+                ->get()
+                ->map(function($quotation) {
+                    return [
+                        'id' => $quotation->id,
+                        'quotation_number' => $quotation->quotation_number,
+                        'date' => $quotation->created_at->format('Y-m-d'),
+                        'subject' => $quotation->subject,
+                        'total' => (float) $quotation->total,
+                        'status' => $quotation->status,
+                        'company_id' => $quotation->company_id
+                    ];
+                });
+
+            return response()->json([
+                'success' => true,
+                'data' => $quotations,
+                'count' => $quotations->count()
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('Error fetching company quotations: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal mengambil data quotations'
+            ], 500);
+        }
+    }
+
+        /**
+     * Get company invoices (API endpoint)
+     */
+    public function getCompanyInvoices(Company $company)
+    {
+        try {
+            $invoices = Invoice::where('company_id', $company->id)
+                ->where('deleted', 0)
+                ->orderBy('created_at', 'desc')
+                ->get()
+                ->map(function($invoice) {
+                    return [
+                        'id' => $invoice->id,
+                        'invoice_number' => $invoice->invoice_number,
+                        'date' => $invoice->invoice_date ? $invoice->invoice_date->format('Y-m-d') : null,
+                        'invoice_amount' => (float) $invoice->total_amount,
+                        'ppn' => (float) $invoice->tax_amount,
+                        'pph' => (float) $invoice->pph_amount,
+                        'amount_due' => (float) $invoice->total_amount_due,
+                        'status' => $invoice->status,
+                        'company_id' => $invoice->company_id
+                    ];
+                });
+
+            return response()->json([
+                'success' => true,
+                'data' => $invoices,
+                'count' => $invoices->count()
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('Error fetching company invoices: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal mengambil data invoices'
+            ], 500);
+        }
+    }
+
+    /**
+     * Get company payments (API endpoint)
+     */
+    public function getCompanyPayments(Company $company)
+    {
+        try {
+            $payments = Payment::with(['invoice'])
+                ->where('company_id', $company->id)
+                ->where('deleted', 0)
+                ->orderBy('payment_date', 'desc')
+                ->get()
+                ->map(function($payment) {
+                    return [
+                        'id' => $payment->id,
+                        'invoice_id' => $payment->invoice_id,
+                        'invoice_number' => $payment->invoice?->invoice_number,
+                        'amount' => (float) $payment->amount,
+                        'method' => $payment->payment_method,
+                        'date' => $payment->payment_date ? $payment->payment_date->format('Y-m-d') : null,
+                        'bank' => $payment->bank_name,
+                        'note' => $payment->notes,
+                        'company_id' => $payment->company_id
+                    ];
+                });
+
+            return response()->json([
+                'success' => true,
+                'data' => $payments,
+                'count' => $payments->count()
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('Error fetching company payments: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal mengambil data payments'
+            ], 500);
+        }
+    }
+
+    /**
+     * Get company projects (API endpoint)
+     */
+    public function getCompanyProjects(Company $company)
+    {
+        try {
+            $projects = Project::where('company_id', $company->id)
+                ->where('deleted', 0)
+                ->orderBy('created_at', 'desc')
+                ->get()
+                ->map(function($project) {
+                    return [
+                        'id' => $project->id,
+                        'project_description' => $project->project_name,
+                        'start_date' => $project->start_date ? $project->start_date->format('Y-m-d') : null,
+                        'deadline' => $project->deadline ? $project->deadline->format('Y-m-d') : null,
+                        'status' => $project->status,
+                        'company_id' => $project->company_id
+                    ];
+                });
+
+            return response()->json([
+                'success' => true,
+                'data' => $projects,
+                'count' => $projects->count()
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('Error fetching company projects: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal mengambil data projects'
+            ], 500);
+        }
+    }
+
+    /**
+     * Get company statistics (API endpoint)
+     */
+    public function getCompanyStatistics(Company $company)
+    {
+        try {
+            $statistics = [
+                'total_quotations' => Quotation::where('company_id', $company->id)->where('deleted', 0)->count(),
+                'accepted_quotations' => Quotation::where('company_id', $company->id)->where('status', 'accepted')->where('deleted', 0)->count(),
+                'expired_quotations' => Quotation::where('company_id', $company->id)->where('status', 'expired')->where('deleted', 0)->count(),
+                'cancelled_quotations' => Quotation::where('company_id', $company->id)->where('status', 'cancelled')->where('deleted', 0)->count(),
+                'total_invoices' => Invoice::where('company_id', $company->id)->where('deleted', 0)->count(),
+                'paid_invoices' => Invoice::where('company_id', $company->id)->where('status', 'paid')->where('deleted', 0)->count(),
+                'pending_invoices' => Invoice::where('company_id', $company->id)->where('status', 'pending')->where('deleted', 0)->count(),
+                'overdue_invoices' => Invoice::where('company_id', $company->id)->where('status', 'overdue')->where('deleted', 0)->count(),
+                'total_payments' => Payment::where('company_id', $company->id)->where('deleted', 0)->count(),
+                'total_projects' => Project::where('company_id', $company->id)->where('deleted', 0)->count(),
+                'active_contacts' => CompanyContactPerson::where('company_id', $company->id)->where('is_active', true)->where('deleted', 0)->count(),
+                'total_contracts' => 0, // Add if you have contracts table
+                'total_documents' => 0, // Add if you have documents table
+            ];
+
+            return response()->json([
+                'success' => true,
+                'data' => $statistics
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('Error fetching company statistics: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal mengambil statistik perusahaan'
+            ], 500);
+        }
     }
 
     /**
@@ -613,155 +951,242 @@ public function index(Request $request)
         }
     }
 
-    /**
-     * Update company.
-     */
-    public function update(Request $request, $id)
-    {
-        DB::beginTransaction();
-        try {
-            \Log::info('=== UPDATE COMPANY REQUEST ===');
-            \Log::info('Company ID: ' . $id);
+/**
+ * Update company.
+ */
+public function update(Request $request, $id)
+{
+    DB::beginTransaction();
+    try {
+        \Log::info('=== UPDATE COMPANY REQUEST ===');
+        \Log::info('Company ID: ' . $id);
+        \Log::info('Request data:', $request->except(['logo'])); // Exclude file from log
+        
+        $company = Company::findOrFail($id);
+
+        // **VALIDASI DATA**
+        $validator = Validator::make($request->all(), [
+            // Company fields
+            'company_name' => 'required|string|max:255',
+            'client_type_id' => 'required|exists:client_type,id',
+            'city' => 'nullable|string|max:255',
+            'province' => 'nullable|string|max:255',
+            'country' => 'nullable|string|max:255',
+            'postal_code' => 'nullable|integer',
+            'vat_number' => 'nullable|integer',
+            'nib' => 'nullable|string|max:255',
+            'website' => 'nullable|url|max:255',
+            'logo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+            'status' => 'required|in:active,inactive',
+            'delete_logo' => 'nullable|boolean',
             
-            $company = Company::findOrFail($id);
+            // **BARU**: Contact person fields
+            'contact_person' => 'required|string|max:255',
+            'contact_email' => 'required|email|max:255',
+            'contact_phone' => 'required|string|max:20',
+            'contact_position' => 'nullable|string|max:100',
+        ], [
+            'client_type_id.exists' => 'Tipe klien tidak valid.',
+            'postal_code.integer' => 'Kode pos harus berupa angka.',
+            'vat_number.integer' => 'VAT number harus berupa angka.',
+            'website.url' => 'Format website tidak valid.',
+            'contact_person.required' => 'Nama kontak wajib diisi.',
+            'contact_email.required' => 'Email kontak wajib diisi.',
+            'contact_phone.required' => 'Telepon kontak wajib diisi.'
+        ]);
 
-            // **VALIDASI DATA**
-            $validator = Validator::make($request->all(), [
-                'company_name' => 'required|string|max:255',
-                'client_type_id' => 'required|exists:client_type,id',
-                'contact_person' => 'required|string|max:255',
-                'contact_email' => 'required|email|max:255',
-                'contact_phone' => 'required|string|max:20',
-                'contact_position' => 'nullable|string|max:100',
-                'city' => 'nullable|string|max:255',
-                'province' => 'nullable|string|max:255',
-                'country' => 'nullable|string|max:255',
-                'postal_code' => 'nullable|integer',
-                'vat_number' => 'nullable|integer',
-                'nib' => 'nullable|string|max:255',
-                'website' => 'nullable|url|max:255',
-                'logo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
-                'status' => 'required|in:active,inactive',
-                'delete_logo' => 'nullable|boolean'
-            ], [
-                'client_type_id.exists' => 'Tipe klien tidak valid.',
-                'postal_code.integer' => 'Kode pos harus berupa angka.',
-                'vat_number.integer' => 'VAT number harus berupa angka.',
-                'website.url' => 'Format website tidak valid.',
-                'contact_person.required' => 'Nama kontak wajib diisi.',
-                'contact_email.required' => 'Email kontak wajib diisi.',
-                'contact_phone.required' => 'Telepon kontak wajib diisi.'
-            ]);
+        if ($validator->fails()) {
+            \Log::error('Validation failed: ' . json_encode($validator->errors()));
+            return response()->json([
+                'success' => false,
+                'message' => 'Validasi gagal',
+                'errors' => $validator->errors()
+            ], 422);
+        }
 
-            if ($validator->fails()) {
-                \Log::error('Validation failed: ' . json_encode($validator->errors()));
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Validasi gagal',
-                    'errors' => $validator->errors()
-                ], 422);
+        // Handle logo upload
+        if ($request->hasFile('logo') && $request->file('logo')->isValid()) {
+            \Log::info('Uploading new logo');
+            if ($company->logo_path) {
+                Storage::disk('public')->delete($company->logo_path);
             }
+            $logoPath = $request->file('logo')->store('companies/logos', 'public');
+            $company->logo_path = $logoPath;
+            \Log::info('Logo uploaded to: ' . $logoPath);
+        }
 
-            // Handle logo upload
-            if ($request->hasFile('logo') && $request->file('logo')->isValid()) {
-                \Log::info('Uploading new logo');
-                if ($company->logo_path) {
-                    Storage::disk('public')->delete($company->logo_path);
-                }
-                $logoPath = $request->file('logo')->store('companies/logos', 'public');
-                $company->logo_path = $logoPath;
-                \Log::info('Logo uploaded to: ' . $logoPath);
+        // Handle logo deletion
+        if ($request->has('delete_logo') && $request->delete_logo == '1') {
+            \Log::info('Deleting logo');
+            if ($company->logo_path) {
+                Storage::disk('public')->delete($company->logo_path);
+                $company->logo_path = null;
+                \Log::info('Logo deleted');
             }
+        }
 
-            // Handle logo deletion
-            if ($request->has('delete_logo') && $request->delete_logo == '1') {
-                \Log::info('Deleting logo');
-                if ($company->logo_path) {
-                    Storage::disk('public')->delete($company->logo_path);
-                    $company->logo_path = null;
-                    \Log::info('Logo deleted');
-                }
-            }
+        // Update company data
+        $updateData = [
+            'client_type_id' => $request->client_type_id,
+            'client_code' => $request->company_name,
+            'city' => $request->city,
+            'province' => $request->province,
+            'country' => $request->country,
+            'postal_code' => $request->postal_code,
+            'vat_number' => $request->vat_number,
+            'nib' => $request->nib,
+            'website' => $request->website,
+            'is_active' => $request->status === 'active',
+            'updated_by' => auth()->check() ? auth()->id() : null,
+            'updated_at' => now()
+        ];
 
-            // Update company data
-            $updateData = [
-                'client_type_id' => $request->client_type_id,
-                'client_code' => $request->company_name,
-                'city' => $request->city,
-                'province' => $request->province,
-                'country' => $request->country,
-                'postal_code' => $request->postal_code,
-                'vat_number' => $request->vat_number,
-                'nib' => $request->nib,
-                'website' => $request->website,
-                'is_active' => $request->status === 'active',
-                'updated_by' => auth()->check() ? auth()->id() : null,
+        \Log::info('Updating company with data: ', $updateData);
+        $company->update($updateData);
+
+        // **UPDATE ATAU BUAT KONTAK UTAMA**
+        $primaryContact = CompanyContactPerson::where('company_id', $company->id)
+            ->where('is_primary', true)
+            ->where('deleted', 0)
+            ->first();
+
+        if ($primaryContact) {
+            // Update existing primary contact
+            $primaryContact->update([
+                'name' => $request->contact_person,
+                'email' => $request->contact_email,
+                'phone' => $request->contact_phone,
+                'position' => $request->contact_position,
                 'updated_at' => now()
+            ]);
+            \Log::info('Primary contact updated: ' . $primaryContact->id);
+        } else {
+            // Create new primary contact
+            $contactData = [
+                'company_id' => $company->id,
+                'lead_id' => $company->lead_id,
+                'name' => $request->contact_person,
+                'email' => $request->contact_email,
+                'phone' => $request->contact_phone,
+                'position' => $request->contact_position,
+                'is_primary' => true,
+                'is_active' => true,
+                'deleted' => false
             ];
+            $primaryContact = CompanyContactPerson::create($contactData);
+            \Log::info('Primary contact created: ' . $primaryContact->id);
+        }
 
-            \Log::info('Updating company with data: ', $updateData);
-            $company->update($updateData);
+        \Log::info('Company updated successfully: ', [
+            'id' => $company->id,
+            'client_code' => $company->client_code
+        ]);
 
-            // **UPDATE ATAU BUAT KONTAK UTAMA**
-            $primaryContact = CompanyContactPerson::where('company_id', $company->id)
-                ->where('is_primary', true)
+        DB::commit();
+
+        // Load fresh data with relationships
+        $company->load(['clientType', 'primaryContact']);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Klien dan kontak berhasil diperbarui!',
+            'data' => [
+                'id' => $company->id,
+                'client_code' => $company->client_code,
+                'name' => $company->client_code,
+                'contact_person' => $primaryContact->name,
+                'contact_email' => $primaryContact->email,
+                'contact_phone' => $primaryContact->phone,
+                'contact_position' => $primaryContact->position
+            ]
+        ]);
+
+    } catch (\Exception $e) {
+        DB::rollBack();
+        \Log::error('Error updating company ' . $id . ': ' . $e->getMessage());
+        \Log::error('Stack trace: ' . $e->getTraceAsString());
+        
+        return response()->json([
+            'success' => false,
+            'message' => 'Gagal memperbarui klien: ' . $e->getMessage()
+        ], 500);
+    }
+}
+
+    /**
+ * Get primary contact for company (API endpoint)
+ */
+public function getPrimaryContact($companyId)
+{
+    try {
+        \Log::info('Fetching primary contact for company: ' . $companyId);
+        
+        // Cari company
+        $company = Company::find($companyId);
+        
+        if (!$company) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Company not found'
+            ], 404);
+        }
+        
+        // Cari primary contact
+        $primaryContact = CompanyContactPerson::where('company_id', $companyId)
+            ->where('is_primary', true)
+            ->where('is_active', true)
+            ->where('deleted', 0)
+            ->first();
+        
+        if (!$primaryContact) {
+            // Coba cari contact apa saja
+            $anyContact = CompanyContactPerson::where('company_id', $companyId)
+                ->where('is_active', true)
                 ->where('deleted', 0)
                 ->first();
-
-            if ($primaryContact) {
-                // Update existing primary contact
-                $primaryContact->update([
-                    'name' => $request->contact_person,
-                    'email' => $request->contact_email,
-                    'phone' => $request->contact_phone,
-                    'position' => $request->contact_position,
-                    'updated_at' => now()
+                
+            if ($anyContact) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Contact found (not primary)',
+                    'data' => [
+                        'id' => $anyContact->id,
+                        'name' => $anyContact->name,
+                        'email' => $anyContact->email,
+                        'phone' => $anyContact->phone,
+                        'position' => $anyContact->position,
+                        'is_primary' => (bool) $anyContact->is_primary
+                    ]
                 ]);
-                \Log::info('Primary contact updated: ' . $primaryContact->id);
-            } else {
-                // Create new primary contact
-                $contactData = [
-                    'company_id' => $company->id,
-                    'lead_id' => $company->lead_id,
-                    'name' => $request->contact_person,
-                    'email' => $request->contact_email,
-                    'phone' => $request->contact_phone,
-                    'position' => $request->contact_position,
-                    'is_primary' => true,
-                    'is_active' => true,
-                    'deleted' => false
-                ];
-                $primaryContact = CompanyContactPerson::create($contactData);
-                \Log::info('Primary contact created: ' . $primaryContact->id);
             }
-
-            \Log::info('Company updated successfully: ', [
-                'id' => $company->id,
-                'client_code' => $company->client_code
-            ]);
-
-            DB::commit();
-
-            // Load fresh data with relationships
-            $company->load(['clientType', 'primaryContact']);
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Klien berhasil diperbarui!',
-                'data' => $company
-            ]);
-
-        } catch (\Exception $e) {
-            DB::rollBack();
-            \Log::error('Error updating company ' . $id . ': ' . $e->getMessage());
-            \Log::error('Stack trace: ' . $e->getTraceAsString());
             
             return response()->json([
                 'success' => false,
-                'message' => 'Gagal memperbarui klien: ' . $e->getMessage()
-            ], 500);
+                'message' => 'No contact found for this company'
+            ], 404);
         }
+        
+        return response()->json([
+            'success' => true,
+            'message' => 'Primary contact found',
+            'data' => [
+                'id' => $primaryContact->id,
+                'name' => $primaryContact->name,
+                'email' => $primaryContact->email,
+                'phone' => $primaryContact->phone,
+                'position' => $primaryContact->position,
+                'is_primary' => true
+            ]
+        ]);
+        
+    } catch (\Exception $e) {
+        \Log::error('Error fetching primary contact: ' . $e->getMessage());
+        return response()->json([
+            'success' => false,
+            'message' => 'Server error: ' . $e->getMessage()
+        ], 500);
     }
+}
 
     /**
      * Remove the specified company (soft delete).
@@ -1031,4 +1456,5 @@ public function index(Request $request)
             return back()->with('error', 'Gagal memulihkan klien: ' . $e->getMessage());
         }
     }
+
 }
