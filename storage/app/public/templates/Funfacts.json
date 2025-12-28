@@ -1,0 +1,20 @@
+[
+  {
+    "name": "funfacts1-1",
+    "category": "Funfacts",
+    "preview": "/templates/thumbs/funfacts1-1.png",
+    "html": "<section id=\"funfacts1-1\" class=\"p-y bg-edit counter-start\"> <div class=\"container\"> <div class=\"row\"> <div class=\"col-md-12\"> <div class=\"funfacts text-center wow fadeIn\"> <div class=\"col-md-4 clearfix p-t\"> <div class=\"counter-left\"> <i class=\"fa fa-plus\"></i> <div class=\"counter\" data-from=\"0\" data-to=\"45000\" data-speed=\"2500\"></div> </div> <div class=\"text text-left text-edit\">Students enrolled in our courses</div> </div> <div class=\"col-md-4 p-t clearfix\"> <div class=\"counter-left\"> <i class=\"fa fa-plus\"></i> <div class=\"counter\" data-from=\"0\" data-to=\"350\" data-speed=\"2500\"></div> </div> <div class=\"text text-left text-edit\">Hours of video lessons on how to code</div> </div> <div class=\"col-md-4 p-t clearfix\"> <div class=\"counter-left\"> <i class=\"fa fa-plus\"></i> <div class=\"counter\" data-from=\"0\" data-to=\"100\" data-speed=\"2500\"></div> </div> <div class=\"text text-left text-edit\">Courses covering JavaScript, HTML &amp; CSS </div> </div> </div> </div><!-- /End Col-12 --> </div><!-- /End Row --> </div><!-- /End Container --> </section>"
+  },
+  {
+    "name": "funfacts1-2",
+    "category": "Funfacts",
+    "preview": "/templates/thumbs/funfacts1-2.png",
+    "html": "<section id=\"funfacts1-2\" class=\"p-y bg-edit bg-dark counter-start\"> <div class=\"container\"> <div class=\"row text-white\"> <div class=\"col-md-12\"> <div class=\"funfacts text-center wow fadeIn\"> <div class=\"col-md-4 clearfix p-t\"> <div class=\"counter-left\"> <i class=\"fa fa-plus\"></i> <div class=\"counter\" data-from=\"0\" data-to=\"45000\" data-speed=\"2500\"></div> </div> <div class=\"text text-left text-edit\">Students enrolled in our courses</div> </div> <div class=\"col-md-4 p-t clearfix\"> <div class=\"counter-left\"> <i class=\"fa fa-plus\"></i> <div class=\"counter\" data-from=\"0\" data-to=\"350\" data-speed=\"2500\"></div> </div> <div class=\"text text-left text-edit\">Hours of video lessons on how to code</div> </div> <div class=\"col-md-4 p-t clearfix\"> <div class=\"counter-left\"> <i class=\"fa fa-plus\"></i> <div class=\"counter\" data-from=\"0\" data-to=\"100\" data-speed=\"2500\"></div> </div> <div class=\"text text-left text-edit\">Courses covering JavaScript, HTML &amp; CSS </div> </div> </div> </div><!-- /End Col-12 --> </div><!-- /End Row --> </div><!-- /End Container --> </section>"
+  },
+  {
+    "name": "funfacts1-3",
+    "category": "Funfacts",
+    "preview": "/templates/thumbs/funfacts1-3.png",
+    "html": "<section id=\"funfacts1-3\" class=\"p-y bg-img counter-start\"> <div class=\"overlay\"></div> <div class=\"container\"> <div class=\"row text-white\"> <div class=\"col-md-12\"> <div class=\"funfacts text-center\"> <div class=\"col-md-4 clearfix p-t\"> <div class=\"counter-left\"> <i class=\"fa fa-plus\"></i> <div class=\"counter\" data-from=\"0\" data-to=\"45000\" data-speed=\"1000\"></div> </div> <div class=\"text text-left text-edit\">Students enrolled in our courses</div> </div> <div class=\"col-md-4 p-t clearfix\"> <div class=\"counter-left\"> <i class=\"fa fa-plus\"></i> <div class=\"counter\" data-from=\"0\" data-to=\"350\" data-speed=\"1000\"></div> </div> <div class=\"text text-left text-edit\">Hours of video lessons on how to code</div> </div> <div class=\"col-md-4 p-t clearfix\"> <div class=\"counter-left\"> <i class=\"fa fa-plus\"></i> <div class=\"counter\" data-from=\"0\" data-to=\"100\" data-speed=\"1000\"></div> </div> <div class=\"text text-left text-edit\">Courses covering JavaScript, HTML &amp; CSS </div> </div> </div> </div><!-- /End Col-12 --> </div><!-- /End Row --> </div><!-- /End Container --> </section>"
+  }
+]

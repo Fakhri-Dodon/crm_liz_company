@@ -42,7 +42,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     // Leads
     Route::get('/lead', [LeadController::class, 'index'])->name('lead.index');
-    Route::get('/proposal', fn() => Inertia::render('Proposals/Index'))->name('proposal.index');
+    // Route::get('/proposal', fn() => Inertia::render('Proposals/Index'))->name('proposal.index');
     
     //Quotation Modul
     Route::prefix('quotation')->name('quotation.')->group(function() {
@@ -227,6 +227,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
 // Route untuk halaman tambah proposal
 Route::get('/proposal/add', fn() => Inertia::render('Proposals/AddProposal'))->name('proposal.add');
-Route::get('/proposal/html/{id}', [ProposalController::class, 'show']);
+Route::get('/html-sections', [ProposalController::class, 'sections']);
+Route::resource('proposal', ProposalController::class);
 
 require __DIR__.'/auth.php';

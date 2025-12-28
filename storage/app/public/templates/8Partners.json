@@ -1,0 +1,32 @@
+[
+  {
+    "name": "partners1-1",
+    "category": "Partners",
+    "preview": "/templates/thumbs/partners1-1.png",
+    "html": "<section id=\"partners1-1\" class=\"p-y content-align-md bg-edit bg-light\"> <div class=\"container\"> <div class=\"row\"> <div class=\"col-md-12 text-center clients c2 y-middle\"> <div class=\"col-md-3\"> <h6>Our work has been awarded or featured on:</h6> </div> <!-- Partners/Clients Images --> <div class=\"col-md-9\"> <img src=\"/templates/images/partner1.png\" class=\"img-responsive\" alt=\"\"> <img src=\"/templates/images/partner2.png\" class=\"img-responsive\" alt=\"\"> <img src=\"/templates/images/partner3.png\" class=\"img-responsive\" alt=\"\"> </div> </div><!-- /End Col --> </div><!-- /End Row --> </div><!-- /End Container --> </section>"
+  },
+  {
+    "name": "partners1-2",
+    "category": "Partners",
+    "preview": "/templates/thumbs/partners1-2.png",
+    "html": "<section id=\"partners1-2\" class=\"p-y-md content-align-md bg-edit bg-light\"> <div class=\"container\"> <div class=\"row\"> <div class=\"col-md-12 text-center c2 y-middle clients\"> <div class=\"col-md-3\"> <h6 class=\"m-b-0\">Our work has been awarded or featured on:</h6> </div> <!-- Partners/Clients Images --> <div class=\"col-md-8 col-md-offset-1\"> <!-- Partner Carousel --> <div id=\"carousel-partners1\" class=\"carousel slide carousel-fade carousel-partner\" data-ride=\"carousel\"> <!-- Indicators --> <ol class=\"carousel-indicators inverse\"> <li data-target=\"#carousel-partners1\" data-slide-to=\"0\" class=\"active\"></li> <li data-target=\"#carousel-partners1\" data-slide-to=\"1\"></li> </ol> <!-- Wrapper for slides --> <div class=\"carousel-inner\" role=\"listbox\"> <!-- 3 Col Carousel Item --> <div class=\"item active\"> <div class=\"col-xs-4\"> <img src=\"/templates/images/partner1.png\" class=\"img-responsive m-x-auto\" alt=\"\"> </div> <div class=\"col-xs-4\"> <img src=\"/templates/images/partner2.png\" class=\"img-responsive m-x-auto\" alt=\"\"> </div> <div class=\"col-xs-4\"> <img src=\"/templates/images/partner3.png\" class=\"img-responsive m-x-auto\" alt=\"\"> </div> </div> <!-- 3 Col Carousel Item --> <div class=\"item\"> <div class=\"col-xs-4\"> <img src=\"/templates/images/partner4.png\" class=\"img-responsive m-x-auto\" alt=\"\"> </div> <div class=\"col-xs-4\"> <img src=\"/templates/images/partner5.png\" class=\"img-responsive m-x-auto\" alt=\"\"> </div> <div class=\"col-xs-4\"> <img src=\"/templates/images/partner6.png\" class=\"img-responsive m-x-auto\" alt=\"\"> </div> </div> </div><!-- /End Wrapper --> </div><!-- /End Carousel --> </div><!-- /End Images Col --> </div><!-- /End Col-12 --> </div><!-- /End Row --> </div><!-- /End Container --> </section>"
+  },
+  {
+    "name": "partners2-1",
+    "category": "Partners",
+    "preview": "/templates/thumbs/partners2-1.png",
+    "html": "<section id=\"partners2-1\" class=\"p-y-md bg-edit bg-light clients\"> <div class=\"container\"> <div class=\"row\"> <div class=\"col-md-12 text-center m-y\"> <h4>Trusted by more than 10,000 businesses</h4> </div> <!-- Partners/Clients Images --> <div class=\"col-md-12 text-center\"> <img src=\"/templates/images/partner1.png\" class=\"img-responsive\" alt=\"\"> <img src=\"/templates/images/partner2.png\" class=\"img-responsive\" alt=\"\"> <img src=\"/templates/images/partner3.png\" class=\"img-responsive\" alt=\"\"> <img src=\"/templates/images/partner4.png\" class=\"img-responsive\" alt=\"\"> </div> </div><!-- /End Row --> </div><!-- /End Container --> </section>"
+  },
+  {
+    "name": "partners2-2",
+    "category": "Partners",
+    "preview": "/templates/thumbs/partners2-2.png",
+    "html": "<section id=\"partners2-2\" class=\"p-y-md bg-edit bg-light clients\"> <div class=\"container\"> <div class=\"row\"> <div class=\"col-md-12 text-center m-b-md\"> <h4>Trusted by More than 10,000 Businesses</h4> </div> <!-- Partners/Clients Images --> <div class=\"col-md-12 text-center\"> <!-- Partner Carousel --> <div id=\"carousel-partners2\" class=\"carousel slide carousel-fade carousel-partner\" data-ride=\"carousel\"> <!-- Indicators --> <ol class=\"carousel-indicators inverse\"> <li data-target=\"#carousel-partners2\" data-slide-to=\"0\" class=\"active\"></li> <li data-target=\"#carousel-partners2\" data-slide-to=\"1\"></li> </ol> <!-- Wrapper for slides --> <div class=\"carousel-inner\" role=\"listbox\"> <!-- 4 Col Carousel Item --> <div class=\"item active\"> <div class=\"col-xs-3\"> <img src=\"/templates/images/partner1.png\" class=\"img-responsive m-x-auto\" alt=\"\"> </div> <div class=\"col-xs-3\"> <img src=\"/templates/images/partner2.png\" class=\"img-responsive m-x-auto\" alt=\"\"> </div> <div class=\"col-xs-3\"> <img src=\"/templates/images/partner3.png\" class=\"img-responsive m-x-auto\" alt=\"\"> </div> <div class=\"col-xs-3\"> <img src=\"/templates/images/partner4.png\" class=\"img-responsive m-x-auto\" alt=\"\"> </div> </div> <!-- 4 Col Carousel Item --> <div class=\"item\"> <div class=\"col-xs-3\"> <img src=\"/templates/images/partner5.png\" class=\"img-responsive m-x-auto\" alt=\"\"> </div> <div class=\"col-xs-3\"> <img src=\"/templates/images/partner6.png\" class=\"img-responsive m-x-auto\" alt=\"\"> </div> <div class=\"col-xs-3\"> <img src=\"/templates/images/partner7.png\" class=\"img-responsive m-x-auto\" alt=\"\"> </div> <div class=\"col-xs-3\"> <img src=\"/templates/images/partner8.png\" class=\"img-responsive m-x-auto\" alt=\"\"> </div> </div> </div><!-- /End Wrapper --> </div><!-- /End Carousel --> </div> </div><!-- /End Row --> </div><!-- /End Container --> </section>"
+  },
+  {
+    "name": "partners3-1",
+    "category": "Partners",
+    "preview": "/templates/thumbs/partners3-1.png",
+    "html": "<section id=\"partners3-1\" class=\"p-y bg-edit bg-grey\"> <div class=\"container\"> <div class=\"row\"> <div class=\"col-md-12 text-center clients\"> <img src=\"/templates/images/partner1.png\" class=\"img-responsive\" alt=\"\"> <img src=\"/templates/images/partner2.png\" class=\"img-responsive\" alt=\"\"> <img src=\"/templates/images/partner3.png\" class=\"img-responsive\" alt=\"\"> <img src=\"/templates/images/partner4.png\" class=\"img-responsive\" alt=\"\"> </div> </div> </div> </section>"
+  }
+]

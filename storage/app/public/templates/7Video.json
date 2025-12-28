@@ -1,0 +1,50 @@
+[
+  {
+    "name": "video1-1",
+    "category": "Video",
+    "preview": "/templates/thumbs/video1-1.png",
+    "html": "<section id=\"video1-1\" class=\"p-y-lg bg-video video-play\"> <div class=\"overlay\"></div> <div class=\"container p-y-lg\"> <div class=\"row\"> <div class=\"col-md-8 col-md-offset-2 text-center\"> <div class=\"bg-popup m-b-md\"> <a class=\"mp-iframe\" href=\"https://www.youtube.com/watch?v=nrJtHemSPW4\"><i class=\"fa fa-play-circle\"></i></a> </div> <h4 class=\"text-white f-w-400\">Lorem ipsum dolor sit amet, consectetur adipisicing elit. Nulla, impedit molestiae fugiat modi nesciunt est.</h4> </div> </div><!-- /End Row --> </div><!-- /End Container --> </section>"
+  },
+  {
+    "name": "video2-1",
+    "category": "Video",
+    "preview": "/templates/thumbs/video2-1.png",
+    "html": "<section id=\"video2-1\" class=\"p-y-lg content-align-md bg-edit\"> <div class=\"container\"> <div class=\"row video y-middle c2\"> <div class=\"col-md-5\"> <h3 class=\"f-w-900\">Stay in total control</h3> <p class=\"h5\">Getleads features a clean, clutter-free interface to create, edit and delete new feeds.</p> <p class=\"m-b-0\">Natus cumque odio sit harum facilis excepturi deleniti voluptatibus odit alias perspiciatis eligendi. Lorem ipsum dolor sit amet, consectetur adipisicing elit. Esse animi eum fuga odit voluptatum ea error quidem, eveniet.</p> </div> <div class=\"col-md-6\"> <div class=\"videoWrapper\"> <iframe width=\"560\" height=\"315\" src=\"https://www.youtube.com/embed/sU3FkzUKHXU\" allowfullscreen></iframe> <div class=\"frameCover\" data-type=\"video\"></div> </div> </div><!--/End Col --> </div><!--/End Row --> </div><!-- /End Container --> </section>"
+  },
+  {
+    "name": "video2-2",
+    "category": "Video",
+    "preview": "/templates/thumbs/video2-2.png",
+    "html": "<section id=\"video2-2\" class=\"p-y-lg content-align-md bg-edit bg-dark\"> <div class=\"container\"> <div class=\"row video y-middle c2\"> <div class=\"col-md-5 text-white\"> <h3 class=\"f-w-900\">Stay in total control</h3> <p class=\"h5\">Getleads features a clean, clutter-free interface to create, edit and delete new feeds.</p> <p class=\"m-b-0\">Natus cumque odio sit harum facilis excepturi deleniti voluptatibus odit alias perspiciatis eligendi. Lorem ipsum dolor sit amet, consectetur adipisicing elit. Esse animi eum fuga odit voluptatum ea error quidem, eveniet.</p> </div> <div class=\"col-md-6\"> <div class=\"videoWrapper\"> <iframe width=\"560\" height=\"315\" src=\"https://www.youtube.com/embed/sU3FkzUKHXU\" allowfullscreen></iframe> <div class=\"frameCover\" data-type=\"video\"></div> </div> </div> </div><!-- /End Row --> </div><!-- /End Container --> </section>"
+  },
+  {
+    "name": "video3-1",
+    "category": "Video",
+    "preview": "/templates/thumbs/video3-1.png",
+    "html": "<section id=\"video3-1\" class=\"p-y-lg content-align-md bg-edit\"> <div class=\"container\"> <div class=\"row video y-middle c2\"> <div class=\"col-md-5 col-md-push-6\"> <h3 class=\"f-w-900\">Learn with the best</h3> <p class=\"h5\">Our instructors take you through course material, step by step, in our high-quality video lessons.</p> <p class=\"m-b-0\">Natus cumque odio sit harum facilis excepturi deleniti voluptatibus odit alias perspiciatis eligendi. Lorem ipsum dolor sit amet, consectetur adipisicing elit.</p> </div> <div class=\"col-md-6 col-md-pull-5\"> <div class=\"videoWrapper\"> <iframe width=\"560\" height=\"315\" src=\"https://www.youtube.com/embed/sU3FkzUKHXU\" allowfullscreen></iframe> <div class=\"frameCover\" data-type=\"video\"></div> </div> </div> </div><!-- /End Row -->s </div><!-- /End Container --> </section>"
+  },
+  {
+    "name": "video3-2",
+    "category": "Video",
+    "preview": "/templates/thumbs/video3-2.png",
+    "html": "<section id=\"video3-2\" class=\"p-y-lg content-align-md bg-edit bg-dark\"> <div class=\"container\"> <div class=\"row video y-middle c2\"> <div class=\"col-md-5 col-md-push-6 text-white\"> <h3 class=\"f-w-900\">Learn with the best</h3> <p class=\"h5\">Our instructors take you through course material, step by step, in our high-quality video lessons.</p> <p class=\"m-b-0\">Natus cumque odio sit harum facilis excepturi deleniti voluptatibus odit alias perspiciatis eligendi. Lorem ipsum dolor sit amet, consectetur adipisicing elit.</p> </div> <div class=\"col-md-6 col-md-pull-5\"> <div class=\"videoWrapper\"> <iframe width=\"560\" height=\"315\" src=\"https://www.youtube.com/embed/sU3FkzUKHXU\" allowfullscreen></iframe> <div class=\"frameCover\" data-type=\"video\"></div> </div> </div> </div><!-- /End Row --> </div><!-- /End Container --> </section>"
+  },
+  {
+    "name": "video4-1",
+    "category": "Video",
+    "preview": "/templates/thumbs/video4-1.png",
+    "html": "<section id=\"video4-1\" class=\"p-y-md bg-edit bg-dark video content-align-md\"> <div class=\"container\"> <div class=\"row \"> <div class=\"col-md-12 y-middle c2\"> <div class=\"col-md-6 text-white\"> <h4>Plan, track, and collaborate using the preferred app of more than 300.000 users.</h4> <p class=\"p-opacity m-b-0\">Exercitationem quo magnam ducimus suscipit, eius, iusto quae id non facere saepe sed quas beatae cumque tempore mollitia soluta et distinctio. Perferendis odio delectus beatae cumque undequas quam vitae.</p> </div> <!-- Video Image with Popup --> <div class=\"col-md-4 col-md-offset-1\"> <div class=\"popup-box\"> <img src=\"/templates/images/bg-2.jpg\" class=\"img-responsive\" alt=\"\"> <div class=\"popup-button wow pulse\" data-wow-iteration=\"3\"> <a class=\"mp-iframe\" href=\"https://vimeo.com/70301553\"><i class=\"fa fa-play\" style=\"background-color: #56B68B;\"></i></a> </div> </div> </div> </div><!-- /End Col-12 --> </div><!-- /End Row --> </div><!-- /End Container --> </section>"
+  },
+  {
+    "name": "video5-1",
+    "category": "Video",
+    "preview": "/templates/thumbs/video5-1.png",
+    "html": "<section id=\"video5-1\" class=\"p-y-lg bg-edit\"> <div class=\"container\"> <div class=\"row video\"> <!-- Section Header --> <div class=\"col-md-8 col-md-offset-2\"> <div class=\"section-header text-center wow fadeIn\"> <h2>A place to express yourself</h2> <p class=\"lead\">Getleads features a clean, clutter-free interface to create, edit and delete new feeds. Maxime facere provident quaeratut nostrum eiushic ipsum perferendis.</p> </div> </div> <!-- Video Iframe --> <div class=\"col-md-10 col-md-offset-1 text-center\"> <div class=\"videoWrapper\"> <iframe width=\"560\" height=\"315\" src=\"https://www.youtube.com/embed/sU3FkzUKHXU\" allowfullscreen></iframe> <div class=\"frameCover\" data-type=\"video\"></div> </div> </div> </div><!-- /End Row --> </div><!-- /End Container --> </section>"
+  },
+  {
+    "name": "video5-2",
+    "category": "Video",
+    "preview": "/templates/thumbs/video5-2.png",
+    "html": "<section id=\"video5-2\" class=\"p-y-lg bg-edit bg-dark\"> <div class=\"container\"> <div class=\"row video\"> <!-- Section Header --> <div class=\"col-md-8 col-md-offset-2\"> <div class=\"section-header text-center text-white wow fadeIn\"> <h2>A place to express yourself</h2> <p class=\"lead\">Getleads features a clean, clutter-free interface to create, edit and delete new feeds. Maxime facere provident quaeratut nostrum eiushic ipsum perferendis.</p> </div> </div> <!-- Video Iframe --> <div class=\"col-md-10 col-md-offset-1 text-center\"> <div class=\"videoWrapper\"> <iframe width=\"560\" height=\"315\" src=\"https://www.youtube.com/embed/sU3FkzUKHXU\" allowfullscreen></iframe> <div class=\"frameCover\" data-type=\"video\"></div> </div> </div> </div><!-- /End Row --> </div><!-- /End Container --> </section>"
+  }
+]
