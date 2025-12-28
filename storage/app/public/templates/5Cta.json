@@ -1,0 +1,74 @@
+[
+  {
+    "name": "cta1-1",
+    "category": "Call-to-Action",
+    "preview": "/templates/thumbs/cta1-1.png",
+    "html": "<section id=\"cta1-1\" class=\"p-y-md bg-edit\"> <div class=\"container\"> <div class=\"row\"> <div class=\"col-md-8 col-md-offset-2 wow fadeIn\"> <div class=\"text-center\"> <h4 class=\"m-t f-w-900\">New to yoga or been practicing for years?</h4> <p class=\"p-opacity m-b-md\">Quis dolorem architecto nemo, enim pariatur, aliquid laudantium voluptatum animi. Whoever you are and whatever you’re looking for, you’ll find your place at Getleads Yoga.</p> <a href=\"#\" class=\"btn btn-shadow btn-green text-uppercase\">View more Classes</a> </div> </div> </div> </div> </section>"
+  },
+  {
+    "name": "cta1-2",
+    "category": "Call-to-Action",
+    "preview": "/templates/thumbs/cta1-2.png",
+    "html": "<section id=\"cta1-2\" class=\"p-y-md bg-edit bg-dark\"> <div class=\"container\"> <div class=\"row\"> <div class=\"col-md-8 col-md-offset-2 wow fadeIn\"> <div class=\"text-center text-white\"> <h4 class=\"m-t f-w-900\">New to yoga or been practicing for years?</h4> <p class=\"p-opacity m-b-md\">Quis dolorem architecto nemo, enim pariatur, aliquid laudantium voluptatum animi. Whoever you are and whatever you’re looking for, you’ll find your place at Getleads Yoga.</p> <a href=\"#\" class=\"btn btn-shadow btn-green text-uppercase\">View more Classes</a> </div> </div> </div> </div> </section>"
+  },
+  {
+    "name": "cta2",
+    "category": "Call-to-Action",
+    "preview": "/templates/thumbs/cta2.png",
+    "html": "<section id=\"cta2\" class=\"p-y cta bg-edit bg-blue\"> <div class=\"container\"> <div class=\"row\"> <div class=\"col-md-8 col-md-offset-2 text-center single-line\"> <p class=\"lead text-white m-r-md f-w-700\">Unlock your potential. Become a master of code.</p> <a href=\"\" class=\"btn btn-ghost btn-md\">Get started now<i class=\"fa fa-arrow-right m-l\"></i></a> </div> </div> </div> </section>"
+  },
+  {
+    "name": "cta3-1",
+    "category": "Call-to-Action",
+    "preview": "/templates/thumbs/cta3-1.png",
+    "html": "<section id=\"cta3-1\" class=\"p-y-lg bg-edit\"> <div class=\"container\"> <div class=\"row\"> <div class=\"col-md-8 col-md-offset-2 text-center\"> <h3 class=\"f-w-900 m-b-md\">Transforming your house into a home.</h3> <p class=\"lead m-b-md\">Alias voluptate maxime quasi ipsam beatae, perferendis illum facere rerum sunt architecto quisquam dolores error quaerat corrupti architecto.</p> <a href=\"\" class=\"btn btn-shadow btn-yellow btn-md text-uppercase\">Request a Quote Now!</a> </div> </div> </div><!-- /End Container --> </section>"
+  },
+  {
+    "name": "cta3-2",
+    "category": "Call-to-Action",
+    "preview": "/templates/thumbs/cta3-2.png",
+    "html": "<section id=\"cta3-2\" class=\"p-y-lg bg-edit bg-dark\"> <div class=\"container\"> <div class=\"row\"> <div class=\"col-md-8 col-md-offset-2 text-center text-white\"> <h3 class=\"f-w-900 m-b-md\">Transforming your house into a home.</h3> <p class=\"lead m-b-md\">Alias voluptate maxime quasi ipsam beatae, perferendis illum facere rerum sunt architecto quisquam dolores error quaerat corrupti architecto.</p> <a href=\"\" class=\"btn btn-shadow btn-yellow btn-md text-uppercase\">Request a Quote Now!</a> </div> </div> </div><!-- /End Container --> </section>"
+  },
+  {
+    "name": "cta3-3",
+    "category": "Call-to-Action",
+    "preview": "/templates/thumbs/cta3-3.png",
+    "html": "<section id=\"cta3-3\" class=\"p-y-lg bg-img\" style=\"background-image: url('/templates/images/carpenter4.jpg')\"> <div class=\"overlay\"></div> <div class=\"container\"> <div class=\"row\"> <div class=\"col-md-8 col-md-offset-2 text-center text-white\"> <h3 class=\"f-w-900 m-b-md\">Transforming your house into a home.</h3> <p class=\"lead m-b-md\">Alias voluptate maxime quasi ipsam beatae, perferendis illum facere rerum sunt architecto quisquam dolores error quaerat corrupti architecto.</p> <a href=\"\" class=\"btn btn-shadow btn-yellow btn-md text-uppercase\">Request a Quote Now!</a> </div> </div> </div><!-- /End Container --> </section>"
+  },
+  {
+    "name": "cta4",
+    "category": "Call-to-Action",
+    "preview": "/templates/thumbs/cta4.png",
+    "html": "<section id=\"cta4\" class=\"p-y-md cta bg-edit bg-dark content-align-md\"> <div class=\"container\"> <div class=\"row\"> <div class=\"col-md-10 col-md-offset-1 outline no-border y-middle c2\"> <div class=\"col-md-7\"> <h4 class=\"text-white\">Do you need help from our experts?</h4> <p class=\"text-white m-b-0\">Lorem ipsum dolor sit amet, consectetur adipisicing elit. Aperiam eum dolorem iusto, corrupti accusamus nostrum rem eveniet.</p> </div> <div class=\"col-md-5 text-center\"> <a href=\"#hero11\" class=\"btn btn-shadow btn-blue btn-md smooth-scroll\">Book an Appointment</a> </div> </div> </div> </div><!-- /End Container --> </section>"
+  },
+  {
+    "name": "cta5-1",
+    "category": "Call-to-Action",
+    "preview": "/templates/thumbs/cta5-1.png",
+    "html": "<section id=\"cta5-1\" class=\"p-y-lg content-align-md center-md bg-edit\"> <div class=\"container\"> <div class=\"row y-middle\"> <div class=\"col-md-5 m-b wow zoomIn\"> <h3 class=\"f-w-900\">iOS and Android Apps</h3> <p class=\"h5\">Want to learn on a mobile device? You can grab them on the app store for each platform.</p> <p class=\"m-b-md\">Natus cumque odio sit harum facilis excepturi deleniti voluptatibus odit alias perspiciatis eligendi. Lorem ipsum dolor sit amet, consectetur adipisicing.</p> <a href=\"\" class=\"btn-app apple-store edit\"><i class=\"fa fa-apple\"></i><span>Download on the</span>App Store</a> <a href=\"\" class=\"btn-app google-play edit\"><i class=\"fa fa-android\"></i><span>Get it on</span>Google Play</a> </div> <!-- Image Device --> <div class=\"col-md-6\"> <img src=\"/templates/images/app1.png\" class=\"img-responsive m-x-auto\" alt=\"\"> </div> </div><!-- /End Row --> </div><!-- /End Container --> </section>"
+  },
+  {
+    "name": "cta5-2",
+    "category": "Call-to-Action",
+    "preview": "/templates/thumbs/cta5-2.png",
+    "html": "<section id=\"cta5-2\" class=\"p-y-lg content-align-md center-md bg-img\" style=\"background-image: url('/templates/images/portfolio6-xl.jpg')\"> <div class=\"overlay\"></div> <div class=\"container\"> <div class=\"row y-middle text-white\"> <div class=\"col-md-5 m-b wow zoomIn\"> <h3 class=\"f-w-900\">iOS and Android Apps</h3> <p class=\"h5\">Want to learn on a mobile device? You can grab them on the app store for each platform.</p> <p class=\"m-b-md\">Natus cumque odio sit harum facilis excepturi deleniti voluptatibus odit alias perspiciatis eligendi. Lorem ipsum dolor sit amet, consectetur adipisicing.</p> <a href=\"\" class=\"btn-app apple-store edit\"><i class=\"fa fa-apple\"></i><span>Download on the</span>App Store</a> <a href=\"\" class=\"btn-app google-play edit\"><i class=\"fa fa-android\"></i><span>Get it on</span>Google Play</a> </div> <!-- Image Device --> <div class=\"col-md-6\"> <img src=\"/templates/images/app1.png\" class=\"img-responsive m-x-auto\" alt=\"\"> </div> </div><!-- /End Row --> </div><!-- /End Container --> </section>"
+  },
+  {
+    "name": "cta6-1",
+    "category": "Call-to-Action",
+    "preview": "/templates/thumbs/cta6-1.png",
+    "html": "<section id=\"cta6-1\" class=\"p-y-lg cta bg-edit bg-blue\"> <div class=\"container\"> <div class=\"row\"> <div class=\"col-md-10 col-md-offset-1 text-center text-white\"> <h4 class=\"f-w-700\">What are you waiting for?</h4> <h2 class=\"m-b-md\">Download the App Now!</h2> <p class=\"lead m-b-lg\">#1 Ranked App across 14 countries in the communication category</p> <a href=\"\" class=\"btn-app apple-store edit\"><i class=\"fa fa-apple\"></i><span>Download on the</span>App Store</a> <a href=\"\" class=\"btn-app google-play edit\"><i class=\"fa fa-android\"></i><span>Get it on</span>Google Play</a> <a href=\"\" class=\"btn-app windows-store edit\"><i class=\"fa fa-windows\"></i><span>Download From</span>Windows Store</a> </div> </div><!-- /End Row --> </div><!-- /End Container --> </section>"
+  },
+  {
+    "name": "cta6-2",
+    "category": "Call-to-Action",
+    "preview": "/templates/thumbs/cta6-2.png",
+    "html": "<section id=\"cta6-2\" class=\"p-y-lg cta bg-img\" style=\"background-image: url('/templates/images/portfolio6-xl.jpg')\"> <div class=\"overlay\"></div> <div class=\"container\"> <div class=\"row\"> <div class=\"col-md-10 col-md-offset-1 text-center text-white\"> <h4 class=\"f-w-700\">What are you waiting for?</h4> <h2 class=\"m-b-md\">Download the App Now!</h2> <p class=\"lead m-b-lg\">#1 Ranked App across 14 countries in the communication category</p> <a href=\"\" class=\"btn-app apple-store edit\"><i class=\"fa fa-apple\"></i><span>Download on the</span>App Store</a> <a href=\"\" class=\"btn-app google-play edit\"><i class=\"fa fa-android\"></i><span>Get it on</span>Google Play</a> <a href=\"\" class=\"btn-app windows-store edit\"><i class=\"fa fa-windows\"></i><span>Download From</span>Windows Store</a> </div> </div><!-- /End Row --> </div><!-- /End Container --> </section>"
+  },
+  {
+    "name": "cta7",
+    "category": "Call-to-Action",
+    "preview": "/templates/thumbs/cta7.png",
+    "html": "<section id=\"cta7\" class=\"p-t-lg p-b-md content-align-md center-md bg-img\" style=\"background-image: url('/templates/images/polygonal.png')\"> <!-- <div class=\"overlay\"></div> --> <div class=\"container\"> <div class=\"row y-middle\"> <!-- Image Devices --> <div class=\"col-md-6 wow slideInUp\"> <img src=\"/templates/images/app3.png\" class=\"img-responsive m-x-auto\" alt=\"\"> </div> <div class=\"col-md-6 m-b text-white\"> <!-- Download App --> <h3 class=\"f-w-900 wow zoomIn\">Download the App</h3> <p class=\"h5 wow zoomIn\">Want to chat on a mobile device? You can grab them on the app store for each platform.</p> <a href=\"\"><img src=\"/templates/images/android.png\" class=\"m-t wow zoomIn\" alt=\"\"></a> <a href=\"\"><img src=\"/templates/images/apple.png\" class=\"m-t wow zoomIn\" alt=\"\"></a> <!-- Newsletter Subscription --> <h3 class=\"f-w-900 p-t-lg wow zoomIn\">Keep Updated</h3> <p class=\"h5 m-b-md wow zoomIn\">Officia eveniet, porro in magnam, quasi, facere commodi ullam vitae, dolorem quod dignissimos neque.</p> <!-- Mailchimp Form --> <form class=\"form-inline form-white wow zoomIn\" id=\"mailchimpForm\" action=\"http://themedept.us9.list-manage.com/subscribe/post?u=a8cd4fa72585379e205821fa2&amp;id=366e69e674\"> <div class=\"form-group\"> <input type=\"email\" class=\"form-control\" id=\"m3Email\" placeholder=\"Enter your Email Address\" name=\"MERGE0\" required> </div> <button type=\"submit\" class=\"btn btn-red\">Subscribe</button> </form> <!-- Php Form --> <!-- <form class=\"form-inline\" id=\"subscribeForm\" role=\"form\"> <p class=\"success sf text-center\"><i class=\"fa fa-check\"></i> <strong>You have successfully subscribed.</strong></p> <p class=\"failed sf text-center\"><i class=\"fa fa-exclamation-circle\"></i><strong> Something went wrong!</strong></p> <div class=\"form-group\"> <input type=\"email\" class=\"form-control\" id=\"sfEmail\" placeholder=\"Email\" required> </div> <button type=\"submit\" class=\"btn btn-blue\">Subscribe</button> </form> --> </div> </div> <!-- Section Footer --> <div class=\"row text-white footer f2 p-t-lg\"> <div class=\"col-sm-4 col-xs-12\"> <p>Copyright © 2016 GetLeads. All rights are reserved</p> </div> <div class=\"col-sm-4 col-xs-12 text-center\"> <ul class=\"footer-social\"> <li><a href=\"\" class=\"inverse\"><i class=\"fa fa-facebook\"></i></a></li> <li><a href=\"\" class=\"inverse\"><i class=\"fa fa-twitter\"></i></a></li> <li><a href=\"\" class=\"inverse\"><i class=\"fa fa-google-plus\"></i></a></li> </ul> </div> <div class=\"col-sm-4 col-xs-12\"> <ul class=\"footer-links\"> <li><a href=\"\" title=\"\" class=\"edit inverse\">License</a></li> <li><a href=\"\" title=\"\" class=\"edit inverse\">Terms of use</a></li> <li><a href=\"mailto:mail@themedept.com\" class=\"edit inverse\"><i class=\"fa fa-envelope-o\"></i>Get in touch</a></li> </ul> </div> </div><!-- /End Section Footer --> </div><!-- /End Container --> </section>"
+  }
+]

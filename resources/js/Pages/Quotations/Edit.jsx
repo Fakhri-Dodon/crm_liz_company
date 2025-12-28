@@ -410,6 +410,10 @@ export default function Edit({
         },
         []
     );
+
+    const handleBack = () => {
+        router.get("/quotation");
+    };
     
 
     return (
@@ -518,6 +522,7 @@ export default function Edit({
                 data={data}
                 setData={setData}
                 onSave={handleSave}
+                onBack={handleBack}
                 renderEditor={({ updateField: builderUpdate }) => {
                     const nameIsLocked = !data.client_type;
 

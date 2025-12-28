@@ -11,6 +11,18 @@
         <link rel="preconnect" href="https://fonts.bunny.net">
         <link href="https://fonts.bunny.net/css?family=figtree:400,500,600&display=swap" rel="stylesheet" />
 
+        <style>
+            .gjs-blocks-c .gjs-block {
+                width: 100% !important;
+                min-height: auto !important;
+                margin: 5px 0 !important;
+                display: flex !important;
+                flex-direction: column; /* Gambar di atas, teks di bawah */
+                align-items: center;
+                padding: 10px !important;
+            }
+        </style>
+
         <!-- Scripts -->
         @routes
         @viteReactRefresh
