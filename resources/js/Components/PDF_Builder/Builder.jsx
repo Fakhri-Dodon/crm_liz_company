@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Head } from '@inertiajs/react';
+import { Head, usePage } from '@inertiajs/react';
 import PDFPreview from '@/Components/PDF_Builder/Preview';
 import { quotationPDFPreview } from '@/Components/PDF_Builder/PDFGenerator';
 
@@ -36,6 +36,11 @@ export default function Builder({ title, data, setData, renderEditor, renderPrev
         setData('services', filteredServices);
     };
 
+    const { props } = usePage();
+    const logoUrl = props.app_config?.doc_logo_path 
+                    ? `/storage/${props.app_config.doc_logo_path}` 
+                    : null;
+
     return (
         <div className="flex h-screen bg-gray-100 overflow-hidden font-sans">
             <Head title={title} />
@@ -71,14 +76,15 @@ export default function Builder({ title, data, setData, renderEditor, renderPrev
                     </div>
                 </div>
                 <div className="flex-1 overflow-y-auto custom-scrollbar">
-                    <PDFPreview title={data.document_type}>
+                    <PDFPreview title={data.document_type} logoUrl={logoUrl}>
                         {renderPreview({ 
                             data, 
                             updateField, 
                             updateItem, 
                             addItem, 
-                            removeItem 
-                        })}
+                            removeItem,
+                            logoUrl,
+                        })},
                     </PDFPreview>
                     <div className="text-center bg-gray-100"></div>
                 </div>

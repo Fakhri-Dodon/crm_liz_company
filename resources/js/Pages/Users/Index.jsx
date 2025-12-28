@@ -1,17 +1,22 @@
 import HeaderLayout from "@/Layouts/HeaderLayout";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { usePage, useForm, router } from "@inertiajs/react";
 import PrimaryButton from "@/Components/PrimaryButton";
 import TableLayout from "@/Layouts/TableLayout";
 import ModalAdd from "@/Components/ModalAdd";
 import { toast } from "react-hot-toast";
+import { useTranslation } from "react-i18next";
 
-export default function UsersIndex({ users, roles }) {
+export default function UsersIndex({ users, roles, templates }) {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editId, setEditId] = useState(null);
     const [isSendingEmail, setIsSendingEmail] = useState(false);
     const [emailModalOpen, setEmailModalOpen] = useState(false);
     const [selectedUser, setSelectedUser] = useState(null);
+    const [selectedTemplate, setSelectedTemplate] = useState("welcome");
+    const [selectedTemplateId, setSelectedTemplateId] = useState("");
+
+    const { t } = useTranslation();
 
     const { data, setData, post, processing, errors, reset } = useForm({
         name: "",
@@ -25,27 +30,27 @@ export default function UsersIndex({ users, roles }) {
     const columns = [
         {
             key: "name",
-            label: "Name",
+            label: t('users.table.name') || "Name",
         },
         {
             key: "position",
-            label: "Position",
+            label: t('users.table.position') || "Position",
         },
         {
             key: "role",
-            label: "Role",
+            label: t('users.table.role') || "Role",
         },
         {
             key: "email",
-            label: "Email",
+            label: t('users.table.email') || "Email",
         },
         {
             key: "phone",
-            label: "Phone",
+            label: t('users.table.phone') || "Phone",
         },
         {
             key: "last_seen",
-            label: "Last Seen",
+            label: t('users.table.last_seen') || "Last Seen",
         },
     ];
 
@@ -128,30 +133,32 @@ export default function UsersIndex({ users, roles }) {
             toast.error("User ini tidak memiliki alamat email.");
             return;
         }
-        // Simpan data user yang dipilih ke state
+        // if (templates && templates.length > 0) {
+        //     setSelectedTemplateId(templates[0].id);
+        // }
         setSelectedUser(user);
-        // Buka modal custom
         setEmailModalOpen(true);
     };
 
     const confirmSendEmail = () => {
-        if (!selectedUser) return;
+        if (!selectedUser || !selectedTemplateId) return;
 
-        // Tutup modal konfirmasi dulu agar tidak menumpuk dengan overlay loading
         setEmailModalOpen(false);
+
+        console.log("Mengirim Template ID:", selectedTemplateId);
 
         router.post(
             `/user/send-email/${selectedUser.id}`,
-            {},
+            { template: selectedTemplateId },
             {
                 onStart: () => {
-                    setIsSendingEmail(true); // Munculkan overlay loading full screen
+                    setIsSendingEmail(true);
                     toast.loading("Sedang mengirim email...", {
                         id: "send-email-toast",
                     });
                 },
                 onFinish: () => {
-                    setIsSendingEmail(false); // Hilangkan overlay loading
+                    setIsSendingEmail(false);
                     toast.dismiss("send-email-toast");
                 },
                 onSuccess: () => {
@@ -332,15 +339,13 @@ export default function UsersIndex({ users, roles }) {
                 </div>
             )}
 
-            {/* MODAL KONFIRMASI CUSTOM */}
             {emailModalOpen && (
                 <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
                     <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden animate-in zoom-in duration-300">
-                        <div className="p-8 text-center">
-                            {/* Ikon Amplop Animasi */}
-                            <div className="mx-auto flex items-center justify-center h-20 w-20 rounded-full bg-blue-50 mb-6 animate-bounce">
+                        <div className="p-8">
+                            <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-blue-50 mb-4">
                                 <svg
-                                    className="h-10 w-10 text-blue-600"
+                                    className="h-8 w-8 text-blue-600"
                                     fill="none"
                                     viewBox="0 0 24 24"
                                     stroke="currentColor"
@@ -354,47 +359,67 @@ export default function UsersIndex({ users, roles }) {
                                 </svg>
                             </div>
 
-                            <h3 className="text-2xl font-black text-gray-800 mb-2">
-                                Kirim Email?
-                            </h3>
-                            <p className="text-gray-500 leading-relaxed">
-                                Sistem akan mengirimkan email sambutan resmi
-                                kepada: <br />
-                                <span className="font-bold text-gray-800">
-                                    {selectedUser?.name}
-                                </span>
-                            </p>
-                            <div className="mt-4 px-4 py-2 bg-blue-50 rounded-full border border-blue-100 inline-block">
-                                <span className="text-blue-700 text-xs font-bold tracking-wider uppercase">
+                            <div className="text-center mb-6">
+                                <h3 className="text-xl font-black text-gray-800">
+                                    Kirim Email
+                                </h3>
+                                <p className="text-sm text-gray-500">
+                                    Kirim pesan ke{" "}
+                                    <span className="font-bold text-gray-700">
+                                        {selectedUser?.name}
+                                    </span>
+                                </p>
+                            </div>
+
+                            {/* DROPDOWN PILIHAN TEMPLATE */}
+                            <div className="space-y-2 text-left mb-6">
+                                <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">Choose Email Template</label>
+                                <select 
+                                    value={selectedTemplateId}
+                                    onChange={(e) => setSelectedTemplateId(e.target.value)}
+                                    className="w-full border-gray-200 rounded-xl focus:ring-blue-500 focus:border-blue-500 bg-gray-50 text-sm"
+                                >
+                                    <option value="" disabled>-- Choose Template --</option>
+                                    {templates.map((t) => (
+                                        <option key={t.id} value={t.id}>
+                                            {t.name} - {t.subject}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            <div className="mt-4 px-4 py-2 bg-blue-50/50 rounded-lg border border-blue-100 flex items-center gap-3">
+                                <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></div>
+                                <span className="text-blue-700 text-[11px] font-bold truncate uppercase">
                                     {selectedUser?.email}
                                 </span>
                             </div>
                         </div>
 
-                        <div className="flex p-4 gap-3 bg-gray-50/50">
+                        <div className="flex p-4 gap-3 bg-gray-50">
                             <button
                                 onClick={() => setEmailModalOpen(false)}
-                                className="flex-1 px-4 py-3 text-gray-600 font-bold hover:bg-white rounded-xl transition-all border border-transparent hover:border-gray-200"
+                                className="flex-1 px-4 py-3 text-gray-500 font-bold hover:bg-white rounded-xl transition-all border border-transparent hover:border-gray-200"
                             >
-                                Batalkan
+                                Batal
                             </button>
                             <button
                                 onClick={confirmSendEmail}
                                 className="flex-1 px-4 py-3 bg-blue-600 text-white font-bold rounded-xl shadow-lg shadow-blue-200 hover:bg-blue-700 active:scale-95 transition-all"
                             >
-                                Ya, Kirim!
+                                Kirim Sekarang
                             </button>
                         </div>
                     </div>
                 </div>
             )}
 
-            <HeaderLayout title="Users" />
+            <HeaderLayout title={t('users.title')} />
 
             <div className="px-8 py-6">
                 <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
                     <h1 className="text-xl font-black uppercase tracking-widest text-gray-800">
-                        Users
+                        {t('users.title')}
                     </h1>
 
                     {/* ADD BUTTON */}
@@ -415,7 +440,7 @@ export default function UsersIndex({ users, roles }) {
                                 d="M12 4v16m8-8H4"
                             />
                         </svg>
-                        <span>Add User</span>
+                        <span>{t('users.button_add')}</span>
                     </PrimaryButton>
                 </div>
 

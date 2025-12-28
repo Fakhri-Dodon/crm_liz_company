@@ -26,6 +26,8 @@ class HandleInertiaRequests extends Middleware
             ]);
         }
 
+        $config = \DB::table('app_configs')->where('deleted', 0)->first();
+
         return array_merge(parent::share($request), [
             'auth' => [
                 'user' => $request->user() ? [
@@ -33,6 +35,13 @@ class HandleInertiaRequests extends Middleware
                     'name' => $request->user()->name,
                     'email' => $request->user()->email,
                 ] : null,
+            ],
+            'app_config' => [
+                'default_language' => $config->default_language ?? 'Indonesia',
+                'allow_language_change' => (bool) $config->allow_language_change,
+                'logo_path'             => $config->logo_path,
+                'doc_logo_path'         => $config->doc_logo_path,
+                'company_name'          => $config->company_name,
             ],
             
             'csrf_token' => csrf_token(),

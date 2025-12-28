@@ -1,0 +1,135 @@
+{
+    "header": {
+        "setting": "Setting",
+        "notifications": "Notifications"
+    },
+    "menus": {
+        "dashboard": "DASHBOARD",
+        "clients": "CLIENTS",
+        "lead": "LEAD",
+        "proposal": "PROPOSAL",
+        "quotation": "QUOTATION",
+        "invoice": "INVOICE",
+        "payment": "PAYMENT",
+        "project": "PROJECT",
+        "email": "EMAIL",
+        "user": "USER"
+    },
+    "cards_dashboard": {
+        "lead": "Lead",
+        "company": "Company",
+        "proposal": "Proposal",
+        "invoice": "Invoice",
+        "payment": "Payment",
+        "report": "Report",
+        "marketing": "Marketing Dashboard",
+        "finance": "Finance Dashboard"
+    },
+    "quotations": {
+        "title": "QUOTATIONS",
+        "button_add": "ADD QUOTATION",
+        "stats": {
+            "draft": "DRAFT",
+            "sent": "SENT",
+            "accepted": "ACCEPTED",
+            "expired": "EXPIRED",
+            "rejected": "REJECTED",
+            "footer": "Terminated projects"
+        },
+        "filters": {
+            "search_placeholder": "Search by subject or client",
+            "status": "Status",
+            "all_status": "All Status",
+            "month": "Month",
+            "all_months": "All Months",
+            "year": "Year",
+            "all_years": "All Years",
+            "apply": "Apply",
+            "reset": "Reset"
+        },
+        "table": {
+            "no": "NO",
+            "no_date": "NO & DATE",
+            "subject": "SUBJECT",
+            "company_name": "COMPANY NAME",
+            "contact": "CONTACT",
+            "created_by": "CREATED BY",
+            "total": "TOTAL",
+            "ppn_total": "Include PPN",
+            "status": "STATUS",
+            "actions": "ACTIONS"
+        }
+    },
+    "leads": {
+        "title": "LEAD",
+        "sub_title": "Manage all company leads",
+        "button_add": "ADD NEW LEAD",
+        "filters": {
+        "all_companies": "All Companies",
+        "search_placeholder": "Search leads...",
+        "showing_info": "{{count}} of {{total}} leads shown"
+        },
+        "table": {
+        "no": "NO",
+        "company_name": "COMPANY NAME",
+        "address": "ADDRESS",
+        "contact_person": "CONTACT PERSON",
+        "email_phone": "EMAIL & PHONE",
+        "status": "STATUS",
+        "actions": "ACTIONS",
+        "total_rows": "Total rows: {{count}}"
+        },
+        "status_labels": {
+        "new": "New"
+        }
+    },
+    "users": {
+        "title": "USERS",
+        "button_add": "ADD USER",
+        "table": {
+            "no": "NO",
+            "name": "NAME",
+            "position": "POSITION",
+            "role": "ROLE",
+            "email": "EMAIL",
+            "phone": "PHONE",
+            "last_seen": "LAST SEEN",
+            "actions": "ACTIONS",
+            "total_rows": "Total rows: {{count}}"
+        },
+        "time": {
+            "seconds_ago": "{{count}} seconds ago",
+            "minutes_ago": "{{count}} minutes ago",
+            "hours_ago": "{{count}} hours ago",
+            "just_now": "Just now"
+        },
+        "modals": {
+            "add_title": "Add New User",
+            "edit_title": "Edit User",
+            "label_name": "Full Name*",
+            "label_position": "Position*",
+            "label_email": "Email*",
+            "label_phone": "Phone*",
+            "label_role": "Role*",
+            "label_password": "Password*",
+            "choose_role": "-- Choose Role --",
+            "no_roles": "No roles available",
+            "btn_cancel": "Cancel",
+            "btn_add": "Add",
+            "btn_update": "Update"
+        },
+        "email_overlay": {
+            "sending": "Sending Email",
+            "wait": "Please wait a moment...",
+            "hide": "Hide Overlay"
+        },
+        "email_modal": {
+            "title": "Send Email",
+            "subtitle": "Send message to {{name}}",
+            "label_template": "Choose Email Template",
+            "choose_template": "-- Choose Template --",
+            "btn_cancel": "Cancel",
+            "btn_send": "Send Now"
+        }
+    }
+}

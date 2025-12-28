@@ -84,25 +84,23 @@ class AppConfigController extends Controller
         // Cari config yang aktif
         $config = AppConfig::where('deleted', 0)->first();
 
+        if (!$config) {
+            return Redirect::back()->with('error', 'Configuration not found');
+        }
+
         if ($request->hasFile('logo')) {
             $file = $request->file('logo');
-            $fileName = $request->type . '_' . time() . '.' . $file->getClientOriginalExtension();
+            $type = $request->type;
+            $column = ($type === 'topbar') ? 'logo_path' : 'doc_logo_path';
+            $fileName = $type . '_' . time() . '.' . $file->getClientOriginalExtension();
             $path = $file->storeAs('app-assets', $fileName, 'public');
 
-            if ($config) {
-                // Hapus file fisik lama jika ada
-                if ($request->type === 'topbar' && $config->logo_path) {
-                    Storage::disk('public')->delete($config->logo_path);
-                    $config->update(['logo_path' => $path]);
-                } elseif ($request->type === 'document' && $config->doc_logo_path) {
-                    Storage::disk('public')->delete($config->doc_logo_path);
-                    $config->update(['doc_logo_path' => $path]);
-                } else {
-                    // Jika record ada tapi path belum ada
-                    $column = $request->type === 'topbar' ? 'logo_path' : 'doc_logo_path';
-                    $config->update([$column => $path]);
-                }
+            // Update path logo di konfigurasi
+            if ($config->$column && Storage::disk('public')->exists($config->$column)) {
+                Storage::disk('public')->delete($config->$column);
             }
+            
+            $config->update([$column => $path]);
         }
 
         return Redirect::back()->with('success', 'Logo updated successfully');

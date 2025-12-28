@@ -6,6 +6,7 @@ import { router, Link } from "@inertiajs/react";
 import PrimaryButton from "@/Components/PrimaryButton";
 import { Search, Filter, Plus, Calendar, Download, RefreshCw } from 'lucide-react';
 import Swal from 'sweetalert2';
+import { useTranslation } from "react-i18next";
 
 export const toast = (title, icon = 'success') => {
     const Toast = Swal.mixin({
@@ -26,10 +27,12 @@ export const toast = (title, icon = 'success') => {
 };
 
 export default function QoutationsIndex({ quotations, statusOptions, summary, years, filters }) {
+    const { t } = useTranslation();
+
     const columns = [
         {
             key: "no",
-            label: "No & Date",
+            label: t('quotations.table.no_date'),
             render: (value, row) => (
                 <div>
                     <a 
@@ -48,11 +51,11 @@ export default function QoutationsIndex({ quotations, statusOptions, summary, ye
         },
         {
             key: "subject",
-            label: "Subject",
+            label: t('quotations.table.subject')
         },
         {
             key: "company_name",
-            label: "Company Name",
+            label: t('quotations.table.company_name'),
             render: (value, row) => {
                 const isClient = !!row.is_client; 
                 
@@ -65,29 +68,29 @@ export default function QoutationsIndex({ quotations, statusOptions, summary, ye
         },
         {
             key: "contact",
-            label: "Contact",
+            label: t('quotations.table.contact'),
         },
         {
             key: "created_by",
-            label: "Created By",
+            label: t('quotations.table.created_by'),
         },
         {
             key: "total",
-            label: "Total",
+            label: t('quotations.table.total'),
             render: (value) => (
                 <div>
                     <div className="font-medium text-gray-900">
                         {value}
                     </div>
                     <div className="text-red-500 text-xs font-semibold mt-0.5 text-right">
-                        Include PPN
+                        {t('quotations.table.ppn_total')}
                     </div>
                 </div>
             ),
         },
         {
             key: 'status',
-            label: 'Status',
+            label: t('quotations.table.status'),
             render: (value, row) => {
                 const statusStyles = {
                     sent: 'border-blue-500 text-blue-700 bg-blue-50',
@@ -124,11 +127,11 @@ export default function QoutationsIndex({ quotations, statusOptions, summary, ye
                         }}
                         className={`appearance-none text-xs font-bold py-1 px-2 rounded-lg border-2 focus:ring-0 cursor-pointer transition-all ${statusStyles[value] || 'border-gray-300'}`}
                     >
-                        <option value="draft">DRAFT</option>
-                        <option value="sent">SENT</option>
-                        <option value="accepted">ACCEPTED</option>
-                        <option value="expired">EXPIRED</option>
-                        <option value="rejected">REJECTED</option>
+                        <option value="draft">{t('quotations.stats.draft')}</option>
+                        <option value="sent">{t('quotations.stats.sent')}</option>
+                        <option value="accepted">{t('quotations.stats.accepted')}</option>
+                        <option value="expired">{t('quotations.stats.expired')}</option>
+                        <option value="rejected">{t('quotations.stats.rejected')}</option>
                     </select>
                 );
             }
@@ -188,7 +191,7 @@ export default function QoutationsIndex({ quotations, statusOptions, summary, ye
 
 
     const months = [
-        { value: '', label: 'All Months' },
+        { value: '', label: t('quotations.filters.all_months') },
         { value: '1', label: 'Jan' },
         { value: '2', label: 'Feb' },
         { value: '3', label: 'Mar' },
@@ -254,12 +257,12 @@ export default function QoutationsIndex({ quotations, statusOptions, summary, ye
     
     return (
         <>
-            <HeaderLayout title="Qoutations" />
+            <HeaderLayout title={t('quotations.title')} />
 
             <div className="px-8 py-6">
                 <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
                     <h1 className="text-xl font-black uppercase tracking-widest text-gray-800">
-                        Quotations
+                        {t('quotations.title')}
                     </h1>
 
                     {/* ADD BUTTON */}
@@ -280,7 +283,7 @@ export default function QoutationsIndex({ quotations, statusOptions, summary, ye
                                 d="M12 4v16m8-8H4"
                             />
                         </svg>
-                        <span>Add Quotation</span>
+                        <span>{t('quotations.button_add')}</span>
                     </PrimaryButton>
                 </div>
 
@@ -294,7 +297,7 @@ export default function QoutationsIndex({ quotations, statusOptions, summary, ye
                             <div className="flex items-center justify-between">
                                 <div>
                                     <p className={`text-sm font-medium ${colors.text} uppercase tracking-wide`}>
-                                        {statusOptions.find(opt => opt.value === status)?.label || status}
+                                        {t(`quotations.stats.${status}`)}
                                     </p>
                                     <p className="text-2xl md:text-3xl font-bold text-gray-900 mt-2">
                                         {summary[status] || 0}
@@ -306,9 +309,7 @@ export default function QoutationsIndex({ quotations, statusOptions, summary, ye
                             </div>
                             <div className="mt-4 pt-3 border-t border-gray-200">
                                 <p className="text-xs text-gray-500">
-                                    {status === 'in_progress' ? 'Active projects' : 
-                                    status === 'completed' ? 'Successfully delivered' :
-                                    status === 'pending' ? 'Awaiting action' : 'Terminated projects'}
+                                    {t('quotations.stats.footer')}
                                 </p>
                             </div>
                         </div>
@@ -321,13 +322,13 @@ export default function QoutationsIndex({ quotations, statusOptions, summary, ye
                         {/* Search Input */}
                         <div className="flex-1">
                             <label className="block text-sm font-medium text-gray-700 mb-2">
-                                Search Quotations
+                                {t('quotations.filters.search_placeholder')}
                             </label>
                             <div className="relative">
                                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                                 <input
                                     type="text"
-                                    placeholder="Search by subject or client"
+                                    placeholder={t('quotations.filters.search_placeholder')}
                                     value={localFilters.search}
                                     onChange={(e) => handleFilterChange('search', e.target.value)}
                                     className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#005954] focus:border-transparent transition-colors"
@@ -340,14 +341,14 @@ export default function QoutationsIndex({ quotations, statusOptions, summary, ye
                             {/* Status Filter */}
                             <div className="lg:w-40">
                                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                                    Status
+                                    {t('quotations.filters.status')}
                                 </label>
                                 <select
                                     value={localFilters.status}
                                     onChange={(e) => handleFilterChange('status', e.target.value)}
                                     className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#005954] focus:border-transparent bg-white text-sm"
                                 >
-                                    <option value="all">All Status</option>
+                                    <option value="all">{t('quotations.filters.all_status')}</option>
                                     {statusOptions?.map(option => (
                                         <option key={option.value} value={option.value}>
                                             {option.label}
@@ -359,7 +360,7 @@ export default function QoutationsIndex({ quotations, statusOptions, summary, ye
                             {/* Month Filter */}
                             <div className="lg:w-40">
                                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                                    Month
+                                    {t('quotations.filters.month')}
                                 </label>
                                 <div className="relative">
                                     <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
@@ -380,14 +381,14 @@ export default function QoutationsIndex({ quotations, statusOptions, summary, ye
                             {/* Year Filter */}
                             <div className="lg:w-32">
                                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                                    Year
+                                    {t('quotations.filters.year')}
                                 </label>
                                 <select
                                     value={localFilters.year}
                                     onChange={(e) => handleFilterChange('year', e.target.value)}
                                     className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#005954] focus:border-transparent bg-white text-sm"
                                 >
-                                    <option value="">All Years</option>
+                                    <option value="">{t('quotations.filters.all_years')}</option>
                                     {(years || []).map(year => (
                                         <option key={year} value={year}>
                                             {year}
@@ -404,14 +405,14 @@ export default function QoutationsIndex({ quotations, statusOptions, summary, ye
                                 className="px-4 py-2.5 bg-[#005954] text-white rounded-lg hover:bg-[#004d47] flex items-center gap-2 transition-colors justify-center text-sm font-medium"
                             >
                                 <Filter className="w-4 h-4" />
-                                Apply
+                                {t('quotations.filters.apply')}
                             </button>
                             <button
                                 onClick={resetFilters}
                                 className="px-4 py-2.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors flex items-center gap-2 justify-center text-sm font-medium"
                             >
                                 <RefreshCw className="w-4 h-4" />
-                                Reset
+                                {t('quotations.filters.reset')}
                             </button>
                         </div>
                     </div>

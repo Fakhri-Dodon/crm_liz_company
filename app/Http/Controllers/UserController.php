@@ -24,10 +24,12 @@ class UserController extends Controller
     {
         $users = User::with(['role'])->where('deleted', 0)->get();
         $roles = Roles::where('deleted', 0)->get();
+        $templates = EmailTemplates::all();
 
         return Inertia::render('Users/Index', [
             'users' => $users,
             'roles' => $roles,
+            'templates' => $templates,
         ]);
     }
 
@@ -127,14 +129,20 @@ class UserController extends Controller
             ->with('success', 'User deleted successfully!');
     }
 
-    public function sendUserEmail($id)
+    public function sendUserEmail(Request $request, $id)
     {
+        // dd($request->all());
+
+        if (!$request->has('template')) {
+            return back()->withErrors(['error' => 'Pilih template terlebih dahulu.']);
+        }
+
         $user = User::findOrFail($id);
     
-        $template = EmailTemplates::where('name', 'User Welcome')->first();
+        $template = EmailTemplates::findOrFail($request->template);
 
         $body = str_replace('{name}', $user->name, $template->content);
-
+ 
         try {
             Mail::to($user->email)->send(new SystemMail($template->subject, $body));
 

@@ -44,16 +44,30 @@ export default function GeneralSettings({ config }) {
     };
 
     const handleUploadLogo = (file) => {
-        const uploadData = new FormData();
-        uploadData.append("logo", file);
-        uploadData.append("type", logoType);
+        // const uploadData = new FormData();
+        // uploadData.append("logo", file);
+        // uploadData.append("type", logoType);
 
-        router.post("/setting/general/upload-logo", uploadData, {
+        // router.post("/setting/general/upload-logo", uploadData, {
+        //     forceFormData: true,
+        //     onSuccess: () => {
+        //         toast.success("Logo updated successfully");
+        //         setLogoType(null);
+        //     },
+        // });
+        router.post("/setting/general/upload-logo", {
+            logo: file,
+            type: logoType, // 'topbar' atau 'document'
+        }, {
             forceFormData: true,
             onSuccess: () => {
                 toast.success("Logo updated successfully");
                 setLogoType(null);
             },
+            onError: (err) => {
+                toast.error("Failed to upload logo");
+                console.error(err);
+            }
         });
     };
 
@@ -144,13 +158,11 @@ export default function GeneralSettings({ config }) {
 
                     {/* Logo Section */}
                     <div className="bg-green-50/50 p-6 rounded-lg max-w-4xl">
-                        <Label className="font-bold mb-4 block">
-                            Logo Assets
-                        </Label>
+                        <Label className="font-bold mb-4 block">Logo Assets</Label>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                             <LogoBox
                                 title="Topbar Logo"
-                                url={config?.logo_url} // Menggunakan URL dari accessor model
+                                url={config?.logo_url} 
                                 onAction={() => setLogoType("topbar")}
                             />
                             <LogoBox
@@ -203,8 +215,12 @@ function LogoBox({ title, url, onAction }) {
                     <ImageIcon className="w-12 h-12 text-gray-300" />
                 )}
             </div>
-            <Button onClick={onAction} variant="outline" className="w-full">
-                Change Logo
+            <Button 
+                onClick={onAction} 
+                variant={url ? "outline" : "default"} 
+                className={`w-full ${!url ? 'bg-cyan-600 hover:bg-cyan-700 text-white' : ''}`}
+            >
+                {url ? "Change Logo" : "Upload Logo"}
             </Button>
         </div>
     );
@@ -218,40 +234,55 @@ function LogoUploadModal({ open, onClose, onSave }) {
         const selected = e.target.files[0];
         if (selected) {
             setFile(selected);
+            if (preview) URL.revokeObjectURL(preview);
             setPreview(URL.createObjectURL(selected));
         }
     };
+
+    useEffect(() => {
+        return () => {
+            if (preview) URL.revokeObjectURL(preview);
+        };
+    }, []);
 
     if (!open) return null;
 
     return (
         <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4 backdrop-blur-sm">
-            <div className="bg-white w-full max-w-md rounded-xl p-6 space-y-4">
-                <h3 className="text-lg font-bold">Upload Logo</h3>
-                <Input
-                    type="file"
-                    accept="image/*"
-                    onChange={handleFileChange}
-                />
+            <div className="bg-white w-full max-w-md rounded-xl p-6 space-y-4 shadow-2xl">
+                <h3 className="text-lg font-bold text-gray-800">Upload New Logo</h3>
+                
+                <div className="space-y-2">
+                    <Label className="text-xs text-gray-500 uppercase tracking-wider">Select Image File</Label>
+                    <Input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleFileChange}
+                        className="cursor-pointer"
+                    />
+                </div>
+
                 {preview && (
-                    <div className="border rounded-md p-2 flex justify-center bg-gray-50">
+                    <div className="border rounded-lg p-4 flex flex-col items-center justify-center bg-gray-50 space-y-2">
+                        <p className="text-[10px] text-gray-400 uppercase font-bold">Preview</p>
                         <img
                             src={preview}
                             alt="Preview"
-                            className="max-h-40 object-contain"
+                            className="max-h-40 object-contain rounded shadow-sm"
                         />
                     </div>
                 )}
-                <div className="flex justify-end gap-2">
+
+                <div className="flex justify-end gap-2 pt-2">
                     <Button variant="ghost" onClick={onClose}>
                         Cancel
                     </Button>
                     <Button
                         disabled={!file}
                         onClick={() => onSave(file)}
-                        className="bg-cyan-600 text-white"
+                        className="bg-cyan-600 hover:bg-cyan-700 text-white px-6"
                     >
-                        Upload
+                        Confirm & Upload
                     </Button>
                 </div>
             </div>

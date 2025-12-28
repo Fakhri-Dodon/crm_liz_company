@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next"; // 1. Import hook
 
 export default function DateTime() {
   const [now, setNow] = useState(new Date());
+  const { i18n } = useTranslation(); // 2. Ambil i18n untuk cek bahasa aktif
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -11,22 +13,24 @@ export default function DateTime() {
     return () => clearInterval(timer);
   }, []);
 
+  const currentLocale = i18n.language === 'id' ? 'id-ID' : 'en-US';
+
   return (
     <div className="text-sm text-black text-left">
-      <p>
-        {now.toLocaleDateString("en-US", {
+      <p className="font-medium">
+        {now.toLocaleDateString(currentLocale, {
           weekday: "long",
           day: "2-digit",
           month: "long",
           year: "numeric",
         })}
       </p>
-      <p>
-        {now.toLocaleTimeString("en-US", {
+      <p className="text-gray-600">
+        {now.toLocaleTimeString(currentLocale, {
           hour: "2-digit",
           minute: "2-digit",
           second: "2-digit",
-          hour12: true,
+          hour12: i18n.language !== 'id',
         })}
       </p>
     </div>

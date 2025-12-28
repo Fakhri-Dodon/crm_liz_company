@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useForm, router } from "@inertiajs/react";
+import { useForm, router, usePage } from "@inertiajs/react";
 import DocumentBuilder from "@/Components/PDF_Builder/Builder";
 import { Edit, Trash2, Loader2, Plus } from "lucide-react";
 import html2pdf from 'html2pdf.js';
@@ -312,6 +312,11 @@ export default function Create({ nextNumber, leads = [], companies = [] }) {
             </div>
         );
     };
+
+    const { props } = usePage();
+    const logoUrl = props.app_config?.doc_logo_path 
+                    ? `/storage/${props.app_config.doc_logo_path}` 
+                    : null;
 
     return (
         <>
@@ -1021,7 +1026,7 @@ export default function Create({ nextNumber, leads = [], companies = [] }) {
                         </div>
                     );
                 }}
-                renderPreview={({ data, addItem, removeItem, updateField }) => {
+                renderPreview={({ data, addItem, removeItem, updateField }) => {                
                     if (!builderAddItem) setBuilderAddItem(() => addItem);
 
                    useEffect(() => {

@@ -1,7 +1,9 @@
 import AuthenticatedLayout from "@/Layouts/HeaderLayout";
 import { Head } from "@inertiajs/react";
+import { useTranslation } from 'react-i18next';
 
-export default function Dashboard() {
+export default function Dashboard(props) {
+    const { t } = useTranslation();
     return (
         <AuthenticatedLayout
             header={
@@ -36,7 +38,7 @@ export default function Dashboard() {
                             <div>
                                 <div className="text-lg font-bold">12</div>
                                 <div className="text-gray-600 text-sm">
-                                    Lead
+                                    {t('cards_dashboard.lead')}
                                 </div>
                             </div>
                         </div>
@@ -60,7 +62,7 @@ export default function Dashboard() {
                             <div>
                                 <div className="text-lg font-bold">8</div>
                                 <div className="text-gray-600 text-sm">
-                                    Company
+                                    {t('cards_dashboard.company')}
                                 </div>
                             </div>
                         </div>
@@ -83,8 +85,8 @@ export default function Dashboard() {
                             </div>
                             <div>
                                 <div className="text-lg font-bold">5</div>
-                                <div className="text-gray-600 text-sm">
-                                    Proposal
+                                <div className="text-gray-600 text-sm">        
+                                    {t('cards_dashboard.proposal')}
                                 </div>
                             </div>
                         </div>
@@ -108,7 +110,7 @@ export default function Dashboard() {
                             <div>
                                 <div className="text-lg font-bold">3</div>
                                 <div className="text-gray-600 text-sm">
-                                    Invoice
+                                    {t('cards_dashboard.invoice')}
                                 </div>
                             </div>
                         </div>
@@ -132,7 +134,7 @@ export default function Dashboard() {
                             <div>
                                 <div className="text-lg font-bold">2</div>
                                 <div className="text-gray-600 text-sm">
-                                    Payment
+                                    {t('cards_dashboard.payment')}
                                 </div>
                             </div>
                         </div>
@@ -156,7 +158,7 @@ export default function Dashboard() {
                             <div>
                                 <div className="text-lg font-bold">1</div>
                                 <div className="text-gray-600 text-sm">
-                                    Report
+                                    {t('cards_dashboard.report')}
                                 </div>
                             </div>
                         </div>
@@ -180,7 +182,7 @@ export default function Dashboard() {
                             <div>
                                 <div className="text-lg font-bold">0</div>
                                 <div className="text-gray-600 text-sm">
-                                    Marketing Dashboard
+                                    {t('cards_dashboard.marketing')}
                                 </div>
                             </div>
                         </div>
@@ -204,7 +206,7 @@ export default function Dashboard() {
                             <div>
                                 <div className="text-lg font-bold">0</div>
                                 <div className="text-gray-600 text-sm">
-                                    Finance Dashboard
+                                    {t('cards_dashboard.finance')}
                                 </div>
                             </div>
                         </div>

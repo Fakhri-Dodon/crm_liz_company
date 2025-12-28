@@ -6,7 +6,7 @@ const PDFPreview = ({ children, title, logoUrl }) => {
             <div id="quotation-pdf" className="bg-white w-[210mm] min-h-[255mm] p-[15mm] shadow-2xl relative text-gray-800 text-[11px] leading-relaxed origin-top scale-[0.85] lg:scale-100 border border-gray-300">
                 {/* Header Utama */}
                 <div className="flex justify-between items-start mb-8">
-                    <div className="w-16 h-16 bg-gray-100 border border-gray-300 flex items-center justify-center font-bold text-[10px]">
+                    <div className="w-16 h-16 flex items-center justify-center font-bold text-[10px]">
                         {logoUrl ? (
                             <img 
                                 src={logoUrl} 

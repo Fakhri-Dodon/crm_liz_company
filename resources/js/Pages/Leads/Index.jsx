@@ -7,6 +7,7 @@ import LeadModal from "@/Components/LeadModal";
 import PrimaryButton from '@/Components/PrimaryButton';
 import DeleteConfirmationModal from "@/Components/DeleteConfirmationModal";
 import NotificationModal from "@/Components/NotificationModal";
+import { useTranslation } from "react-i18next";
 
 export default function LeadsIndex({ leads: initialLeads = [] }) {
     // State untuk leads dengan pengecekan array
@@ -16,6 +17,8 @@ export default function LeadsIndex({ leads: initialLeads = [] }) {
         }
         return [];
     });
+
+    const { t } = useTranslation();
     
     const [loading, setLoading] = useState(false);
     const [modalOpen, setModalOpen] = useState(false);
@@ -36,19 +39,19 @@ export default function LeadsIndex({ leads: initialLeads = [] }) {
     const columns = [
         { 
             key: "company_name", 
-            label: "Company Name" 
+            label: t('leads.table.company_name')
         },
         { 
             key: "address", 
-            label: "Address" 
+            label: t('leads.table.address') 
         },
         { 
             key: "contact_person", 
-            label: "Contact Person" 
+            label: t('leads.table.contact_person') 
         },
         {
             key: "email",
-            label: "Email & Phone",
+            label: t('leads.table.email_phone'),
             render: (_, row) => (
                 <div>
                     <div className="font-medium text-gray-900">{row.email || '-'}</div>
@@ -58,7 +61,7 @@ export default function LeadsIndex({ leads: initialLeads = [] }) {
         },
         {
             key: "status",
-            label: "Status",
+            label: t('leads.table.status'),
             render: (value, row) => {
                 // Handle both string and object for status
                 let statusName = 'NEW';
@@ -83,7 +86,7 @@ export default function LeadsIndex({ leads: initialLeads = [] }) {
                             ? 'bg-blue-100 text-blue-800' 
                             : 'bg-green-100 text-green-800'
                     }`}>
-                        {statusName}
+                        {t(`leads.status_labels.${statusName.toLowerCase()}`, { defaultValue: statusName })}
                     </span>
                 );
             },
@@ -232,8 +235,8 @@ export default function LeadsIndex({ leads: initialLeads = [] }) {
     return (
         <>
             <HeaderLayout
-                title="Leads Management"
-                subtitle="Manage all company leads"
+                title={t('leads.title')}
+                subtitle={t('leads.sub_title')}
             />
 
             {/* ACTION BAR */}
@@ -248,7 +251,7 @@ export default function LeadsIndex({ leads: initialLeads = [] }) {
                                 onChange={(e) => setSearch(e.target.value)}
                                 className="w-full sm:w-[220px] border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none bg-white"
                             >
-                                <option value="">All Companies</option>
+                                <option value="">{t('leads.filters.all_companies')}</option>
                                 {companyOptions.map((company) => (
                                     <option key={company} value={company}>
                                         {company}
@@ -271,7 +274,7 @@ export default function LeadsIndex({ leads: initialLeads = [] }) {
                             </div>
                             <input
                                 type="text"
-                                placeholder="Search leads..."
+                                placeholder={t('leads.filters.search_placeholder')}
                                 value={search}
                                 onChange={(e) => setSearch(e.target.value)}
                                 className="w-full sm:w-[280px] pl-10 border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -287,13 +290,13 @@ export default function LeadsIndex({ leads: initialLeads = [] }) {
                         <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                         </svg>
-                        <span>Add New Lead</span>
+                        <span>{t('leads.button_add')}</span>
                     </PrimaryButton>
                 </div>
                 
                 {/* Results Count */}
                 <div className="mt-4 text-sm text-gray-600">
-                    <span className="font-medium">{filteredLeads.length}</span> of <span className="font-medium">{leads.length}</span> leads shown
+                    {t('leads.filters.showing_info', { count: filteredLeads.length, total: leads.length })}
                 </div>
             </div>
 
@@ -302,7 +305,7 @@ export default function LeadsIndex({ leads: initialLeads = [] }) {
                 {loading ? (
                     <div className="flex flex-col items-center justify-center py-16 border border-gray-200 rounded-lg">
                         <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600 mb-4"></div>
-                        <p className="text-gray-600 font-medium">Loading leads...</p>
+                        <p className="text-gray-600 font-medium">{t('common.loading') || 'Loading...'}</p>
                     </div>
                 ) : filteredLeads.length === 0 ? (
                     <div className="flex flex-col items-center justify-center py-16 border border-gray-200 rounded-lg bg-gray-50">
@@ -312,17 +315,17 @@ export default function LeadsIndex({ leads: initialLeads = [] }) {
                             </svg>
                         </div>
                         <p className="text-gray-500 font-medium mb-2">
-                            {search ? 'No matching leads found' : 'No leads available'}
+                            {search ? t('leads.empty.no_match') : t('leads.empty.no_data')}
                         </p>
                         <p className="text-sm text-gray-400 mb-4">
-                            {search ? 'Try a different search term' : 'Start by adding your first lead'}
+                            {search ? t('leads.empty.try_again') : t('leads.empty.start_add')}
                         </p>
                         {search && (
                             <button
                                 onClick={() => setSearch('')}
                                 className="px-4 py-2 text-blue-600 hover:text-blue-800 text-sm font-medium hover:bg-blue-50 rounded-lg transition-colors"
                             >
-                                Clear Search
+                                {t('leads.filters.clear_search')}
                             </button>
                         )}
                     </div>

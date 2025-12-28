@@ -12,9 +12,16 @@ use App\Http\Controllers\EmailSettingsController;
 use App\Http\Controllers\CompanyController;
 use App\Http\Controllers\Quotation\QuotationController;
 use App\Http\Controllers\ProposalController;
+use App\Http\Controllers\ProposalNumberFormated;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Artisan;
 use Inertia\Inertia;
+
+Route::get('/run-migration', function () {
+    Artisan::call('migrate --force');
+    return "Migration success!";
+});
 
 Route::get('/', function () {
     return Inertia::render('Auth/Login', [
@@ -53,9 +60,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/email', fn() => Inertia::render('Email/Index'))->name('email.index');
     Route::get('/user', fn() => Inertia::render('Users/Index'))->name('user.index');
     Route::get('/project', fn() => Inertia::render('Projects/Index'))->name('project.index');
-    Route::get('/email-inbox', fn() => Inertia::render('Email/Index'))->name('email.index');
-    Route::get('/user-management', fn() => Inertia::render('Users/Index'))->name('user.index');
-    Route::get('/email', fn() => Inertia::render('Email/Index'))->name('email.inbox');
+    // Route::get('/email-inbox', fn() => Inertia::render('Email/Index'))->name('email.index');
+    // Route::get('/email', fn() => Inertia::render('Email/Index'))->name('email.inbox');
     Route::prefix('user')->name('user.')->group(function () {
         Route::get('/', [UserController::class, 'index']);
         Route::post('/store', [UserController::class, 'store'])->name('store');
@@ -77,7 +83,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
             Route::get('/', [SettingController::class, 'userRoles']);
             Route::post('/store', [SettingController::class, 'userRolesStore'])->name('store');
             Route::put('/{id}', [SettingController::class, 'userRolesUpdate'])->name('update');
-            Route::post('/role-store', [RolesController::class, 'roleStore'])->name('roles.store');
+            // Route::post('/role-store', [RolesController::class, 'roleStore'])->name('roles.store');
         });
         
         // Leads Settings
@@ -85,6 +91,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('/lead-status/store', [LeadStatusesController::class, 'store'])->name('lead-status.store');
         Route::put('/lead-status/update/{id}', [LeadStatusesController::class, 'update'])->name('lead-status.update');
         Route::delete('/lead-status/destroy/{id}', [LeadStatusesController::class, 'destroy'])->name('lead-status.delete');
+        // Proposals Settings
         Route::get('/proposals', [SettingController::class, 'proposals'])->name('proposals');
         Route::post('/proposal_numbering/update/{id}', [ProposalNumberFormated::class, 'update'])->name('proposal_numbering.update');
         Route::post('/proposal-status/store', [ProposalStatusesController::class, 'store'])->name('proposal-status.store');

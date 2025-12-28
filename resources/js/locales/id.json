@@ -1,0 +1,139 @@
+{
+    "header": {
+        "setting": "Pengaturan",
+        "notifications": "Notifikasi"
+    },
+    "menus": {
+        "dashboard": "DASBOR",
+        "clients": "KLIEN",
+        "lead": "PROSPEK",
+        "proposal": "PROPOSAL",
+        "quotation": "PENAWARAN",
+        "invoice": "TAGIHAN",
+        "payment": "PEMBAYARAN",
+        "project": "PROYEK",
+        "email": "EMAIL",
+        "user": "PENGGUNA"
+    },
+    "cards_dashboard": {
+        "lead": "Prospek",
+        "company": "Perusahaan",
+        "proposal": "Proposal",
+        "invoice": "Tagihan",
+        "payment": "Pembayaran",
+        "report": "Laporan",
+        "marketing": "Dasbor Pemasaran",
+        "finance": "Dasbor Keuangan"
+    },
+    "quotations": {
+        "title": "PENAWARAN",
+        "button_add": "TAMBAH PENAWARAN",
+        "stats": {
+            "draft": "RANCANGAN",
+            "sent": "DIKIRIM",
+            "accepted": "DITERIMA",
+            "expired": "KADALUARSA",
+            "rejected": "DITOLAK",
+            "footer": "Proyek selesai"
+        },
+        "filters": {
+            "search_placeholder": "Cari berdasarkan subjek atau klien",
+            "status": "Status",
+            "all_status": "Semua Status",
+            "month": "Bulan",
+            "all_months": "Semua Bulan",
+            "year": "Tahun",
+            "all_years": "Semua Tahun",
+            "apply": "Terapkan",
+            "reset": "Atur Ulang"
+        },
+        "table": {
+            "no": "NO",
+            "no_date": "NO & TANGGAL",
+            "subject": "SUBJEK",
+            "company_name": "NAMA PERUSAHAAN",
+            "contact": "KONTAK",
+            "created_by": "DIBUAT OLEH",
+            "total": "TOTAL",
+            "ppn_total": "Termasuk PPN",
+            "status": "STATUS",
+            "actions": "AKSI"
+        }
+    },
+    "leads": {
+        "title": "PROSPEK",
+        "sub_title": "Daftar manajemen prospek pelanggan",
+        "button_add": "TAMBAH PROSPEK",
+        "filters": {
+        "all_companies": "Semua Perusahaan",
+        "search_placeholder": "Cari prospek...",
+        "showing_info": "{{count}} dari {{total}} prospek ditampilkan",
+        "clear_search": "Hapus Pencarian"
+        },
+        "table": {
+        "company_name": "NAMA PERUSAHAAN",
+        "address": "ALAMAT",
+        "contact_person": "KONTAK PERSON",
+        "email_phone": "EMAIL & TELEPON",
+        "status": "STATUS"
+        },
+        "status_labels": {
+        "new": "Baru"
+        },
+        "empty": {
+        "no_match": "Tidak ada prospek yang cocok",
+        "no_data": "Belum ada data prospek",
+        "try_again": "Coba gunakan kata kunci lain",
+        "start_add": "Mulai dengan menambahkan prospek pertama Anda"
+        }
+    },
+    "users": {
+        "title": "PENGGUNA",
+        "button_add": "TAMBAH PENGGUNA",
+        "table": {
+            "no": "NO",
+            "name": "NAMA",
+            "position": "JABATAN",
+            "role": "PERAN",
+            "email": "EMAIL",
+            "phone": "TELEPON",
+            "last_seen": "TERAKHIR DILIHAT",
+            "actions": "AKSI",
+            "total_rows": "Total baris: {{count}}"
+        },
+        "time": {
+            "seconds_ago": "{{count}} detik yang lalu",
+            "minutes_ago": "{{count}} menit yang lalu",
+            "hours_ago": "{{count}} jam yang lalu",
+            "just_now": "Baru saja"
+        },
+        "modals": {
+            "add_title": "Tambah Pengguna Baru",
+            "edit_title": "Edit Pengguna",
+            "label_name": "Nama Lengkap*",
+            "label_position": "Jabatan*",
+            "label_email": "Email*",
+            "label_phone": "Telepon*",
+            "label_role": "Peran*",
+            "label_password": "Kata Sandi*",
+            "choose_role": "-- Pilih Peran --",
+            "no_roles": "Peran tidak tersedia",
+            "btn_cancel": "Batal",
+            "btn_add": "Tambah",
+            "btn_update": "Perbarui"
+        },
+        "email_overlay": {
+            "sending": "Mengirim Email",
+            "wait": "Mohon tunggu sebentar...",
+            "hide": "Sembunyikan Overlay"
+        },
+        "email_modal": {
+            "title": "Kirim Email",
+            "subtitle": "Kirim pesan ke {{name}}",
+            "label_template": "Pilih Template Email",
+            "choose_template": "-- Pilih Template --",
+            "btn_cancel": "Batal",
+            "btn_send": "Kirim Sekarang"
+        }
+    }
+}       
