@@ -14,15 +14,12 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware) {
         $middleware->trustProxies(at: '*');
-    
-        // Pastikan stateful untuk Sanctum/Inertia
-        $middleware->statefulApi();
 
         $middleware->web(append: [
-            \App\Http\Middleware\HandleInertiaRequests::class,
             \Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse::class,
-            UserActivity::class,
-        ]); 
+            \App\Http\Middleware\UserActivity::class,
+            \App\Http\Middleware\HandleInertiaRequests::class,
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
         //
