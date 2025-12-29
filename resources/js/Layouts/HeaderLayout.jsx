@@ -12,7 +12,7 @@ import {
     Send,
 } from "lucide-react";
 import { Link, usePage, router } from "@inertiajs/react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import Swal from "sweetalert2";
 
@@ -25,6 +25,9 @@ export default function HeaderLayout({ header, children }) {
     const [selectedDocId, setSelectedDocId] = useState(null);
     const [note, setNote] = useState("");
     const [isHamburgerOpen, setIsHamburgerOpen] = useState(false);
+    const [isHamburgerNotifOpen, setIsHamburgerNotifOpen] = useState(false);
+    const [isHamburgerLangOpen, setIsHamburgerLangOpen] = useState(false);
+    const hamburgerRef = useRef(null);
 
     const notifications = props.auth.notifications || [];
     const unreadCount = props.auth.unreadNotificationsCount || 0;
@@ -180,6 +183,29 @@ export default function HeaderLayout({ header, children }) {
         return () => window.Echo.leave(`App.Models.User.${user.id}`);
     }, [user.id]);
 
+    // Close hamburger on click outside or Escape
+    useEffect(() => {
+        if (!isHamburgerOpen) return;
+
+        function onKey(e) {
+            if (e.key === 'Escape') setIsHamburgerOpen(false);
+        }
+
+        function onClick(e) {
+            if (hamburgerRef.current && !hamburgerRef.current.contains(e.target)) {
+                setIsHamburgerOpen(false);
+            }
+        }
+
+        document.addEventListener('keydown', onKey);
+        document.addEventListener('mousedown', onClick);
+
+        return () => {
+            document.removeEventListener('keydown', onKey);
+            document.removeEventListener('mousedown', onClick);
+        };
+    }, [isHamburgerOpen]);
+
     return (
         <>
             {showReviseModal && (
@@ -280,75 +306,71 @@ export default function HeaderLayout({ header, children }) {
                             </div>
                         </Dropdown.Trigger>
                         <Dropdown.Content align="right" width="80">
-                            <div className="p-4 border-b border-gray-100 flex justify-between items-center">
-                                <span className="font-bold text-sm">
-                                    Notifications
-                                </span>
+                            <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
+                                <span className="font-bold text-sm">Notifications</span>
                                 {unreadCount > 0 && (
                                     <button
                                         onClick={markNotificationsAsRead}
-                                        className="text-teal-600 text-[10px] font-bold hover:underline"
+                                        className="text-teal-600 text-xs font-semibold hover:underline"
                                     >
                                         Mark all as read
                                     </button>
                                 )}
                             </div>
-                            <div className="max-h-96 overflow-y-auto">
+
+                            <div className="max-h-80 overflow-y-auto divide-y divide-gray-100">
                                 {notifications.length > 0 ? (
                                     notifications.map((n) => (
-                                        <div
-                                            key={n.id}
-                                            className="p-4 border-b border-gray-50 hover:bg-gray-50 transition-colors"
-                                        >
-                                            <p className="text-xs font-semibold text-gray-700">
-                                                {n.data.message}
-                                            </p>
-                                            {user.role_name === "Manager" &&
-                                                n.data.status === "draft" && (
-                                                    <div className="mt-3 flex gap-2">
+                                        <div key={n.id} className="px-4 py-3 hover:bg-gray-50 transition-colors">
+                                            <div className="flex items-start justify-between gap-3">
+                                                <div className="flex-1">
+                                                    <p className="text-sm text-gray-800 font-medium">{n.data.message}</p>
+                                                    {n.data?.meta && (
+                                                        <div className="text-xs text-gray-500 mt-1">{n.data.meta}</div>
+                                                    )}
+                                                </div>
+                                                <div className="ml-2 text-right">
+                                                    {n.data.status === 'draft' && (
+                                                        <span className="inline-block text-xs px-2 py-0.5 rounded-full bg-yellow-100 text-yellow-800">DRAFT</span>
+                                                    )}
+                                                    {n.data.status === 'approved' && (
+                                                        <span className="inline-block text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-800">APPROVED</span>
+                                                    )}
+                                                </div>
+                                            </div>
+
+                                            <div className="mt-3 flex items-center gap-2">
+                                                {user.role_name === 'Manager' && n.data.status === 'draft' && (
+                                                    <>
                                                         <button
-                                                            onClick={() =>
-                                                                handleApproveClick(
-                                                                    n.data.id
-                                                                )
-                                                            }
-                                                            className="flex-1 bg-teal-600 text-white text-[10px] py-1.5 rounded-lg font-bold"
+                                                            onClick={() => handleApproveClick(n.data.id)}
+                                                            className="px-3 py-1.5 text-xs rounded-md bg-teal-600 text-white hover:bg-teal-700"
                                                         >
                                                             APPROVE
                                                         </button>
                                                         <button
-                                                            onClick={() =>
-                                                                handleReviseClick(
-                                                                    n.data.id
-                                                                )
-                                                            }
-                                                            className="flex-1 bg-red-500 text-white text-[10px] py-1.5 rounded-lg font-bold"
+                                                            onClick={() => handleReviseClick(n.data.id)}
+                                                            className="px-3 py-1.5 text-xs rounded-md bg-red-500 text-white hover:bg-red-600"
                                                         >
                                                             REVISE
                                                         </button>
-                                                    </div>
+                                                    </>
                                                 )}
-                                            {user.role_name !== "Manager" &&
-                                                n.data.status ===
-                                                    "approved" && (
+
+                                                {user.role_name !== 'Manager' && n.data.status === 'approved' && (
                                                     <Link
-                                                        href={route(
-                                                            "quotation.markAsSent",
-                                                            n.data.id
-                                                        )}
+                                                        href={route('quotation.markAsSent', n.data.id)}
                                                         method="post"
-                                                        className="mt-2 w-full bg-orange-500 text-white text-[10px] py-2 rounded-lg font-bold flex items-center justify-center gap-2"
+                                                        className="inline-flex items-center gap-2 px-3 py-1.5 bg-orange-500 text-white text-xs rounded-md hover:bg-orange-600"
                                                     >
-                                                        <Send size={12} /> SEND
-                                                        TO CLIENT
+                                                        <Send size={12} /> {t('header.send_to_client') || 'SEND'}
                                                     </Link>
                                                 )}
+                                            </div>
                                         </div>
                                     ))
                                 ) : (
-                                    <div className="p-8 text-center text-gray-400 text-xs">
-                                        No notifications
-                                    </div>
+                                    <div className="p-6 text-center text-gray-400 text-sm">No notifications</div>
                                 )}
                             </div>
                         </Dropdown.Content>
@@ -456,68 +478,80 @@ export default function HeaderLayout({ header, children }) {
                     </button>
 
                     {isHamburgerOpen && (
-                        <div className="absolute right-0 mt-2 w-72 bg-white border border-gray-100 rounded-xl shadow-xl z-50 py-2">
-                            <div className="px-3 py-2">
-                                <Link href="/setting/general" className="block px-2 py-2 rounded-md text-sm text-gray-700 hover:bg-gray-50">{t('header.setting') || 'Setting'}</Link>
-                                <div className="mt-2">
-                                    <div className="flex items-center justify-between px-2">
-                                        <span className="text-sm font-medium text-gray-700">{t('header.notifications')}</span>
-                                        {unreadCount > 0 && <span className="text-xs text-red-600 font-bold">{unreadCount}</span>}
-                                    </div>
-                                    <div className="max-h-48 overflow-y-auto mt-2">
-                                        {notifications.length > 0 ? (
-                                            notifications.map((n) => (
-                                                <div key={n.id} className="px-2 py-2 border-b last:border-b-0">
-                                                    <p className="text-xs font-semibold text-gray-700">{n.data.message}</p>
-                                                    {user.role_name === 'Manager' && n.data.status === 'draft' && (
-                                                        <div className="mt-2 flex gap-2">
-                                                            <button onClick={() => handleApproveClick(n.data.id)} className="flex-1 bg-teal-600 text-white text-xs py-1 rounded-md">APPROVE</button>
-                                                            <button onClick={() => { handleReviseClick(n.data.id); setIsHamburgerOpen(false); }} className="flex-1 bg-red-500 text-white text-xs py-1 rounded-md">REVISE</button>
+                        <>
+                            <div className="fixed inset-0 z-40" onClick={() => setIsHamburgerOpen(false)} aria-hidden="true"></div>
+                            <div ref={hamburgerRef} className="absolute right-0 mt-2 w-72 bg-white border border-gray-100 rounded-xl shadow-xl z-50 py-2 transform transition ease-out duration-150 origin-top-right">
+                                <div className="px-3 py-2">
+                                    <Link href="/setting/general" onClick={() => setIsHamburgerOpen(false)} className="block px-2 py-2 rounded-md text-sm text-gray-700 hover:bg-gray-50 hover:shadow-sm">{t('header.setting') || 'Setting'}</Link>
+
+                                    <div className="mt-2">
+                                        <button onClick={() => setIsHamburgerNotifOpen(v => !v)} className="w-full flex items-center justify-between px-2 py-2 rounded-md hover:bg-gray-50">
+                                            <span className="text-sm font-medium text-gray-700">{t('header.notifications')}</span>
+                                            {unreadCount > 0 && <span className="text-xs text-red-600 font-bold">{unreadCount}</span>}
+                                        </button>
+
+                                        {isHamburgerNotifOpen && (
+                                            <div className="max-h-48 overflow-y-auto mt-2 border rounded-md">
+                                                {notifications.length > 0 ? (
+                                                    notifications.map((n) => (
+                                                        <div key={n.id} className="px-2 py-2 border-b last:border-b-0">
+                                                            <p className="text-xs font-semibold text-gray-700">{n.data.message}</p>
+                                                            {user.role_name === 'Manager' && n.data.status === 'draft' && (
+                                                                <div className="mt-2 flex gap-2">
+                                                                    <button onClick={() => { handleApproveClick(n.data.id); setIsHamburgerOpen(false); }} className="flex-1 bg-teal-600 text-white text-xs py-1 rounded-md">APPROVE</button>
+                                                                    <button onClick={() => { handleReviseClick(n.data.id); setIsHamburgerOpen(false); }} className="flex-1 bg-red-500 text-white text-xs py-1 rounded-md">REVISE</button>
+                                                                </div>
+                                                            )}
+                                                            {user.role_name !== 'Manager' && n.data.status === 'approved' && (
+                                                                <Link href={route('quotation.markAsSent', n.data.id)} method="post" onClick={() => setIsHamburgerOpen(false)} className="mt-2 inline-flex items-center gap-2 bg-orange-500 text-white text-xs px-2 py-1 rounded-md">
+                                                                    <Send size={12} /> {t('header.send_to_client') || 'Send'}
+                                                                </Link>
+                                                            )}
                                                         </div>
-                                                    )}
-                                                    {user.role_name !== 'Manager' && n.data.status === 'approved' && (
-                                                        <Link href={route('quotation.markAsSent', n.data.id)} method="post" className="mt-2 inline-flex items-center gap-2 bg-orange-500 text-white text-xs px-2 py-1 rounded-md">
-                                                            <Send size={12} /> {t('header.send_to_client') || 'Send'}
-                                                        </Link>
-                                                    )}
-                                                </div>
-                                            ))
-                                        ) : (
-                                            <div className="p-3 text-center text-gray-400 text-xs">No notifications</div>
+                                                    ))
+                                                ) : (
+                                                    <div className="p-3 text-center text-gray-400 text-xs">No notifications</div>
+                                                )}
+                                            </div>
                                         )}
                                     </div>
-                                </div>
 
-                                {allowChange && (
-                                    <div className="mt-3">
-                                        <div className="text-sm font-medium text-gray-700 mb-1">{t('header.language') || 'Language'}</div>
-                                        <div className="flex gap-2">
-                                            {languages.map(lang => (
-                                                <button key={lang.code} onClick={() => { i18n.changeLanguage(lang.code); setIsHamburgerOpen(false); }} className="px-2 py-1 rounded-md text-sm hover:bg-gray-50">{lang.flag} {lang.code.toUpperCase()}</button>
-                                            ))}
+                                    {allowChange && (
+                                        <div className="mt-3">
+                                            <button onClick={() => setIsHamburgerLangOpen(v => !v)} className="w-full flex items-center justify-between px-2 py-2 rounded-md hover:bg-gray-50">
+                                                <span className="text-sm font-medium text-gray-700">Language</span>
+                                                <span className="text-xs text-gray-500">{isHamburgerLangOpen ? '-' : '+'}</span>
+                                            </button>
+                                            {isHamburgerLangOpen && (
+                                                <div className="mt-2 flex gap-2 flex-wrap">
+                                                    {languages.map(lang => (
+                                                        <button key={lang.code} onClick={() => { i18n.changeLanguage(lang.code); setIsHamburgerOpen(false); }} className="px-2 py-1 rounded-md text-sm hover:bg-gray-50">{lang.flag} {lang.code.toUpperCase()}</button>
+                                                    ))}
+                                                </div>
+                                            )}
                                         </div>
-                                    </div>
-                                )}
+                                    )}
 
-                                <div className="mt-3 border-t pt-3">
-                                    <Link href="/profile" className="block px-2 py-2 text-sm text-gray-700 hover:bg-gray-50">Profile</Link>
-                                    <Link method="post" href={route('logout')} as="button" className="block w-full text-left px-2 py-2 text-sm text-red-600 hover:bg-red-50">Logout</Link>
+                                    <div className="mt-3 border-t pt-3">
+                                        <Link href="/profile" onClick={() => setIsHamburgerOpen(false)} className="block px-2 py-2 text-sm text-gray-700 hover:bg-gray-50">Profile</Link>
+                                        <Link method="post" href={route('logout')} as="button" onClick={() => setIsHamburgerOpen(false)} className="block w-full text-left px-2 py-2 text-sm text-red-600 hover:bg-red-50">Logout</Link>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
+                        </>
                     )}
                 </div>
             </header>
 
             {/* NAVBAR */}
             {/* Ditambahkan overflow-x-auto agar menu yang banyak bisa di-swipe di HP */}
-            <nav className="min-h-[4rem] bg-teal-800 flex items-center px-4 py-3 md:px-8 shadow-inner">
-                <ul className="flex flex-wrap items-center justify-center md:justify-start gap-y-3 gap-x-2 md:gap-x-4 w-full">
+            <nav className="min-h-[4rem] bg-teal-800 flex items-center px-2 sm:px-4 py-3 md:px-8 shadow-inner overflow-x-auto">
+                <ul className="flex flex-nowrap md:flex-wrap items-center justify-center md:justify-start gap-y-3 gap-x-3 md:gap-x-4 w-max md:w-full">
                     {menus.map((item) => (
-                        <li key={item.path}>
+                        <li key={item.path} className="flex-shrink-0 md:flex-shrink">
                             <Link
                                 href={item.path}
-                                className={`inline-block px-3 py-1.5 rounded-lg font-bold text-[10px] md:text-xs lg:text-sm uppercase tracking-wider transition-all ${
+                                className={`inline-block min-w-[9rem] md:min-w-0 text-center px-3 py-2 rounded-lg font-bold text-[10px] md:text-xs lg:text-sm uppercase tracking-wider transition-all hover:shadow-sm ${
                                     url.startsWith(item.path)
                                         ? "bg-white text-teal-800 shadow-md scale-105"
                                         : "text-teal-50 hover:text-white hover:bg-white/10"

@@ -73,8 +73,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('/send-email/{type}/{id}', [EmailController::class, 'sendDocument'])->name('email.send-document');
 
     // Route::get('/invoice', fn() => Inertia::render('Invoices/Index'))->name('invoice.index');
-    // Route::get('/payment', fn() => Inertia::render('Payments/Index'))->name('payment.index');
-    // Route::get('/email', fn() => Inertia::render('Email/Index'))->name('email.index');
+    Route::get('/payment', fn() => Inertia::render('Payments/Index'))->name('payment.index');
+    Route::get('/email', fn() => Inertia::render('Email/Index'))->name('email.index');
     // Route::get('/user', fn() => Inertia::render('Users/Index'))->name('user.index');
     // Route::get('/project', fn() => Inertia::render('Projects/Index'))->name('project.index');
     // Route::get('/email-inbox', fn() => Inertia::render('Email/Index'))->name('email.index');
