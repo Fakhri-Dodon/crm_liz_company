@@ -4,33 +4,34 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm install && npm install @rollup/rollup-linux-x64-musl
 COPY . .
+
+# Mengakali Koyeb: Kita buat file .env sementara agar Vite bisa membaca kuncinya saat build
+RUN echo "VITE_REVERB_APP_KEY=lizeverywherekey" > .env && \
+    echo "VITE_REVERB_HOST=established-maxy-syntaxid-e1fbc0af.koyeb.app" >> .env && \
+    echo "VITE_REVERB_PORT=443" >> .env && \
+    echo "VITE_REVERB_SCHEME=https" >> .env
+
 RUN npm run build
 
 # --- Tahap 2: Backend (PHP 8.3 + Nginx) ---
 FROM php:8.3-fpm-alpine AS backend
 WORKDIR /var/www/html
 
-# Install dependensi sistem & ekstensi PHP
 RUN apk add --no-cache nginx git icu-dev libpng-dev libzip-dev zip unzip mysql-client && \
     docker-php-ext-install pdo pdo_mysql bcmath intl
 
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 COPY nginx.conf /etc/nginx/http.d/default.conf
 
-# 1. Copy composer files
 COPY composer.json composer.lock ./
-
-# 2. Install dependencies tanpa skrip (mencegah error Pusher/Reverb saat build)
 RUN composer install --no-dev --no-scripts --no-autoloader --prefer-dist
 
-# 3. Copy source code & hasil build frontend
 COPY . .
 COPY --from=frontend /app/public/build /var/www/html/public/build
 
-# 4. Dump autoload tanpa menjalankan artisan discover (SOLUSI KRUSIAL)
+# Gunakan --no-scripts agar artisan discovery tidak jalan saat build
 RUN composer dump-autoload --optimize --no-dev --classmap-authoritative --no-scripts
 
-# 5. Permission
 RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache && \
     chmod -R 775 /var/www/html/storage /var/www/html/bootstrap/cache
 
