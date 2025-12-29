@@ -7,22 +7,22 @@ export default function Dashboard(props) {
     return (
         <AuthenticatedLayout
             header={
-                <h2 className="text-xl font-semibold leading-tight text-gray-800">
+                <h2 className="text-xl md:text-2xl font-semibold leading-tight text-gray-800">
                     Dashboard
                 </h2>
             }
         >
             <Head title="Dashboard" />
 
-            <div className="py-12">
-                <div className="mx-auto max-w-7xl sm:px-6 lg:px-8">
+            <div className="py-6 sm:py-10 md:py-12">
+                <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
                     {/* Dashboard Cards */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6 mb-8">
                         {/* Lead Card */}
-                        <div className="bg-white rounded-lg shadow p-6 flex items-center gap-4 border-l-4 border-green-700">
-                            <div className="bg-green-100 p-3 rounded-full">
+                        <div className="bg-white rounded-lg shadow p-4 sm:p-6 flex flex-col sm:flex-row items-center gap-3 sm:gap-4 border-l-4 border-green-700 min-w-0">
+                            <div className="bg-green-100 p-2 sm:p-3 rounded-full">
                                 <svg
-                                    className="w-7 h-7 text-green-700"
+                                    className="w-6 h-6 sm:w-7 sm:h-7 text-green-700"
                                     fill="none"
                                     stroke="currentColor"
                                     strokeWidth="2"
@@ -35,18 +35,18 @@ export default function Dashboard(props) {
                                     />
                                 </svg>
                             </div>
-                            <div>
-                                <div className="text-lg font-bold">12</div>
-                                <div className="text-gray-600 text-sm">
+                            <div className="flex-1 min-w-0">
+                                <div className="text-base sm:text-lg font-bold">12</div>
+                                <div className="text-gray-600 text-xs sm:text-sm">
                                     {t('cards_dashboard.lead')}
                                 </div>
                             </div>
                         </div>
                         {/* Company Card */}
-                        <div className="bg-white rounded-lg shadow p-6 flex items-center gap-4 border-l-4 border-blue-700">
-                            <div className="bg-blue-100 p-3 rounded-full">
+                        <div className="bg-white rounded-lg shadow p-4 sm:p-6 flex flex-col sm:flex-row items-center gap-3 sm:gap-4 border-l-4 border-blue-700 min-w-0">
+                            <div className="bg-blue-100 p-2 sm:p-3 rounded-full">
                                 <svg
-                                    className="w-7 h-7 text-blue-700"
+                                    className="w-6 h-6 sm:w-7 sm:h-7 text-blue-700"
                                     fill="none"
                                     stroke="currentColor"
                                     strokeWidth="2"
@@ -59,18 +59,18 @@ export default function Dashboard(props) {
                                     />
                                 </svg>
                             </div>
-                            <div>
-                                <div className="text-lg font-bold">8</div>
-                                <div className="text-gray-600 text-sm">
+                            <div className="flex-1 min-w-0">
+                                <div className="text-base sm:text-lg font-bold">8</div>
+                                <div className="text-gray-600 text-xs sm:text-sm">
                                     {t('cards_dashboard.company')}
                                 </div>
                             </div>
                         </div>
                         {/* Proposal Card */}
-                        <div className="bg-white rounded-lg shadow p-6 flex items-center gap-4 border-l-4 border-purple-700">
-                            <div className="bg-purple-100 p-3 rounded-full">
+                        <div className="bg-white rounded-lg shadow p-4 sm:p-6 flex flex-col sm:flex-row items-center gap-3 sm:gap-4 border-l-4 border-purple-700 min-w-0">
+                            <div className="bg-purple-100 p-2 sm:p-3 rounded-full">
                                 <svg
-                                    className="w-7 h-7 text-purple-700"
+                                    className="w-6 h-6 sm:w-7 sm:h-7 text-purple-700"
                                     fill="none"
                                     stroke="currentColor"
                                     strokeWidth="2"
@@ -83,18 +83,18 @@ export default function Dashboard(props) {
                                     />
                                 </svg>
                             </div>
-                            <div>
-                                <div className="text-lg font-bold">5</div>
-                                <div className="text-gray-600 text-sm">        
+                            <div className="flex-1 min-w-0">
+                                <div className="text-base sm:text-lg font-bold">5</div>
+                                <div className="text-gray-600 text-xs sm:text-sm">        
                                     {t('cards_dashboard.proposal')}
                                 </div>
                             </div>
                         </div>
                         {/* Invoice Card */}
-                        <div className="bg-white rounded-lg shadow p-6 flex items-center gap-4 border-l-4 border-yellow-600">
-                            <div className="bg-yellow-100 p-3 rounded-full">
+                        <div className="bg-white rounded-lg shadow p-4 sm:p-6 flex flex-col sm:flex-row items-center gap-3 sm:gap-4 border-l-4 border-yellow-600 min-w-0">
+                            <div className="bg-yellow-100 p-2 sm:p-3 rounded-full">
                                 <svg
-                                    className="w-7 h-7 text-yellow-600"
+                                    className="w-6 h-6 sm:w-7 sm:h-7 text-yellow-600"
                                     fill="none"
                                     stroke="currentColor"
                                     strokeWidth="2"
@@ -107,18 +107,18 @@ export default function Dashboard(props) {
                                     />
                                 </svg>
                             </div>
-                            <div>
-                                <div className="text-lg font-bold">3</div>
-                                <div className="text-gray-600 text-sm">
+                            <div className="flex-1 min-w-0">
+                                <div className="text-base sm:text-lg font-bold">3</div>
+                                <div className="text-gray-600 text-xs sm:text-sm">
                                     {t('cards_dashboard.invoice')}
                                 </div>
                             </div>
                         </div>
                         {/* Payment Card */}
-                        <div className="bg-white rounded-lg shadow p-6 flex items-center gap-4 border-l-4 border-teal-700">
-                            <div className="bg-teal-100 p-3 rounded-full">
+                        <div className="bg-white rounded-lg shadow p-4 sm:p-6 flex flex-col sm:flex-row items-center gap-3 sm:gap-4 border-l-4 border-teal-700 min-w-0">
+                            <div className="bg-teal-100 p-2 sm:p-3 rounded-full">
                                 <svg
-                                    className="w-7 h-7 text-teal-700"
+                                    className="w-6 h-6 sm:w-7 sm:h-7 text-teal-700"
                                     fill="none"
                                     stroke="currentColor"
                                     strokeWidth="2"
@@ -131,18 +131,18 @@ export default function Dashboard(props) {
                                     />
                                 </svg>
                             </div>
-                            <div>
-                                <div className="text-lg font-bold">2</div>
-                                <div className="text-gray-600 text-sm">
+                            <div className="flex-1 min-w-0">
+                                <div className="text-base sm:text-lg font-bold">2</div>
+                                <div className="text-gray-600 text-xs sm:text-sm">
                                     {t('cards_dashboard.payment')}
                                 </div>
                             </div>
                         </div>
                         {/* Report Card */}
-                        <div className="bg-white rounded-lg shadow p-6 flex items-center gap-4 border-l-4 border-gray-700">
-                            <div className="bg-gray-100 p-3 rounded-full">
+                        <div className="bg-white rounded-lg shadow p-4 sm:p-6 flex flex-col sm:flex-row items-center gap-3 sm:gap-4 border-l-4 border-gray-700 min-w-0">
+                            <div className="bg-gray-100 p-2 sm:p-3 rounded-full">
                                 <svg
-                                    className="w-7 h-7 text-gray-700"
+                                    className="w-6 h-6 sm:w-7 sm:h-7 text-gray-700"
                                     fill="none"
                                     stroke="currentColor"
                                     strokeWidth="2"
@@ -155,18 +155,18 @@ export default function Dashboard(props) {
                                     />
                                 </svg>
                             </div>
-                            <div>
-                                <div className="text-lg font-bold">1</div>
-                                <div className="text-gray-600 text-sm">
+                            <div className="flex-1 min-w-0">
+                                <div className="text-base sm:text-lg font-bold">1</div>
+                                <div className="text-gray-600 text-xs sm:text-sm">
                                     {t('cards_dashboard.report')}
                                 </div>
                             </div>
                         </div>
                         {/* Marketing Dashboard Card */}
-                        <div className="bg-white rounded-lg shadow p-6 flex items-center gap-4 border-l-4 border-pink-600">
-                            <div className="bg-pink-100 p-3 rounded-full">
+                        <div className="bg-white rounded-lg shadow p-4 sm:p-6 flex flex-col sm:flex-row items-center gap-3 sm:gap-4 border-l-4 border-pink-600 min-w-0">
+                            <div className="bg-pink-100 p-2 sm:p-3 rounded-full">
                                 <svg
-                                    className="w-7 h-7 text-pink-600"
+                                    className="w-6 h-6 sm:w-7 sm:h-7 text-pink-600"
                                     fill="none"
                                     stroke="currentColor"
                                     strokeWidth="2"
@@ -179,18 +179,18 @@ export default function Dashboard(props) {
                                     />
                                 </svg>
                             </div>
-                            <div>
-                                <div className="text-lg font-bold">0</div>
-                                <div className="text-gray-600 text-sm">
+                            <div className="flex-1 min-w-0">
+                                <div className="text-base sm:text-lg font-bold">0</div>
+                                <div className="text-gray-600 text-xs sm:text-sm">
                                     {t('cards_dashboard.marketing')}
                                 </div>
                             </div>
                         </div>
                         {/* Finance Dashboard Card */}
-                        <div className="bg-white rounded-lg shadow p-6 flex items-center gap-4 border-l-4 border-indigo-700">
-                            <div className="bg-indigo-100 p-3 rounded-full">
+                        <div className="bg-white rounded-lg shadow p-4 sm:p-6 flex flex-col sm:flex-row items-center gap-3 sm:gap-4 border-l-4 border-indigo-700 min-w-0">
+                            <div className="bg-indigo-100 p-2 sm:p-3 rounded-full">
                                 <svg
-                                    className="w-7 h-7 text-indigo-700"
+                                    className="w-6 h-6 sm:w-7 sm:h-7 text-indigo-700"
                                     fill="none"
                                     stroke="currentColor"
                                     strokeWidth="2"
@@ -203,9 +203,9 @@ export default function Dashboard(props) {
                                     />
                                 </svg>
                             </div>
-                            <div>
-                                <div className="text-lg font-bold">0</div>
-                                <div className="text-gray-600 text-sm">
+                            <div className="flex-1 min-w-0">
+                                <div className="text-base sm:text-lg font-bold">0</div>
+                                <div className="text-gray-600 text-xs sm:text-sm">
                                     {t('cards_dashboard.finance')}
                                 </div>
                             </div>

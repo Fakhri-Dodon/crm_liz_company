@@ -1,7 +1,6 @@
 <?php
 
 use App\Http\Controllers\UserController;
-use App\Http\Controllers\RolesController;
 use App\Http\Controllers\LeadController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\SettingController;
@@ -11,10 +10,12 @@ use App\Http\Controllers\ProposalStatusesController;
 use App\Http\Controllers\ProjectController;
 use App\Http\Controllers\EmailSettingsController;
 use App\Http\Controllers\CompanyController;
+use App\Http\Controllers\EmailController;
+use App\Http\Controllers\InvoiceController;
 use App\Http\Controllers\Quotation\QuotationController;
 use App\Http\Controllers\ProposalController;
 use App\Http\Controllers\ProposalNumberFormated;
-use App\Http\Controllers\InvoiceController;
+use App\Http\Controllers\RolesController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Artisan;
@@ -63,6 +64,14 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     // Invoice resource routes (CRUD)
     Route::resource('invoice', InvoiceController::class);
+    // Approval flow
+    Route::post('/invoice/{invoice}/request-approval', [InvoiceController::class, 'requestApproval'])->name('invoice.request-approval');
+    Route::post('/invoice/{invoice}/approve', [InvoiceController::class, 'approve'])->name('invoice.approve');
+    Route::post('/invoice/{invoice}/revise', [InvoiceController::class, 'revise'])->name('invoice.revise');
+    // notif send document(quotation/invoice)email
+    Route::post('/send-email/{type}/{id}', [EmailController::class, 'sendDocument'])->name('email.send-document');
+
+    // Route::get('/invoice', fn() => Inertia::render('Invoices/Index'))->name('invoice.index');
     // Route::get('/payment', fn() => Inertia::render('Payments/Index'))->name('payment.index');
     // Route::get('/email', fn() => Inertia::render('Email/Index'))->name('email.index');
     // Route::get('/user', fn() => Inertia::render('Users/Index'))->name('user.index');

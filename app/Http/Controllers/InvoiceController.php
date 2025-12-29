@@ -158,4 +158,28 @@ class InvoiceController extends Controller
         $invoice->delete();
         return redirect()->route('invoice.index')->with('success', 'Invoice deleted');
     }
+
+    public function requestApproval(Invoice $invoice)
+    {
+        $invoice->status = 'Waiting Approval';
+        $invoice->save();
+        // TODO: Notifikasi ke manager (bisa pakai event/notification/email)
+        return redirect()->route('invoice.index')->with('success', 'Approval requested. Waiting for manager review.');
+    }
+
+    public function approve(Invoice $invoice)
+    {
+        $invoice->status = 'Approved';
+        $invoice->save();
+        // TODO: Notifikasi ke user (bisa pakai event/notification/email)
+        return redirect()->route('invoice.index')->with('success', 'Invoice approved.');
+    }
+
+    public function revise(Invoice $invoice)
+    {
+        $invoice->status = 'Revised';
+        $invoice->save();
+        // TODO: Notifikasi ke user (bisa pakai event/notification/email)
+        return redirect()->route('invoice.index')->with('success', 'Invoice marked as revised.');
+    }
 }

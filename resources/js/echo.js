@@ -5,15 +5,18 @@ window.Pusher = Pusher;
 
 window.Echo = new Echo({
     broadcaster: 'reverb',
-    key: import.meta.env.VITE_REVERB_APP_KEY,
-    wsHost: import.meta.env.VITE_REVERB_HOST,
-    wsPort: import.meta.env.VITE_REVERB_PORT ?? 80,
-    forceTLS: (import.meta.env.VITE_REVERB_SCHEME ?? 'https') === 'https',
+    // Gunakan ENV jika ada, jika tidak gunakan hardcode (untuk build Koyeb)
+    key: import.meta.env.VITE_REVERB_APP_KEY || 'lizeverywherekey',
+    wsHost: import.meta.env.VITE_REVERB_HOST || 'established-maxy-syntaxid-e1fbc0af.koyeb.app',
+    // Deteksi otomatis port: 443 untuk produksi (Koyeb), 8080 untuk lokal
+    wsPort: import.meta.env.VITE_REVERB_PORT || (import.meta.env.MODE === 'production' ? 443 : 8080),
+    wssPort: import.meta.env.VITE_REVERB_PORT || (import.meta.env.MODE === 'production' ? 443 : 8080),
+    forceTLS: true,
     enabledTransports: ['ws', 'wss'],
-    // Tambahkan ini jika masih bandel:
     auth: {
         headers: {
-            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content')
+            'X-Requested-With': 'XMLHttpRequest',
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content'),
         }
     }
 });

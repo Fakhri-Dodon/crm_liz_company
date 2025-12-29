@@ -1,10 +1,16 @@
 import React, { useState } from "react";
 import HeaderLayout from "@/Layouts/HeaderLayout";
 import { Link, usePage, useForm } from "@inertiajs/react";
+import DevelopmentPage from "../DevelopmentPage";
 
 export default function Index() {
     const { props } = usePage();
     const contacts = props.contacts ?? [];
+    const dev = true; // Ubah ke true untuk menampilkan halaman development
+
+    if (dev) {
+        return <DevelopmentPage />;
+    }
 
     // Try to use server props if available, otherwise fallback to sample data for UI preview
     const invoices = props.invoices ?? [
@@ -101,14 +107,20 @@ export default function Index() {
     function submitCreate(e) {
         e.preventDefault();
         form.post(route("invoice.store"), {
-            onSuccess: () => setIsCreateOpen(false),
+            onSuccess: () => {
+                setIsCreateOpen(false);
+                window.location.href = route("invoice.index");
+            },
         });
     }
 
     function submitEdit(e) {
         e.preventDefault();
         form.put(route("invoice.update", editingId), {
-            onSuccess: () => setIsEditOpen(false),
+            onSuccess: () => {
+                setIsEditOpen(false);
+                window.location.href = route("invoice.index");
+            },
         });
     }
 

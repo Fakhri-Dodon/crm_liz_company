@@ -24,6 +24,7 @@ export default function HeaderLayout({ header, children }) {
     const [showReviseModal, setShowReviseModal] = useState(false);
     const [selectedDocId, setSelectedDocId] = useState(null);
     const [note, setNote] = useState("");
+    const [isHamburgerOpen, setIsHamburgerOpen] = useState(false);
 
     const notifications = props.auth.notifications || [];
     const unreadCount = props.auth.unreadNotificationsCount || 0;
@@ -244,7 +245,7 @@ export default function HeaderLayout({ header, children }) {
                     </div>
                 </div>
 
-                <div className="flex items-center gap-1 md:gap-2">
+                <div className="hidden sm:flex items-center gap-1 md:gap-2">
                     <Link
                         href="/setting/general"
                         className="flex flex-col items-center p-2 hover:bg-gray-50 rounded-xl transition-all group"
@@ -439,6 +440,72 @@ export default function HeaderLayout({ header, children }) {
                             </Link>
                         </Dropdown.Content>
                     </Dropdown>
+                </div>
+
+                {/* Hamburger for small screens */}
+                <div className="sm:hidden relative">
+                    <button
+                        onClick={() => setIsHamburgerOpen(prev => !prev)}
+                        className="p-2 rounded-lg hover:bg-gray-100 transition"
+                        aria-expanded={isHamburgerOpen}
+                        aria-label="Open menu"
+                    >
+                        <svg className="w-6 h-6 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                        </svg>
+                    </button>
+
+                    {isHamburgerOpen && (
+                        <div className="absolute right-0 mt-2 w-72 bg-white border border-gray-100 rounded-xl shadow-xl z-50 py-2">
+                            <div className="px-3 py-2">
+                                <Link href="/setting/general" className="block px-2 py-2 rounded-md text-sm text-gray-700 hover:bg-gray-50">{t('header.setting') || 'Setting'}</Link>
+                                <div className="mt-2">
+                                    <div className="flex items-center justify-between px-2">
+                                        <span className="text-sm font-medium text-gray-700">{t('header.notifications')}</span>
+                                        {unreadCount > 0 && <span className="text-xs text-red-600 font-bold">{unreadCount}</span>}
+                                    </div>
+                                    <div className="max-h-48 overflow-y-auto mt-2">
+                                        {notifications.length > 0 ? (
+                                            notifications.map((n) => (
+                                                <div key={n.id} className="px-2 py-2 border-b last:border-b-0">
+                                                    <p className="text-xs font-semibold text-gray-700">{n.data.message}</p>
+                                                    {user.role_name === 'Manager' && n.data.status === 'draft' && (
+                                                        <div className="mt-2 flex gap-2">
+                                                            <button onClick={() => handleApproveClick(n.data.id)} className="flex-1 bg-teal-600 text-white text-xs py-1 rounded-md">APPROVE</button>
+                                                            <button onClick={() => { handleReviseClick(n.data.id); setIsHamburgerOpen(false); }} className="flex-1 bg-red-500 text-white text-xs py-1 rounded-md">REVISE</button>
+                                                        </div>
+                                                    )}
+                                                    {user.role_name !== 'Manager' && n.data.status === 'approved' && (
+                                                        <Link href={route('quotation.markAsSent', n.data.id)} method="post" className="mt-2 inline-flex items-center gap-2 bg-orange-500 text-white text-xs px-2 py-1 rounded-md">
+                                                            <Send size={12} /> {t('header.send_to_client') || 'Send'}
+                                                        </Link>
+                                                    )}
+                                                </div>
+                                            ))
+                                        ) : (
+                                            <div className="p-3 text-center text-gray-400 text-xs">No notifications</div>
+                                        )}
+                                    </div>
+                                </div>
+
+                                {allowChange && (
+                                    <div className="mt-3">
+                                        <div className="text-sm font-medium text-gray-700 mb-1">{t('header.language') || 'Language'}</div>
+                                        <div className="flex gap-2">
+                                            {languages.map(lang => (
+                                                <button key={lang.code} onClick={() => { i18n.changeLanguage(lang.code); setIsHamburgerOpen(false); }} className="px-2 py-1 rounded-md text-sm hover:bg-gray-50">{lang.flag} {lang.code.toUpperCase()}</button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+
+                                <div className="mt-3 border-t pt-3">
+                                    <Link href="/profile" className="block px-2 py-2 text-sm text-gray-700 hover:bg-gray-50">Profile</Link>
+                                    <Link method="post" href={route('logout')} as="button" className="block w-full text-left px-2 py-2 text-sm text-red-600 hover:bg-red-50">Logout</Link>
+                                </div>
+                            </div>
+                        </div>
+                    )}
                 </div>
             </header>
 

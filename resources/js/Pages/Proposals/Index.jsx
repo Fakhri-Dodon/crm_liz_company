@@ -100,136 +100,126 @@ export default function ProposalsIndex() {
                 title="Proposals Management"
                 subtitle="Manage all company proposals"
             />
-            <div className="p-8">
-                <div className="flex gap-8 mb-8">
+            <div className="p-4 sm:p-6 md:p-8">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6 mb-8">
                     {summary.map((s, i) => (
                         <div
                             key={s.label}
-                            className={`flex-1 border-2 rounded-lg p-6 text-center ${s.color}`}
+                            className={`border-2 rounded-lg p-4 sm:p-6 text-center ${s.color}`}
                         >
-                            <div className="text-xl font-bold mb-1">
+                            <div className="text-base sm:text-xl font-bold mb-1">
                                 {s.label}
                             </div>
-                            <div className="text-2xl font-bold mb-1">
+                            <div className="text-xl sm:text-2xl font-bold mb-1">
                                 {s.value}
                             </div>
-                            <div className="text-gray-500 text-sm">
+                            <div className="text-gray-500 text-xs sm:text-sm">
                                 {s.desc}
                             </div>
                         </div>
                     ))}
                 </div>
-                <div className="flex justify-end mb-4">
+                <div className="flex flex-col sm:flex-row justify-end mb-4">
                     <Link href="/proposal/add">
-                        <button className="bg-teal-800 hover:bg-teal-900 text-white px-6 py-2 rounded-md font-semibold">
+                        <button className="bg-teal-800 hover:bg-teal-900 text-white px-4 sm:px-6 py-2 rounded-md font-semibold w-full sm:w-auto">
                             Add Proposal
                         </button>
                     </Link>
                 </div>
-                <table className="w-full border-collapse">
-                    <thead>
-                        <tr className="bg-green-100">
-                            <th className="border px-3 py-2">ID</th>
-                            <th className="border px-3 py-2">No & Date</th>
-                            <th className="border px-3 py-2">Title</th>
-                            <th className="border px-3 py-2">Companye Name</th>
-                            <th className="border px-3 py-2">
-                                Contact & Email
-                            </th>
-                            <th className="border px-3 py-2">Created By</th>
-                            <th className="border px-3 py-2">Status</th>
-                            <th className="border px-3 py-2">Action</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {proposals.map((p) => (
-                            <tr key={p.id}>
-                                <td className="border px-3 py-2 text-center">
-                                    {p.id}
-                                </td>
-                                <td className="border px-3 py-2">
-                                    <span className="font-bold text-blue-700 cursor-pointer hover:underline">
-                                        {p.number}
-                                    </span>
-                                    <div className="text-xs text-gray-500">
-                                        {p.date}
-                                    </div>
-                                </td>
-                                <td className="border px-3 py-2">{p.title}</td>
-                                <td className="border px-3 py-2">
-                                    {p.company}
-                                </td>
-                                <td className="border px-3 py-2">
-                                    <span className="font-bold">
-                                        {p.contact.name}
-                                    </span>
-                                    <div className="text-xs text-gray-500">
-                                        {p.contact.email}
-                                    </div>
-                                </td>
-                                <td className="border px-3 py-2 text-blue-700 cursor-pointer hover:underline">
-                                    {p.createdBy}
-                                </td>
-                                <td className="border px-3 py-2">
-                                    <span
-                                        className={`inline-block px-4 py-1 rounded border font-bold text-xs ${
-                                            p.status === "Sent"
-                                                ? "border-blue-400 text-blue-700"
-                                                : "border-gray-400 text-gray-700"
-                                        }`}
-                                    >
-                                        {p.status}
-                                    </span>
-                                </td>
-                                <td className="border px-3 py-2 text-center">
-                                    <button className="mr-2" title="Edit">
-                                        <svg
-                                            width="20"
-                                            height="20"
-                                            fill="none"
-                                            stroke="currentColor"
-                                            strokeWidth="2"
-                                            viewBox="0 0 24 24"
-                                        >
-                                            <path d="M15.232 5.232l3.536 3.536M9 13l6.586-6.586a2 2 0 112.828 2.828L11.828 15.828a2 2 0 01-2.828 0L9 13zm-6 6v-2a2 2 0 012-2h2"></path>
-                                        </svg>
-                                    </button>
-                                    <button title="Delete">
-                                        <svg
-                                            width="20"
-                                            height="20"
-                                            fill="none"
-                                            stroke="currentColor"
-                                            strokeWidth="2"
-                                            viewBox="0 0 24 24"
-                                        >
-                                            <path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M1 7h22M8 7V5a2 2 0 012-2h4a2 2 0 012 2v2"></path>
-                                        </svg>
-                                    </button>
-                                </td>
+                <div className="overflow-x-auto">
+                    <table className="min-w-[600px] w-full border-collapse text-xs sm:text-sm">
+                        <thead>
+                            <tr className="bg-green-100">
+                                <th className="border px-2 sm:px-3 py-2">ID</th>
+                                <th className="border px-2 sm:px-3 py-2">No & Date</th>
+                                <th className="border px-2 sm:px-3 py-2">Title</th>
+                                <th className="border px-2 sm:px-3 py-2">Companye Name</th>
+                                <th className="border px-2 sm:px-3 py-2">Contact & Email</th>
+                                <th className="border px-2 sm:px-3 py-2">Created By</th>
+                                <th className="border px-2 sm:px-3 py-2">Status</th>
+                                <th className="border px-2 sm:px-3 py-2">Action</th>
                             </tr>
-                        ))}
-                    </tbody>
-                </table>
-                <div className="flex justify-between items-center mt-4">
-                    <div></div>
-                    <div className="space-x-2">
-                        <button className="px-2 py-1 rounded border border-gray-300">
-                            1
-                        </button>
-                        <button className="px-2 py-1 rounded border border-gray-300">
-                            2
-                        </button>
-                        <button className="px-2 py-1 rounded border border-gray-300">
-                            3
-                        </button>
-                        <button className="px-2 py-1 rounded border border-gray-300">
-                            4
-                        </button>
+                        </thead>
+                        <tbody>
+                            {proposals.map((p) => (
+                                <tr key={p.id}>
+                                    <td className="border px-2 sm:px-3 py-2 text-center">
+                                        {p.id}
+                                    </td>
+                                    <td className="border px-2 sm:px-3 py-2">
+                                        <span className="font-bold text-blue-700 cursor-pointer hover:underline">
+                                            {p.number}
+                                        </span>
+                                        <div className="text-xs text-gray-500">
+                                            {p.date}
+                                        </div>
+                                    </td>
+                                    <td className="border px-2 sm:px-3 py-2">{p.title}</td>
+                                    <td className="border px-2 sm:px-3 py-2">
+                                        {p.company}
+                                    </td>
+                                    <td className="border px-2 sm:px-3 py-2">
+                                        <span className="font-bold">
+                                            {p.contact.name}
+                                        </span>
+                                        <div className="text-xs text-gray-500">
+                                            {p.contact.email}
+                                        </div>
+                                    </td>
+                                    <td className="border px-2 sm:px-3 py-2 text-blue-700 cursor-pointer hover:underline">
+                                        {p.createdBy}
+                                    </td>
+                                    <td className="border px-2 sm:px-3 py-2">
+                                        <span
+                                            className={`inline-block px-2 sm:px-4 py-1 rounded border font-bold text-xs ${
+                                                p.status === "Sent"
+                                                    ? "border-blue-400 text-blue-700"
+                                                    : "border-gray-400 text-gray-700"
+                                            }`}
+                                        >
+                                            {p.status}
+                                        </span>
+                                    </td>
+                                    <td className="border px-2 sm:px-3 py-2 text-center">
+                                        <button className="mr-2" title="Edit">
+                                            <svg
+                                                width="20"
+                                                height="20"
+                                                fill="none"
+                                                stroke="currentColor"
+                                                strokeWidth="2"
+                                                viewBox="0 0 24 24"
+                                            >
+                                                <path d="M15.232 5.232l3.536 3.536M9 13l6.586-6.586a2 2 0 112.828 2.828L11.828 15.828a2 2 0 01-2.828 0L9 13zm-6 6v-2a2 2 0 012-2h2"></path>
+                                            </svg>
+                                        </button>
+                                        <button title="Delete">
+                                            <svg
+                                                width="20"
+                                                height="20"
+                                                fill="none"
+                                                stroke="currentColor"
+                                                strokeWidth="2"
+                                                viewBox="0 0 24 24"
+                                            >
+                                                <path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M1 7h22M8 7V5a2 2 0 012-2h4a2 2 0 012 2v2"></path>
+                                            </svg>
+                                        </button>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+                <div className="flex flex-col sm:flex-row justify-between items-center mt-4 gap-2">
+                    <div className="w-full sm:w-auto"></div>
+                    <div className="space-x-2 flex flex-wrap">
+                        <button className="px-2 py-1 rounded border border-gray-300">1</button>
+                        <button className="px-2 py-1 rounded border border-gray-300">2</button>
+                        <button className="px-2 py-1 rounded border border-gray-300">3</button>
+                        <button className="px-2 py-1 rounded border border-gray-300">4</button>
                     </div>
-                    <button className="bg-teal-800 hover:bg-teal-900 text-white px-6 py-2 rounded-md font-semibold">
-                        Next
-                    </button>
+                    <button className="bg-teal-800 hover:bg-teal-900 text-white px-4 sm:px-6 py-2 rounded-md font-semibold w-full sm:w-auto mt-2 sm:mt-0">Next</button>
                 </div>
             </div>
         </>
