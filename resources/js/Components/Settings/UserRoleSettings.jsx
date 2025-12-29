@@ -235,8 +235,10 @@ export default function UserRoleSettings() {
                 </Button>
             </div>
 
-            <div className="border border-gray-300 rounded-lg bg-white overflow-hidden shadow-md">
-                <Table>
+            <div className="-mx-4 sm:mx-0 px-4 sm:px-0 overflow-x-auto">
+                <div className="min-w-[720px]">
+                    <div className="border border-gray-300 rounded-lg bg-white overflow-hidden shadow-md">
+                        <Table>
                     <TableHeader>
                         <TableRow className="bg-gray-900 hover:bg-gray-900">
                             <TableHead className="w-56 font-bold border-r border-gray-700 text-white uppercase text-xs tracking-wider">
@@ -309,7 +311,9 @@ export default function UserRoleSettings() {
                             </TableRow>
                         ))}
                     </TableBody>
-                </Table>
+                        </Table>
+                    </div>
+                </div>
             </div>
 
             {/* Pop-up Editor Overlay */}

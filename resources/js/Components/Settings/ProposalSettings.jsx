@@ -230,8 +230,10 @@ export default function ProposalSettings() {
                     </Button>
                 </div>
 
-                <div className="border border-teal-900 rounded-t-lg overflow-hidden mb-4 shadow-sm">
-                    <Table>
+                <div className="-mx-4 sm:mx-0 px-4 sm:px-0 overflow-x-auto">
+                    <div className="min-w-[720px]">
+                        <div className="border border-teal-900 rounded-t-lg overflow-hidden mb-4 shadow-sm">
+                            <Table>
                         <TableHeader className="bg-teal-900 text-white">
                             <TableRow className="hover:bg-teal-900 border-none">
                                 <TableHead className="text-white font-bold w-16 text-center">
@@ -292,7 +294,9 @@ export default function ProposalSettings() {
                                 </TableCell>
                             </TableRow>
                         </TableBody>
-                    </Table>
+                            </Table>
+                        </div>
+                    </div>
                 </div>
                 <h1 className="font-bold uppercase text-[10px]">
                     <span className="text-red-700">EXAMPLE </span>: PRO-00001
@@ -392,8 +396,10 @@ export default function ProposalSettings() {
                     </Button>
                 </div>
 
-                <div className="border border-teal-900 rounded-t-lg overflow-hidden mb-12 shadow-sm">
-                    <Table>
+                <div className="-mx-4 sm:mx-0 px-4 sm:px-0 overflow-x-auto">
+                    <div className="min-w-[720px]">
+                        <div className="border border-teal-900 rounded-t-lg overflow-hidden mb-12 shadow-sm">
+                            <Table>
                         <TableHeader className="bg-teal-900 text-white">
                             <TableRow className="hover:bg-teal-900 border-none">
                                 <TableHead className="text-white font-bold w-16 text-center">
@@ -476,7 +482,9 @@ export default function ProposalSettings() {
                                 </TableRow>
                             )}
                         </TableBody>
-                    </Table>
+                            </Table>
+                        </div>
+                    </div>
                 </div>
                 <SimpleModal
                     isOpen={isStatusModalOpen}
@@ -574,8 +582,10 @@ export default function ProposalSettings() {
                 <h3 className="font-bold text-gray-800 mb-4 uppercase text-sm tracking-widest">
                     Proposal Restrictions
                 </h3>
-                <div className="border border-teal-900 rounded-lg overflow-hidden bg-white shadow-sm mb-12">
-                    <Table>
+                <div className="-mx-4 sm:mx-0 px-4 sm:px-0 overflow-x-auto">
+                    <div className="min-w-[720px]">
+                        <div className="border border-teal-900 rounded-lg overflow-hidden bg-white shadow-sm mb-12">
+                            <Table>
                         <TableHeader className="bg-teal-900">
                             <TableRow className="hover:bg-teal-900 border-none">
                                 <TableHead className="text-white font-bold w-48 text-center border-r border-teal-800">
@@ -694,7 +704,9 @@ export default function ProposalSettings() {
                                 </TableCell>
                             </TableRow>
                         </TableBody>
-                    </Table>
+                            </Table>
+                        </div>
+                    </div>
                 </div>
             </div>
 

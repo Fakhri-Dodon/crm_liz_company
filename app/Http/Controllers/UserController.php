@@ -90,7 +90,7 @@ class UserController extends Controller
         $rules = [
             'name' => 'required',
             'position' => 'required',
-            'email' => 'required|email|unique:users,email,',
+            'email' => "required|email|unique:users,email,{$id}",
             'role_id' => 'required',
             'phone' => 'nullable',
         ];
@@ -100,6 +100,13 @@ class UserController extends Controller
         }
 
         $validated = $request->validate($rules);
+
+        // If password provided, hash it. If not provided, ensure we don't overwrite existing password.
+        if ($request->filled('password')) {
+            $validated['password'] = bcrypt($request->password);
+        } else {
+            unset($validated['password']);
+        }
 
         $user->update($validated);
 

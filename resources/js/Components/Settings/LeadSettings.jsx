@@ -124,8 +124,10 @@ export default function LeadSettings() {
                         <Plus className="w-4 h-4" /> Add Status
                     </Button>
                 </div>
-                <div className="border border-teal-900 rounded-lg overflow-hidden bg-white shadow-sm">
-                    <Table>
+                <div className="-mx-4 sm:mx-0 px-4 sm:px-0 overflow-x-auto">
+                    <div className="min-w-[720px]">
+                        <div className="border border-teal-900 rounded-lg overflow-hidden bg-white shadow-sm">
+                            <Table>
                         <TableHeader className="bg-teal-900">
                             <TableRow className="hover:bg-teal-900 border-none">
                                 <TableHead className="text-white text-center w-16 font-bold">No</TableHead>
@@ -172,7 +174,9 @@ export default function LeadSettings() {
                                 </TableRow>
                             )}
                         </TableBody>
-                    </Table>
+                            </Table>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -232,8 +236,10 @@ export default function LeadSettings() {
             {/* --- SECTION 2: LEAD RESTRICTIONS (WITH DESCRIPTION & NOTE) --- */}
             <div className="space-y-4 border-t pt-6">
                 <h3 className="font-bold text-gray-700">Lead Restrictions</h3>
-                <div className="border border-teal-900 rounded-lg overflow-hidden bg-white shadow-sm">
-                    <Table>
+                <div className="-mx-4 sm:mx-0 px-4 sm:px-0 overflow-x-auto">
+                    <div className="min-w-[720px]">
+                        <div className="border border-teal-900 rounded-lg overflow-hidden bg-white shadow-sm">
+                            <Table>
                         <TableHeader className="bg-teal-900">
                             <TableRow className="hover:bg-teal-900 border-none">
                                 <TableHead className="text-white font-bold w-48 text-center border-r border-teal-800">Field</TableHead>
@@ -295,7 +301,9 @@ export default function LeadSettings() {
                                 </TableCell>
                             </TableRow>
                         </TableBody>
-                    </Table>
+                            </Table>
+                        </div>
+                    </div>
                 </div>
             </div>
 

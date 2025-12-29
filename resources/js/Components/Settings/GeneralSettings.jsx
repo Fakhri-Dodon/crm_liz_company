@@ -13,28 +13,33 @@ import {
 import { Image as ImageIcon, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
-export default function GeneralSettings({ config }) {
+export default function GeneralSettings({ config, app_config }) {
     const [logoType, setLogoType] = useState(null);
 
     // ambil dari props 'config' yang dikirim SettingController
+    const get = (key) => {
+        // prefer config if non-null, otherwise fallback to app_config
+        if (config && config[key] !== null && config[key] !== undefined) return config[key];
+        if (app_config && app_config[key] !== null && app_config[key] !== undefined) return app_config[key];
+        return null;
+    };
+
     const { data, setData, post, processing, errors, transform } = useForm({
-        company_name: config?.company_name ?? "",
-        address: config?.address ?? "",
-        default_language: config?.default_language ?? "Indonesia",
-        allow_language_change: config?.allow_language_change == 1,
+        company_name: get('company_name') ?? "",
+        address: get('address') ?? "",
+        default_language: get('default_language') ?? "Indonesia",
+        allow_language_change: get('allow_language_change') == 1 || get('allow_language_change') === true,
     });
 
     // Ini memastikan jika user pindah menu lalu kembali lagi, data tetap muncul
     useEffect(() => {
-        if (config) {
-            setData({
-                company_name: config.company_name ?? "",
-                address: config.address ?? "",
-                default_language: config.default_language ?? "Indonesia",
-                allow_language_change: config.allow_language_change == 1,
-            });
-        }
-    }, [config]);
+        setData({
+            company_name: get('company_name') ?? "",
+            address: get('address') ?? "",
+            default_language: get('default_language') ?? "Indonesia",
+            allow_language_change: get('allow_language_change') == 1 || get('allow_language_change') === true,
+        });
+    }, [config, app_config]);
 
     const handleSave = () => {
         post("/setting/general/store", {
@@ -70,6 +75,10 @@ export default function GeneralSettings({ config }) {
             }
         });
     };
+
+    // compute effective URLs: prefer precomputed full URLs, fallback to storage paths
+    const topbarUrl = get('logo_url') ?? (get('logo_path') ? `/storage/${get('logo_path')}` : null);
+    const docLogoUrl = get('doc_logo_url') ?? (get('doc_logo_path') ? `/storage/${get('doc_logo_path')}` : null);
 
     return (
         <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -162,12 +171,12 @@ export default function GeneralSettings({ config }) {
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                             <LogoBox
                                 title="Topbar Logo"
-                                url={config?.logo_url} 
+                                url={topbarUrl}
                                 onAction={() => setLogoType("topbar")}
                             />
                             <LogoBox
                                 title="Document Logo"
-                                url={config?.doc_logo_url}
+                                url={docLogoUrl}
                                 onAction={() => setLogoType("document")}
                             />
                         </div>
@@ -194,6 +203,7 @@ export default function GeneralSettings({ config }) {
                     open={!!logoType}
                     onClose={() => setLogoType(null)}
                     onSave={handleUploadLogo}
+                    initialPreview={logoType === 'topbar' ? topbarUrl : docLogoUrl}
                 />
             )}
         </div>
@@ -226,24 +236,38 @@ function LogoBox({ title, url, onAction }) {
     );
 }
 
-function LogoUploadModal({ open, onClose, onSave }) {
+function LogoUploadModal({ open, onClose, onSave, initialPreview = null }) {
     const [file, setFile] = useState(null);
-    const [preview, setPreview] = useState(null);
+    const [preview, setPreview] = useState(initialPreview);
+    const [isObjectURL, setIsObjectURL] = useState(false);
 
     const handleFileChange = (e) => {
         const selected = e.target.files[0];
         if (selected) {
             setFile(selected);
-            if (preview) URL.revokeObjectURL(preview);
-            setPreview(URL.createObjectURL(selected));
+            if (isObjectURL && preview) URL.revokeObjectURL(preview);
+            const objUrl = URL.createObjectURL(selected);
+            setPreview(objUrl);
+            setIsObjectURL(true);
         }
     };
 
     useEffect(() => {
         return () => {
-            if (preview) URL.revokeObjectURL(preview);
+            if (isObjectURL && preview) URL.revokeObjectURL(preview);
         };
     }, []);
+
+    // keep preview in sync when initialPreview changes (e.g., different logoType)
+    useEffect(() => {
+        if (!initialPreview) return;
+        // if current preview is an object URL, revoke it first
+        if (isObjectURL && preview) {
+            URL.revokeObjectURL(preview);
+        }
+        setPreview(initialPreview);
+        setIsObjectURL(false);
+    }, [initialPreview]);
 
     if (!open) return null;
 

@@ -214,8 +214,8 @@ export default function UsersIndex({ users, roles, templates }) {
                 }
             >
                 {/* Isi Form Input Di Sini (Children) */}
-                <div className="space-y-4">
-                    <div className="flex flex-row gap-4">
+                    <div className="space-y-4">
+                    <div className="flex flex-col sm:flex-row gap-4">
                         <div className="flex-1">
                             <label className="block text-sm font-medium text-gray-700">
                                 Full Name*
@@ -244,7 +244,7 @@ export default function UsersIndex({ users, roles, templates }) {
                         </div>
                     </div>
 
-                    <div className="flex flex-row gap-4">
+                    <div className="flex flex-col sm:flex-row gap-4">
                         <div className="flex-1">
                             <label className="block text-sm font-medium text-gray-700">
                                 Email*
@@ -273,7 +273,7 @@ export default function UsersIndex({ users, roles, templates }) {
                         </div>
                     </div>
 
-                    <div className="flex flex-row gap-4">
+                    <div className="flex flex-col sm:flex-row gap-4">
                         <div className="flex-1">
                             <label className="block text-sm font-medium text-gray-700">
                                 Role*
@@ -375,10 +375,10 @@ export default function UsersIndex({ users, roles, templates }) {
                             <div className="space-y-2 text-left mb-6">
                                 <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">Choose Email Template</label>
                                 <select 
-                                    value={selectedTemplateId}
-                                    onChange={(e) => setSelectedTemplateId(e.target.value)}
-                                    className="w-full border-gray-200 rounded-xl focus:ring-blue-500 focus:border-blue-500 bg-gray-50 text-sm"
-                                >
+                                        value={selectedTemplateId}
+                                        onChange={(e) => setSelectedTemplateId(e.target.value)}
+                                        className="w-full border border-gray-200 rounded-xl p-2 focus:ring-blue-500 focus:border-blue-500 bg-gray-50 text-sm"
+                                    >
                                     <option value="" disabled>-- Choose Template --</option>
                                     {templates.map((t) => (
                                         <option key={t.id} value={t.id}>
@@ -396,7 +396,7 @@ export default function UsersIndex({ users, roles, templates }) {
                             </div>
                         </div>
 
-                        <div className="flex p-4 gap-3 bg-gray-50">
+                        <div className="flex flex-col sm:flex-row p-4 gap-3 bg-gray-50">
                             <button
                                 onClick={() => setEmailModalOpen(false)}
                                 className="flex-1 px-4 py-3 text-gray-500 font-bold hover:bg-white rounded-xl transition-all border border-transparent hover:border-gray-200"
@@ -416,7 +416,7 @@ export default function UsersIndex({ users, roles, templates }) {
 
             <HeaderLayout title={t('users.title')} />
 
-            <div className="px-8 py-6">
+            <div className="px-4 sm:px-8 py-6">
                 <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
                     <h1 className="text-xl font-black uppercase tracking-widest text-gray-800">
                         {t('users.title')}
@@ -445,14 +445,18 @@ export default function UsersIndex({ users, roles, templates }) {
                 </div>
 
                 <div className="py-8">
-                    <TableLayout
-                        data={tableData}
-                        columns={columns}
-                        onSendEmail={(user) => handleSendEmail(user)}
-                        onEdit={handleEdit}
-                        onDelete={handleDelete}
-                        showAction={true}
-                    />
+                    <div className="-mx-4 sm:mx-0 px-4 sm:px-0 overflow-x-auto">
+                        <div className="min-w-[720px]">
+                            <TableLayout
+                                data={tableData}
+                                columns={columns}
+                                onSendEmail={(user) => handleSendEmail(user)}
+                                onEdit={handleEdit}
+                                onDelete={handleDelete}
+                                showAction={true}
+                            />
+                        </div>
+                    </div>
                 </div>
             </div>
         </>
