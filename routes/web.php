@@ -54,7 +54,14 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/edit/{quotation}', [QuotationController::class, 'edit'])->name('edit');
         Route::patch('/update/{quotation}', [QuotationController::class, 'update'])->name('update');
         Route::delete('/destroy/{quotation}', [QuotationController::class, 'destroy'])->name('destroy');
+        Route::post('/status-notify/{id}', [QuotationController::class, 'notificationUpdateStatus'])->name('notification-status');
+        // tanda notif udh di read
+        Route::post('/notifications/mark-all-read', [QuotationController::class, 'markAllRead']);
+        Route::post('/notifications/mark-as-sent{id}', [QuotationController::class, 'MarkAsSent'])->name('markAsSent');
     });
+
+    // notif send document(quotation/invoice)email
+    Route::post('/send-email/{type}/{id}', [EmailController::class, 'sendDocument'])->name('email.send-document');
 
     // Route::get('/invoice', fn() => Inertia::render('Invoices/Index'))->name('invoice.index');
     // Route::get('/payment', fn() => Inertia::render('Payments/Index'))->name('payment.index');

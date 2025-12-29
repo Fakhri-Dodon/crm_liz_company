@@ -4,12 +4,7 @@ import DocumentBuilder from "@/Components/PDF_Builder/Builder";
 import { Edit as EditIcon, Trash2, Loader2, Plus } from "lucide-react";
 import html2pdf from "html2pdf.js";
 
-export default function Edit({
-    leads = [],
-    companies = [],
-    auth,
-    quotation,
-}) {
+export default function Edit({ leads = [], companies = [], auth, quotation }) {
     const [showModal, setShowModal] = useState(false);
     const [newItem, setNewItem] = useState({
         name: "",
@@ -50,7 +45,9 @@ export default function Edit({
             }
             return quotation.lead_id || null;
         })(),
-        contact_person_id: quotation.contact_person_id ? String(quotation.contact_person_id) : "",
+        contact_person_id: quotation.contact_person_id
+            ? String(quotation.contact_person_id)
+            : "",
         company_name: quotation.lead?.company_name || null,
         address: quotation.lead?.address || "",
         contact_person: quotation.lead?.contact_person || "",
@@ -64,7 +61,7 @@ export default function Edit({
         services:
             quotation.items.map((item) => ({
                 id: item.id,
-                name: item.name, 
+                name: item.name,
                 processing: item.processing,
                 price: item.amount,
             })) || [],
@@ -72,44 +69,82 @@ export default function Edit({
         discount: parseFloat(quotation.discount) > 0 ? "yes" : "no",
         discount_amount: parseFloat(quotation.discount) || 0,
 
-        // Jika tax > 0, kita set type-nya. Rate-nya kita ambil dari data DB
-        // tax_type: (() => {
-        //     const taxAmount = parseFloat(quotation.tax) || 0;
-        //     if (taxAmount <= 0) return null;
-        //     const subTotal = parseFloat(quotation.sub_total) || 1;
-        //     const ratio = (taxAmount / subTotal).toFixed(2);
-        //     return ratio === "0.12" ? "PPN 12%" : "PPN 11%";
-        // })(),
+        // Compute initial subtotal from whichever field is available (sub_total, subtotal) or from items
+        // then derive tax rate (data.tax holds tax amount from backend)
+        sub_total: (() => {
+            const itemsSum = Array.isArray(quotation.items) && quotation.items.length
+                ? quotation.items.reduce((acc, it) => acc + (parseFloat(it.amount) || 0), 0)
+                : 0;
 
-        // tax: (() => {
-        //     const taxAmount = parseFloat(quotation.tax) || 0;
-        //     if (taxAmount <= 0) return 0;
-        //     const subTotal = parseFloat(quotation.sub_total) || 1;
-        //     return parseFloat((taxAmount / subTotal).toFixed(2));
-        // })(),
+            // Prefer items sum when available (server subtotal may be "0.00")
+            if (itemsSum > 0) return itemsSum;
 
-        tax_type: quotation.tax && parseFloat(quotation.tax) > 0 
-            ? (parseFloat(quotation.tax) / (parseFloat(quotation.sub_total) || 1) >= 0.12 ? "PPN 12%" : "PPN 11%")
-            : null,
+            if (quotation.sub_total !== undefined && quotation.sub_total !== null) {
+                const v = parseFloat(quotation.sub_total) || 0;
+                if (v > 0) return v;
+            }
+
+            if (quotation.subtotal !== undefined && quotation.subtotal !== null) {
+                const v = parseFloat(quotation.subtotal) || 0;
+                if (v > 0) return v;
+            }
+
+            return itemsSum;
+        })(),
+
+        tax_amount: parseFloat(quotation.tax) || 0,
 
         tax: (() => {
             const taxAmount = parseFloat(quotation.tax) || 0;
-            const subTotal = parseFloat(quotation.sub_total) || 0;
-            
+            const itemsSum = Array.isArray(quotation.items) && quotation.items.length
+                ? quotation.items.reduce((acc, it) => acc + (parseFloat(it.amount) || 0), 0)
+                : 0;
+
+            let subTotal = itemsSum;
+            if (subTotal <= 0) {
+                if (quotation.sub_total !== undefined && quotation.sub_total !== null) subTotal = parseFloat(quotation.sub_total) || 0;
+                if (subTotal <= 0 && quotation.subtotal !== undefined && quotation.subtotal !== null) subTotal = parseFloat(quotation.subtotal) || 0;
+            }
+
             if (taxAmount <= 0 || subTotal <= 0) return 0;
-            
+
             const ratio = taxAmount / subTotal;
             return isFinite(ratio) ? parseFloat(ratio.toFixed(2)) : 0;
         })(),
 
-        sub_total: parseFloat(quotation.sub_total) || 0,
-        tax_amount: parseFloat(quotation.tax) || 0,
-        total: parseFloat(quotation.total) || 0,
+        tax_type: (() => {
+            const taxAmount = parseFloat(quotation.tax) || 0;
+            const itemsSum = Array.isArray(quotation.items) && quotation.items.length
+                ? quotation.items.reduce((acc, it) => acc + (parseFloat(it.amount) || 0), 0)
+                : 0;
+
+            let subTotal = itemsSum;
+            if (subTotal <= 0) {
+                if (quotation.sub_total !== undefined && quotation.sub_total !== null) subTotal = parseFloat(quotation.sub_total) || 0;
+                if (subTotal <= 0 && quotation.subtotal !== undefined && quotation.subtotal !== null) subTotal = parseFloat(quotation.subtotal) || 0;
+            }
+
+            if (taxAmount <= 0 || subTotal <= 0) return null;
+            const ratio = taxAmount / subTotal;
+            return ratio >= 0.12 ? "PPN 12%" : "PPN 11%";
+        })(),
+
+        total: parseFloat(quotation.total) || (function() {
+            const itemsSum = Array.isArray(quotation.items) && quotation.items.length ? quotation.items.reduce((acc, it) => acc + (parseFloat(it.amount) || 0), 0) : 0;
+            let s = itemsSum;
+            if (s <= 0) {
+                if (quotation.sub_total !== undefined && quotation.sub_total !== null) s = parseFloat(quotation.sub_total) || 0;
+                if (s <= 0 && quotation.subtotal !== undefined && quotation.subtotal !== null) s = parseFloat(quotation.subtotal) || 0;
+            }
+            const t = parseFloat(quotation.tax) || 0;
+            const d = parseFloat(quotation.discount) || 0;
+            return s + t - d;
+        })(),
     });
 
     console.log("full data :", data);
 
-    console.log("data tax :",data.tax);
+    console.log("data tax :", data.tax);
 
     // useEffect(() => {
     //     const subTotal = data.services.reduce(
@@ -172,9 +207,15 @@ export default function Edit({
                 .from(element)
                 .output("blob");
 
-            const subTotalFinal = data.services.reduce((acc, curr) => acc + Number(curr.price || 0), 0);
+            const subTotalFinal = data.services.reduce(
+                (acc, curr) => acc + Number(curr.price || 0),
+                0
+            );
             const taxAmountFinal = subTotalFinal * (parseFloat(data.tax) || 0);
-            const totalFinal = subTotalFinal + taxAmountFinal - (parseFloat(data.discount_amount) || 0);
+            const totalFinal =
+                subTotalFinal +
+                taxAmountFinal -
+                (parseFloat(data.discount_amount) || 0);
 
             const formData = new FormData();
 
@@ -414,7 +455,6 @@ export default function Edit({
     const handleBack = () => {
         router.get("/quotation");
     };
-    
 
     return (
         <>
@@ -570,6 +610,11 @@ export default function Edit({
                             ? companies || []
                             : leads || [];
 
+                    const getContactList = (org) => {
+                        if (!org) return [];
+                        return org.contact_persons || org.contactPersons || org.contacts || [];
+                    };
+
                     const handleContactChange = (contactId) => {
                         const isClient = data.client_type === "Client";
                         const source = isClient ? companies : leads;
@@ -580,11 +625,10 @@ export default function Edit({
 
                         if (selectedOrg) {
                             let personRow = null;
+                            const list = getContactList(selectedOrg);
 
                             if (isClient) {
-                                personRow = selectedOrg.contact_persons?.find(
-                                    (p) => String(p.id) === String(contactId)
-                                );
+                                personRow = list.find((p) => String(p.id) === String(contactId));
                             } else {
                                 personRow = selectedOrg;
                             }
@@ -592,31 +636,31 @@ export default function Edit({
                             if (personRow) {
                                 const finalData = {
                                     contact_person_id: contactId,
-                                    contact_person: isClient 
-                                        ? (personRow.lead?.contact_person || selectedOrg.lead?.contact_person || "---") 
-                                        : (selectedOrg.contact_person || ""),
-                                    
-                                    email: isClient 
-                                        ? (personRow.lead?.email || selectedOrg.lead?.email || "") 
-                                        : (personRow.email || ""),
-                                    
-                                    phone: isClient 
-                                        ? (personRow.lead?.phone || selectedOrg.lead?.phone || "") 
-                                        : (personRow.phone || ""),
+                                    contact_person: isClient
+                                        ? personRow.lead?.contact_person || personRow.name || selectedOrg.lead?.contact_person || "---"
+                                        : selectedOrg.contact_person || "",
 
-                                    position: isClient 
-                                        ? (personRow.position || "") 
-                                        : (selectedOrg.job_title || selectedOrg.position || ""),
+                                    email: isClient
+                                        ? personRow.lead?.email || personRow.email || selectedOrg.lead?.email || ""
+                                        : personRow.email || "",
+
+                                    phone: isClient
+                                        ? personRow.lead?.phone || personRow.phone || selectedOrg.lead?.phone || ""
+                                        : personRow.phone || "",
+
+                                    position: isClient
+                                        ? personRow.position || ""
+                                        : selectedOrg.job_title || selectedOrg.position || "",
                                 };
 
                                 console.log("Data yang dikirim ke builder:", finalData);
 
                                 Object.entries(finalData).forEach(([f, v]) => {
-                                    if (typeof builderUpdate === 'function') {
+                                    if (typeof builderUpdate === "function") {
                                         builderUpdate(f, v);
                                     }
                                 });
-                                
+
                                 setData((prev) => ({ ...prev, ...finalData }));
                             }
                         }
@@ -675,28 +719,38 @@ export default function Edit({
                     //     // );
                     // };
 
-                   const handleTaxTypeChange = (valueString) => {
-    let taxName = null;
-    let taxRate = 0;
+                    const handleTaxTypeChange = (valueString) => {
+                        let taxName = null;
+                        let taxRate = 0;
 
-    // Jika valueString adalah "|0" atau tidak valid, biarkan default (null dan 0)
-    if (valueString && valueString.includes("|") && valueString !== "|0") {
-        const parts = valueString.split("|");
-        taxName = parts[0];
-        taxRate = parseFloat(parts[1]) || 0;
-    }
+                        // Jika valueString adalah "|0" atau tidak valid, biarkan default (null dan 0)
+                        if (
+                            valueString &&
+                            valueString.includes("|") &&
+                            valueString !== "|0"
+                        ) {
+                            const parts = valueString.split("|");
+                            taxName = parts[0];
+                            taxRate = parseFloat(parts[1]) || 0;
+                        }
 
-    // Update Builder (untuk Preview)
-    builderUpdate("tax_type", taxName);
-    builderUpdate("tax", taxRate);
+                        // Hitung nilai tax_amount dari sub_total saat ini
+                        const currentSubTotal = Number(data.sub_total || 0);
+                        const calculatedTaxAmount = currentSubTotal * taxRate;
 
-    // Update State Utama (Inertia useForm)
-    setData((prev) => ({
-        ...prev,
-        tax_type: taxName,
-        tax: taxRate,
-    }));
-};
+                        // Update Builder (untuk Preview)
+                        builderUpdate("tax_type", taxName);
+                        builderUpdate("tax", taxRate);
+                        builderUpdate("tax_amount", calculatedTaxAmount);
+
+                        // Update State Utama (Inertia useForm)
+                        setData((prev) => ({
+                            ...prev,
+                            tax_type: taxName,
+                            tax: taxRate,
+                            tax_amount: calculatedTaxAmount,
+                        }));
+                    };
                     return (
                         <div className="space-y-5">
                             <div className="flex flex-col">
@@ -801,7 +855,13 @@ export default function Edit({
                                 </label>
                                 <select
                                     className="w-full border-gray-300 rounded text-sm"
-                                    value={String(data.contact_person_id || "")}
+                                    value={String(
+                                        data.contact_person_id ||
+                                            (data.client_type !== "Client"
+                                                ? data.company_id
+                                                : "") ||
+                                            ""
+                                    )}
                                     onChange={(e) =>
                                         handleContactChange(e.target.value)
                                     }
@@ -829,13 +889,21 @@ export default function Edit({
                                         // let contacts =
                                         //     selectedOrg.contact_persons || [];
                                         if (isClient) {
-                                            list = selectedOrg.contact_persons || [];
+                                            list =
+                                                selectedOrg.contact_persons ||
+                                                [];
                                         } else {
-                                            list = [{
-                                                id: selectedOrg.id,
-                                                name: selectedOrg.contact_person || "No Name",
-                                                position: selectedOrg.position || ""
-                                            }];
+                                            list = [
+                                                {
+                                                    id: selectedOrg.id,
+                                                    name:
+                                                        selectedOrg.contact_person ||
+                                                        "No Name",
+                                                    position:
+                                                        selectedOrg.position ||
+                                                        "",
+                                                },
+                                            ];
                                         }
 
                                         if (list.length === 0) return null;
@@ -923,10 +991,14 @@ export default function Edit({
                                     </label>
                                     <select
                                         className="w-full border-gray-300 rounded text-sm"
-                                        value={
-                                            data.tax === 0.11 ? "PPN 11%|0.11" : 
-                                            data.tax === 0.12 ? "PPN 12%|0.12" : "|0"
-                                        }
+                                        value={(() => {
+                                            const t = Number(data.tax || 0);
+                                            if (isFinite(t)) {
+                                                if (Math.abs(t - 0.11) < 0.001) return "PPN 11%|0.11";
+                                                if (Math.abs(t - 0.12) < 0.001) return "PPN 12%|0.12";
+                                            }
+                                            return "|0";
+                                        })()}
                                         onChange={(e) =>
                                             handleTaxTypeChange(e.target.value)
                                         }
@@ -994,7 +1066,12 @@ export default function Edit({
                         </div>
                     );
                 }}
-                renderPreview={({ data, addItem, removeItem, updateField: builderUpdate }) => {
+                renderPreview={({
+                    data,
+                    addItem,
+                    removeItem,
+                    updateField: builderUpdate,
+                }) => {
                     if (!builderAddItem) setBuilderAddItem(() => addItem);
 
                     // useEffect(() => {
@@ -1017,7 +1094,7 @@ export default function Edit({
                     //     const finalTotal = Math.round(calculatedTotal);
 
                     //     if (
-                    //         Math.abs(data.total - calculatedTotal) > 0.01 || 
+                    //         Math.abs(data.total - calculatedTotal) > 0.01 ||
                     //         Math.abs(data.sub_total - calculatedSubTotal) > 0.01
                     //     ) {
                     //         setData((prev) => ({
@@ -1035,16 +1112,25 @@ export default function Edit({
                     );
 
                     const rawTax = parseFloat(data.tax);
-                    const taxRate = isNaN(rawTax) || !isFinite(rawTax) ? 0 : rawTax;
+                    const taxRate =
+                        isNaN(rawTax) || !isFinite(rawTax) ? 0 : rawTax;
 
-                    const discountAmount = data.discount === "yes" ? (parseFloat(data.discount_amount) || 0) : 0;
+                    const discountAmount =
+                        data.discount === "yes"
+                            ? parseFloat(data.discount_amount) || 0
+                            : 0;
 
                     const calculatedTaxAmount = calculatedSubTotal * taxRate;
-                    const calculatedTotal = (calculatedSubTotal + calculatedTaxAmount) - discountAmount;
+                    const calculatedTotal =
+                        calculatedSubTotal +
+                        calculatedTaxAmount -
+                        discountAmount;
 
                     useEffect(() => {
-                        const isDifferent = 
-                            Math.abs((data.sub_total || 0) - calculatedSubTotal) > 1 ||
+                        const isDifferent =
+                            Math.abs(
+                                (data.sub_total || 0) - calculatedSubTotal
+                            ) > 1 ||
                             Math.abs((data.total || 0) - calculatedTotal) > 1;
 
                         if (isDifferent) {
@@ -1055,7 +1141,11 @@ export default function Edit({
                                 total: calculatedTotal,
                             }));
                         }
-                    }, [calculatedSubTotal, calculatedTaxAmount, calculatedTotal]);
+                    }, [
+                        calculatedSubTotal,
+                        calculatedTaxAmount,
+                        calculatedTotal,
+                    ]);
 
                     // useEffect(() => {
                     //     if (data.contact_person_id) {
@@ -1260,9 +1350,7 @@ export default function Edit({
                                         <span>Discount</span>
                                         <span>
                                             {data.discount === "yes"
-                                                ? formatIDR(
-                                                      discountAmount
-                                                  )
+                                                ? formatIDR(discountAmount)
                                                 : formatIDR(0)}
                                         </span>
                                     </div>

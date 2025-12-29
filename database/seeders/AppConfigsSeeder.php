@@ -16,6 +16,7 @@ class AppConfigsSeeder extends Seeder
     {
         AppConfig::create([
             'id' => Str::uuid()->toString(),
+            'default_language' => 'English',
         ]);
     }
 }

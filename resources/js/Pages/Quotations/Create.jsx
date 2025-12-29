@@ -3,6 +3,7 @@ import { useForm, router, usePage } from "@inertiajs/react";
 import DocumentBuilder from "@/Components/PDF_Builder/Builder";
 import { Edit, Trash2, Loader2, Plus } from "lucide-react";
 import html2pdf from 'html2pdf.js';
+import { Toaster, toast } from 'react-hot-toast';
 
 export default function Create({ nextNumber, leads = [], companies = [] }) {
     const [showModal, setShowModal] = useState(false);
@@ -126,7 +127,19 @@ export default function Create({ nextNumber, leads = [], companies = [] }) {
 
             router.post("/quotation/store", formData, {
                 forceFormData: true,
-                onSuccess: () => alert("Berhasil disimpan!"),
+                onSuccess: () => {
+                    toast.success('Berhasil disimpan!', {
+                        style: {
+                        border: '1px solid #4ade80',
+                        padding: '16px',
+                        color: '#166534',
+                        },
+                        iconTheme: {
+                        primary: '#4ade80',
+                        secondary: '#FFFAEE',
+                        },
+                    });
+                },
                 onError: (err) => {
                     console.error("Penyebab Gagal Simpan", err);
                     for (let pair of formData.entries()) {
@@ -406,6 +419,8 @@ export default function Create({ nextNumber, leads = [], companies = [] }) {
                     </div>
                 </div>
             )}
+
+            <Toaster position="top-right" />
 
             {/* --- DOCUMENT BUILDER --- */}
             <DocumentBuilder
@@ -724,7 +739,7 @@ export default function Create({ nextNumber, leads = [], companies = [] }) {
                         <div className="space-y-5">
                             <div className="flex flex-col">
                                 <label className="text-[10px] font-bold text-gray-400 uppercase">
-                                    Date
+                                    Date<span className="text-red-600">*</span> 
                                 </label>
                                 <input
                                     type="date"
@@ -785,7 +800,7 @@ export default function Create({ nextNumber, leads = [], companies = [] }) {
                                 }
                             >
                                 <label className="text-[10px] font-bold text-gray-400 uppercase">
-                                    Select Company
+                                    Select Company<span className="text-red-600">*</span> 
                                 </label>
                                 <select
                                     className="w-full border-gray-300 rounded text-sm"
@@ -814,7 +829,7 @@ export default function Create({ nextNumber, leads = [], companies = [] }) {
                                 }`}
                             >
                                 <label className="text-[10px] font-bold text-gray-400 uppercase">
-                                    Select Contact Person
+                                    Select Contact Person<span className="text-red-600">*</span> 
                                 </label>
                                 <select
                                     className="w-full border-gray-300 rounded text-sm"
@@ -902,7 +917,7 @@ export default function Create({ nextNumber, leads = [], companies = [] }) {
                             <div className="grid grid-cols-1 gap-3">
                                 <div className="flex flex-col justify-start">
                                     <label className="text-[10px] font-bold text-gray-400 uppercase">
-                                        Subject
+                                        Subject<span className="text-red-600">*</span> 
                                     </label>
                                     <textarea
                                         rows="3"
@@ -952,7 +967,7 @@ export default function Create({ nextNumber, leads = [], companies = [] }) {
                                 )}
                                 <div className="flex flex-col">
                                     <label className="text-[10px] font-bold text-gray-400 uppercase">
-                                        Tax
+                                        Tax<span className="text-red-600">*</span> 
                                     </label>
                                     <select
                                         className="w-full border-gray-300 rounded text-sm"
@@ -974,7 +989,7 @@ export default function Create({ nextNumber, leads = [], companies = [] }) {
                                 </div>
                                 <div className="flex flex-col justify-start">
                                     <label className="text-[10px] font-bold text-gray-400 uppercase">
-                                        Payment Terms
+                                        Payment Terms<span className="text-red-600">*</span> 
                                     </label>
                                     <textarea
                                         rows="3"
@@ -989,7 +1004,7 @@ export default function Create({ nextNumber, leads = [], companies = [] }) {
                                 </div>
                                 <div className="flex flex-col justify-start">
                                     <label className="text-[10px] font-bold text-gray-400 uppercase">
-                                        Note
+                                        Note<span className="text-red-600">*</span> 
                                     </label>
                                     <textarea
                                         rows="3"
@@ -1004,7 +1019,7 @@ export default function Create({ nextNumber, leads = [], companies = [] }) {
                                 </div>
                                 <div className="flex flex-col justify-start">
                                     <label className="text-[10px] font-bold text-gray-400 uppercase">
-                                        Valid Until
+                                        Valid Until<span className="text-red-600">*</span> 
                                     </label>
                                     <input
                                         type="date"
@@ -1159,7 +1174,7 @@ export default function Create({ nextNumber, leads = [], companies = [] }) {
                                     <p className="text-[15px] font-bold text-black">
                                         Subject
                                     </p>
-                                    <p className="text-[13px] text-gray-600 font-medium">
+                                    <p className="text-[13px] text-gray-600 font-medium break-words">
                                         {data.subject}
                                     </p>
                                 </div>
@@ -1248,8 +1263,7 @@ export default function Create({ nextNumber, leads = [], companies = [] }) {
                                             Payment Terms
                                         </p>
                                         <p className="text-red-600 text-[11px] font-medium leading-tight whitespace-pre-wrap">
-                                            {data.payment_terms ||
-                                                "50% initial payment upon service confirmation. Remaining 50% to be settled upon completion of the Business Entity Certificate (SBU) process."}
+                                            {data.payment_terms}
                                         </p>
                                     </div>
                                     <div className="h-[3rem] mb-20">
@@ -1257,8 +1271,7 @@ export default function Create({ nextNumber, leads = [], companies = [] }) {
                                             Note
                                         </p>
                                         <p className="text-red-600 text-[11px] font-medium leading-tight whitespace-pre-wrap">
-                                            {data.note ||
-                                                "The processing time excludes Saturdays, Sundays, and public holidays."}
+                                            {data.note}
                                         </p>
                                     </div>
                                     <div>
