@@ -1,8 +1,15 @@
 import React from "react";
 import HeaderLayout from "@/Layouts/HeaderLayout";
 import { Link } from "@inertiajs/react";
+// import DevelopmentPage from "../DevelopmentPage";
+import DevelopmentPage from "../DevelopmentPage";
 
 export default function ProposalsIndex() {
+    const dev = true
+    if (dev) {
+        return <HeaderLayout><DevelopmentPage /></HeaderLayout>;
+
+    }
     // Dummy data
     const proposals = [
         {

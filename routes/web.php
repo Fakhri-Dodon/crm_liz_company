@@ -1,3 +1,4 @@
+
 <?php
 
 use App\Http\Controllers\UserController;
@@ -89,6 +90,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::delete('/destroy/{id}', [UserController::class, 'destroy'])->name('destroy');
         Route::post('/send-email/{id}', [UserController::class, 'sendUserEmail'])->name('send-email');
     });
+
+    Route::get('/development', function () {
+    return Inertia::render('DevelopmentPage');
+})->name('development');
 
     Route::prefix('setting')->name('settings.')->group(function () {
         // General

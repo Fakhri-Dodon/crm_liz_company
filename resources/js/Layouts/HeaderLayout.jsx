@@ -35,7 +35,7 @@ export default function HeaderLayout({ header, children }) {
         { name: t('menus.lead'), path: "/lead" },
         { name: t('menus.proposal'), path: "/proposal" },
         { name: t('menus.quotation'), path: "/quotation" },
-        { name: t('menus.invoice'), path: "/invoice" },
+        { name: t('menus.invoice'), path: "/development" },
         { name: t('menus.payment'), path: "/payment" },
         { name: t('menus.project'), path: "/projects" },
         { name: t('menus.email'), path: "/email" },
