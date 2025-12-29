@@ -47,16 +47,16 @@ export default function HeaderLayout({ header, children }) {
     // ];
 
     const menus = [
-        { name: t("menus.dashboard"), path: "/dashboard" },
-        { name: t("menus.clients"), path: "/companies" },
-        { name: t("menus.lead"), path: "/lead" },
-        { name: t("menus.proposal"), path: "/proposal" },
-        { name: t("menus.quotation"), path: "/quotation" },
-        { name: t("menus.invoice"), path: "/invoice" },
-        { name: t("menus.payment"), path: "/payment" },
-        { name: t("menus.project"), path: "/projects" },
-        { name: t("menus.email"), path: "/email" },
-        { name: t("menus.user"), path: "/user" },
+        { name: t('menus.dashboard'), path: "/dashboard" },
+        { name: t('menus.clients'), path: "/companies" },
+        { name: t('menus.lead'), path: "/lead" },
+        { name: t('menus.proposal'), path: "/proposal" },
+        { name: t('menus.quotation'), path: "/quotation" },
+        { name: t('menus.invoice'), path: "/development" },
+        { name: t('menus.payment'), path: "/payment" },
+        { name: t('menus.project'), path: "/projects" },
+        { name: t('menus.email'), path: "/email" },
+        { name: t('menus.user'), path: "/user" },
     ];
 
     const handleReviseClick = (id) => {

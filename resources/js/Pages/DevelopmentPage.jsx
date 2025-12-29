@@ -3,6 +3,7 @@ import React from "react";
 export default function DevelopmentPage() {
     return (
         <div className="flex flex-col items-center justify-center min-h-screen bg-gray-50 p-4">
+            
             <div className="max-w-md w-full bg-white rounded-lg shadow-lg p-8 text-center">
                 <svg
                     className="mx-auto mb-4 w-16 h-16 text-yellow-500"

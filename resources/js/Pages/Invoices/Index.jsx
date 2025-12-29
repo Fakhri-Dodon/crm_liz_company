@@ -4,13 +4,13 @@ import { Link, usePage, useForm } from "@inertiajs/react";
 import DevelopmentPage from "../DevelopmentPage";
 
 export default function Index() {
-    const { props } = usePage();
-    const contacts = props.contacts ?? [];
     const dev = true; // Ubah ke true untuk menampilkan halaman development
-
     if (dev) {
         return <DevelopmentPage />;
     }
+    const { props } = usePage();
+    const contacts = props.contacts ?? [];
+
 
     // Try to use server props if available, otherwise fallback to sample data for UI preview
     const invoices = props.invoices ?? [
