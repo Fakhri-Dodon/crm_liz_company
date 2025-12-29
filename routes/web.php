@@ -13,7 +13,8 @@ use App\Http\Controllers\EmailSettingsController;
 use App\Http\Controllers\CompanyController;
 use App\Http\Controllers\Quotation\QuotationController;
 use App\Http\Controllers\ProposalController;
-use App\Http\Controllers\ProposalNumberFormated; 
+use App\Http\Controllers\ProposalNumberFormated;
+use App\Http\Controllers\InvoiceController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Artisan;
@@ -60,10 +61,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('/notifications/mark-as-sent{id}', [QuotationController::class, 'MarkAsSent'])->name('markAsSent');
     });
 
-    // notif send document(quotation/invoice)email
-    Route::post('/send-email/{type}/{id}', [EmailController::class, 'sendDocument'])->name('email.send-document');
-
-    // Route::get('/invoice', fn() => Inertia::render('Invoices/Index'))->name('invoice.index');
+    // Invoice resource routes (CRUD)
+    Route::resource('invoice', InvoiceController::class);
     // Route::get('/payment', fn() => Inertia::render('Payments/Index'))->name('payment.index');
     // Route::get('/email', fn() => Inertia::render('Email/Index'))->name('email.index');
     // Route::get('/user', fn() => Inertia::render('Users/Index'))->name('user.index');

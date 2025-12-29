@@ -24,6 +24,14 @@ class QuotationController extends Controller {
             ->pluck('count', 'status')
             ->toArray();
 
+        // Totals per status (sum of `total` field)
+        $totals = Quotation::select('status', DB::raw('SUM(total) as total_amount'))
+            ->where('deleted', 0)
+            ->groupBy('status')
+            ->get()
+            ->pluck('total_amount', 'status')
+            ->toArray();
+
         $years = Quotation::select(DB::raw('YEAR(date) as year'))
             ->where('deleted', 0)
             ->distinct()
@@ -84,7 +92,8 @@ class QuotationController extends Controller {
                 ['value' => 'rejected', 'label' => 'Rejected'],
             ],
             'summary'    => $summary,
-            'years'      => $years
+            'years'      => $years,
+            'totals'     => $totals,
         ]);
     }
 

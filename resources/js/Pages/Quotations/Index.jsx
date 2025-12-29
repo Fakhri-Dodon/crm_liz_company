@@ -26,8 +26,14 @@ export const toast = (title, icon = 'success') => {
     });
 };
 
-export default function QoutationsIndex({ quotations, statusOptions, summary, years, filters }) {
+export default function QoutationsIndex({ quotations, statusOptions, summary, years, filters, totals }) {
     const { t } = useTranslation();
+
+    // Debug: log totals to confirm prop is received from server
+    useEffect(() => {
+        console.log('Inertia totals:', totals);
+        console.log('Inertia summary:', summary);
+    }, [totals, summary]);
 
     const columns = [
         {
@@ -292,14 +298,14 @@ export default function QoutationsIndex({ quotations, statusOptions, summary, ye
                     {Object.entries(statusColors).map(([status, colors]) => (
                         <div 
                             key={status}
-                            className={`rounded-xl p-5 shadow-sm border ${colors.border} ${colors.bg} transition-transform hover:scale-[1.02] hover:shadow-md`}
+                            className={`rounded-xl p-4 sm:p-5 shadow-sm border ${colors.border} ${colors.bg} transition-transform hover:scale-[1.02] hover:shadow-md min-h-[110px] flex flex-col justify-between`}
                         >
                             <div className="flex items-center justify-between">
                                 <div>
                                     <p className={`text-sm font-medium ${colors.text} uppercase tracking-wide`}>
                                         {t(`quotations.stats.${status}`)}
                                     </p>
-                                    <p className="text-2xl md:text-3xl font-bold text-gray-900 mt-2">
+                                    <p className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 mt-2">
                                         {summary[status] || 0}
                                     </p>
                                 </div>
@@ -307,9 +313,9 @@ export default function QoutationsIndex({ quotations, statusOptions, summary, ye
                                     <div className={`w-3 h-3 rounded-full ${colors.text.replace('text-', 'bg-')}`}></div>
                                 </div>
                             </div>
-                            <div className="mt-4 pt-3 border-t border-gray-200">
-                                <p className="text-xs text-gray-500">
-                                    {t('quotations.stats.footer')}
+                            <div className="mt-3 pt-3 border-t border-gray-200">
+                                <p className="text-sm text-gray-600 font-semibold truncate">
+                                    {new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(totals && totals[status] ? totals[status] : 0)}
                                 </p>
                             </div>
                         </div>
@@ -419,13 +425,15 @@ export default function QoutationsIndex({ quotations, statusOptions, summary, ye
                 </div>
 
                 <div className="py-8">
-                    <TableLayout
-                        data={tableData}
-                        columns={columns}
-                        onEdit={handleEdit}
-                        onDelete={handleDelete}
-                        showAction={true}
-                    />
+                    <div className="overflow-x-auto -mx-4 px-4">
+                        <TableLayout
+                            data={tableData}
+                            columns={columns}
+                            onEdit={handleEdit}
+                            onDelete={handleDelete}
+                            showAction={true}
+                        />
+                    </div>
                 </div>
             </div>
         </>
