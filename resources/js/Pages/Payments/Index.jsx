@@ -8,6 +8,8 @@ export default function PaymentIndex() {
         return <HeaderLayout><DevelopmentPage /></HeaderLayout>;
     }
     return (
-        <div></div>
+        <div>
+
+        </div>
     );
 }
