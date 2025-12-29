@@ -1,7 +1,9 @@
-import React from 'react';
-import { Building2, MapPin, Globe, Mail, Phone, Calendar } from 'lucide-react';
+import React, { useState } from 'react';
+import { Building2, MapPin, Globe, Mail, Phone, Calendar, Info } from 'lucide-react';
 
 const CompanyHeader = ({ company, activeTab, data, statistics }) => {
+    const [showTooltip, setShowTooltip] = useState(null);
+    
     // Fungsi untuk menghitung statistik berdasarkan tab aktif
     const calculateStats = () => {
         switch (activeTab) {
@@ -79,8 +81,22 @@ const CompanyHeader = ({ company, activeTab, data, statistics }) => {
 
     const stats = calculateStats();
 
-    // Format currency
+    // Format currency dengan singkatan
     const formatCurrency = (amount) => {
+        if (amount >= 1000000000) {
+            return `Rp${(amount / 1000000000).toFixed(1)}M`;
+        }
+        if (amount >= 1000000) {
+            return `Rp${(amount / 1000000).toFixed(1)}Jt`;
+        }
+        if (amount >= 1000) {
+            return `Rp${(amount / 1000).toFixed(0)}Rb`;
+        }
+        return `Rp${amount}`;
+    };
+
+    // Format full currency untuk tooltip
+    const formatFullCurrency = (amount) => {
         return new Intl.NumberFormat('id-ID', {
             style: 'currency',
             currency: 'IDR',
@@ -96,75 +112,120 @@ const CompanyHeader = ({ company, activeTab, data, statistics }) => {
     // Format date
     const formatDate = (dateString) => {
         if (!dateString) return 'N/A';
-        return new Date(dateString).toLocaleDateString('id-ID', {
-            day: 'numeric',
-            month: 'long',
-            year: 'numeric'
-        });
+        const date = new Date(dateString);
+        const now = new Date();
+        const diffTime = Math.abs(now - date);
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        
+        if (diffDays < 30) {
+            return `${diffDays} hari lalu`;
+        } else if (diffDays < 365) {
+            return `${Math.floor(diffDays / 30)} bulan lalu`;
+        } else {
+            return `${Math.floor(diffDays / 365)} tahun lalu`;
+        }
+    };
+
+    // Truncate text dengan tooltip
+    const TruncatedText = ({ text, maxLength = 20, className = "" }) => {
+        if (!text) return null;
+        
+        if (text.length <= maxLength) {
+            return <span className={className}>{text}</span>;
+        }
+        
+        return (
+            <div className="relative inline-block">
+                <span 
+                    className={`${className} truncate max-w-[150px] sm:max-w-[200px] cursor-help`}
+                    onMouseEnter={() => setShowTooltip(text)}
+                    onMouseLeave={() => setShowTooltip(null)}
+                >
+                    {text.substring(0, maxLength)}...
+                </span>
+            </div>
+        );
     };
 
     return (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-            {/* Company Info */}
-            <div className="flex items-start justify-between mb-8">
-                <div className="flex items-start space-x-4">
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 lg:p-6">
+            {/* Tooltip untuk text panjang */}
+            {showTooltip && (
+                <div className="fixed z-50 px-3 py-2 text-sm text-white bg-gray-900 rounded-lg shadow-lg">
+                    {showTooltip}
+                </div>
+            )}
+
+            {/* Company Info - Responsive Layout */}
+            <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between mb-6 lg:mb-8 gap-6">
+                {/* Left Section */}
+                <div className="flex flex-col sm:flex-row sm:items-start gap-4">
+                    {/* Logo */}
                     {company.logo_url ? (
                         <img 
                             src={company.logo_url} 
                             alt={company.client_code}
-                            className="w-20 h-20 rounded-xl object-cover shadow-md"
+                            className="w-16 h-16 sm:w-20 sm:h-20 rounded-xl object-cover shadow-md mx-auto sm:mx-0"
                         />
                     ) : (
-                        <div className="w-20 h-20 bg-gradient-to-br from-[#054748] to-[#0a5d5e] rounded-xl flex items-center justify-center shadow-md">
-                            <Building2 className="w-10 h-10 text-white" />
+                        <div className="w-16 h-16 sm:w-20 sm:h-20 bg-gradient-to-br from-[#054748] to-[#0a5d5e] rounded-xl flex items-center justify-center shadow-md mx-auto sm:mx-0">
+                            <Building2 className="w-8 h-8 sm:w-10 sm:h-10 text-white" />
                         </div>
                     )}
-                    <div>
-                        <h1 className="text-2xl font-bold text-gray-900">{company.client_code}</h1>
-                        <div className="flex items-center space-x-4 mt-2 text-gray-600">
+                    
+                    {/* Company Details */}
+                    <div className="flex-1 text-center sm:text-left">
+                        <h1 className="text-xl sm:text-2xl font-bold text-gray-900">
+                            <TruncatedText text={company.client_code} maxLength={25} />
+                        </h1>
+                        
+                        {/* Contact Info */}
+                        <div className="mt-2 flex flex-col sm:flex-row sm:flex-wrap gap-2 sm:gap-3 text-sm text-gray-600">
                             {(company.city || company.province) && (
-                                <div className="flex items-center space-x-1">
-                                    <MapPin className="w-4 h-4" />
-                                    <span>
-                                        {company.city}{company.province ? `, ${company.province}` : ''}
-                                        {company.country ? `, ${company.country}` : ''}
-                                    </span>
+                                <div className="flex items-center justify-center sm:justify-start space-x-1">
+                                    <MapPin className="w-4 h-4 flex-shrink-0" />
+                                    <TruncatedText 
+                                        text={`${company.city || ''}${company.province ? `, ${company.province}` : ''}${company.country ? `, ${company.country}` : ''}`}
+                                        maxLength={30}
+                                    />
                                 </div>
                             )}
                             {company.website && (
-                                <div className="flex items-center space-x-1">
-                                    <Globe className="w-4 h-4" />
-                                    <span>{company.website}</span>
+                                <div className="flex items-center justify-center sm:justify-start space-x-1">
+                                    <Globe className="w-4 h-4 flex-shrink-0" />
+                                    <TruncatedText text={company.website} maxLength={25} />
                                 </div>
                             )}
                             {company.primary_contact?.email && (
-                                <div className="flex items-center space-x-1">
-                                    <Mail className="w-4 h-4" />
-                                    <span>{company.primary_contact.email}</span>
+                                <div className="flex items-center justify-center sm:justify-start space-x-1">
+                                    <Mail className="w-4 h-4 flex-shrink-0" />
+                                    <TruncatedText text={company.primary_contact.email} maxLength={25} />
                                 </div>
                             )}
                             {company.primary_contact?.phone && (
-                                <div className="flex items-center space-x-1">
-                                    <Phone className="w-4 h-4" />
-                                    <span>{company.primary_contact.phone}</span>
+                                <div className="flex items-center justify-center sm:justify-start space-x-1">
+                                    <Phone className="w-4 h-4 flex-shrink-0" />
+                                    <TruncatedText text={company.primary_contact.phone} maxLength={20} />
                                 </div>
                             )}
                         </div>
-                        <div className="mt-3 space-x-3">
-                            <span className="inline-block px-3 py-1 bg-blue-50 text-blue-700 rounded-full text-sm font-medium">
-                                Kode: {company.client_code}
+                        
+                        {/* Badges */}
+                        <div className="mt-3 flex flex-wrap justify-center sm:justify-start gap-2">
+                            <span className="inline-block px-2 py-1 bg-blue-50 text-blue-700 rounded-full text-xs font-medium">
+                                <TruncatedText text={`Kode: ${company.client_code}`} maxLength={15} />
                             </span>
                             {company.client_type && (
-                                <span className="inline-block px-3 py-1 bg-green-50 text-green-700 rounded-full text-sm font-medium">
-                                    {company.client_type.name}
+                                <span className="inline-block px-2 py-1 bg-green-50 text-green-700 rounded-full text-xs font-medium">
+                                    <TruncatedText text={company.client_type.name} maxLength={15} />
                                 </span>
                             )}
                             {company.nib && (
-                                <span className="inline-block px-3 py-1 bg-purple-50 text-purple-700 rounded-full text-sm font-medium">
-                                    NIB: {company.nib}
+                                <span className="inline-block px-2 py-1 bg-purple-50 text-purple-700 rounded-full text-xs font-medium">
+                                    <TruncatedText text={`NIB: ${company.nib}`} maxLength={15} />
                                 </span>
                             )}
-                            <span className={`inline-block px-3 py-1 rounded-full text-sm font-medium ${
+                            <span className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${
                                 company.is_active 
                                     ? 'bg-green-50 text-green-700' 
                                     : 'bg-red-50 text-red-700'
@@ -176,37 +237,63 @@ const CompanyHeader = ({ company, activeTab, data, statistics }) => {
                 </div>
                 
                 {/* Outstanding Balance & Info */}
-                <div className="text-right">
+                <div className="text-center sm:text-right">
                     <p className="text-sm text-gray-500">Total Piutang</p>
-                    <p className="text-3xl font-bold text-red-600">
-                        {formatCurrency(totalOutstanding)}
-                    </p>
-                    <p className="text-sm text-gray-500 mt-1">
+                    <div className="relative inline-block">
+                        <p 
+                            className="text-2xl sm:text-3xl font-bold text-red-600 cursor-help"
+                            onMouseEnter={() => setShowTooltip(formatFullCurrency(totalOutstanding))}
+                            onMouseLeave={() => setShowTooltip(null)}
+                        >
+                            {formatCurrency(totalOutstanding)}
+                        </p>
+                    </div>
+                    <p className="text-xs sm:text-sm text-gray-500 mt-1">
                         {data.invoices?.filter(inv => inv.status !== 'paid').length || 0} invoice belum dibayar
                     </p>
                     {company.client_since && (
-                        <p className="text-sm text-gray-500 mt-2 flex items-center justify-end space-x-1">
-                            <Calendar className="w-4 h-4" />
+                        <p className="text-xs sm:text-sm text-gray-500 mt-2 flex items-center justify-center sm:justify-end space-x-1">
+                            <Calendar className="w-4 h-4 flex-shrink-0" />
                             <span>Klien sejak: {formatDate(company.client_since)}</span>
                         </p>
                     )}
                     {company.created_at && (
-                        <p className="text-sm text-gray-500 mt-1">
-                            Dibuat: {new Date(company.created_at).toLocaleDateString('id-ID')}
+                        <p className="text-xs sm:text-sm text-gray-500 mt-1">
+                            Dibuat: {formatDate(company.created_at)}
                         </p>
                     )}
                 </div>
             </div>
 
-            {/* Stats Cards */}
-            <div className="grid grid-cols-4 gap-4">
+            {/* Stats Cards - Responsive Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
                 {stats.map((stat, index) => (
-                    <div key={index} className="bg-gray-50 rounded-lg p-4 border border-gray-200 hover:shadow-sm transition-shadow">
+                    <div key={index} className="bg-gray-50 rounded-lg p-3 sm:p-4 border border-gray-200 hover:shadow-sm transition-shadow">
                         <div className="flex items-center">
-                            <div className={`w-1 h-10 ${stat.color} rounded-full mr-3`}></div>
-                            <div>
-                                <p className="text-2xl font-bold text-gray-900">{stat.value}</p>
-                                <p className="text-sm text-gray-600 mt-1">{stat.label}</p>
+                            <div className={`w-1 h-8 sm:h-10 ${stat.color} rounded-full mr-3 flex-shrink-0`}></div>
+                            <div className="flex-1 min-w-0">
+                                <div className="flex items-center justify-between">
+                                    <p className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900 truncate">
+                                        {stat.value}
+                                    </p>
+                                    {typeof stat.value === 'string' && stat.value.includes('Rp') && (
+                                        <Info 
+                                            className="w-4 h-4 text-gray-400 ml-2 cursor-help flex-shrink-0"
+                                            onMouseEnter={() => {
+                                                if (stat.value.includes('Rp')) {
+                                                    const numericValue = stat.value.match(/\d+/)?.[0];
+                                                    if (numericValue) {
+                                                        setShowTooltip(formatFullCurrency(parseFloat(numericValue)));
+                                                    }
+                                                }
+                                            }}
+                                            onMouseLeave={() => setShowTooltip(null)}
+                                        />
+                                    )}
+                                </div>
+                                <p className="text-xs sm:text-sm text-gray-600 mt-1 truncate">
+                                    {stat.label}
+                                </p>
                             </div>
                         </div>
                     </div>

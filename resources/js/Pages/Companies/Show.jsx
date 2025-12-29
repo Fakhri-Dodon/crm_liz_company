@@ -133,14 +133,16 @@ const Show = ({ company, quotations, invoices, payments, projects, contacts, sta
             <Head title={`${displayData.company.client_code} - Detail Perusahaan`} />
             
             <div className="flex min-h-screen bg-gray-50">
-                {/* Sidebar */}
-                <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
+                {/* Sidebar - Pas di kiri tanpa margin */}
+                <div className="flex-shrink-0">
+                    <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
+                </div>
                 
-                {/* Main Content */}
-                <div className="flex-1 ml-64">
-                    <div className="p-6">
+                {/* Main Content - Tepat di sebelah sidebar */}
+                <div className="flex-1 min-w-0">
+                    <div className="p-0">
                         {/* Success Message */}
-                        <div className="mb-4 p-4 bg-green-50 border border-green-200 rounded-lg">
+                        <div className="mb-4 p-4 bg-green-50 border border-green-200 rounded-lg mx-6 mt-6">
                             <div className="flex items-center">
                                 <div className="flex-shrink-0">
                                     <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
@@ -159,15 +161,17 @@ const Show = ({ company, quotations, invoices, payments, projects, contacts, sta
                         </div>
 
                         {/* Company Header */}
-                        <CompanyHeader 
-                            company={displayData.company}
-                            activeTab={activeTab}
-                            data={displayData}
-                            statistics={displayData.statistics}
-                        />
+                        <div className="px-6">
+                            <CompanyHeader 
+                                company={displayData.company}
+                                activeTab={activeTab}
+                                data={displayData}
+                                statistics={displayData.statistics}
+                            />
+                        </div>
                         
                         {/* Content Area */}
-                        <div className="mt-6 bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+                        <div className="mt-6 bg-white rounded-xl shadow-sm border border-gray-100 mx-6 p-6">
                             <div className="mb-6 flex justify-between items-center">
                                 <div>
                                     <h2 className="text-xl font-bold text-gray-900 capitalize">

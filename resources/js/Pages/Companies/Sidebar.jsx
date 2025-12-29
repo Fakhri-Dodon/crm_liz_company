@@ -22,7 +22,8 @@ const Sidebar = ({ activeTab, setActiveTab }) => {
     ];
 
     return (
-        <div className="fixed left-0 top-0 h-screen w-64 bg-[#054748] text-white flex flex-col shadow-lg">
+        // Hapus top-20 dan h-[calc(100vh-5rem)] agar pas dengan header
+        <div className="w-64 bg-[#054748] text-white flex flex-col shadow-lg h-screen sticky top-0">
             {/* Logo/Header Sidebar */}
             <div className="p-6 border-b border-[#0a5d5e]">
                 <div className="flex items-center space-x-3">
