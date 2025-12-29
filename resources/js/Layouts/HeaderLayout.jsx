@@ -2,7 +2,7 @@ import Dropdown from "@/Components/Dropdown";
 import NavLink from "@/Components/NavLink";
 import DateTime from "@/Components/DateTime";
 import ResponsiveNavLink from "@/Components/ResponsiveNavLink";
-import { Settings, User, Bell, Globe, ChevronDown, Check } from "lucide-react";
+import { Settings, User, Bell, Globe, ChevronDown, Check, Menu, X } from "lucide-react";
 import { Link, usePage } from "@inertiajs/react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -12,6 +12,7 @@ export default function HeaderLayout({ header, children }) {
     const user = props.auth.user;
     const { t, i18n } = useTranslation();
     const [isLangOpen, setIsLangOpen] = useState(false);
+    const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
     const app_config = props?.app_config;
     const allowChange = app_config?.allow_language_change ?? false;
@@ -44,25 +45,34 @@ export default function HeaderLayout({ header, children }) {
     return (
         <>
             {/* HEADER */}
-            <header className="h-20 bg-white p-3 flex items-center justify-between">
+            <header className="h-20 bg-white p-3 flex items-center justify-between shadow-sm">
+                {/* Logo & DateTime */}
                 <div className="flex items-center gap-3">
-                    <div className="border-r-2 border-gray w-40">
-                        <Link href="/dashboard" className="border-r-2 border-gray-200 w-40 h-16 flex items-center pr-4">
+                    <div className="border-r-2 border-gray-200 pr-3 md:pr-4 md:w-40">
+                        <Link href="/dashboard" className="h-16 flex items-center">
                             {appLogo ? (
                                 <img 
                                     src={appLogo} 
                                     alt="App Logo" 
-                                    className="max-h-full max-w-full object-contain object-left" 
+                                    className="h-12 md:h-14 w-auto object-contain" 
                                 />
                             ) : (
-                                <h1 className="text-xl font-bold w-full text-left ml-4">My</h1>
+                                <h1 className="text-lg md:text-xl font-bold">My</h1>
                             )}
                         </Link>
                     </div>
-                    <DateTime />
+                    <div className="hidden md:block">
+                        <DateTime />
+                    </div>
+
+                    {/* Mobile DateTime */}
+                    <div className="md:hidden pb-3 border-b">
+                        <DateTime />
+                    </div>
                 </div>
 
-                <div className="flex gap-3">
+                {/* Desktop Menu */}
+                <div className="hidden lg:flex gap-3">
                     {headerMenus.map((menu) => (
                         <Link key={menu.name} href={menu.path}>
                             <div className="flex flex-col items-center gap-1 p-4 hover:bg-gray-100 rounded-lg transition">
@@ -93,7 +103,6 @@ export default function HeaderLayout({ header, children }) {
 
                             {isLangOpen && (
                                 <>
-                                    {/* Overlay transparan agar bisa tutup saat klik di luar */}
                                     <div
                                         className="fixed inset-0 z-40"
                                         onClick={() => setIsLangOpen(false)}
@@ -107,25 +116,17 @@ export default function HeaderLayout({ header, children }) {
                                             <button
                                                 key={lang.code}
                                                 onClick={() => {
-                                                    i18n.changeLanguage(
-                                                        lang.code
-                                                    );
+                                                    i18n.changeLanguage(lang.code);
                                                     setIsLangOpen(false);
                                                 }}
                                                 className="w-full flex items-center justify-between px-4 py-3 hover:bg-gray-50 transition-colors"
                                             >
                                                 <span className="text-sm font-medium">
-                                                    <span className="mr-2">
-                                                        {lang.flag}
-                                                    </span>{" "}
+                                                    <span className="mr-2">{lang.flag}</span>
                                                     {lang.name}
                                                 </span>
-                                                {i18n.language ===
-                                                    lang.code && (
-                                                    <Check
-                                                        size={16}
-                                                        className="text-teal-600"
-                                                    />
+                                                {i18n.language === lang.code && (
+                                                    <Check size={16} className="text-teal-600" />
                                                 )}
                                             </button>
                                         ))}
@@ -134,14 +135,13 @@ export default function HeaderLayout({ header, children }) {
                             )}
                         </div>
                     )}
+                    
                     {/* Profile Dropdown */}
                     <Dropdown>
                         <Dropdown.Trigger>
                             <div className="flex flex-col items-center gap-1 p-4 hover:bg-gray-100 rounded-lg transition cursor-pointer">
                                 <User size={28} />
-                                <span className="text-sm">
-                                    {user?.name || "Profile"}
-                                </span>
+                                <span className="text-sm">{user?.name || "Profile"}</span>
                             </div>
                         </Dropdown.Trigger>
                         <Dropdown.Content align="right" width="48">
@@ -163,13 +163,93 @@ export default function HeaderLayout({ header, children }) {
                         </Dropdown.Content>
                     </Dropdown>
                 </div>
+
+                {/* Mobile Menu Button */}
+                <button
+                    onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                    className="lg:hidden p-2 hover:bg-gray-100 rounded-lg transition"
+                >
+                    {isMobileMenuOpen ? <X size={28} /> : <Menu size={28} />}
+                </button>
             </header>
 
-            {/* NAVBAR */}
-            <nav className="h-20 bg-teal-800 flex items-center px-6">
-                <ul className="flex gap-12">
+            {/* Mobile Menu */}
+            {isMobileMenuOpen && (
+                <div className="lg:hidden bg-white border-b shadow-lg">
+                    <div className="p-4 space-y-2">
+                        {/* Mobile DateTime */}
+                       
+
+                        {/* Header Menus */}
+                        {headerMenus.map((menu) => (
+                            <Link
+                                key={menu.name}
+                                href={menu.path}
+                                onClick={() => setIsMobileMenuOpen(false)}
+                            >
+                                <div className="flex items-center gap-3 p-3 hover:bg-gray-100 rounded-lg transition">
+                                    <menu.icon size={20} />
+                                    <span className="text-sm font-medium">{menu.name}</span>
+                                </div>
+                            </Link>
+                        ))}
+
+                        {/* Language Selector */}
+                        {allowChange && (
+                            <div className="border-t pt-2">
+                                <div className="text-xs font-bold text-gray-400 uppercase tracking-widest px-3 py-2">
+                                    Language
+                                </div>
+                                {languages.map((lang) => (
+                                    <button
+                                        key={lang.code}
+                                        onClick={() => {
+                                            i18n.changeLanguage(lang.code);
+                                            setIsMobileMenuOpen(false);
+                                        }}
+                                        className="w-full flex items-center justify-between px-3 py-3 hover:bg-gray-100 rounded-lg transition"
+                                    >
+                                        <span className="text-sm font-medium">
+                                            <span className="mr-2">{lang.flag}</span>
+                                            {lang.name}
+                                        </span>
+                                        {i18n.language === lang.code && (
+                                            <Check size={16} className="text-teal-600" />
+                                        )}
+                                    </button>
+                                ))}
+                            </div>
+                        )}
+
+                        {/* Profile Links */}
+                        <div className="border-t pt-2">
+                            <Link
+                                href="/profile"
+                                onClick={() => setIsMobileMenuOpen(false)}
+                                className="flex items-center gap-3 p-3 hover:bg-gray-100 rounded-lg transition"
+                            >
+                                <User size={20} />
+                                <span className="text-sm font-medium">Profile ({user?.name})</span>
+                            </Link>
+                            <Link
+                                method="post"
+                                href={route("logout")}
+                                as="button"
+                                onFinish={() => (window.location.href = "/")}
+                                className="w-full flex items-center gap-3 p-3 hover:bg-gray-100 rounded-lg transition text-left text-red-600"
+                            >
+                                <span className="text-sm font-medium">Logout</span>
+                            </Link>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* NAVBAR - Desktop */}
+            <nav className="hidden lg:flex h-20 bg-teal-800 items-center px-6">
+                <ul className="flex gap-6 xl:gap-12">
                     {menus.map((item) => (
-                        <li key={item.path}>
+                        <li key={item.path} className="whitespace-nowrap">
                             <Link
                                 href={item.path}
                                 className={`font-medium ${
@@ -185,9 +265,29 @@ export default function HeaderLayout({ header, children }) {
                 </ul>
             </nav>
 
+            {/* NAVBAR - Mobile/Tablet */}
+            <nav className="lg:hidden bg-teal-800 px-4 py-3 overflow-x-auto">
+                <ul className="flex gap-4 min-w-max">
+                    {menus.map((item) => (
+                        <li key={item.path} className="whitespace-nowrap">
+                            <Link
+                                href={item.path}
+                                className={`text-sm font-medium px-3 py-2 rounded-lg block ${
+                                    url === item.path
+                                        ? "bg-teal-700 text-white"
+                                        : "text-white hover:bg-teal-700"
+                                }`}
+                            >
+                                {item.name}
+                            </Link>
+                        </li>
+                    ))}
+                </ul>
+            </nav>
+
             <div className="h-4 bg-[#c8e1b5] shadow-sm"></div>
 
-            <main>{children}</main>
+            <main className="">{children}</main>
         </>
     );
 }

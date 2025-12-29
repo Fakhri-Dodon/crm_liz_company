@@ -10,10 +10,12 @@ use App\Http\Controllers\ProposalStatusesController;
 use App\Http\Controllers\ProjectController;
 use App\Http\Controllers\EmailSettingsController;
 use App\Http\Controllers\CompanyController;
+use App\Http\Controllers\EmailController;
+use App\Http\Controllers\InvoiceController;
 use App\Http\Controllers\Quotation\QuotationController;
 use App\Http\Controllers\ProposalController;
 use App\Http\Controllers\ProposalNumberFormated;
-use App\Http\Controllers\InvoiceController;
+use App\Http\Controllers\RolesController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Artisan;
@@ -43,7 +45,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     // Leads
     Route::get('/lead', [LeadController::class, 'index'])->name('lead.index');
-    Route::get('/proposal', fn() => Inertia::render('Proposals/Index'))->name('proposal.index');
+    // Route::get('/proposal', fn() => Inertia::render('Proposals/Index'))->name('proposal.index');
     
     //Quotation Modul
     Route::prefix('quotation')->name('quotation.')->group(function() {
@@ -54,14 +56,30 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/edit/{quotation}', [QuotationController::class, 'edit'])->name('edit');
         Route::patch('/update/{quotation}', [QuotationController::class, 'update'])->name('update');
         Route::delete('/destroy/{quotation}', [QuotationController::class, 'destroy'])->name('destroy');
+        Route::post('/status-notify/{id}', [QuotationController::class, 'notificationUpdateStatus'])->name('notification-status');
+        // tanda notif udh di read
+        Route::post('/notifications/mark-all-read', [QuotationController::class, 'markAllRead']);
+        Route::post('/notifications/mark-as-sent{id}', [QuotationController::class, 'MarkAsSent'])->name('markAsSent');
     });
 
     // Invoice resource routes (CRUD)
     Route::resource('invoice', InvoiceController::class);
+    // Approval flow
+    Route::post('/invoice/{invoice}/request-approval', [InvoiceController::class, 'requestApproval'])->name('invoice.request-approval');
+    Route::post('/invoice/{invoice}/approve', [InvoiceController::class, 'approve'])->name('invoice.approve');
+    Route::post('/invoice/{invoice}/revise', [InvoiceController::class, 'revise'])->name('invoice.revise');
     Route::get('/payment', fn() => Inertia::render('Payments/Index'))->name('payment.index');
     Route::get('/email', fn() => Inertia::render('Email/Index'))->name('email.index');
     Route::get('/user', fn() => Inertia::render('Users/Index'))->name('user.index');
     Route::get('/project', fn() => Inertia::render('Projects/Index'))->name('project.index');
+    // notif send document(quotation/invoice)email
+    Route::post('/send-email/{type}/{id}', [EmailController::class, 'sendDocument'])->name('email.send-document');
+
+    // Route::get('/invoice', fn() => Inertia::render('Invoices/Index'))->name('invoice.index');
+    // Route::get('/payment', fn() => Inertia::render('Payments/Index'))->name('payment.index');
+    // Route::get('/email', fn() => Inertia::render('Email/Index'))->name('email.index');
+    // Route::get('/user', fn() => Inertia::render('Users/Index'))->name('user.index');
+    // Route::get('/project', fn() => Inertia::render('Projects/Index'))->name('project.index');
     // Route::get('/email-inbox', fn() => Inertia::render('Email/Index'))->name('email.index');
     // Route::get('/email', fn() => Inertia::render('Email/Index'))->name('email.inbox');
     Route::prefix('user')->name('user.')->group(function () {
@@ -85,7 +103,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
             Route::get('/', [SettingController::class, 'userRoles']);
             Route::post('/store', [SettingController::class, 'userRolesStore'])->name('store');
             Route::put('/{id}', [SettingController::class, 'userRolesUpdate'])->name('update');
-            // Route::post('/role-store', [RolesController::class, 'roleStore'])->name('roles.store');
+            Route::post('/role-store', [RolesController::class, 'roleStore'])->name('roles.store');
         });
         
         // Leads Settings
@@ -129,6 +147,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/companies/create', [CompanyController::class, 'create'])->name('companies.create');
     Route::post('/companies', [CompanyController::class, 'store'])->name('companies.store');
     
+    // **HAPUS INI: HANYA 1 ROUTE UNTUK SHOW**
+    // Route::get('/companies/{company}/show', [CompanyController::class, 'show'])->name('companies.show'); // HAPUS BARIS INI
+    
     // Specific routes before parameter routes (harus didefinisikan sebelum {company})
     Route::get('/companies/get-leads', [CompanyController::class, 'getLeadsForCreation'])
         ->name('companies.get-leads');
@@ -141,7 +162,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     
     // ====================== COMPANY DETAIL & PROFILE ROUTES ======================
     // Company Detail - ROUTE UTAMA untuk halaman profil
-    Route::get('/companies/{company}', [CompanyController::class, 'show'])->name('companies.show');
+    Route::get('/companies/{company}', [CompanyController::class, 'show'])->name('companies.show'); // INI SATU-SATUNYA
     
     // Company Edit & Update
     Route::get('/companies/{company}/edit', [CompanyController::class, 'edit'])->name('companies.edit');
@@ -185,6 +206,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/projects', [CompanyController::class, 'getCompanyProjects'])
             ->name('companies.projects');
     });
+        Route::get('/api/companies/{company}/primary-contact', [CompanyController::class, 'getPrimaryContact'])
+        ->name('companies.primary-contact');
     
     // ====================== RELATED ENTITY ROUTES ======================
     // Quotation routes (dengan company context)
@@ -229,6 +252,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
 // Route untuk halaman tambah proposal
 Route::get('/proposal/add', fn() => Inertia::render('Proposals/AddProposal'))->name('proposal.add');
-Route::get('/proposal/html/{id}', [ProposalController::class, 'show']);
+Route::get('/html-sections', [ProposalController::class, 'sections']);
+Route::resource('proposal', ProposalController::class);
 
 require __DIR__.'/auth.php';

@@ -9,7 +9,7 @@ return new class extends Migration {
         Schema::create('roles', function (Blueprint $table) {
             $table->char('id', 36)->primary();
             $table->string('name', 50);
-            $table->string('description', 255);
+            $table->string('description', 255)->nullable();
             $table->char('created_by', 36)->nullable();
             $table->char('updated_by', 36)->nullable();
             $table->char('deleted_by', 36)->nullable();

@@ -1,11 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { X, Upload, Building, User, Mail, Phone, MapPin, Globe, FileText, AlertCircle, Check, Image, Trash2 } from 'lucide-react';
+import { 
+    X, Upload, Building, User, Mail, Phone, MapPin, 
+    Globe, FileText, AlertCircle, Check, Image, Trash2,
+    Briefcase, Smartphone, AtSign, Globe as GlobeIcon
+} from 'lucide-react';
 import { router } from '@inertiajs/react';
 import axios from 'axios';
 
 const EditModal = ({ isOpen, onClose, company, clientTypes, onUpdate }) => {
-    // **UPDATE**: Field name hanya yang ada di table companies
+    // **UPDATE**: Tambahkan field untuk contact person
     const [formData, setFormData] = useState({
+        // Company fields
         company_name: '', // Akan disimpan sebagai client_code
         client_type_id: '',
         status: 'active',
@@ -18,16 +23,20 @@ const EditModal = ({ isOpen, onClose, company, clientTypes, onUpdate }) => {
         website: '',
         logo: null,
         logo_preview: '',
-        delete_logo: false
+        delete_logo: false,
+        
+        // Contact Person fields - **BARU**
+        contact_person: '',
+        contact_email: '',
+        contact_phone: '',
+        contact_position: ''
     });
 
     const [errors, setErrors] = useState({});
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [logoFile, setLogoFile] = useState(null);
-    const [leads, setLeads] = useState([]);
-    const [loadingLeads, setLoadingLeads] = useState(false);
-    const [selectedLead, setSelectedLead] = useState(null);
-    const [leadContactInfo, setLeadContactInfo] = useState(null);
+    const [contactLoading, setContactLoading] = useState(false);
+    const [hasContactData, setHasContactData] = useState(false);
 
     // Setup axios defaults
     useEffect(() => {
@@ -44,16 +53,19 @@ const EditModal = ({ isOpen, onClose, company, clientTypes, onUpdate }) => {
     useEffect(() => {
         if (isOpen && company && clientTypes.length > 0) {
             console.log('=== INITIALIZING EDIT FORM ===');
-            console.log('Company data:', company);
-            console.log('Client types available:', clientTypes);
+            console.log('Company data for edit:', company);
+            console.log('Available client types:', clientTypes);
             
             // Cari client type yang sesuai dengan company
             const matchingClientType = clientTypes.find(type => type.id === company.client_type_id);
-            console.log('Matching client type:', matchingClientType);
             
-            // **PERBAIKAN**: Pastikan semua field required ada value
+            // **PERBAIKAN**: Load contact person data
+            loadContactPersonData(company.id);
+            
+            // Data initial untuk company
             const initialData = {
-                company_name: company.client_code || company.name || 'Untitled Company',
+                // Company fields
+                company_name: company.client_code || company.name || '',
                 client_type_id: company.client_type_id || (clientTypes.length > 0 ? clientTypes[0].id : ''),
                 status: company.is_active ? 'active' : 'inactive',
                 city: company.city || '',
@@ -65,7 +77,13 @@ const EditModal = ({ isOpen, onClose, company, clientTypes, onUpdate }) => {
                 website: company.website || '',
                 logo: null,
                 logo_preview: company.logo_url || '',
-                delete_logo: false
+                delete_logo: false,
+                
+                // Contact fields - akan diisi setelah fetch
+                contact_person: '',
+                contact_email: '',
+                contact_phone: '',
+                contact_position: ''
             };
             
             console.log('Initial form data:', initialData);
@@ -73,46 +91,70 @@ const EditModal = ({ isOpen, onClose, company, clientTypes, onUpdate }) => {
             setFormData(initialData);
             setLogoFile(null);
             setErrors({});
-            
-            // Reset lead contact info
-            setLeadContactInfo(null);
-            setSelectedLead(null);
         }
     }, [isOpen, company, clientTypes]);
-    // Fetch lead contact info jika ada
-    const fetchLeadContactInfo = async (leadId) => {
-        try {
-            const response = await axios.get(`/leads/${leadId}`);
-            if (response.data.success) {
-                setLeadContactInfo(response.data.data);
-            }
-        } catch (error) {
-            console.error('Error fetching lead contact info:', error);
-        }
-    };
 
-    // Fetch leads (optional)
-    const fetchLeads = async () => {
-        setLoadingLeads(true);
+    // Fungsi untuk load contact person data
+    const loadContactPersonData = async (companyId) => {
+        setContactLoading(true);
         try {
-            const response = await axios.get('/companies/get-leads');
-            if (response.data.success) {
-                setLeads(response.data.data || []);
+            console.log('Fetching contact data for company:', companyId);
+            
+            // Fetch primary contact data
+            const response = await axios.get(`/api/companies/${companyId}/primary-contact`);
+            
+            if (response.data.success && response.data.data) {
+                const contactData = response.data.data;
+                console.log('Contact data received:', contactData);
+                
+                setFormData(prev => ({
+                    ...prev,
+                    contact_person: contactData.name || '',
+                    contact_email: contactData.email || '',
+                    contact_phone: contactData.phone || '',
+                    contact_position: contactData.position || ''
+                }));
+                
+                setHasContactData(true);
+                
+                console.log('Contact form data updated:', {
+                    name: contactData.name,
+                    email: contactData.email,
+                    phone: contactData.phone,
+                    position: contactData.position
+                });
+            } else {
+                console.log('No contact data found, using fallback');
+                // Fallback: Gunakan data dari company object jika ada
+                setFormData(prev => ({
+                    ...prev,
+                    contact_person: company.contact_person || company.primary_contact?.name || '',
+                    contact_email: company.contact_email || company.primary_contact?.email || '',
+                    contact_phone: company.contact_phone || company.primary_contact?.phone || '',
+                    contact_position: company.contact_position || company.primary_contact?.position || ''
+                }));
+                setHasContactData(false);
             }
         } catch (error) {
-            console.error('Error fetching leads:', error);
+            console.error('Error fetching contact data:', error);
+            console.error('Error details:', {
+                status: error.response?.status,
+                data: error.response?.data,
+                message: error.message
+            });
+            
+            // Fallback: Gunakan data dari company object
+            setFormData(prev => ({
+                ...prev,
+                contact_person: company.contact_person || company.primary_contact?.name || '',
+                contact_email: company.contact_email || company.primary_contact?.email || '',
+                contact_phone: company.contact_phone || company.primary_contact?.phone || '',
+                contact_position: company.contact_position || company.primary_contact?.position || ''
+            }));
+            setHasContactData(false);
         } finally {
-            setLoadingLeads(false);
+            setContactLoading(false);
         }
-    };
-
-    const handleLeadSelect = (lead) => {
-        setSelectedLead(lead);
-        setFormData(prev => ({
-            ...prev,
-            company_name: lead.company_name,
-        }));
-        setLeadContactInfo(lead);
     };
 
     const handleInputChange = (e) => {
@@ -161,8 +203,9 @@ const handleSubmit = async (e) => {
     setErrors({});
 
     try {
-        // **PERBAIKAN RADIKAL**: Gunakan JSON untuk update tanpa file upload
+        // Prepare data untuk update
         const requestData = {
+            // Company data
             company_name: formData.company_name || '',
             client_type_id: formData.client_type_id || '',
             status: formData.status || 'active',
@@ -173,19 +216,57 @@ const handleSubmit = async (e) => {
             vat_number: formData.vat_number ? parseInt(formData.vat_number) || null : null,
             nib: formData.nib || '',
             website: formData.website || '',
-            // Note: Logo tidak bisa diupdate via JSON, perlu endpoint terpisah
+            
+            // Contact person data
+            contact_person: formData.contact_person || '',
+            contact_email: formData.contact_email || '',
+            contact_phone: formData.contact_phone || '',
+            contact_position: formData.contact_position || '',
+            
+            // **PERBAIKAN: Konversi delete_logo ke boolean**
+            delete_logo: formData.delete_logo ? '1' : '0' // Kirim sebagai string '1' atau '0'
         };
 
-        console.log('=== SENDING JSON DATA ===');
+        console.log('=== SENDING UPDATE DATA ===');
         console.log('Request data:', requestData);
+        console.log('Company ID:', company.id);
         console.log('URL:', `/companies/${company.id}`);
 
-        // **PERBAIKAN**: Gunakan POST dengan _method=PUT atau langsung PUT dengan JSON
-        const response = await axios.put(`/companies/${company.id}`, requestData, {
+        // Create FormData untuk handle file upload
+        const formDataToSend = new FormData();
+        
+        // Append semua field
+        Object.keys(requestData).forEach(key => {
+            if (requestData[key] !== null && requestData[key] !== undefined) {
+                // **PERBAIKAN: Untuk boolean, konversi ke string '1' atau '0'**
+                if (key === 'delete_logo') {
+                    formDataToSend.append(key, requestData[key]); // '1' atau '0'
+                } else {
+                    formDataToSend.append(key, requestData[key]);
+                }
+            }
+        });
+        
+        // Append logo file jika ada
+        if (formData.logo) {
+            formDataToSend.append('logo', formData.logo);
+            console.log('Logo file appended:', formData.logo.name);
+        }
+
+        console.log('FormData entries:');
+        for (let pair of formDataToSend.entries()) {
+            console.log(pair[0] + ': ' + pair[1]);
+        }
+
+        // Kirim request
+        const response = await axios.post(`/companies/${company.id}`, formDataToSend, {
             headers: {
-                'Content-Type': 'application/json',
+                'Content-Type': 'multipart/form-data',
                 'Accept': 'application/json',
             },
+            params: {
+                '_method': 'PUT' // Untuk Laravel PUT method via POST
+            }
         });
 
         console.log('Server response:', response.data);
@@ -193,7 +274,7 @@ const handleSubmit = async (e) => {
         if (response.data.success) {
             alert(response.data.message || 'Client updated successfully!');
             
-            // Clean up blob URL if exists
+            // Clean up blob URL jika ada
             if (formData.logo_preview && formData.logo_preview.startsWith('blob:')) {
                 URL.revokeObjectURL(formData.logo_preview);
             }
@@ -229,7 +310,7 @@ const handleSubmit = async (e) => {
             
             console.log('Validation errors:', validationErrors);
             
-            // Format validation errors
+            // Format validation errors untuk alert
             const errorMessages = Object.entries(validationErrors)
                 .map(([field, messages]) => {
                     if (Array.isArray(messages)) {
@@ -265,36 +346,50 @@ const handleSubmit = async (e) => {
 
     return (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] overflow-hidden">
+            <div className="bg-white rounded-lg shadow-xl w-full max-w-6xl max-h-[95vh] overflow-hidden">
                 {/* Header */}
                 <div className="flex justify-between items-center p-6 border-b">
                     <div>
                         <h2 className="text-2xl font-bold text-gray-900">Edit Client</h2>
-                        <p className="text-gray-600 mt-1">
-                            Editing: <span className="font-medium">{company.client_code}</span>
+                        <div className="flex items-center gap-2 mt-1">
+                            <p className="text-gray-600">
+                                Editing: <span className="font-medium">{company.client_code}</span>
+                            </p>
                             {company.id && (
-                                <span className="ml-2 text-sm bg-gray-100 px-2 py-1 rounded">
+                                <span className="text-xs bg-gray-100 px-2 py-1 rounded text-gray-500">
                                     ID: {company.id.substring(0, 8)}...
                                 </span>
                             )}
-                        </p>
-                        {leadContactInfo && (
-                            <p className="text-sm text-blue-600 mt-1">
-                                ✓ Data kontak diambil dari lead
+                        </div>
+                        {contactLoading ? (
+                            <p className="text-sm text-blue-600 mt-1 flex items-center gap-1">
+                                <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-blue-600"></div>
+                                Loading contact data...
+                            </p>
+                        ) : hasContactData ? (
+                            <p className="text-sm text-green-600 mt-1 flex items-center gap-1">
+                                <Check className="w-3 h-3" />
+                                Contact data loaded
+                            </p>
+                        ) : (
+                            <p className="text-sm text-yellow-600 mt-1 flex items-center gap-1">
+                                <AlertCircle className="w-3 h-3" />
+                                No contact data found
                             </p>
                         )}
                     </div>
                     <button
                         onClick={handleCancel}
                         className="p-2 hover:bg-gray-100 rounded-lg transition"
+                        disabled={isSubmitting}
                     >
                         <X className="w-6 h-6 text-gray-500" />
                     </button>
                 </div>
 
-                {/* Form - UPDATE sesuai Create form */}
-                <form onSubmit={handleSubmit} className="overflow-y-auto max-h-[calc(90vh-200px)]">
-                    <div className="p-6 space-y-6">
+                {/* Form */}
+                <form onSubmit={handleSubmit} className="overflow-y-auto max-h-[calc(95vh-180px)]">
+                    <div className="p-6 space-y-8">
                         {/* Error Alert */}
                         {errors.submit && (
                             <div className="bg-red-50 border border-red-200 rounded-lg p-4">
@@ -308,111 +403,126 @@ const handleSubmit = async (e) => {
                             </div>
                         )}
 
-                        {/* Contact Info from Lead (Display only) */}
-                        {leadContactInfo && (
-                            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                                <h3 className="font-medium text-blue-900 mb-3 flex items-center gap-2">
-                                    <User className="w-5 h-5" />
-                                    Contact Information (From Lead)
-                                </h3>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <div>
-                                        <label className="block text-xs font-medium text-gray-600 mb-1">
-                                            Contact Person
-                                        </label>
-                                        <div className="text-sm text-gray-800">
-                                            {leadContactInfo.contact_person || 'Not specified'}
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <label className="block text-xs font-medium text-gray-600 mb-1">
-                                            Email
-                                        </label>
-                                        <div className="text-sm text-gray-800 flex items-center gap-1">
-                                            <Mail className="w-3 h-3" />
-                                            {leadContactInfo.email || 'Not specified'}
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <label className="block text-xs font-medium text-gray-600 mb-1">
-                                            Phone
-                                        </label>
-                                        <div className="text-sm text-gray-800 flex items-center gap-1">
-                                            <Phone className="w-3 h-3" />
-                                            {leadContactInfo.phone || 'Not specified'}
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <label className="block text-xs font-medium text-gray-600 mb-1">
-                                            Address
-                                        </label>
-                                        <div className="text-sm text-gray-800">
-                                            {leadContactInfo.address || 'Not specified'}
-                                        </div>
-                                    </div>
+                        {/* Section 1: Contact Person Information */}
+                        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-6">
+                            <h3 className="text-xl font-bold text-blue-900 mb-4 flex items-center gap-3">
+                                <div className="p-2 bg-blue-100 rounded-lg">
+                                    <User className="w-6 h-6 text-blue-600" />
                                 </div>
-                                <p className="text-xs text-blue-600 mt-2">
-                                    ℹ️ Contact information is stored in the lead table and cannot be edited here.
-                                </p>
-                            </div>
-                        )}
+                                Contact Person Information
+                            </h3>
+                            
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                {/* Contact Person Name */}
+                                <div>
+                                    <label className="block text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
+                                        <User className="w-4 h-4 text-blue-500" />
+                                        Contact Person Name *
+                                    </label>
+                                    <input
+                                        type="text"
+                                        name="contact_person"
+                                        value={formData.contact_person}
+                                        onChange={handleInputChange}
+                                        className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition ${
+                                            errors.contact_person ? 'border-red-300 bg-red-50' : 'border-blue-200'
+                                        }`}
+                                        placeholder="Enter contact person name"
+                                        required
+                                    />
+                                    {errors.contact_person && (
+                                        <p className="mt-2 text-sm text-red-600 flex items-center gap-1">
+                                            <AlertCircle className="w-3 h-3" />
+                                            {errors.contact_person}
+                                        </p>
+                                    )}
+                                </div>
 
-                        {/* Lead Selection (Optional) */}
-                        {!company.lead_id && (
-                            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-                                <h3 className="font-medium text-yellow-900 mb-3 flex items-center gap-2">
-                                    <FileText className="w-5 h-5" />
-                                    Associate with Lead (Optional)
-                                </h3>
-                                <button
-                                    type="button"
-                                    onClick={fetchLeads}
-                                    className="text-sm text-yellow-700 hover:text-yellow-800 font-medium"
-                                >
-                                    {loadingLeads ? 'Loading leads...' : 'Click to load available leads'}
-                                </button>
-                                {leads.length > 0 && (
-                                    <div className="mt-3 space-y-2">
-                                        {leads.map(lead => (
-                                            <div
-                                                key={lead.id}
-                                                onClick={() => handleLeadSelect(lead)}
-                                                className={`p-3 border rounded-lg cursor-pointer transition ${
-                                                    selectedLead?.id === lead.id
-                                                        ? 'border-yellow-500 bg-yellow-100'
-                                                        : 'border-gray-200 hover:bg-gray-50'
-                                                }`}
-                                            >
-                                                <div className="flex justify-between items-center">
-                                                    <div>
-                                                        <div className="font-medium">{lead.company_name}</div>
-                                                        <div className="text-sm text-gray-600 flex items-center gap-2 mt-1">
-                                                            <Mail className="w-3 h-3" /> {lead.email}
-                                                            <Phone className="w-3 h-3 ml-2" /> {lead.phone}
-                                                        </div>
-                                                    </div>
-                                                    {selectedLead?.id === lead.id && (
-                                                        <Check className="w-5 h-5 text-yellow-600" />
-                                                    )}
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                )}
-                            </div>
-                        )}
+                                {/* Position */}
+                                <div>
+                                    <label className="block text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
+                                        <Briefcase className="w-4 h-4 text-blue-500" />
+                                        Position
+                                    </label>
+                                    <input
+                                        type="text"
+                                        name="contact_position"
+                                        value={formData.contact_position}
+                                        onChange={handleInputChange}
+                                        className="w-full px-4 py-3 border border-blue-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+                                        placeholder="e.g., Project Manager, Director"
+                                    />
+                                </div>
 
-                        {/* Company Information */}
-                        <div className="space-y-6">
-                            <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-                                <Building className="w-5 h-5" />
+                                {/* Email */}
+                                <div>
+                                    <label className="block text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
+                                        <Mail className="w-4 h-4 text-blue-500" />
+                                        Email Address *
+                                    </label>
+                                    <input
+                                        type="email"
+                                        name="contact_email"
+                                        value={formData.contact_email}
+                                        onChange={handleInputChange}
+                                        className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition ${
+                                            errors.contact_email ? 'border-red-300 bg-red-50' : 'border-blue-200'
+                                        }`}
+                                        placeholder="contact@company.com"
+                                        required
+                                    />
+                                    {errors.contact_email && (
+                                        <p className="mt-2 text-sm text-red-600 flex items-center gap-1">
+                                            <AlertCircle className="w-3 h-3" />
+                                            {errors.contact_email}
+                                        </p>
+                                    )}
+                                </div>
+
+                                {/* Phone */}
+                                <div>
+                                    <label className="block text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
+                                        <Phone className="w-4 h-4 text-blue-500" />
+                                        Phone Number *
+                                    </label>
+                                    <input
+                                        type="tel"
+                                        name="contact_phone"
+                                        value={formData.contact_phone}
+                                        onChange={handleInputChange}
+                                        className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition ${
+                                            errors.contact_phone ? 'border-red-300 bg-red-50' : 'border-blue-200'
+                                        }`}
+                                        placeholder="+62 812-3456-7890"
+                                        required
+                                    />
+                                    {errors.contact_phone && (
+                                        <p className="mt-2 text-sm text-red-600 flex items-center gap-1">
+                                            <AlertCircle className="w-3 h-3" />
+                                            {errors.contact_phone}
+                                        </p>
+                                    )}
+                                    <p className="mt-2 text-xs text-gray-500 flex items-center gap-1">
+                                        <Smartphone className="w-3 h-3" />
+                                        Format: +62 812-3456-7890 or 081234567890
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Section 2: Company Information */}
+                        <div className="bg-gradient-to-r from-teal-50 to-emerald-50 border border-teal-200 rounded-xl p-6">
+                            <h3 className="text-xl font-bold text-teal-900 mb-4 flex items-center gap-3">
+                                <div className="p-2 bg-teal-100 rounded-lg">
+                                    <Building className="w-6 h-6 text-teal-600" />
+                                </div>
                                 Company Information
                             </h3>
 
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 {/* Company Name */}
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    <label className="block text-sm font-semibold text-gray-700 mb-2">
                                         Company Name *
                                     </label>
                                     <input
@@ -420,269 +530,283 @@ const handleSubmit = async (e) => {
                                         name="company_name"
                                         value={formData.company_name}
                                         onChange={handleInputChange}
-                                        className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 ${
-                                            errors.company_name ? 'border-red-300' : 'border-gray-300'
+                                        className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition ${
+                                            errors.company_name ? 'border-red-300 bg-red-50' : 'border-teal-200'
                                         }`}
                                         required
                                     />
-                                    <p className="text-xs text-gray-500 mt-1">
-                                        Stored as client code
+                                    <p className="mt-2 text-xs text-gray-500">
+                                        This will be stored as the client code
                                     </p>
                                 </div>
 
                                 {/* Client Type */}
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    <label className="block text-sm font-semibold text-gray-700 mb-2">
                                         Client Type *
                                     </label>
                                     <select
                                         name="client_type_id"
                                         value={formData.client_type_id}
                                         onChange={handleInputChange}
-                                        className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 ${
-                                            errors.client_type_id ? 'border-red-300' : 'border-gray-300'
+                                        className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition ${
+                                            errors.client_type_id ? 'border-red-300 bg-red-50' : 'border-teal-200'
                                         }`}
                                         required
                                     >
-                                        <option value="">Select Type</option>
+                                        <option value="">Select Client Type</option>
                                         {clientTypes.map(type => (
                                             <option key={type.id} value={type.id}>
-                                                {type.name} - {type.information}
+                                                {type.name} {type.information ? `- ${type.information}` : ''}
                                             </option>
                                         ))}
                                     </select>
                                     {errors.client_type_id && (
-                                        <p className="mt-1 text-sm text-red-600">{errors.client_type_id}</p>
+                                        <p className="mt-2 text-sm text-red-600">{errors.client_type_id}</p>
                                     )}
                                 </div>
-                            </div>
 
-                            {/* Location Info */}
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                {/* City */}
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        City
-                                    </label>
-                                    <input
-                                        type="text"
-                                        name="city"
-                                        value={formData.city}
-                                        onChange={handleInputChange}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
-                                    />
+                                {/* Location Info */}
+                                <div className="md:col-span-2">
+                                    <h4 className="text-lg font-semibold text-gray-800 mb-3 flex items-center gap-2">
+                                        <MapPin className="w-5 h-5 text-teal-600" />
+                                        Location Information
+                                    </h4>
+                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                                City
+                                            </label>
+                                            <input
+                                                type="text"
+                                                name="city"
+                                                value={formData.city}
+                                                onChange={handleInputChange}
+                                                className="w-full px-3 py-2 border border-teal-200 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                                Province
+                                            </label>
+                                            <input
+                                                type="text"
+                                                name="province"
+                                                value={formData.province}
+                                                onChange={handleInputChange}
+                                                className="w-full px-3 py-2 border border-teal-200 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                                Country
+                                            </label>
+                                            <input
+                                                type="text"
+                                                name="country"
+                                                value={formData.country}
+                                                onChange={handleInputChange}
+                                                className="w-full px-3 py-2 border border-teal-200 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                                            />
+                                        </div>
+                                    </div>
                                 </div>
 
-                                {/* Province */}
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        Province
-                                    </label>
-                                    <input
-                                        type="text"
-                                        name="province"
-                                        value={formData.province}
-                                        onChange={handleInputChange}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
-                                    />
-                                </div>
-
-                                {/* Country */}
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        Country
-                                    </label>
-                                    <input
-                                        type="text"
-                                        name="country"
-                                        value={formData.country}
-                                        onChange={handleInputChange}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
-                                    />
-                                </div>
-
-                                {/* Postal Code */}
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        Postal Code
-                                    </label>
-                                    <input
-                                        type="text"
-                                        name="postal_code"
-                                        value={formData.postal_code}
-                                        onChange={handleInputChange}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
-                                    />
-                                </div>
-                            </div>
-
-                            {/* Business Details */}
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                {/* VAT Number */}
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        VAT Number
-                                    </label>
-                                    <input
-                                        type="text"
-                                        name="vat_number"
-                                        value={formData.vat_number}
-                                        onChange={handleInputChange}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
-                                    />
-                                </div>
-
-                                {/* NIB */}
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        NIB (Business Identification Number)
-                                    </label>
-                                    <input
-                                        type="text"
-                                        name="nib"
-                                        value={formData.nib}
-                                        onChange={handleInputChange}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
-                                    />
-                                </div>
-
-                                {/* Website */}
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        Website
-                                    </label>
-                                    <input
-                                        type="url"
-                                        name="website"
-                                        value={formData.website}
-                                        onChange={handleInputChange}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
-                                        placeholder="https://example.com"
-                                    />
+                                {/* Business Details */}
+                                <div className="md:col-span-2">
+                                    <h4 className="text-lg font-semibold text-gray-800 mb-3 flex items-center gap-2">
+                                        <FileText className="w-5 h-5 text-teal-600" />
+                                        Business Details
+                                    </h4>
+                                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                                Postal Code
+                                            </label>
+                                            <input
+                                                type="text"
+                                                name="postal_code"
+                                                value={formData.postal_code}
+                                                onChange={handleInputChange}
+                                                className="w-full px-3 py-2 border border-teal-200 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                                VAT Number
+                                            </label>
+                                            <input
+                                                type="text"
+                                                name="vat_number"
+                                                value={formData.vat_number}
+                                                onChange={handleInputChange}
+                                                className="w-full px-3 py-2 border border-teal-200 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                                NIB Number
+                                            </label>
+                                            <input
+                                                type="text"
+                                                name="nib"
+                                                value={formData.nib}
+                                                onChange={handleInputChange}
+                                                className="w-full px-3 py-2 border border-teal-200 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                                Website
+                                            </label>
+                                            <input
+                                                type="url"
+                                                name="website"
+                                                value={formData.website}
+                                                onChange={handleInputChange}
+                                                className="w-full px-3 py-2 border border-teal-200 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                                                placeholder="https://example.com"
+                                            />
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
 
-                        {/* Status & Logo */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div>
-                                <h3 className="text-lg font-semibold text-gray-900 mb-3">Status</h3>
-                                <div className="flex gap-4">
-                                    <label className="flex items-center">
+                        {/* Section 3: Status & Logo */}
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                            {/* Status */}
+                            <div className="bg-white border border-gray-200 rounded-xl p-6">
+                                <h3 className="text-lg font-semibold text-gray-900 mb-4">Status</h3>
+                                <div className="flex flex-col sm:flex-row gap-4">
+                                    <label className={`flex items-center p-4 border rounded-lg cursor-pointer transition ${
+                                        formData.status === 'active' 
+                                            ? 'border-green-500 bg-green-50' 
+                                            : 'border-gray-200 hover:bg-gray-50'
+                                    }`}>
                                         <input
                                             type="radio"
                                             name="status"
                                             value="active"
                                             checked={formData.status === 'active'}
                                             onChange={handleInputChange}
-                                            className="w-4 h-4 text-teal-600 focus:ring-teal-500"
+                                            className="w-5 h-5 text-green-600 focus:ring-green-500"
                                         />
-                                        <span className="ml-2 text-gray-700">Active</span>
+                                        <div className="ml-3">
+                                            <span className="font-medium text-gray-900">Active</span>
+                                            <p className="text-sm text-gray-600 mt-1">Client is active and receiving services</p>
+                                        </div>
                                     </label>
-                                    <label className="flex items-center">
+                                    <label className={`flex items-center p-4 border rounded-lg cursor-pointer transition ${
+                                        formData.status === 'inactive' 
+                                            ? 'border-gray-500 bg-gray-50' 
+                                            : 'border-gray-200 hover:bg-gray-50'
+                                    }`}>
                                         <input
                                             type="radio"
                                             name="status"
                                             value="inactive"
                                             checked={formData.status === 'inactive'}
                                             onChange={handleInputChange}
-                                            className="w-4 h-4 text-teal-600 focus:ring-teal-500"
+                                            className="w-5 h-5 text-gray-600 focus:ring-gray-500"
                                         />
-                                        <span className="ml-2 text-gray-700">Inactive</span>
+                                        <div className="ml-3">
+                                            <span className="font-medium text-gray-900">Inactive</span>
+                                            <p className="text-sm text-gray-600 mt-1">Client is not currently active</p>
+                                        </div>
                                     </label>
                                 </div>
                             </div>
 
-                            <div>
-                                <h3 className="text-lg font-semibold text-gray-900 mb-3">Company Logo</h3>
+                            {/* Logo */}
+                            <div className="bg-white border border-gray-200 rounded-xl p-6">
+                                <h3 className="text-lg font-semibold text-gray-900 mb-4">Company Logo</h3>
                                 
                                 {formData.logo_preview ? (
                                     <div className="relative">
-                                        <div className="border-2 border-dashed border-gray-300 rounded-lg p-4">
-                                            <div className="flex items-center justify-center mb-3">
-                                                <div className="relative">
+                                        <div className="border-2 border-dashed border-teal-300 rounded-xl p-4 bg-gradient-to-br from-teal-50 to-white">
+                                            <div className="flex flex-col items-center">
+                                                <div className="relative mb-4">
                                                     <img 
                                                         src={formData.logo_preview} 
                                                         alt="Logo preview" 
-                                                        className="w-32 h-32 object-contain rounded-lg"
+                                                        className="w-40 h-40 object-contain rounded-xl shadow-md"
                                                     />
                                                     <button
                                                         type="button"
                                                         onClick={handleRemoveLogo}
-                                                        className="absolute -top-2 -right-2 bg-red-500 text-white p-1 rounded-full hover:bg-red-600 transition"
+                                                        className="absolute -top-2 -right-2 bg-red-500 text-white p-2 rounded-full hover:bg-red-600 transition shadow-lg"
                                                         title="Remove logo"
                                                     >
                                                         <Trash2 className="w-4 h-4" />
                                                     </button>
                                                 </div>
+                                                <p className="text-sm text-gray-500 text-center">
+                                                    Current company logo
+                                                </p>
                                             </div>
-                                            <p className="text-sm text-gray-500 text-center">
-                                                Current logo - Click remove to delete
-                                            </p>
                                         </div>
                                     </div>
                                 ) : (
-                                    <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center hover:border-teal-400 transition">
-                                        <Upload className="w-8 h-8 text-gray-400 mx-auto mb-2" />
-                                        <label className="cursor-pointer inline-block">
-                                            <input
-                                                type="file"
-                                                name="logo"
-                                                onChange={handleInputChange}
-                                                className="hidden"
-                                                accept="image/*"
-                                            />
-                                            <span className="text-sm text-teal-600 hover:text-teal-800 font-medium">
-                                                Upload new logo
-                                            </span>
-                                            <p className="text-xs text-gray-500 mt-1">PNG, JPG, GIF up to 2MB</p>
+                                    <div className="border-2 border-dashed border-teal-300 rounded-xl p-6 text-center bg-gradient-to-br from-teal-50 to-white hover:border-teal-400 transition cursor-pointer">
+                                        <input
+                                            type="file"
+                                            id="logo-upload"
+                                            name="logo"
+                                            onChange={handleInputChange}
+                                            className="hidden"
+                                            accept="image/*"
+                                        />
+                                        <label htmlFor="logo-upload" className="cursor-pointer">
+                                            <Upload className="w-12 h-12 text-teal-400 mx-auto mb-3" />
+                                            <div className="font-medium text-teal-700 hover:text-teal-800">
+                                                Upload New Logo
+                                            </div>
+                                            <p className="text-sm text-gray-500 mt-2">PNG, JPG, GIF up to 2MB</p>
+                                            <p className="text-xs text-gray-400 mt-1">Recommended: 400x400px transparent PNG</p>
                                         </label>
                                     </div>
                                 )}
                             </div>
                         </div>
-
-                        {/* Info about contact data */}
-                        {!company.lead_id && (
-                            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-                                <div className="flex items-start gap-3">
-                                    <AlertCircle className="w-5 h-5 text-yellow-600 flex-shrink-0 mt-0.5" />
-                                    <div>
-                                        <p className="text-sm font-medium text-yellow-800">Contact Information Note</p>
-                                        <p className="text-sm text-yellow-600 mt-1">
-                                            This client is not associated with a lead. To add contact information, 
-                                            please create or associate a lead first.
-                                        </p>
-                                    </div>
-                                </div>
-                            </div>
-                        )}
                     </div>
 
                     {/* Footer */}
-                    <div className="bg-gray-50 px-6 py-4 border-t flex justify-end gap-3">
-                        <button
-                            type="button"
-                            onClick={handleCancel}
-                            disabled={isSubmitting}
-                            className="px-4 py-2 text-gray-700 hover:text-gray-900 font-medium disabled:opacity-50"
-                        >
-                            Cancel
-                        </button>
-                        <button
-                            type="submit"
-                            disabled={isSubmitting}
-                            className="px-6 py-2 bg-teal-700 hover:bg-teal-800 text-white font-medium rounded-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-                        >
-                            {isSubmitting ? (
-                                <>
-                                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                                    Updating...
-                                </>
-                            ) : (
-                                'Update Client'
+                    <div className="bg-gradient-to-r from-gray-50 to-gray-100 px-6 py-4 border-t flex justify-between items-center">
+                        <div>
+                            <p className="text-sm text-gray-600">
+                                Editing client: <span className="font-semibold">{company.client_code}</span>
+                            </p>
+                            {contactLoading && (
+                                <p className="text-xs text-blue-600 mt-1">
+                                    Loading contact information...
+                                </p>
                             )}
-                        </button>
+                        </div>
+                        <div className="flex gap-3">
+                            <button
+                                type="button"
+                                onClick={handleCancel}
+                                disabled={isSubmitting}
+                                className="px-5 py-2.5 text-gray-700 hover:text-gray-900 font-medium disabled:opacity-50 hover:bg-gray-200 rounded-lg transition"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                type="submit"
+                                disabled={isSubmitting}
+                                className="px-6 py-2.5 bg-gradient-to-r from-teal-600 to-teal-700 hover:from-teal-700 hover:to-teal-800 text-white font-medium rounded-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 transition-all shadow-md hover:shadow-lg"
+                            >
+                                {isSubmitting ? (
+                                    <>
+                                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                                        Updating...
+                                    </>
+                                ) : (
+                                    'Update Client & Contact'
+                                )}
+                            </button>
+                        </div>
                     </div>
                 </form>
             </div>

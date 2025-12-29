@@ -5,25 +5,22 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
-class CompanyContactPerson extends Model
+class EmailLogs extends Model
 {
     use SoftDeletes;
 
-    protected $table = 'company_contact_persons';
+    protected $table = 'email_logs';
     protected $primaryKey = 'id';
     public $incrementing = false;
     protected $keyType = 'string';
     
     protected $fillable = [
         'id',
-        'company_id',
-        'lead_id',
-        'name',
-        'email',
-        'phone',
-        'position',
-        'is_primary',
-        'is_active',
+        'to',
+        'subject',
+        'body',
+        'status',
+        'sent_date',
         'created_by',
         'updated_by',
         'deleted_by',
@@ -33,7 +30,6 @@ class CompanyContactPerson extends Model
 
     protected $casts = [
         'is_primary' => 'boolean',
-        'is_active' => 'boolean',
         'deleted' => 'boolean',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
@@ -70,16 +66,6 @@ class CompanyContactPerson extends Model
     }
 
     // Relationships
-    public function company()
-    {
-        return $this->belongsTo(Company::class, 'company_id', 'id');
-    }
-
-    public function lead()
-    {
-        return $this->belongsTo(Lead::class, 'lead_id', 'id');
-    }
-
     public function creator()
     {
         return $this->belongsTo(User::class, 'created_by', 'id');
@@ -99,15 +85,5 @@ class CompanyContactPerson extends Model
     public function scopePrimary($query)
     {
         return $query->where('is_primary', true);
-    }
-
-    public function scopeActive($query)
-    {
-        return $query->where('is_active', true);
-    }
-
-    public function scopeForCompany($query, $companyId)
-    {
-        return $query->where('company_id', $companyId);
     }
 }

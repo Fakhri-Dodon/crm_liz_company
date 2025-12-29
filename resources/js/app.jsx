@@ -1,3 +1,4 @@
+import './echo'
 import '../css/app.css';
 import './bootstrap';
 import './i18n'; // Import tanpa variabel jika hanya untuk inisialisasi, 

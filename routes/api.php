@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\LeadController;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\ProposalController;
 
 Route::get('/test', [LeadController::class, 'test']);
 
@@ -15,3 +16,5 @@ Route::prefix('leads')->group(function () {
 
 // Statuses API
 Route::get('/lead-statuses', [LeadController::class, 'getStatuses']);
+
+Route::get('/proposal/templates', [ProposalController::class, 'templates']);

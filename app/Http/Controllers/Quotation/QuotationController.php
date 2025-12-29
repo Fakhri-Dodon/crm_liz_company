@@ -8,6 +8,7 @@ use App\Models\QuotationItem;
 use App\Models\Lead;
 use App\Models\User;
 use App\Models\Company;
+use App\Notifications\DocumentNotification;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\DB;
@@ -96,7 +97,7 @@ class QuotationController extends Controller {
             ->whereNotIn('id', $existingLeadIds)
             ->select(['id', 'company_name', 'address', 'contact_person', 'email', 'phone'])
             ->get();
-        $companies = Company::where('deleted', 0)->with(['quotation', 'contactPersons' => function($query) {$query->where('deleted', 0);}, 'contactPersons.lead', 'lead'])->get();
+        $companies = Company::where('deleted', 0)->with(['quotation', 'contacts' => function($query) {$query->where('deleted', 0);}, 'contactPersons.lead', 'lead'])->get();
         
         return Inertia::render('Quotations/Create', [
             'companies' => $companies,
@@ -174,6 +175,23 @@ class QuotationController extends Controller {
                         'processing'    => $item['processing'] ?? null,
                         'created_by'    => auth()->id(),
                     ]);
+                }
+
+                $managers = User::whereHas('role', function($q) {
+                    $q->where('name', 'manager'); 
+                })->get();
+                foreach ($managers as $manager) {
+                    $manager->notifications()
+                            ->where('data->id', (string)$quotation->id)
+                            ->where('data->type', 'quotation')
+                            ->delete();
+
+                    $manager->notify(new DocumentNotification([
+                        'id'      => $quotation->id,
+                        'type'    => 'quotation',
+                        'status'  => 'draft',
+                        'message' => "Quotation baru #{$quotation->quotation_number} menunggu persetujuan.",
+                    ]));
                 }
 
                 return redirect()->route('quotation.index')->with('success', 'Quotation berhasil disimpan!');
@@ -263,8 +281,8 @@ class QuotationController extends Controller {
             'total'           => 'required|numeric',
             'pdf_file'        => 'nullable|mimes:pdf|max:5120', 
             'services'        => 'required|array|min:1',
-            'services.*.name' => 'required_without:services.*.name',
-            'services.*.price'        => 'required_without:services.*.amount|numeric',
+            'services.*.name' => 'required|string',
+            'services.*.price' => 'required|numeric',
             'services.*.processing' => 'required|string'
         ]);
 
@@ -299,6 +317,7 @@ class QuotationController extends Controller {
                 'subject'       => $validated['subject'],
                 'payment_terms' => $validated['payment_terms'],
                 'note'          => $validated['note'],
+                'status'        => 'draft',
                 'pdf_path'      => $path,
                 'discount'      => $validated['discount_amount'] ?? 0,
                 'sub_total'     => $validated['sub_total'] ?? 0,
@@ -307,7 +326,6 @@ class QuotationController extends Controller {
                 'updated_by'    => auth()->id(),
             ]);
 
-            // 3. Sinkronisasi Items
             // Hapus yang lama, masukkan yang baru
             $quotation->items()->delete(); 
 
@@ -320,6 +338,28 @@ class QuotationController extends Controller {
                 ]);
             }
 
+            auth()->user()->notifications()
+                ->where('data->id', $quotation->id)
+                ->delete();
+
+            $managers = User::whereHas('role', function($q) {
+                $q->where('name', 'manager');
+            })->get();
+
+            foreach ($managers as $manager) {
+                $manager->notifications()
+                        ->where('data->id', (string)$quotation->id)
+                        ->where('data->type', 'quotation')
+                        ->delete();
+
+                $manager->notify(new DocumentNotification([
+                    'id'      => $quotation->id,
+                    'type'    => 'quotation',
+                    'status'  => 'draft',
+                    'message' => "Quotation #{$quotation->quotation_number} telah diperbarui dan siap di-review ulang.",
+                ]));
+            }
+
             DB::commit();
 
             return redirect()->route('quotation.index')
@@ -328,7 +368,7 @@ class QuotationController extends Controller {
         } catch (\Exception $e) {
             DB::rollBack();
             \Log::error("Quotation Update Error: " . $e->getMessage());
-            return back()->withErrors(['error' => 'Gagal memperbarui data.']);
+            return back()->withErrors(['error' => $e->getMessage()]);
         }
     }
 
@@ -349,4 +389,71 @@ class QuotationController extends Controller {
         return redirect()->route('quotation.index')
             ->with('success', 'Project deleted successfully!');
     }   
+
+    public function notificationUpdateStatus(Request $request, $id) 
+    {
+        // dd("notif", $request->all());
+
+        $request->validate([
+            'status' => 'required|in:draft,approved,revised,sent,accepted,expired,rejected',
+            'revision_note' => 'required_if:status,revised'
+        ]);
+
+        $quotation = Quotation::where('id', $id)->where('deleted', 0)->firstOrFail();
+
+        $updateData = ['status' => $request->status];
+        if ($request->status === 'revised') {
+            $updateData['revision_note'] = $request->revision_note;
+        }
+
+        $quotation->update($updateData);
+
+        auth()->user()->notifications()
+            ->where('data->id', $id)
+            ->delete();
+
+        $creator = $quotation->creator;
+
+        if($creator) {
+            $creator->notifications()
+                    ->where('data->id', (string)$id)
+                    ->delete();
+            $msg = "Quotation #{$quotation->quotation_number} telah di-{$request->status}";
+
+            if ($request->status === 'revised' && $request->revision_note) {
+                $msg .= ": " . $request->revision_note;
+
+            }
+            $creator->notify(new DocumentNotification([
+                'id'     => $quotation->id,
+                'message' => $msg,
+                'url' => "/quotations/edit/{$id}",
+                'type' => 'quotation',
+                'revision_note' => $request->revision_note,
+                'status'  => $request->status,
+            ]));
+        }
+
+        return back();
+    }
+
+    public function markAllRead()
+    {
+        auth()->user()->unreadNotifications->markAsRead();
+        return back();
+    }
+
+    public function markAsSent($id)
+    {
+        $quotation = Quotation::findOrFail($id);
+        $quotation->update(['status' => 'sent']);
+
+        // Hapus notifikasi di lonceng Staff karena sudah dikirim ke client
+        auth()->user()->notifications()
+            ->where('data->id', (string)$id)
+            ->where('data->type', 'quotation')
+            ->delete();
+
+        return back()->with('success', 'Quotation marked as sent and notification cleared.');
+    }
 }

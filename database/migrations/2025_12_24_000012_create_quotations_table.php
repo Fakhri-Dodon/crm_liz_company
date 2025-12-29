@@ -17,7 +17,7 @@ return new class extends Migration
             $table->string('quotation_number', 50);
             $table->date('date');
             $table->date('valid_until');
-            $table->enum('status', ['draft', 'sent', 'accepted', 'rejected', 'expired'])->default('draft');
+            $table->enum('status', ['draft', 'sent', 'accepted', 'rejected', 'expired', 'revised'])->default('draft');
             $table->string('subject', 255);
             $table->string('payment_terms', 255);
             $table->string('note', 255)->nullable();
