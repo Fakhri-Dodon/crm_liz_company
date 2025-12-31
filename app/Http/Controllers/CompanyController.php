@@ -214,201 +214,193 @@ class CompanyController extends Controller
         }
     }
 
-    /**
-     * Store a newly created company.
-     */
-    public function store(Request $request)
-    {
-        DB::beginTransaction();
-        try {
-            \Log::info('=== STORE COMPANY REQUEST ===');
-            \Log::info('Request data:', $request->all());
-            
-            // **VALIDASI UNTUK SEMUA FIELD**
-            $validator = Validator::make($request->all(), [
-                'company_name' => 'required|string|max:255',
-                'client_type_id' => 'required|exists:client_type,id',
-                'contact_person' => 'required|string|max:255',
-                'contact_email' => 'required|email|max:255',
-                'contact_phone' => 'required|string|max:20',
-                'contact_position' => 'nullable|string|max:100',
-                'city' => 'nullable|string|max:255',
-                'province' => 'nullable|string|max:255',
-                'country' => 'nullable|string|max:255',
-                'postal_code' => 'nullable|integer',
-                'vat_number' => 'nullable|integer',
-                'nib' => 'nullable|string|max:255',
-                'website' => 'nullable|url|max:255',
-                'logo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
-                'status' => 'required|in:active,inactive',
-                'quotation_id' => 'nullable|exists:quotations,id',
-                'lead_id' => 'nullable|exists:leads,id'
-            ], [
-                'client_type_id.exists' => 'Tipe klien tidak valid.',
-                'quotation_id.exists' => 'Quotation tidak ditemukan.',
-                'lead_id.exists' => 'Lead tidak ditemukan.',
-                'postal_code.integer' => 'Kode pos harus berupa angka.',
-                'vat_number.integer' => 'VAT number harus berupa angka.',
-                'contact_person.required' => 'Nama kontak wajib diisi.',
-                'contact_email.required' => 'Email kontak wajib diisi.',
-                'contact_phone.required' => 'Telepon kontak wajib diisi.'
-            ]);
+/**
+ * Store a newly created company.
+ */
+public function store(Request $request)
+{
+    DB::beginTransaction();
+    try {
+        \Log::info('=== STORE COMPANY REQUEST ===');
+        \Log::info('Request data:', $request->except(['logo'])); // Exclude file from log
+        \Log::info('Has logo file:', ['has_logo' => $request->hasFile('logo')]);
+        
+        // **VALIDASI - PERBAIKI POSTAL CODE DAN VAT NUMBER**
+        $validator = Validator::make($request->all(), [
+            'company_name' => 'required|string|max:255',
+            'client_type_id' => 'required|exists:client_type,id',
+            'contact_person' => 'required|string|max:255',
+            'contact_email' => 'required|email|max:255',
+            'contact_phone' => 'required|string|max:20',
+            'contact_position' => 'nullable|string|max:100',
+            'city' => 'nullable|string|max:255',
+            'province' => 'nullable|string|max:255',
+            'country' => 'nullable|string|max:255',
+            'postal_code' => 'nullable|string|max:20', // Ubah dari integer ke string
+            'vat_number' => 'nullable|string|max:50', // Ubah dari integer ke string
+            'nib' => 'nullable|string|max:255',
+            'website' => 'nullable|url|max:255',
+            'logo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+            'status' => 'required|in:active,inactive',
+            'quotation_id' => 'nullable|exists:quotations,id',
+            'lead_id' => 'nullable|exists:leads,id'
+        ], [
+            'client_type_id.exists' => 'Tipe klien tidak valid.',
+            'quotation_id.exists' => 'Quotation tidak ditemukan.',
+            'lead_id.exists' => 'Lead tidak ditemukan.',
+            'contact_person.required' => 'Nama kontak wajib diisi.',
+            'contact_email.required' => 'Email kontak wajib diisi.',
+            'contact_phone.required' => 'Telepon kontak wajib diisi.'
+        ]);
 
-            if ($validator->fails()) {
-                \Log::error('Validation failed:', $validator->errors()->toArray());
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Validasi gagal',
-                    'errors' => $validator->errors()
-                ], 422);
-            }
-
-            // **CEK QUOTATION JIKA ADA**
-            $quotationData = null;
-            $leadId = $request->lead_id;
-            
-            if ($request->quotation_id) {
-                $quotation = Quotation::with(['lead'])
-                    ->where('id', $request->quotation_id)
-                    ->where('status', 'accepted')
-                    ->where('deleted', 0)
-                    ->first();
-
-                if (!$quotation) {
-                    return response()->json([
-                        'success' => false,
-                        'message' => 'Quotation tidak ditemukan atau belum diterima'
-                    ], 404);
-                }
-
-                // Check if already has company
-                if ($quotation->company) {
-                    return response()->json([
-                        'success' => false,
-                        'message' => 'Perusahaan sudah dibuat dari quotation ini'
-                    ], 400);
-                }
-
-                $quotationData = $quotation;
-                $leadId = $quotation->lead_id;
-                
-                \Log::info('Membuat perusahaan dari quotation:', [
-                    'quotation_id' => $quotation->id,
-                    'lead_id' => $leadId
-                ]);
-            }
-
-            // Handle logo upload
-            $logoPath = null;
-            if ($request->hasFile('logo') && $request->file('logo')->isValid()) {
-                $logoPath = $request->file('logo')->store('companies/logos', 'public');
-            }
-
-            // **SIMPAN DATA PERUSAHAAN**
-            $companyData = [
-                'client_type_id' => $request->client_type_id,
-                'lead_id' => $leadId,
-                'quotation_id' => $request->quotation_id,
-                'client_code' => $request->company_name, // Nama perusahaan
-                'city' => $request->city,
-                'province' => $request->province,
-                'country' => $request->country,
-                'postal_code' => $request->postal_code,
-                'vat_number' => $request->vat_number,
-                'nib' => $request->nib,
-                'website' => $request->website,
-                'logo_path' => $logoPath,
-                'client_since' => now(),
-                'is_active' => $request->status === 'active',
-                'deleted' => false
-            ];
-
-            $company = Company::create($companyData);
-
-            \Log::info('Perusahaan berhasil dibuat:', [
-                'id' => $company->id,
-                'client_code' => $company->client_code
-            ]);
-
-            // **SIMPAN DATA KONTAK KE TABLE company_contact_persons**
-            $contactData = [
-                'company_id' => $company->id,
-                'lead_id' => $leadId,
-                'name' => $request->contact_person,
-                'email' => $request->contact_email,
-                'phone' => $request->contact_phone,
-                'position' => $request->contact_position,
-                'is_primary' => true,
-                'is_active' => true,
-                'deleted' => false
-            ];
-
-            $contact = CompanyContactPerson::create($contactData);
-
-            \Log::info('Kontak perusahaan berhasil dibuat:', [
-                'id' => $contact->id,
-                'name' => $contact->name,
-                'company_id' => $company->id
-            ]);
-
-            // **UPDATE QUOTATION NOTE SAJA**
-            if ($request->quotation_id && $quotationData) {
-                $quotationData->update([
-                    'note' => ($quotationData->note ?? '') . "\n\n[Converted to Company: " . $company->client_code . " on " . now()->format('Y-m-d H:i:s') . "]",
-                    'updated_at' => now()
-                ]);
-                \Log::info('Quotation updated with conversion note:', ['quotation_id' => $quotationData->id]);
-            }
-
-            DB::commit();
-
-            // Load relationships untuk response
-            $company->load(['clientType', 'lead', 'quotation', 'primaryContact']);
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Klien berhasil dibuat!',
-                'data' => [
-                    'id' => $company->id,
-                    'client_code' => $company->client_code,
-                    'name' => $company->client_code,
-                    'city' => $company->city,
-                    'province' => $company->province,
-                    'country' => $company->country,
-                    'client_type' => $company->clientType ? $company->clientType->name : null,
-                    'primary_contact' => $company->primaryContact ? [
-                        'id' => $company->primaryContact->id,
-                        'name' => $company->primaryContact->name,
-                        'email' => $company->primaryContact->email,
-                        'phone' => $company->primaryContact->phone,
-                        'position' => $company->primaryContact->position
-                    ] : null,
-                    'lead' => $company->lead ? [
-                        'id' => $company->lead->id,
-                        'company_name' => $company->lead->company_name,
-                        'contact_person' => $company->lead->contact_person,
-                        'email' => $company->lead->email,
-                        'phone' => $company->lead->phone,
-                        'address' => $company->lead->address
-                    ] : null,
-                    'quotation' => $company->quotation ? [
-                        'id' => $company->quotation->id,
-                        'quotation_number' => $company->quotation->quotation_number
-                    ] : null
-                ]
-            ], 201);
-
-        } catch (\Exception $e) {
-            DB::rollBack();
-            \Log::error('Error creating company: ' . $e->getMessage());
-            \Log::error('Stack trace: ' . $e->getTraceAsString());
-            
+        if ($validator->fails()) {
+            \Log::error('Validation failed:', $validator->errors()->toArray());
             return response()->json([
                 'success' => false,
-                'message' => 'Gagal membuat klien: ' . $e->getMessage()
-            ], 500);
+                'message' => 'Validasi gagal',
+                'errors' => $validator->errors()
+            ], 422);
         }
+
+        // **CEK QUOTATION JIKA ADA**
+        $quotationData = null;
+        $leadId = $request->lead_id;
+        
+        if ($request->quotation_id) {
+            $quotation = Quotation::with(['lead'])
+                ->where('id', $request->quotation_id)
+                ->where('deleted', 0)
+                ->first();
+
+            if (!$quotation) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Quotation tidak ditemukan'
+                ], 404);
+            }
+
+            // Check if already has active company
+            $existingCompany = Company::where('quotation_id', $request->quotation_id)
+                ->where('deleted', 0)
+                ->first();
+                
+            if ($existingCompany) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Perusahaan sudah dibuat dari quotation ini'
+                ], 400);
+            }
+
+            $quotationData = $quotation;
+            $leadId = $quotation->lead_id;
+            
+            \Log::info('Membuat perusahaan dari quotation:', [
+                'quotation_id' => $quotation->id,
+                'lead_id' => $leadId
+            ]);
+        }
+
+        // **HANDLE LOGO UPLOAD**
+        $logoPath = null;
+        if ($request->hasFile('logo')) {
+            \Log::info('Processing logo upload...');
+            try {
+                $file = $request->file('logo');
+                \Log::info('File details:', [
+                    'name' => $file->getClientOriginalName(),
+                    'size' => $file->getSize(),
+                    'mime' => $file->getMimeType()
+                ]);
+                
+                // Simpan file
+                $logoPath = $file->store('companies/logos', 'public');
+                \Log::info('Logo saved to:', ['path' => $logoPath]);
+            } catch (\Exception $e) {
+                \Log::error('Logo upload failed:', ['error' => $e->getMessage()]);
+                // Lanjut tanpa logo jika upload gagal
+            }
+        }
+
+        // **SIMPAN DATA PERUSAHAAN**
+        $companyData = [
+            'client_type_id' => $request->client_type_id,
+            'lead_id' => $leadId,
+            'quotation_id' => $request->quotation_id,
+            'client_code' => $request->company_name, // Nama perusahaan
+            'city' => $request->city,
+            'province' => $request->province,
+            'country' => $request->country,
+            'postal_code' => $request->postal_code,
+            'vat_number' => $request->vat_number,
+            'nib' => $request->nib,
+            'website' => $request->website,
+            'logo_path' => $logoPath,
+            'client_since' => now(),
+            'is_active' => $request->status === 'active',
+            'deleted' => false
+        ];
+
+        $company = Company::create($companyData);
+
+        \Log::info('Perusahaan berhasil dibuat:', [
+            'id' => $company->id,
+            'client_code' => $company->client_code
+        ]);
+
+        // **SIMPAN DATA KONTAK KE TABLE company_contact_persons**
+        $contactData = [
+            'company_id' => $company->id,
+            'lead_id' => $leadId,
+            'name' => $request->contact_person,
+            'email' => $request->contact_email,
+            'phone' => $request->contact_phone,
+            'position' => $request->contact_position,
+            'is_primary' => true,
+            'is_active' => true,
+            'deleted' => false
+        ];
+
+        $contact = CompanyContactPerson::create($contactData);
+
+        \Log::info('Kontak perusahaan berhasil dibuat:', [
+            'id' => $contact->id,
+            'name' => $contact->name,
+            'company_id' => $company->id
+        ]);
+
+        // **UPDATE QUOTATION NOTE SAJA**
+        if ($request->quotation_id && $quotationData) {
+            $quotationData->update([
+                'note' => ($quotationData->note ?? '') . "\n\n[Converted to Company: " . $company->client_code . " on " . now()->format('Y-m-d H:i:s') . "]",
+                'updated_at' => now()
+            ]);
+            \Log::info('Quotation updated with conversion note:', ['quotation_id' => $quotationData->id]);
+        }
+
+        DB::commit();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Klien berhasil dibuat!',
+            'data' => [
+                'id' => $company->id,
+                'client_code' => $company->client_code,
+                'company_name' => $company->client_code,
+                'logo_url' => $logoPath ? Storage::url($logoPath) : null
+            ]
+        ], 201);
+
+    } catch (\Exception $e) {
+        DB::rollBack();
+        \Log::error('Error creating company: ' . $e->getMessage());
+        \Log::error('Stack trace: ' . $e->getTraceAsString());
+        
+        return response()->json([
+            'success' => false,
+            'message' => 'Gagal membuat klien: ' . $e->getMessage()
+        ], 500);
     }
+}
 
 /**
  * Show company details with all related data.
