@@ -9,7 +9,8 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId, onSuccess }) => {
     
     // State untuk menyimpan data form
     const [formData, setFormData] = useState({
-        company_name: '', // Akan disimpan sebagai client_code
+        client_code: '', // Field yang benar untuk nama perusahaan
+        company_name: '', // Untuk menampilkan nama perusahaan
         client_type_id: '',
         status: 'active',
         city: '',
@@ -22,7 +23,6 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId, onSuccess }) => {
         logo: null,
         quotation_id: quotationId || '',
         lead_id: '',
-        // TAMBAHKAN FIELD KONTAK BARU
         contact_person: '',
         contact_email: '',
         contact_phone: '',
@@ -50,6 +50,7 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId, onSuccess }) => {
     useEffect(() => {
         axios.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest';
         axios.defaults.withCredentials = true;
+        axios.defaults.headers.common['Accept'] = 'application/json';
         
         const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
         if (csrfToken) {
@@ -62,14 +63,9 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId, onSuccess }) => {
         if (isOpen) {
             console.log('Modal opened...');
             
-            if (!quotationId) {
-                fetchAcceptedQuotations();
-            } else {
-                fetchLeadFromQuotation(quotationId);
-            }
-            
-            // Reset state
+            // Reset semua state
             setFormData({
+                client_code: '',
                 company_name: '',
                 client_type_id: '',
                 status: 'active',
@@ -88,11 +84,20 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId, onSuccess }) => {
                 contact_phone: '',
                 contact_position: ''
             });
+            
             setSelectedQuotation(null);
             setQuotationLead(null);
             setQuotationSearch('');
             setLogoPreview(null);
             setShowContactForm(false);
+            setErrors({});
+            
+            // Fetch data berdasarkan kondisi
+            if (!quotationId) {
+                fetchAcceptedQuotations();
+            } else {
+                fetchLeadFromQuotation(quotationId);
+            }
         }
     }, [isOpen, quotationId]);
 
@@ -100,25 +105,29 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId, onSuccess }) => {
     const fetchAcceptedQuotations = async () => {
         setLoadingQuotations(true);
         try {
+            console.log('Fetching accepted quotations...');
             const response = await axios.get('/companies/get-accepted-quotations');
+            
+            console.log('Quotations response:', response);
             
             if (response && response.data && response.data.success) {
                 setQuotations(response.data.data || []);
-                
-                // Jika ada quotationId dari props, auto-select
-                if (quotationId && response.data.data && response.data.data.length > 0) {
-                    const foundQuotation = response.data.data.find(q => q.id === quotationId);
-                    if (foundQuotation) {
-                        await handleQuotationSelect(foundQuotation);
-                    }
-                }
+                console.log('Quotations loaded:', response.data.data?.length || 0);
             } else {
+                console.error('Failed to fetch quotations:', response?.data?.message);
                 setQuotations([]);
             }
         } catch (error) {
             console.error('Error fetching quotations:', error);
+            console.error('Error details:', error.response?.data);
             setQuotations([]);
-            alert(`Failed to load quotations: ${error.response?.data?.message || error.message}`);
+            
+            // Show user-friendly error
+            if (error.response?.status === 404) {
+                alert('Endpoint not found. Please check if the route is properly configured.');
+            } else {
+                alert(`Failed to load quotations: ${error.response?.data?.message || error.message}`);
+            }
         } finally {
             setLoadingQuotations(false);
         }
@@ -126,6 +135,7 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId, onSuccess }) => {
 
     // Handle quotation selection
     const handleQuotationSelect = async (quotation) => {
+        console.log('Selecting quotation:', quotation);
         setSelectedQuotation(quotation);
         setQuotationLead(null);
         
@@ -133,7 +143,7 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId, onSuccess }) => {
         setFormData(prev => ({
             ...prev,
             quotation_id: quotation.id,
-            lead_id: ''
+            lead_id: quotation.lead?.id || ''
         }));
         
         // Fetch lead data dari quotation ini
@@ -142,23 +152,32 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId, onSuccess }) => {
 
     // Fetch lead data dari quotation
     const fetchLeadFromQuotation = async (quotationId) => {
-        if (!quotationId) return;
+        if (!quotationId) {
+            console.log('No quotation ID provided');
+            return;
+        }
         
+        console.log('Fetching lead from quotation:', quotationId);
         setLoadingLead(true);
         try {
             const response = await axios.get(`/companies/get-lead-from-quotation/${quotationId}`);
             
+            console.log('Lead response:', response);
+            
             if (response && response.data && response.data.success) {
                 const leadData = response.data.data;
+                console.log('Lead data:', leadData);
                 setQuotationLead(leadData);
                 
                 // Auto-fill form dengan data lead
                 setFormData(prev => ({
                     ...prev,
+                    client_code: generateClientCode(leadData), // Generate client code
                     company_name: leadData.company_name || prev.company_name,
                     city: leadData.city || prev.city,
                     province: leadData.province || prev.province,
                     country: leadData.country || prev.country,
+                    postal_code: leadData.postal_code || prev.postal_code,
                     lead_id: leadData.id || '',
                     // Auto-fill contact data dari lead
                     contact_person: leadData.contact_person || prev.contact_person,
@@ -170,20 +189,45 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId, onSuccess }) => {
                 // Auto-show contact form
                 setShowContactForm(true);
             } else {
+                console.log('No lead data found or quotation already has company');
                 // Jika tidak ada lead, tetap set quotation_id
                 setFormData(prev => ({
                     ...prev,
                     lead_id: ''
                 }));
                 setShowContactForm(true); // Masih show form untuk input manual
+                
+                // Show message to user
+                alert(response?.data?.message || 'No lead data found for this quotation');
             }
         } catch (error) {
             console.error('Error fetching lead from quotation:', error);
-            alert('Failed to load lead data: ' + (error.response?.data?.message || error.message));
-            setShowContactForm(true); // Show form untuk input manual jika error
+            console.error('Error details:', error.response?.data);
+            
+            // Show user-friendly error
+            const errorMessage = error.response?.data?.message || error.message;
+            alert(`Failed to load lead data: ${errorMessage}`);
+            
+            // Show form untuk input manual jika error
+            setShowContactForm(true);
         } finally {
             setLoadingLead(false);
         }
+    };
+
+    // Generate client code dari lead
+    const generateClientCode = (leadData) => {
+        if (!leadData?.company_name) return '';
+        
+        // Ambil 3 huruf pertama dari nama perusahaan
+        const companyName = leadData.company_name.replace(/[^a-zA-Z0-9]/g, '');
+        const initials = companyName.substring(0, 3).toUpperCase();
+        
+        // Tambahkan tahun dan angka random
+        const year = new Date().getFullYear().toString().substring(2);
+        const randomNum = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
+        
+        return `${initials}${year}${randomNum}`;
     };
 
     // Clear quotation selection
@@ -194,17 +238,19 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId, onSuccess }) => {
             ...prev,
             quotation_id: '',
             lead_id: '',
+            client_code: '',
             company_name: '',
             city: '',
             province: '',
             country: '',
+            postal_code: '',
             contact_person: '',
             contact_email: '',
             contact_phone: '',
             contact_position: ''
         }));
         setQuotationSearch('');
-        setShowContactForm(true); // Tetap show contact form
+        setShowContactForm(false);
     };
 
     // Filter quotations berdasarkan search
@@ -268,29 +314,27 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId, onSuccess }) => {
         // Validasi dasar
         const newErrors = {};
         
-        if (!formData.company_name) {
-            newErrors.company_name = 'Company name is required';
+        if (!formData.client_code) {
+            newErrors.client_code = 'Client code is required';
         }
         
         if (!formData.client_type_id) {
             newErrors.client_type_id = 'Client type is required';
         }
         
-        // Validasi contact jika form contact ditampilkan
-        if (showContactForm) {
-            if (!formData.contact_person) {
-                newErrors.contact_person = 'Contact person is required';
-            }
-            
-            if (!formData.contact_email) {
-                newErrors.contact_email = 'Contact email is required';
-            } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.contact_email)) {
-                newErrors.contact_email = 'Invalid email format';
-            }
-            
-            if (!formData.contact_phone) {
-                newErrors.contact_phone = 'Contact phone is required';
-            }
+        // Validasi contact
+        if (!formData.contact_person) {
+            newErrors.contact_person = 'Contact person is required';
+        }
+        
+        if (!formData.contact_email) {
+            newErrors.contact_email = 'Contact email is required';
+        } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.contact_email)) {
+            newErrors.contact_email = 'Invalid email format';
+        }
+        
+        if (!formData.contact_phone) {
+            newErrors.contact_phone = 'Contact phone is required';
         }
 
         if (Object.keys(newErrors).length > 0) {
@@ -302,22 +346,31 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId, onSuccess }) => {
         try {
             const formDataToSend = new FormData();
             
-            // Append semua data ke FormData
+            // Append semua data ke FormData dengan nama field yang benar
             Object.entries(formData).forEach(([key, value]) => {
                 if (value !== null && value !== undefined && value !== '') {
                     if (key === 'logo' && value instanceof File) {
-                        formDataToSend.append(key, value);
+                        formDataToSend.append('logo', value);
+                    } else if (key === 'company_name') {
+                        // Tidak perlu dikirim, karena di database adalah client_code
+                        // Tapi kita bisa simpan sebagai note atau informasi tambahan
                     } else {
                         formDataToSend.append(key, value.toString());
                     }
                 }
             });
 
-            // Jika ada quotation_id dari prop
-            if (quotationId && !formData.quotation_id) {
-                formDataToSend.append('quotation_id', quotationId);
+            // Tambahkan contact person data
+            if (formData.contact_person) {
+                formDataToSend.append('contact_name', formData.contact_person);
+                formDataToSend.append('contact_email', formData.contact_email);
+                formDataToSend.append('contact_phone', formData.contact_phone);
+                formDataToSend.append('contact_position', formData.contact_position || 'Contact Person');
+                formDataToSend.append('is_primary', '1');
             }
 
+            console.log('Sending form data...');
+            
             const response = await axios.post('/companies', formDataToSend, {
                 headers: {
                     'Content-Type': 'multipart/form-data',
@@ -327,13 +380,14 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId, onSuccess }) => {
             console.log('Server response:', response);
 
             if (response && response.data && response.data.success) {
-                alert(response.data.message);
+                alert(response.data.message || 'Client created successfully!');
                 
                 // Tutup modal
                 onClose();
                 
                 // Reset form
                 setFormData({
+                    client_code: '',
                     company_name: '',
                     client_type_id: '',
                     status: 'active',
@@ -374,16 +428,15 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId, onSuccess }) => {
 
         } catch (error) {
             console.error('Error creating client:', error);
+            console.error('Error details:', error.response?.data);
             
             if (error.response?.status === 422) {
                 setErrors(error.response.data.errors || {});
                 alert('Please check the form for errors.');
             } else {
-                setErrors(prev => ({ 
-                    ...prev, 
-                    submit: error.response?.data?.message || error.message || 'An error occurred.' 
-                }));
-                alert(`Error creating client: ${error.response?.data?.message || error.message}`);
+                const errorMsg = error.response?.data?.message || error.message || 'An error occurred.';
+                setErrors(prev => ({ ...prev, submit: errorMsg }));
+                alert(`Error creating client: ${errorMsg}`);
             }
         } finally {
             setIsSubmitting(false);
@@ -405,12 +458,6 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId, onSuccess }) => {
                                 Creating from quotation: <strong>{quotationId}</strong>
                             </div>
                         )}
-                        {quotationLead && (
-                            <div className="mt-1 text-sm text-green-600 flex items-center gap-1">
-                                <Check className="w-4 h-4" />
-                                Data kontak akan disimpan di company_contact_persons
-                            </div>
-                        )}
                     </div>
                     <button
                         onClick={onClose}
@@ -423,45 +470,6 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId, onSuccess }) => {
                 {/* Form */}
                 <form onSubmit={handleSubmit} className="overflow-y-auto max-h-[calc(90vh-200px)]">
                     <div className="p-6 space-y-6">
-                        {/* Error Alert */}
-                        {errors.submit && (
-                            <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-                                <div className="flex items-start gap-3">
-                                    <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
-                                    <div>
-                                        <p className="text-sm font-medium text-red-800">{errors.submit}</p>
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-
-                        {/* Flash Messages */}
-                        {flash?.success && (
-                            <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                                <p className="text-green-700">{flash.success}</p>
-                            </div>
-                        )}
-                        {flash?.error && (
-                            <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-                                <p className="text-red-700">{flash.error}</p>
-                            </div>
-                        )}
-
-                        {/* Client Type Warning */}
-                        {(!clientTypes || clientTypes.length === 0) && (
-                            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-                                <div className="flex items-start gap-3">
-                                    <AlertCircle className="w-5 h-5 text-yellow-600 flex-shrink-0 mt-0.5" />
-                                    <div>
-                                        <p className="text-sm font-medium text-yellow-800">No Client Types Available</p>
-                                        <p className="text-sm text-yellow-600 mt-1">
-                                            Please contact administrator to set up client types.
-                                        </p>
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-
                         {/* Quotation Selection Section */}
                         {!quotationId && (
                             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
@@ -470,7 +478,7 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId, onSuccess }) => {
                                     Select from Accepted Quotation (Optional)
                                 </h3>
                                 <p className="text-sm text-blue-700 mb-4">
-                                    Select an accepted quotation to auto-fill company and contact data from its lead
+                                    Select an accepted quotation to auto-fill company and contact data
                                 </p>
                                 
                                 {loadingQuotations ? (
@@ -496,20 +504,13 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId, onSuccess }) => {
                                                         <div className="text-sm text-gray-600 mt-1">
                                                             {selectedQuotation.subject}
                                                         </div>
-                                                        {quotationLead && (
+                                                        {selectedQuotation.lead && (
                                                             <div className="mt-2 text-sm">
                                                                 <div className="font-medium text-gray-700">
-                                                                    {quotationLead.company_name}
+                                                                    {selectedQuotation.lead.company_name}
                                                                 </div>
-                                                                <div className="text-gray-600 flex items-center gap-2 mt-1">
-                                                                    <User className="w-3 h-3" /> {quotationLead.contact_person || 'No contact'}
-                                                                </div>
-                                                                <div className="text-gray-600 flex items-center gap-2 mt-1">
-                                                                    <Mail className="w-3 h-3" /> {quotationLead.email || 'No email'}
-                                                                    <Phone className="w-3 h-3 ml-2" /> {quotationLead.phone || 'No phone'}
-                                                                </div>
-                                                                <div className="text-xs text-green-600 mt-1">
-                                                                    ✓ Data kontak akan disimpan di tabel kontak
+                                                                <div className="text-gray-600">
+                                                                    {selectedQuotation.lead.contact_person}
                                                                 </div>
                                                             </div>
                                                         )}
@@ -532,13 +533,13 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId, onSuccess }) => {
                                         )}
 
                                         {/* Quotation List */}
-                                        {!selectedQuotation && quotations.length > 0 && (
+                                        {!selectedQuotation && (
                                             <>
                                                 <div className="relative">
                                                     <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
                                                     <input
                                                         type="text"
-                                                        placeholder="Search by quotation number, subject, or company name..."
+                                                        placeholder="Search quotations..."
                                                         value={quotationSearch}
                                                         onChange={(e) => setQuotationSearch(e.target.value)}
                                                         className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
@@ -546,51 +547,54 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId, onSuccess }) => {
                                                 </div>
 
                                                 <div className="max-h-60 overflow-y-auto border border-gray-200 rounded-lg">
-                                                    {filteredQuotations.map(quotation => (
-                                                        <div
-                                                            key={quotation.id}
-                                                            onClick={() => handleQuotationSelect(quotation)}
-                                                            className="p-3 border-b border-gray-100 hover:bg-gray-50 cursor-pointer transition last:border-b-0"
-                                                        >
-                                                            <div className="flex justify-between items-start">
-                                                                <div>
-                                                                    <div className="font-medium text-gray-900">
-                                                                        {quotation.quotation_number}
-                                                                    </div>
-                                                                    <div className="text-sm text-gray-600 mt-1">
-                                                                        {quotation.subject}
-                                                                    </div>
-                                                                    {quotation.lead && (
-                                                                        <div className="text-xs text-gray-500 mt-1">
-                                                                            From: {quotation.lead.company_name}
+                                                    {filteredQuotations.length > 0 ? (
+                                                        filteredQuotations.map(quotation => (
+                                                            <div
+                                                                key={quotation.id}
+                                                                onClick={() => handleQuotationSelect(quotation)}
+                                                                className="p-3 border-b border-gray-100 hover:bg-gray-50 cursor-pointer transition last:border-b-0"
+                                                            >
+                                                                <div className="flex justify-between items-start">
+                                                                    <div>
+                                                                        <div className="font-medium text-gray-900">
+                                                                            {quotation.quotation_number}
                                                                         </div>
-                                                                    )}
+                                                                        <div className="text-sm text-gray-600 mt-1">
+                                                                            {quotation.subject}
+                                                                        </div>
+                                                                        {quotation.lead && (
+                                                                            <div className="text-xs text-gray-500 mt-1">
+                                                                                {quotation.lead.company_name}
+                                                                            </div>
+                                                                        )}
+                                                                        <div className="text-xs text-green-600 mt-1 font-medium">
+                                                                            Total: Rp{quotation.total?.toLocaleString('id-ID')}
+                                                                        </div>
+                                                                    </div>
+                                                                    <ChevronDown className="w-5 h-5 text-gray-400" />
                                                                 </div>
-                                                                <ChevronDown className="w-5 h-5 text-gray-400" />
                                                             </div>
+                                                        ))
+                                                    ) : (
+                                                        <div className="text-center py-8">
+                                                            <FileText className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+                                                            <p className="text-sm text-gray-600 font-medium">
+                                                                {quotations.length === 0 
+                                                                    ? 'No accepted quotations found' 
+                                                                    : 'No matching quotations found'}
+                                                            </p>
+                                                            <p className="text-xs text-gray-500 mt-1">
+                                                                You can create a client manually below.
+                                                            </p>
                                                         </div>
-                                                    ))}
+                                                    )}
                                                 </div>
                                             </>
-                                        )}
-
-                                        {!selectedQuotation && quotations.length === 0 && (
-                                            <div className="text-center py-6 border border-gray-200 rounded-lg bg-white">
-                                                <FileText className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-                                                <p className="text-sm text-gray-600 font-medium">No accepted quotations found</p>
-                                                <p className="text-xs text-gray-500 mt-1">
-                                                    You can create a client manually below.
-                                                </p>
-                                            </div>
                                         )}
                                     </div>
                                 )}
                             </div>
                         )}
-
-                        {/* Hidden fields */}
-                        <input type="hidden" name="lead_id" value={formData.lead_id || ''} />
-                        <input type="hidden" name="quotation_id" value={formData.quotation_id || ''} />
 
                         {/* Company Information */}
                         <div className="space-y-6">
@@ -600,28 +604,30 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId, onSuccess }) => {
                             </h3>
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                {/* Company Name */}
+                                {/* Client Code */}
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        Company Name *
+                                        Client Code *
                                     </label>
                                     <input
                                         type="text"
-                                        name="company_name"
-                                        value={formData.company_name}
+                                        name="client_code"
+                                        value={formData.client_code}
                                         onChange={handleInputChange}
                                         className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 ${
-                                            errors.company_name ? 'border-red-300' : 'border-gray-300'
+                                            errors.client_code ? 'border-red-300' : 'border-gray-300'
                                         }`}
                                         required
-                                        placeholder="Enter company name"
+                                        placeholder="CLIENT001"
                                     />
-                                    {errors.company_name && (
-                                        <p className="text-xs text-red-600 mt-1">{errors.company_name}</p>
+                                    {errors.client_code && (
+                                        <p className="text-xs text-red-600 mt-1">{errors.client_code}</p>
                                     )}
-                                    <p className="text-xs text-gray-500 mt-1">
-                                        Will be stored as client code in the companies table
-                                    </p>
+                                    {formData.company_name && (
+                                        <p className="text-xs text-gray-500 mt-1">
+                                            Company: {formData.company_name}
+                                        </p>
+                                    )}
                                 </div>
 
                                 {/* Client Type */}
@@ -637,16 +643,13 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId, onSuccess }) => {
                                             errors.client_type_id ? 'border-red-300' : 'border-gray-300'
                                         }`}
                                         required
-                                        disabled={!clientTypes || clientTypes.length === 0}
                                     >
                                         <option value="">Select Client Type</option>
-                                        {clientTypes && clientTypes.length > 0 ? (
-                                            clientTypes.map(type => (
-                                                <option key={type.id} value={type.id}>{type.name} - {type.information}</option>
-                                            ))
-                                        ) : (
-                                            <option value="" disabled>No client types available</option>
-                                        )}
+                                        {clientTypes && clientTypes.map(type => (
+                                            <option key={type.id} value={type.id}>
+                                                {type.name}
+                                            </option>
+                                        ))}
                                     </select>
                                     {errors.client_type_id && (
                                         <p className="text-xs text-red-600 mt-1">{errors.client_type_id}</p>
@@ -654,9 +657,8 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId, onSuccess }) => {
                                 </div>
                             </div>
 
-                            {/* Additional Info */}
+                            {/* Address */}
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                {/* City */}
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">
                                         City
@@ -667,11 +669,9 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId, onSuccess }) => {
                                         value={formData.city}
                                         onChange={handleInputChange}
                                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
-                                        placeholder="Enter city"
                                     />
                                 </div>
 
-                                {/* Province */}
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">
                                         Province
@@ -682,11 +682,9 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId, onSuccess }) => {
                                         value={formData.province}
                                         onChange={handleInputChange}
                                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
-                                        placeholder="Enter province"
                                     />
                                 </div>
 
-                                {/* Country */}
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">
                                         Country
@@ -697,11 +695,9 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId, onSuccess }) => {
                                         value={formData.country}
                                         onChange={handleInputChange}
                                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
-                                        placeholder="Enter country"
                                     />
                                 </div>
 
-                                {/* Postal Code */}
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">
                                         Postal Code
@@ -712,14 +708,12 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId, onSuccess }) => {
                                         value={formData.postal_code}
                                         onChange={handleInputChange}
                                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
-                                        placeholder="Enter postal code"
                                     />
                                 </div>
                             </div>
 
                             {/* Business Details */}
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                {/* VAT Number */}
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">
                                         VAT Number
@@ -730,14 +724,12 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId, onSuccess }) => {
                                         value={formData.vat_number}
                                         onChange={handleInputChange}
                                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
-                                        placeholder="Enter VAT number"
                                     />
                                 </div>
 
-                                {/* NIB */}
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        NIB (Business Identification Number)
+                                        NIB
                                     </label>
                                     <input
                                         type="text"
@@ -745,11 +737,9 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId, onSuccess }) => {
                                         value={formData.nib}
                                         onChange={handleInputChange}
                                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
-                                        placeholder="Enter NIB"
                                     />
                                 </div>
 
-                                {/* Website */}
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">
                                         Website
@@ -760,215 +750,89 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId, onSuccess }) => {
                                         value={formData.website}
                                         onChange={handleInputChange}
                                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
-                                        placeholder="https://example.com"
                                     />
                                 </div>
                             </div>
                         </div>
 
-                        {/* Contact Information Section */}
+                        {/* Contact Information */}
                         <div className="border-t pt-6">
-                            <div className="flex items-center justify-between mb-4">
-                                <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-                                    <User className="w-5 h-5" />
-                                    Contact Information *
-                                </h3>
-                                {!quotationLead && (
-                                    <button
-                                        type="button"
-                                        onClick={toggleContactForm}
-                                        className="text-sm text-teal-600 hover:text-teal-800 font-medium"
-                                    >
-                                        {showContactForm ? 'Hide Contact Form' : 'Add Contact Manually'}
-                                    </button>
-                                )}
+                            <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2 mb-4">
+                                <User className="w-5 h-5" />
+                                Contact Information *
+                            </h3>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                        Contact Person *
+                                    </label>
+                                    <input
+                                        type="text"
+                                        name="contact_person"
+                                        value={formData.contact_person}
+                                        onChange={handleInputChange}
+                                        className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 ${
+                                            errors.contact_person ? 'border-red-300' : 'border-gray-300'
+                                        }`}
+                                        required
+                                    />
+                                    {errors.contact_person && (
+                                        <p className="text-xs text-red-600 mt-1">{errors.contact_person}</p>
+                                    )}
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                        Position
+                                    </label>
+                                    <input
+                                        type="text"
+                                        name="contact_position"
+                                        value={formData.contact_position}
+                                        onChange={handleInputChange}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                        Email *
+                                    </label>
+                                    <input
+                                        type="email"
+                                        name="contact_email"
+                                        value={formData.contact_email}
+                                        onChange={handleInputChange}
+                                        className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 ${
+                                            errors.contact_email ? 'border-red-300' : 'border-gray-300'
+                                        }`}
+                                        required
+                                    />
+                                    {errors.contact_email && (
+                                        <p className="text-xs text-red-600 mt-1">{errors.contact_email}</p>
+                                    )}
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                        Phone *
+                                    </label>
+                                    <input
+                                        type="tel"
+                                        name="contact_phone"
+                                        value={formData.contact_phone}
+                                        onChange={handleInputChange}
+                                        className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 ${
+                                            errors.contact_phone ? 'border-red-300' : 'border-gray-300'
+                                        }`}
+                                        required
+                                    />
+                                    {errors.contact_phone && (
+                                        <p className="text-xs text-red-600 mt-1">{errors.contact_phone}</p>
+                                    )}
+                                </div>
                             </div>
-
-                            {quotationLead ? (
-                                // Show auto-filled contact data from lead
-                                <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                                    <div className="flex items-start gap-3">
-                                        <Check className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
-                                        <div className="flex-1">
-                                            <p className="text-sm font-medium text-green-800 mb-2">
-                                                Contact data auto-filled from lead
-                                            </p>
-                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                                <div>
-                                                    <label className="block text-xs font-medium text-gray-600 mb-1">
-                                                        Contact Person *
-                                                    </label>
-                                                    <input
-                                                        type="text"
-                                                        name="contact_person"
-                                                        value={formData.contact_person}
-                                                        onChange={handleInputChange}
-                                                        className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 ${
-                                                            errors.contact_person ? 'border-red-300' : 'border-green-300 bg-white'
-                                                        }`}
-                                                        required
-                                                    />
-                                                    {errors.contact_person && (
-                                                        <p className="text-xs text-red-600 mt-1">{errors.contact_person}</p>
-                                                    )}
-                                                </div>
-
-                                                <div>
-                                                    <label className="block text-xs font-medium text-gray-600 mb-1">
-                                                        Position
-                                                    </label>
-                                                    <input
-                                                        type="text"
-                                                        name="contact_position"
-                                                        value={formData.contact_position}
-                                                        onChange={handleInputChange}
-                                                        className="w-full px-3 py-2 border border-green-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 bg-white"
-                                                        placeholder="e.g., Contact Person, Manager"
-                                                    />
-                                                </div>
-
-                                                <div>
-                                                    <label className="block text-xs font-medium text-gray-600 mb-1">
-                                                        Email *
-                                                    </label>
-                                                    <input
-                                                        type="email"
-                                                        name="contact_email"
-                                                        value={formData.contact_email}
-                                                        onChange={handleInputChange}
-                                                        className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 ${
-                                                            errors.contact_email ? 'border-red-300' : 'border-green-300 bg-white'
-                                                        }`}
-                                                        required
-                                                    />
-                                                    {errors.contact_email && (
-                                                        <p className="text-xs text-red-600 mt-1">{errors.contact_email}</p>
-                                                    )}
-                                                </div>
-
-                                                <div>
-                                                    <label className="block text-xs font-medium text-gray-600 mb-1">
-                                                        Phone *
-                                                    </label>
-                                                    <input
-                                                        type="tel"
-                                                        name="contact_phone"
-                                                        value={formData.contact_phone}
-                                                        onChange={handleInputChange}
-                                                        className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 ${
-                                                            errors.contact_phone ? 'border-red-300' : 'border-green-300 bg-white'
-                                                        }`}
-                                                        required
-                                                    />
-                                                    {errors.contact_phone && (
-                                                        <p className="text-xs text-red-600 mt-1">{errors.contact_phone}</p>
-                                                    )}
-                                                </div>
-                                            </div>
-                                            <p className="text-xs text-green-600 mt-2">
-                                                ✓ This contact data will be saved to the company_contact_persons table as primary contact
-                                            </p>
-                                        </div>
-                                    </div>
-                                </div>
-                            ) : showContactForm ? (
-                                // Show manual contact form
-                                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                        <div>
-                                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                                                Contact Person *
-                                            </label>
-                                            <input
-                                                type="text"
-                                                name="contact_person"
-                                                value={formData.contact_person}
-                                                onChange={handleInputChange}
-                                                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 ${
-                                                    errors.contact_person ? 'border-red-300' : 'border-blue-300'
-                                                }`}
-                                                placeholder="Enter contact name"
-                                                required
-                                            />
-                                            {errors.contact_person && (
-                                                <p className="text-xs text-red-600 mt-1">{errors.contact_person}</p>
-                                            )}
-                                        </div>
-
-                                        <div>
-                                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                                                Position
-                                            </label>
-                                            <input
-                                                type="text"
-                                                name="contact_position"
-                                                value={formData.contact_position}
-                                                onChange={handleInputChange}
-                                                className="w-full px-3 py-2 border border-blue-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
-                                                placeholder="e.g., Contact Person, Manager, Director"
-                                            />
-                                        </div>
-
-                                        <div>
-                                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                                                Email *
-                                            </label>
-                                            <input
-                                                type="email"
-                                                name="contact_email"
-                                                value={formData.contact_email}
-                                                onChange={handleInputChange}
-                                                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 ${
-                                                    errors.contact_email ? 'border-red-300' : 'border-blue-300'
-                                                }`}
-                                                placeholder="contact@company.com"
-                                                required
-                                            />
-                                            {errors.contact_email && (
-                                                <p className="text-xs text-red-600 mt-1">{errors.contact_email}</p>
-                                            )}
-                                        </div>
-
-                                        <div>
-                                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                                                Phone *
-                                            </label>
-                                            <input
-                                                type="tel"
-                                                name="contact_phone"
-                                                value={formData.contact_phone}
-                                                onChange={handleInputChange}
-                                                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 ${
-                                                    errors.contact_phone ? 'border-red-300' : 'border-blue-300'
-                                                }`}
-                                                placeholder="+62 812-3456-7890"
-                                                required
-                                            />
-                                            {errors.contact_phone && (
-                                                <p className="text-xs text-red-600 mt-1">{errors.contact_phone}</p>
-                                            )}
-                                        </div>
-                                    </div>
-                                    <p className="text-xs text-blue-600 mt-2">
-                                        This contact data will be saved to the company_contact_persons table as the primary contact for this company
-                                    </p>
-                                </div>
-                            ) : (
-                                // Show button to add contact manually
-                                <div className="bg-gray-50 border border-gray-300 rounded-lg p-4 text-center">
-                                    <button
-                                        type="button"
-                                        onClick={toggleContactForm}
-                                        className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 text-gray-700"
-                                    >
-                                        <User className="w-4 h-4" />
-                                        Add Contact Information
-                                    </button>
-                                    <p className="text-xs text-gray-500 mt-2">
-                                        Click to add primary contact person for this company
-                                    </p>
-                                </div>
-                            )}
                         </div>
 
                         {/* Status & Logo */}
@@ -1002,7 +866,7 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId, onSuccess }) => {
                             </div>
 
                             <div>
-                                <h3 className="text-lg font-semibold text-gray-900 mb-3">Company Logo (Optional)</h3>
+                                <h3 className="text-lg font-semibold text-gray-900 mb-3">Company Logo</h3>
                                 <div className="border-2 border-dashed border-gray-300 rounded-lg p-4">
                                     <div className="flex items-center space-x-4">
                                         <div className="flex-1">
@@ -1013,7 +877,7 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId, onSuccess }) => {
                                                 accept="image/*"
                                                 className="w-full border border-gray-300 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                                             />
-                                            <p className="text-xs text-gray-500 mt-1">Max size: 2MB (JPEG, PNG, JPG, GIF)</p>
+                                            <p className="text-xs text-gray-500 mt-1">JPEG, PNG, JPG, GIF (Max 2MB)</p>
                                         </div>
                                         {logoPreview && (
                                             <div className="w-16 h-16">
@@ -1036,17 +900,17 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId, onSuccess }) => {
                             type="button"
                             onClick={onClose}
                             disabled={isSubmitting}
-                            className="px-4 py-2 text-gray-700 hover:text-gray-900 font-medium disabled:opacity-50"
+                            className="px-4 py-2 text-gray-700 hover:text-gray-900 font-medium"
                         >
                             Cancel
                         </button>
                         <button
                             type="submit"
-                            disabled={isSubmitting || (!clientTypes || clientTypes.length === 0) || (!quotationLead && !showContactForm)}
+                            disabled={isSubmitting || !formData.client_code || !formData.client_type_id}
                             className={`px-6 py-2 font-medium rounded-lg flex items-center gap-2 ${
-                                (!clientTypes || clientTypes.length === 0) || (!quotationLead && !showContactForm)
+                                isSubmitting || !formData.client_code || !formData.client_type_id
                                     ? 'bg-gray-400 text-white cursor-not-allowed'
-                                    : 'bg-teal-700 hover:bg-teal-800 text-white disabled:opacity-50 disabled:cursor-not-allowed'
+                                    : 'bg-teal-700 hover:bg-teal-800 text-white'
                             }`}
                         >
                             {isSubmitting ? (

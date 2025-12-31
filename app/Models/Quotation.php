@@ -98,15 +98,22 @@ class Quotation extends Model
         return $this->hasOne(Project::class);
     }
 
-    public function lead()
-    {
-        return $this->belongsTo(Lead::class, 'lead_id', 'id');
-    }
-    
-    // TAMBAHKAN RELATIONSHIP COMPANY
+    /**
+     * Relasi ke company (jika ada)
+     */
     public function company()
     {
-        return $this->hasOne(Company::class, 'quotation_id', 'id');
+        return $this->hasOne(Company::class, 'quotation_id')
+                    ->where('deleted', 0);
+    }
+    
+    /**
+     * Relasi ke lead
+     */
+    public function lead()
+    {
+        return $this->belongsTo(Lead::class, 'lead_id')
+                    ->where('deleted', 0);
     }
     
     public function items()

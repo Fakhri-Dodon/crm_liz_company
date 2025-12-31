@@ -151,8 +151,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/companies', [CompanyController::class, 'index'])->name('companies.index');
     Route::get('/companies/create', [CompanyController::class, 'create'])->name('companies.create');
     Route::post('/companies', [CompanyController::class, 'store'])->name('companies.store');
-    
-    // Company Detail - ROUTE UTAMA untuk halaman profil
+    // Untuk Create Company - Get Accepted Quotations
+    // Additional company routes untuk Create.jsx
+    Route::get('/companies/get-accepted-quotations', [CompanyController::class, 'getAcceptedQuotations']);
+    Route::get('/companies/get-lead-from-quotation/{id}', [CompanyController::class, 'getLeadFromQuotation']);
+    Route::get('/companies/get-accepted-quotation/{id}', [CompanyController::class, 'getAcceptedQuotation']);    // Company Detail - ROUTE UTAMA untuk halaman profil
     Route::get('/companies/{company}', [CompanyController::class, 'show'])->name('companies.show');
     
     // Company Edit & Update
