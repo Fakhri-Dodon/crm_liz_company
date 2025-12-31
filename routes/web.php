@@ -252,7 +252,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
 // });
 
 // Route untuk halaman tambah proposal
-Route::get('/proposal/add', fn() => Inertia::render('Proposals/AddProposal'))->name('proposal.add');
+Route::get('/proposal/add', [ProposalController::class, 'add'])->name('proposal.add');
+Route::get('/proposal/addProposal/{id}', [ProposalController::class, 'addProposal'])->name('proposal.addProposal');
 Route::get('/html-sections', [ProposalController::class, 'sections']);
 Route::resource('proposal', ProposalController::class);
 

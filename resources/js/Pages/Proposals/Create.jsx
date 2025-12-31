@@ -1,14 +1,20 @@
-import React, { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import grapesjs from "grapesjs";
 import "grapesjs/dist/css/grapes.min.css";
 import presetWebpage from "grapesjs-preset-webpage";
+import * as htmlToImage from 'html-to-image';
 
-export default function Create({name, id}) {
+export default function Create({id, template}) {
+
+    const [loading, setLoading] = useState(false);
 	const editorRef = useRef(null);
     const templatesDataRef = useRef([]);
 	const API_BASE_URL = import.meta.env.APP_URL;
 
     useEffect(() => {
+        
+        setLoading(true);
+        
         const editor = grapesjs.init({
         	container: "#gjs",
             height: "100vh",
@@ -57,6 +63,18 @@ export default function Create({name, id}) {
         });
 
         editor.on('load', () => {
+            if (template) {
+
+                if (template.html_output) {
+                    editor.setComponents(template.html_output);
+                }
+
+                if (template.css_output) {
+                    editor.setStyle(template.css_output);
+                }
+
+            }
+
             const openBlocksBtn = editor.Panels.getButton('views', 'open-blocks');
             if (openBlocksBtn) openBlocksBtn.set('active', true);
 
@@ -78,7 +96,8 @@ export default function Create({name, id}) {
                         attributes: { class: 'gjs-block-section' }
                     });
                 });
-            });
+            })
+            .finally(() => setLoading(false));
 
        editorRef.current = editor;
 
@@ -118,7 +137,22 @@ export default function Create({name, id}) {
 
         const finalUsedCss = externalResults.join('\n') + '\n' + internalCss;
 
-        await fetch("/proposal/store", {
+        const iframe = editor.Canvas.getFrameEl();
+        const iframeBody = iframe.contentDocument.body;
+
+        const imageBlob = await htmlToImage.toBlob(iframeBody, {
+            backgroundColor: '#ffffff',
+            pixelRatio: 2, // HD thumbnail
+        });
+
+        // Convert ke Base64 (untuk dikirim)
+        const imageBase64 = await new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.onloadend = () => resolve(reader.result);
+            reader.readAsDataURL(imageBlob);
+        });
+
+        const res = await fetch("/proposal", {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
@@ -126,14 +160,20 @@ export default function Create({name, id}) {
             },
             body: JSON.stringify({
                 id: id,
-                name: name,
                 html: html,
                 css: finalUsedCss,
                 categories: categoriesUsed,
+                image: imageBase64,
             }),
         });
 
-        alert("Simpan Berhasil! Hanya CSS yang digunakan yang disimpan.");
+        const savePage = await res.json();
+
+        if (savePage.success) {
+            alert("Simpan Berhasil!");
+            window.location.href = savePage.redirect;
+        }
+
     };
 
     /**
@@ -205,5 +245,15 @@ export default function Create({name, id}) {
         }
     }
 
-    return <div id="gjs"></div>;
+    return (
+        <>
+            {loading && (
+                <div className="fixed inset-0 bg-white/70 flex items-center justify-center z-50">
+                    <span className="animate-spin h-8 w-8 border-4 border-blue-500 border-t-transparent rounded-full"></span>
+                </div>
+            )}
+
+            <div id="gjs"></div>
+        </>
+    );
 }
