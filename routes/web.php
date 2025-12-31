@@ -1,4 +1,3 @@
-
 <?php
 
 use App\Http\Controllers\UserController;
@@ -46,13 +45,14 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     // Leads
     Route::get('/lead', [LeadController::class, 'index'])->name('lead.index');
-    // Route::get('/proposal', fn() => Inertia::render('Proposals/Index'))->name('proposal.index');
     
-    //Quotation Modul
+    //Quotation Modul - TAMBAHKAN ROUTE show DI SINI
     Route::prefix('quotation')->name('quotation.')->group(function() {
         Route::get('/', [QuotationController::class, 'index'])->name('index');
         Route::get('/create', [QuotationController::class, 'create'])->name('create');
         Route::post('/store', [QuotationController::class, 'store'])->name('store');
+        // TAMBAHKAN INI: Route untuk show quotation
+        Route::get('/{quotation}', [QuotationController::class, 'show'])->name('show');
         Route::patch('/{quotation}/status', [QuotationController::class, 'updateStatus'])->name('update-status');
         Route::get('/edit/{quotation}', [QuotationController::class, 'edit'])->name('edit');
         Route::patch('/update/{quotation}', [QuotationController::class, 'update'])->name('update');
@@ -72,13 +72,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // notif send document(quotation/invoice)email
     Route::post('/send-email/{type}/{id}', [EmailController::class, 'sendDocument'])->name('email.send-document');
 
-    // Route::get('/invoice', fn() => Inertia::render('Invoices/Index'))->name('invoice.index');
     Route::get('/payment', fn() => Inertia::render('Payments/Index'))->name('payment.index');
     Route::get('/email', fn() => Inertia::render('Email/Index'))->name('email.index');
-    // Route::get('/user', fn() => Inertia::render('Users/Index'))->name('user.index');
-    // Route::get('/project', fn() => Inertia::render('Projects/Index'))->name('project.index');
-    // Route::get('/email-inbox', fn() => Inertia::render('Email/Index'))->name('email.index');
-    // Route::get('/email', fn() => Inertia::render('Email/Index'))->name('email.inbox');
+    
     Route::prefix('user')->name('user.')->group(function () {
         Route::get('/', [UserController::class, 'index']);
         Route::post('/store', [UserController::class, 'store'])->name('store');
@@ -140,7 +136,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->name('projects.status.update');
 });
 
-
 Route::middleware(['auth', 'verified'])->group(function () {
     // ====================== COMPANY ROUTES ======================
     // Company List & Creation
@@ -148,22 +143,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/companies/create', [CompanyController::class, 'create'])->name('companies.create');
     Route::post('/companies', [CompanyController::class, 'store'])->name('companies.store');
     
-    // **HAPUS INI: HANYA 1 ROUTE UNTUK SHOW**
-    // Route::get('/companies/{company}/show', [CompanyController::class, 'show'])->name('companies.show'); // HAPUS BARIS INI
-    
-    // Specific routes before parameter routes (harus didefinisikan sebelum {company})
-    Route::get('/companies/get-leads', [CompanyController::class, 'getLeadsForCreation'])
-        ->name('companies.get-leads');
-    Route::get('/companies/get-accepted-quotations', [CompanyController::class, 'getAcceptedQuotations'])
-        ->name('companies.get-accepted-quotations');
-    Route::get('/companies/get-lead-from-quotation/{quotation}', [CompanyController::class, 'getLeadFromQuotation'])
-        ->name('companies.get-lead-from-quotation');
-    Route::get('/companies/statistics', [CompanyController::class, 'getStatistics'])
-        ->name('companies.statistics');
-    
-    // ====================== COMPANY DETAIL & PROFILE ROUTES ======================
     // Company Detail - ROUTE UTAMA untuk halaman profil
-    Route::get('/companies/{company}', [CompanyController::class, 'show'])->name('companies.show'); // INI SATU-SATUNYA
+    Route::get('/companies/{company}', [CompanyController::class, 'show'])->name('companies.show');
     
     // Company Edit & Update
     Route::get('/companies/{company}/edit', [CompanyController::class, 'edit'])->name('companies.edit');
@@ -177,9 +158,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->name('companies.restore');
     
     // ====================== COMPANY API DATA ENDPOINTS ======================
-    // Untuk mengambil data spesifik perusahaan (AJAX/API)
     Route::prefix('api/companies/{company}')->group(function () {
-        // Quotation data
         Route::get('/quotations', [CompanyController::class, 'getCompanyQuotations'])
             ->name('companies.quotations.index');
         Route::get('/quotations/summary', [CompanyController::class, 'getQuotationSummary'])
@@ -187,7 +166,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/quotations/recent', [CompanyController::class, 'getRecentQuotations'])
             ->name('companies.quotations.recent');
         
-        // Invoice data
         Route::get('/invoices', [CompanyController::class, 'getCompanyInvoices'])
             ->name('companies.invoices.index');
         Route::get('/invoices/summary', [CompanyController::class, 'getInvoiceSummary'])
@@ -195,7 +173,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/invoices/recent', [CompanyController::class, 'getRecentInvoices'])
             ->name('companies.invoices.recent');
         
-        // Statistics & Dashboard data
         Route::get('/statistics', [CompanyController::class, 'getCompanyStatistics'])
             ->name('companies.dashboard.statistics');
         Route::get('/activities', [CompanyController::class, 'getCompanyActivities'])
@@ -207,11 +184,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/projects', [CompanyController::class, 'getCompanyProjects'])
             ->name('companies.projects');
     });
-        Route::get('/api/companies/{company}/primary-contact', [CompanyController::class, 'getPrimaryContact'])
+    
+    Route::get('/api/companies/{company}/primary-contact', [CompanyController::class, 'getPrimaryContact'])
         ->name('companies.primary-contact');
     
     // ====================== RELATED ENTITY ROUTES ======================
-    // Quotation routes (dengan company context)
     Route::prefix('companies/{company}')->group(function () {
         Route::get('/quotations/create', [QuotationController::class, 'createForCompany'])
             ->name('companies.quotations.create');
@@ -219,7 +196,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
             ->name('companies.quotations.store');
     });
     
-    // Invoice routes (dengan company context)
     Route::prefix('companies/{company}')->group(function () {
         Route::get('/invoices/create', [InvoiceController::class, 'createForCompany'])
             ->name('companies.invoices.create');
@@ -242,16 +218,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
             ->name('companies.download-template');
     });
 });
-    
-//     // **TAMBAHKAN INI: Route khusus untuk update status**
-//     Route::patch('/projects/{project}/status', [ProjectController::class, 'updateStatus'])
-//         ->name('projects.status.update');
-//     // Atau jika ingin menggunakan POST:
-//     Route::post('/projects/{project}/status', [ProjectController::class, 'updateStatus'])
-//         ->name('projects.status.update.post');
-// });
 
-// Route untuk halaman tambah proposal
 Route::get('/proposal/add', fn() => Inertia::render('Proposals/AddProposal'))->name('proposal.add');
 Route::get('/html-sections', [ProposalController::class, 'sections']);
 Route::resource('proposal', ProposalController::class);

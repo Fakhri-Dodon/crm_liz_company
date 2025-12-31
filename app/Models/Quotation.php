@@ -100,6 +100,12 @@ class Quotation extends Model
         return $this->belongsTo(User::class, 'accepted_by', 'id');
     }
 
+    // TAMBAHKAN ALIAS acceptedBy (sama dengan acceptor)
+    public function acceptedBy()
+    {
+        return $this->belongsTo(User::class, 'accepted_by', 'id');
+    }
+
     public function deleter()
     {
         return $this->belongsTo(User::class, 'deleted_by', 'id');

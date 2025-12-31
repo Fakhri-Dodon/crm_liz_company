@@ -10,7 +10,7 @@ import ProjectTable from './ProjectTable';
 import ContactTable from './ContactTable';
 import HeaderLayout from '@/Layouts/HeaderLayout';
 
-const Show = ({ company, quotations, invoices, payments, projects, contacts, statistics }) => {
+const Show = ({ company, quotations, invoices, payments, projects, contacts, statistics, grouped_quotations }) => {
     const { props } = usePage();
     const [activeTab, setActiveTab] = useState('profile');
     const [loading, setLoading] = useState(false);
@@ -96,7 +96,8 @@ const Show = ({ company, quotations, invoices, payments, projects, contacts, sta
                 is_active: true,
                 company_id: company.id
             }
-        ]
+        ],
+        grouped_quotations: grouped_quotations || []
     };
 
     // Render konten berdasarkan tab aktif
@@ -114,7 +115,13 @@ const Show = ({ company, quotations, invoices, payments, projects, contacts, sta
             case 'profile':
                 return <ProfileTable data={displayData.company} />;
             case 'quotation':
-                return <QuotationTable data={displayData.quotations} />;
+                return (
+                    <QuotationTable 
+                        data={displayData.quotations} 
+                        groupedData={displayData.grouped_quotations}
+                        companyId={displayData.company.id}
+                    />
+                );
             case 'invoice':
                 return <InvoiceTable data={displayData.invoices} />;
             case 'payment':
@@ -125,6 +132,26 @@ const Show = ({ company, quotations, invoices, payments, projects, contacts, sta
                 return <ContactTable data={displayData.contacts} />;
             default:
                 return <ProfileTable data={displayData.company} />;
+        }
+    };
+
+    // Fungsi untuk mendapatkan jumlah item berdasarkan tab
+    const getItemCount = () => {
+        switch (activeTab) {
+            case 'profile':
+                return 1;
+            case 'quotation':
+                return displayData.quotations?.length || 0;
+            case 'invoice':
+                return displayData.invoices?.length || 0;
+            case 'payment':
+                return displayData.payments?.length || 0;
+            case 'project':
+                return displayData.projects?.length || 0;
+            case 'contact':
+                return displayData.contacts?.length || 0;
+            default:
+                return 0;
         }
     };
 
@@ -182,14 +209,10 @@ const Show = ({ company, quotations, invoices, payments, projects, contacts, sta
                                          activeTab === 'project' ? 'Proyek' : 'Kontak Perusahaan'}
                                     </h2>
                                     <p className="text-gray-600 mt-1">
-                                        {displayData[activeTab === 'profile' ? 'company' : activeTab + 's']?.length || 0} item
+                                        {getItemCount()} item{getItemCount() !== 1 ? 's' : ''}
                                     </p>
                                 </div>
-                                {activeTab !== 'profile' && activeTab !== 'contact' && (
-                                    <button className="px-4 py-2 bg-[#054748] text-white rounded-lg hover:bg-[#0a5d5e] transition-colors">
-                                        + Tambah Baru
-                                    </button>
-                                )}
+                                {/* TIDAK ADA TOMBOL TAMBAH BARU */}
                             </div>
                             
                             {renderContent()}

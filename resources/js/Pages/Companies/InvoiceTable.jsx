@@ -1,14 +1,16 @@
 import React, { useState } from 'react';
 import { 
     FileText, Calendar, DollarSign, CheckCircle, Clock, 
-    AlertCircle, TrendingUp, Percent, Eye, Check
+    AlertCircle, TrendingUp, Percent, Eye, Check, User
 } from 'lucide-react';
 
 const InvoiceTable = ({ data }) => {
     const [tooltip, setTooltip] = useState(null);
     
-    // Format currency untuk mobile
+    // Format currency
     const formatCurrency = (amount) => {
+        if (!amount) return 'Rp0';
+        
         if (amount >= 1000000000) return `Rp${(amount / 1000000000).toFixed(1)}M`;
         if (amount >= 1000000) return `Rp${(amount / 1000000).toFixed(1)}Jt`;
         if (amount >= 1000) return `Rp${(amount / 1000).toFixed(0)}Rb`;
@@ -16,6 +18,8 @@ const InvoiceTable = ({ data }) => {
     };
 
     const formatFullCurrency = (amount) => {
+        if (!amount) return 'Rp0';
+        
         return new Intl.NumberFormat('id-ID', {
             style: 'currency',
             currency: 'IDR',
@@ -24,6 +28,8 @@ const InvoiceTable = ({ data }) => {
     };
 
     const formatDate = (dateString) => {
+        if (!dateString) return 'N/A';
+        
         const date = new Date(dateString);
         const now = new Date();
         const diffDays = Math.ceil((date - now) / (1000 * 60 * 60 * 24));
@@ -35,7 +41,8 @@ const InvoiceTable = ({ data }) => {
         
         return date.toLocaleDateString('id-ID', {
             day: 'numeric',
-            month: 'short'
+            month: 'short',
+            year: 'numeric'
         });
     };
 
@@ -57,11 +64,25 @@ const InvoiceTable = ({ data }) => {
                         <span className="hidden sm:inline">Unpaid</span>
                     </span>
                 );
-            case 'overdue':
+            case 'invoice':
+                return (
+                    <span className={`${baseClasses} bg-blue-100 text-blue-800`}>
+                        <FileText className="w-3 h-3 mr-1" />
+                        <span className="hidden sm:inline">Invoice Sent</span>
+                    </span>
+                );
+            case 'cancelled':
                 return (
                     <span className={`${baseClasses} bg-red-100 text-red-800`}>
                         <AlertCircle className="w-3 h-3 mr-1" />
-                        <span className="hidden sm:inline">Overdue</span>
+                        <span className="hidden sm:inline">Cancelled</span>
+                    </span>
+                );
+            case 'draft':
+                return (
+                    <span className={`${baseClasses} bg-gray-100 text-gray-800`}>
+                        <FileText className="w-3 h-3 mr-1" />
+                        <span className="hidden sm:inline">Draft</span>
                     </span>
                 );
             default:
@@ -84,15 +105,30 @@ const InvoiceTable = ({ data }) => {
                             {invoice.invoice_number}
                         </h3>
                         <p className="text-xs text-gray-500">
-                            {new Date(invoice.date).toLocaleDateString('id-ID', {
+                            {invoice.date ? new Date(invoice.date).toLocaleDateString('id-ID', {
                                 day: 'numeric',
                                 month: 'short',
                                 year: 'numeric'
-                            })}
+                            }) : 'N/A'}
                         </p>
                     </div>
                 </div>
                 {getStatusBadge(invoice.status)}
+            </div>
+            
+            <div className="mb-3">
+                <div className="flex items-center space-x-2 mb-2">
+                    <User className="w-4 h-4 text-gray-400" />
+                    <span className="text-xs text-gray-600">
+                        {invoice.contact_person?.name || 'No Contact Person'}
+                    </span>
+                </div>
+                
+                {invoice.quotation && (
+                    <div className="text-xs text-gray-500">
+                        Quotation: {invoice.quotation.quotation_number}
+                    </div>
+                )}
             </div>
             
             <div className="grid grid-cols-2 gap-3 mb-3">
@@ -135,6 +171,22 @@ const InvoiceTable = ({ data }) => {
         </div>
     );
 
+    // Empty State
+    if (!data || data.length === 0) {
+        return (
+            <div className="text-center py-12">
+                <FileText className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-gray-900 mb-2">No Invoices Found</h3>
+                <p className="text-gray-500 max-w-md mx-auto mb-6">
+                    This company doesn't have any invoices yet. Invoices will appear here once created.
+                </p>
+                <button className="px-4 py-2 bg-[#054748] text-white rounded-lg hover:bg-[#0a5d5e] transition-colors">
+                    Create First Invoice
+                </button>
+            </div>
+        );
+    }
+
     return (
         <div>
             {tooltip && (
@@ -145,7 +197,9 @@ const InvoiceTable = ({ data }) => {
 
             <div className="mb-6">
                 <h2 className="text-lg md:text-xl font-bold text-gray-900">Invoice List</h2>
-                <p className="text-sm md:text-base text-gray-600">All invoices issued to this company</p>
+                <p className="text-sm md:text-base text-gray-600">
+                    {data.length} invoice{data.length !== 1 ? 's' : ''} found for this company
+                </p>
             </div>
 
             {/* Mobile View */}
@@ -168,6 +222,9 @@ const InvoiceTable = ({ data }) => {
                                     Date
                                 </th>
                                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase">
+                                    Contact Person
+                                </th>
+                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase">
                                     Amount
                                 </th>
                                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase">
@@ -188,10 +245,28 @@ const InvoiceTable = ({ data }) => {
                                         <div className="font-medium text-gray-900">
                                             {invoice.invoice_number}
                                         </div>
+                                        {invoice.quotation && (
+                                            <div className="text-xs text-gray-500">
+                                                Q: {invoice.quotation.quotation_number}
+                                            </div>
+                                        )}
                                     </td>
                                     <td className="px-4 py-3">
                                         <div className="text-gray-900">
                                             {formatDate(invoice.date)}
+                                        </div>
+                                    </td>
+                                    <td className="px-4 py-3">
+                                        <div className="flex items-center">
+                                            <User className="w-4 h-4 text-gray-400 mr-2" />
+                                            <div>
+                                                <div className="font-medium text-gray-900">
+                                                    {invoice.contact_person?.name || 'N/A'}
+                                                </div>
+                                                <div className="text-xs text-gray-500">
+                                                    {invoice.contact_person?.position || ''}
+                                                </div>
+                                            </div>
                                         </div>
                                     </td>
                                     <td className="px-4 py-3">
@@ -263,10 +338,10 @@ const InvoiceTable = ({ data }) => {
                         <p className="text-xs md:text-sm text-gray-600">Total PPN</p>
                         <p 
                             className="text-lg md:text-2xl font-bold text-gray-900 cursor-help"
-                            onMouseEnter={() => setTooltip(formatFullCurrency(data.reduce((sum, i) => sum + i.ppn, 0)))}
+                            onMouseEnter={() => setTooltip(formatFullCurrency(data.reduce((sum, i) => sum + (i.ppn || 0), 0)))}
                             onMouseLeave={() => setTooltip(null)}
                         >
-                            {formatCurrency(data.reduce((sum, i) => sum + i.ppn, 0))}
+                            {formatCurrency(data.reduce((sum, i) => sum + (i.ppn || 0), 0))}
                         </p>
                     </div>
                 </div>
