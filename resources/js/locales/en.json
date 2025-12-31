@@ -149,7 +149,44 @@
             "label_body": "Body*",
             "btn_cancel": "Cancel",
             "btn_add": "Add",
-            "btn_update": "Update"  
+            "btn_update": "Update" 
+        }
+    },
+    "proposals": {
+        "title": "PROPOSALS",
+        "button_add": "ADD PROPOSAL",
+        "stats": {
+            "opened": "OPENED",
+            "failed": "FAILED",
+            "draft": "DRAFT",
+            "sent": "SENT",
+            "rejected": "REJECTED"
+        },
+        "filters": {
+            "search_placeholder": "Search by subject or client",
+            "status": "Status",
+            "all_status": "All Status",
+            "proposal": "Proposal",
+            "all_proposal": "All Proposal",
+            "month": "Month",
+            "all_months": "All Months",
+            "year": "Year",
+            "all_years": "All Years",
+            "apply": "Apply",
+            "reset": "Reset",
+            "showing_info": "{{count}} of {{total}} leads shown"
+        },
+        "table": {
+            "no": "NO",
+            "no_date": "NO & DATE",
+            "subject": "SUBJECT",
+            "company_name": "COMPANY NAME",
+            "contact": "CONTACT",
+            "created_by": "CREATED BY",
+            "total": "TOTAL",
+            "ppn_total": "Include PPN",
+            "status": "STATUS",
+            "actions": "ACTIONS"
         }
     }
 }

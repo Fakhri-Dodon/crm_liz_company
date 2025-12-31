@@ -158,5 +158,42 @@
             "btn_add": "Tambah",
             "btn_update": "Perbarui"
         }
+    },
+    "proposals": {
+        "title": "PROPOSAL",
+        "button_add": "TAMBAH PROPOSAL",
+        "stats": {
+            "opened": "DIBUKA",
+            "failed": "GAGAL",
+            "draft": "RANCANGAN",
+            "sent": "DIKIRIM",
+            "rejected": "DITOLAK"
+        },
+        "filters": {
+            "search_placeholder": "Cari berdasarkan subjek atau klien",
+            "status": "Status",
+            "all_status": "Semua Status",
+            "proposal": "Proposal",
+            "all_proposal": "Semua Proposal",
+            "month": "Bulan",
+            "all_months": "Semua Bulan",
+            "year": "Tahun",
+            "all_years": "Semua Tahun",
+            "apply": "Terapkan",
+            "reset": "Atur Ulang",
+            "showing_info": "{{count}} dari {{total}} prospek ditampilkan"
+        },
+        "table": {
+            "no": "NO",
+            "no_date": "NO & TANGGAL",
+            "subject": "SUBJEK",
+            "company_name": "NAMA PERUSAHAAN",
+            "contact": "KONTAK",
+            "created_by": "DIBUAT OLEH",
+            "total": "TOTAL",
+            "ppn_total": "Termasuk PPN",
+            "status": "STATUS",
+            "actions": "AKSI"
+        }
     }
 }       

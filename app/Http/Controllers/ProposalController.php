@@ -2,6 +2,13 @@
 
 namespace App\Http\Controllers;
 
+use Carbon\Carbon;
+use App\Models\User;
+use App\Models\Lead;
+use App\Models\Proposal;
+use App\Models\ProposalStatuses;
+use App\Models\ProposalElementTemplate;
+use App\Models\ProposalNumberFormatted;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Illuminate\Support\Str;
@@ -14,9 +21,142 @@ class ProposalController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index()
+    public function index(Request $request)
     {
-        return Inertia::render('Proposals/Index');
+
+        $filterData = Proposal::select('id', 'title')
+            ->where('deleted', 0)
+            ->groupBy('id', 'title')
+            ->get()
+            ->pluck('id', 'title')
+            ->toArray();
+
+        $summary = Proposal::select('status', DB::raw('count(*) as count'))
+            ->where('deleted', 0)
+            ->groupBy('status')
+            ->get()
+            ->pluck('count', 'status')
+            ->toArray();
+
+        $query = Proposal::with(['lead', 'proposal_element_template', 'creator'])->where('deleted', 0);
+
+        // Filter Search
+        $query->when($request->input('search'), function ($q, $search) {
+            $q->where(function ($sub) use ($search) {
+                $sub->where('title', 'like', "%{$search}%")
+                    ->orWhere('proposal_number', 'like', "%{$search}%")
+                    ->orWhereHas('lead', function ($leadQuery) use ($search) {
+                        $leadQuery->where('company_name', 'like', "%{$search}%");
+                    });
+            });
+        });
+
+        // Filter ID
+        $query->when($request->input('proposal_id') && $request->input('proposal_id') !== 'all', function ($q) use ($request) {
+            $q->where('id', $request->input('proposal_id'));
+        });
+
+        // Filter Status
+        $query->when($request->input('status') && $request->input('status') !== 'all', function ($q) use ($request) {
+            $q->where('status', $request->input('status'));
+        });
+
+        // Pagination
+        $proposals = $query->orderBy('created_at', 'desc')
+            ->paginate(10)
+            ->through(function ($proposals) {
+                $proposals->is_client = \DB::table('companies')
+                    ->where('lead_id', $proposals->lead_id)
+                    ->exists();
+
+                $proposals->date = Carbon::parse($proposals->created_at)->format('d-m-Y');
+                $proposals->edited = $proposals->proposal_element_template->first()?->html ? true : false;
+                    
+                return $proposals;
+            })
+            ->withQueryString();
+
+        $lead = Lead::where('deleted', 0)
+            ->whereNull('deleted_at')
+            ->select('id', 'company_name')
+            ->orderBy('company_name', 'desc')
+            ->get();
+
+        return Inertia::render('Proposals/Index', [
+            'proposals' => $proposals,
+            'filters'   => $request->only(['search', 'proposal_id', 'status']),
+            'statusOptions' => [
+                ['value' => 'draft', 'label' => 'Draft'],
+                ['value' => 'sent', 'label' => 'Sent'],
+                ['value' => 'opened', 'label' => 'Opened'],
+                ['value' => 'rejected', 'label' => 'Rejected'],
+                ['value' => 'failed', 'label' => 'Failed'],
+            ],
+            'filterData'=> $filterData,
+            'summary'   => $summary,
+            'lead'      => $lead,
+        ]);
+
+    }
+
+    public function add(Request $request)
+    {
+
+        $validated = $request->validate([
+            'name'      => 'required|string',
+            'lead_id'   => 'required|exists:leads,id', 
+        ]);
+
+        try {
+            return DB::transaction(function () use ($request, $validated) {
+
+                $nextNumber = Proposal::count() + 1;
+                $proposalFormat = ProposalNumberFormatted::where('deleted', false)->first();
+                $format = $proposalFormat ? $proposalFormat->prefix : NULL;
+                $number5Digit = str_pad($nextNumber, 5, '0', STR_PAD_LEFT);
+                $resultNumber = $format . $number5Digit;
+
+                $template = ProposalElementTemplate::create([
+                    'name'          => $validated['name'],
+                    'slug'          => $resultNumber,
+                    'content_json'  => '-',
+                    'preview_image' => '-',
+                    'created_by'    => auth()->id(),
+                ]);
+
+                $proposal = Proposal::create([
+                    'proposal_number_formated_id'   => $proposalFormat->id,
+                    'proposal_element_template_id'  => $template->id,
+                    'lead_id'                       => $validated['lead_id'],
+                    'proposal_number'               => $resultNumber,
+                    'title'                         => $validated['name'],
+                    'content_json'                  => '-',
+                    'view_token'                    => $resultNumber,
+                    'created_by'                    => auth()->id(),
+                ]);
+
+                return redirect()->route('proposal.addProposal', $proposal->id);
+
+            });
+
+        } catch (\Exception $e) {
+            return back()->withErrors(['error' => 'Gagal Simpan: ' . $e->getMessage()]);
+        }
+
+    }
+
+    public function addProposal($id)
+    {
+
+        $templates = ProposalElementTemplate::where('deleted', false)
+            ->whereNotNull('html_output')
+            ->get();
+
+        return Inertia::render('Proposals/AddProposal', [
+            'proposal_id'   => $id,
+            'templates'     => $templates
+        ]);
+
     }
 
     /**
@@ -25,9 +165,11 @@ class ProposalController extends Controller
     public function create(Request $request)
     {
 
+        $template = ProposalElementTemplate::where('id', $request->id)->first();
+
         return Inertia::render('Proposals/Create', [
-            'id'    => $request->id,
-            'name'  => $request->name,
+            'id'        => $request->id_proposal,
+            'template'  => $template,
         ]);
 
     }
@@ -37,22 +179,67 @@ class ProposalController extends Controller
      */
     public function store(Request $request)
     {
-
-        return $request->all();
         
         $validated = $request->validate([
-            'html'  => 'required',
-            'css'   => 'required'
+            'id'        => 'required|exists:proposals,id',
+            'html'      => 'required',
+            'css'       => 'required',
+            'categories'=> 'required',
+            'image'     => 'required'
         ]);
 
         try {
             return DB::transaction(function () use ($request, $validated) {
         
-                // DB::table('proposal_element_template')
+                $proposal = Proposal::where('id', $validated['id'])->first();
+
+                $element = ProposalElementTemplate::findOrFail($proposal->proposal_element_template_id);
+
+                $image = $validated['image'];
+
+                if ($image) {
+                    $image = str_replace('data:image/png;base64,', '', $image);
+                    $image = str_replace(' ', '+', $image);
+
+                    $fileName = 'proposal_' . time() . '.png';
+
+                    Storage::disk('public')->put(
+                        'proposal_thumbnails/' . $fileName,
+                        base64_decode($image)
+                    );
+                }
+
+                $element->content_json  = $validated['html'];
+                $element->preview_image = $fileName ?? NULL;
+                $element->html_output   = $validated['html'];
+                $element->css_output    = $validated['css'];
+                $element->updated_by    = Auth::id();
+                $element->save();
+
+                $managers = User::whereHas('role', function($q) {
+                    $q->where('name', 'manager'); 
+                })->get();
+                foreach ($managers as $manager) {
+                    $manager->notifications()
+                            ->where('data->id', (string)$proposal->id)
+                            ->where('data->type', 'proposals')
+                            ->delete();
+
+                    $manager->notify(new DocumentNotification([
+                        'id'      => $proposal->id,
+                        'type'    => 'proposals',
+                        'status'  => 'draft',
+                        'message' => "proposals baru #{$proposal->proposal_number} menunggu persetujuan.",
+                    ]));
+                }
+                
+                return response()->json([
+                    'success' => true,
+                    'redirect' => route('proposal.index'),
+                ]);
 
             });
         } catch (\Exception $e) {
-            if (isset($path)) Storage::disk('public')->delete($path);
             return back()->withErrors(['error' => 'Gagal Simpan: ' . $e->getMessage()]);
         }
 
