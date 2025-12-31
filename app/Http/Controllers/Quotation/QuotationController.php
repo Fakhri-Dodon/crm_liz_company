@@ -239,22 +239,28 @@ class QuotationController extends Controller {
             ->select(['id', 'company_name', 'address', 'contact_person', 'email', 'phone'])
             ->get();
 
+        // PERBAIKAN: Gunakan 'contacts' bukan 'contactPersons'
         $companies = Company::where('deleted', 0)
             ->with([
                 'quotation', 
-                'contactPersons' => function($query) {
+                'contacts' => function($query) {
                     $query->where('deleted', 0);
                 }, 
-                'contactPersons.lead', 
                 'lead'
             ])->get();
 
-            
-        $quotation->load(['items', 'lead']);
+        // Load data quotation dengan relationships yang benar
+        $quotation->load(['items', 'lead', 'company', 'company.contacts']);
+        
+        $isClient = false;
+        if ($quotation->company) {
+            // Cek apakah company ini memiliki lead_id yang sama dengan quotation
+            $isClient = Company::where('deleted', 0)
+                ->where('lead_id', $quotation->lead_id)
+                ->exists();
+        }
 
-        $isClient = $existingLeadIds->contains($quotation->lead_id);
-
-        $quotation->is_client = @ $isClient;
+        $quotation->is_client = $isClient;
 
         return Inertia::render('Quotations/Edit', [
             'quotation'  => $quotation,
@@ -262,6 +268,7 @@ class QuotationController extends Controller {
             'leads'      => $availableLeads,
         ]);
     }
+
     /**
      * Memproses update data Quotation dan Services-nya.
      */
@@ -385,23 +392,48 @@ class QuotationController extends Controller {
         }
     }
 
-    public function destroy(Quotation $quotation) 
-    {
+public function destroy(Quotation $quotation) 
+{
+    try {
+        // Cek apakah quotation sudah dihapus
         if ($quotation->deleted == 1) {
             return redirect()->route('quotation.index')
-                ->with('error', 'Project already deleted.');
+                ->with('error', 'Quotation sudah dihapus sebelumnya.');
         }
 
         $user = Auth::user();
         
-        $quotation->deleted_by = $user->id;
-        $quotation->deleted = 1;
-        $quotation->deleted_at = now();
-        $quotation->save();
+        // Lakukan soft delete
+        $quotation->update([
+            'deleted' => 1,
+            'deleted_by' => $user->id,
+            'deleted_at' => now(),
+            'updated_by' => $user->id,
+        ]);
+
+        // Hapus juga quotation items terkait (soft delete)
+        QuotationItem::where('quotation_id', $quotation->id)
+            ->update([
+                'deleted' => 1,
+                'deleted_by' => $user->id,
+                'deleted_at' => now(),
+            ]);
+
+        // Hapus notifikasi terkait quotation ini
+        DB::table('notifications')
+            ->where('data->id', (string)$quotation->id)
+            ->where('data->type', 'quotation')
+            ->delete();
 
         return redirect()->route('quotation.index')
-            ->with('success', 'Project deleted successfully!');
-    }   
+            ->with('success', 'Quotation berhasil dihapus!');
+
+    } catch (\Exception $e) {
+        \Log::error('Error deleting quotation: ' . $e->getMessage());
+        return redirect()->route('quotation.index')
+            ->with('error', 'Gagal menghapus quotation: ' . $e->getMessage());
+    }
+}
 
     public function notificationUpdateStatus(Request $request, $id) 
     {
