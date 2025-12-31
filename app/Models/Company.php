@@ -154,6 +154,19 @@ class Company extends Model
         return $this->hasMany(CompanyContactPerson::class, 'company_id', 'id');
     }
 
+    // Alias for contacts (used in quotation and invoice forms)
+    public function contactPersons()
+    {
+        return $this->hasMany(CompanyContactPerson::class, 'company_id', 'id')
+                    ->where('deleted', 0);
+    }
+
+    public function contact_persons()
+    {
+        return $this->hasMany(CompanyContactPerson::class, 'company_id', 'id')
+                    ->where('deleted', 0);
+    }
+
     public function primaryContact()
     {
         return $this->hasOne(CompanyContactPerson::class, 'company_id', 'id')

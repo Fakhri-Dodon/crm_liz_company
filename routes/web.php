@@ -219,7 +219,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
             ->name('companies.quotations.store');
     });
     
-    // Invoice routes (dengan company context)
+    // ====================== INVOICE routes (dengan company context) ======================
     Route::prefix('companies/{company}')->group(function () {
         Route::get('/invoices/create', [InvoiceController::class, 'createForCompany'])
             ->name('companies.invoices.create');
