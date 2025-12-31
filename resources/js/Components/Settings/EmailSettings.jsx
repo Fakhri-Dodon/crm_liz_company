@@ -72,7 +72,7 @@ export default function EmailSettings({ config }) {
     return (
         <div className="space-y-12 pt-10 pb-20">
             <div>
-                <h2 className="text-xl font-bold text-red-700 mb-6">
+                <h2 className="text-xl font-bold text-red-700 mb-6 uppercase tracking-wider">
                     Email Settings
                 </h2>
 

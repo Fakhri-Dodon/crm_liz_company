@@ -37,9 +37,13 @@ class HandleInertiaRequests extends Middleware
                     'role_id' => $request->user()->role_id,
                     'role_name' => $request->user()->role ? $request->user()->role->name : null,
                 ] : null,
-                'unreadNotificationsCount' => $request->user() ? $request->user()->unreadNotifications->count() : 0,
-                'notifications' => $request->user() ? $request->user()->unreadNotifications : [],
-            ],
+                'notifications' => $request->user() 
+                    ? $request->user()->notifications()->take(10)->get() 
+                    : [],
+                'unreadNotificationsCount' => $request->user() 
+                    ? $request->user()->unreadNotifications()->count() 
+                    : 0,
+                ],
             'app_config' => [
                 'default_language'      => $config->default_language ?? 'Indonesia',
                 'allow_language_change' => (bool) ($config->allow_language_change ?? true),

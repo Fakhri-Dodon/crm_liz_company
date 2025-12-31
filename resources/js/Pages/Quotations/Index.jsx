@@ -29,12 +29,6 @@ export const toast = (title, icon = 'success') => {
 export default function QoutationsIndex({ quotations, statusOptions, summary, years, filters, totals }) {
     const { t } = useTranslation();
 
-    // Debug: log totals to confirm prop is received from server
-    useEffect(() => {
-        console.log('Inertia totals:', totals);
-        console.log('Inertia summary:', summary);
-    }, [totals, summary]);
-
     const columns = [
         {
             key: "no",
@@ -50,7 +44,7 @@ export default function QoutationsIndex({ quotations, statusOptions, summary, ye
                         {value}
                     </a>
                     <div className="text-gray-500 text-sm mt-1">
-                        {row.date || "-"}
+                        {new Date(row.date || "-").toLocaleDateString()}
                     </div>
                 </div>
             ),
@@ -106,6 +100,8 @@ export default function QoutationsIndex({ quotations, statusOptions, summary, ye
                     draft: 'border-gray-500 text-gray-700 bg-gray-50',
                 };
 
+                const nonEditableStatuses = ['expired'];
+
                 const handleStatusChange = (e) => {
                     const newStatus = e.target.value;
                     
@@ -122,6 +118,22 @@ export default function QoutationsIndex({ quotations, statusOptions, summary, ye
                     });
                 };
 
+                // If status is in the non-editable list, show it as a badge (not selectable)
+                if (nonEditableStatuses.includes(value)) {
+                    const classes = `text-xs font-bold py-1 px-2 rounded-lg border-2 ${statusStyles[value] || 'border-gray-300'}`;
+                    return (
+                        <div className="inline-flex items-center">
+                            <span
+                                className={classes}
+                                style={{ backgroundImage: 'none' }}
+                            >
+                                {t(`quotations.stats.${value}`)}
+                            </span>
+                        </div>
+                    );
+                }
+
+                // Otherwise render the editable select but exclude non-editable statuses from options
                 return (
                     <select
                         value={value}
@@ -133,11 +145,9 @@ export default function QoutationsIndex({ quotations, statusOptions, summary, ye
                         }}
                         className={`appearance-none text-xs font-bold py-1 px-2 rounded-lg border-2 focus:ring-0 cursor-pointer transition-all ${statusStyles[value] || 'border-gray-300'}`}
                     >
-                        <option value="draft">{t('quotations.stats.draft')}</option>
-                        <option value="sent">{t('quotations.stats.sent')}</option>
-                        <option value="accepted">{t('quotations.stats.accepted')}</option>
-                        <option value="expired">{t('quotations.stats.expired')}</option>
-                        <option value="rejected">{t('quotations.stats.rejected')}</option>
+                        {Object.keys(statusStyles).filter(s => !nonEditableStatuses.includes(s)).map(s => (
+                            <option key={s} value={s}>{t(`quotations.stats.${s}`)}</option>
+                        ))}
                     </select>
                 );
             }

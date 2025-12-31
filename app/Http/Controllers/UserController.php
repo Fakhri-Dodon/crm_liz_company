@@ -24,7 +24,7 @@ class UserController extends Controller
     {
         $users = User::with(['role'])->where('deleted', 0)->get();
         $roles = Roles::where('deleted', 0)->get();
-        $templates = EmailTemplates::all();
+        $templates = EmailTemplates::where('deleted', 0)->get();
 
         return Inertia::render('Users/Index', [
             'users' => $users,

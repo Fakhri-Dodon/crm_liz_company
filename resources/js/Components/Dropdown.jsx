@@ -23,12 +23,22 @@ const Trigger = ({ children }) => {
 
     return (
         <>
-            <div onClick={toggleOpen}>{children}</div>
+            <div
+                onClick={toggleOpen}
+                role="button"
+                aria-expanded={open}
+                tabIndex={0}
+                className="cursor-pointer select-none"
+                onKeyDown={(e) => e.key === 'Enter' && toggleOpen()}
+            >
+                {children}
+            </div>
 
             {open && (
                 <div
                     className="fixed inset-0 z-40"
                     onClick={() => setOpen(false)}
+                    aria-hidden="true"
                 ></div>
             )}
         </>
@@ -55,26 +65,34 @@ const Content = ({
 
     if (width === '48') {
         widthClasses = 'w-48';
+    } else if (width === '80') {
+        widthClasses = 'w-80';
     }
+
+    // arrow position based on alignment
+    const arrowPos = align === 'left' ? 'left-4' : 'right-4';
 
     return (
         <>
             <Transition
                 show={open}
-                enter="transition ease-out duration-200"
-                enterFrom="opacity-0 scale-95"
-                enterTo="opacity-100 scale-100"
-                leave="transition ease-in duration-75"
-                leaveFrom="opacity-100 scale-100"
-                leaveTo="opacity-0 scale-95"
+                enter="transition ease-out duration-180"
+                enterFrom="opacity-0 translate-y-1 scale-95"
+                enterTo="opacity-100 translate-y-0 scale-100"
+                leave="transition ease-in duration-120"
+                leaveFrom="opacity-100 translate-y-0 scale-100"
+                leaveTo="opacity-0 translate-y-1 scale-95"
             >
                 <div
-                    className={`absolute z-50 mt-2 rounded-md shadow-lg ${alignmentClasses} ${widthClasses}`}
-                    onClick={() => setOpen(false)}
+                    className={`absolute z-50 mt-2 rounded-lg shadow-2xl ${alignmentClasses} ${widthClasses}`}
+                    onKeyDown={(e) => e.key === 'Escape' && setOpen(false)}
                 >
+                    {/* small caret/arrow */}
+                    <div className={`absolute top-0 ${arrowPos} -translate-y-1/2 w-3 h-3 bg-white rotate-45 border-t border-l border-gray-100 shadow-sm`} />
+
                     <div
                         className={
-                            `rounded-md ring-1 ring-black ring-opacity-5 ` +
+                            `rounded-lg ring-1 ring-black ring-opacity-5 bg-white overflow-hidden ` +
                             contentClasses
                         }
                     >

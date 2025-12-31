@@ -23,8 +23,8 @@ class AppConfigController extends Controller
             'address' => 'sometimes|string',
             'default_language' => 'sometimes|string',
             'allow_language_change' => 'sometimes|boolean',
-            'logo_path' => 'nullable|string',
-            'doc_logo_path' => 'nullable|string',
+            'logo_path' => 'nullable|image|mimes:jpeg,png,jpg,svg|max:2048',
+            'doc_logo_path' => 'nullable|image|mimes:jpeg,png,jpg,svg|max:2048',
             'lead_user_base_visibility' => 'sometimes|boolean',
             'lead_default_filter_by_login' => 'sometimes|boolean',
             'proposal_user_base_visibility' => 'sometimes|boolean',
@@ -49,6 +49,19 @@ class AppConfigController extends Controller
         }
         // --- AKHIR PERUBAHAN KHUSUS BOOLEAN ---
 
+        $newPaths = [];
+        if ($request->hasFile('logo')) {
+            $file = $request->file('logo');
+            $fileName = 'topbar_' . time() . '.' . $file->getClientOriginalExtension();
+            $newPaths['logo_path'] = $file->storeAs('app-assets', $fileName, 'public');
+        }
+
+        if ($request->hasFile('doc_logo')) {
+            $file = $request->file('doc_logo');
+            $fileName = 'document_' . time() . '.' . $file->getClientOriginalExtension();
+            $newPaths['doc_logo_path'] = $file->storeAs('app-assets', $fileName, 'public');
+        }
+
         // 4. Proses Versioning (Replicate)
         if ($currentConfig) {
             $newConfig = $currentConfig->replicate();
@@ -58,17 +71,25 @@ class AppConfigController extends Controller
 
             // Overwrite data lama dengan data baru yang masuk (baik string maupun boolean)
             foreach ($validatedData as $key => $value) {
-                $newConfig->{$key} = $value;
+                if ($key !== 'logo' && $key !== 'doc_logo') {
+                    $newConfig->{$key} = $value;
+                }
+            }
+
+            foreach ($newPaths as $column => $path) {
+                $newConfig->{$column} = $path;
             }
 
             $newConfig->deleted = 0;
             $newConfig->created_by = Auth::id();
             $newConfig->save();
         } else {
-            AppConfig::create(array_merge($validatedData, [
+            $finalData = array_merge($validatedData, $newPaths, [
                 'deleted' => 0,
                 'created_by' => Auth::id()
-            ]));
+            ]);
+            unset($finalData['logo'], $finalData['doc_logo']); // Hapus file mentah dari array create
+            AppConfig::create($finalData);
         }
 
         return back();

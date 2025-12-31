@@ -95,7 +95,7 @@
             "phone": "PHONE",
             "last_seen": "LAST SEEN",
             "actions": "ACTIONS",
-            "total_rows": "Total rows: {{count}}"
+            "total_rows": "Total rows:"
         },
         "time": {
             "seconds_ago": "{{count}} seconds ago",
@@ -125,11 +125,31 @@
         },
         "email_modal": {
             "title": "Send Email",
-            "subtitle": "Send message to {{name}}",
+            "subtitle": "Send message to ",
             "label_template": "Choose Email Template",
             "choose_template": "-- Choose Template --",
             "btn_cancel": "Cancel",
             "btn_send": "Send Now"
+        }
+    },
+
+    "emails": {
+        "title": "EMAIL TEMPLATES",
+        "button_add": "ADD EMAIL TEMPLATE",
+        "table": {
+            "name": "NAME",
+            "subject": "SUBJECT",
+            "actions": "ACTIONS"
+        },
+        "modals": {
+            "add_title": "Add New Email Template",
+            "edit_title": "Edit Email Template",
+            "label_name": "Template Name*",
+            "label_subject": "Subject*",
+            "label_body": "Body*",
+            "btn_cancel": "Cancel",
+            "btn_add": "Add",
+            "btn_update": "Update"  
         }
     }
 }

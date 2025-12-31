@@ -55,7 +55,7 @@ export default function Layout({ children }) {
 
       {/* Sidebar (mobile overlay) */}
       {isMobileOpen && (
-        <aside className={`md:hidden fixed inset-y-0 left-0 w-64 bg-teal-900 text-white z-30 p-4 shadow-xl`}>
+        <aside className={`md:hidden fixed inset-y-0 left-0 w-64 bg-teal-900 text-white z-50 p-4 shadow-xl`}>
           <div className="flex items-center justify-between mb-4">
             <span className="font-bold text-lg">AdminPanel</span>
             <button onClick={() => setIsMobileOpen(false)} className="p-1 hover:bg-teal-800 rounded">
@@ -90,23 +90,30 @@ export default function Layout({ children }) {
       {/* Main Content */}
       {/* overlay for mobile when sidebar open */}
       {isMobileOpen && (
-        <div className="fixed inset-0 bg-black/40 z-10 md:hidden" onClick={() => setIsMobileOpen(false)} />
+        <div className="fixed inset-0 bg-black/40 z-40 md:hidden" onClick={() => setIsMobileOpen(false)} />
       )}
 
-      <main className={`flex-1 transition-all duration-300 ${isSidebarOpen ? 'ml-64' : 'ml-20'}`}>
+      <main className={`flex-1 transition-all duration-300 ${isSidebarOpen ? 'md:ml-64 ml-0' : 'md:ml-20 ml-0'}`}>
         <div className="p-4 md:p-8 max-w-7xl mx-auto">
-          <div className="mb-4 md:hidden flex items-center">
+          {/* Mobile navbar: fixed top bar showing logo, AdminPanel text and hamburger */}
+          <div className="md:hidden fixed top-0 left-0 right-0 z-40 bg-white shadow flex items-center justify-between px-4 py-3">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 bg-teal-900 text-white rounded flex items-center justify-center font-bold">AP</div>
+              <div className="text-lg font-bold text-teal-900">AdminPanel</div>
+            </div>
+
             <button
               onClick={() => setIsMobileOpen(true)}
-              className="p-2 bg-white rounded shadow mr-3"
+              className="p-2 bg-white rounded shadow"
               aria-label="Open menu"
             >
               <Menu className="w-5 h-5 text-teal-900" />
             </button>
-            <div className="text-lg font-bold text-gray-800">Settings</div>
           </div>
 
-          {children}
+          <div className="pt-16 md:pt-0">
+            {children}
+          </div>
         </div>
       </main>
     </div>

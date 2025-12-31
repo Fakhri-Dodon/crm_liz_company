@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useForm, router } from "@inertiajs/react";
+import { useForm, router, usePage } from "@inertiajs/react";
 import { Input } from "@/Components/ui/Input";
 import { Label } from "@/Components/ui/Label";
 import { Button } from "@/Components/ui/Button";
@@ -13,83 +13,78 @@ import {
 import { Image as ImageIcon, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
-export default function GeneralSettings({ config, app_config }) {
+export default function GeneralSettings() {
+    const { config } = usePage().props;
     const [logoType, setLogoType] = useState(null);
 
-    // ambil dari props 'config' yang dikirim SettingController
-    const get = (key) => {
-        // prefer config if non-null, otherwise fallback to app_config
-        if (config && config[key] !== null && config[key] !== undefined) return config[key];
-        if (app_config && app_config[key] !== null && app_config[key] !== undefined) return app_config[key];
-        return null;
-    };
+    // const get = (key) => {
+    //     if (config && config[key] !== null && config[key] !== undefined) return config[key];
+    //     if (app_config && app_config[key] !== null && app_config[key] !== undefined) return app_config[key];
+    //     return null;
+    // };
 
-    const { data, setData, post, processing, errors, transform } = useForm({
-        company_name: get('company_name') ?? "",
-        address: get('address') ?? "",
-        default_language: get('default_language') ?? "Indonesia",
-        allow_language_change: get('allow_language_change') == 1 || get('allow_language_change') === true,
+    const { data, setData, post, processing, errors } = useForm({
+        company_name: config?.company_name ?? "",
+        address: config?.address ?? "",
+        default_language: config?.default_language ?? "Indonesia",
+        allow_language_change: config?.allow_language_change == 1 || config?.allow_language_change === true,
+        logo: null, 
+        doc_logo: null,
     });
 
-    // Ini memastikan jika user pindah menu lalu kembali lagi, data tetap muncul
     useEffect(() => {
-        setData({
-            company_name: get('company_name') ?? "",
-            address: get('address') ?? "",
-            default_language: get('default_language') ?? "Indonesia",
-            allow_language_change: get('allow_language_change') == 1 || get('allow_language_change') === true,
-        });
-    }, [config, app_config]);
+        if (config) {
+            setData({
+                company_name: config.company_name ?? "",
+                address: config.address ?? "",
+                default_language: config.default_language ?? "Indonesia",
+                allow_language_change: config.allow_language_change == 1 || config.allow_language_change === true,
+            });
+        }
+    }, [config]);
+
+    const topbarPreview = data.logo ? URL.createObjectURL(data.logo) : (config?.logo_url ?? (config?.logo_path ? `/storage/${config.logo_path}` : null));
+    const docPreview = data.doc_logo ? URL.createObjectURL(data.doc_logo) : (config?.doc_logo_url ?? (config?.doc_logo_path ? `/storage/${config.doc_logo_path}` : null));
+
+    if (!config) {
+        return (
+            <div className="flex items-center justify-center h-48">
+                <Loader2 className="animate-spin text-red-700" />
+                <span className="ml-2">Loading settings...</span>
+            </div>
+        );
+    }
 
     const handleSave = () => {
         post("/setting/general/store", {
+           forceFormData: true,
             preserveScroll: true,
-            onSuccess: () => toast.success("Settings updated"),
-        });
-    };
-
-    const handleUploadLogo = (file) => {
-        // const uploadData = new FormData();
-        // uploadData.append("logo", file);
-        // uploadData.append("type", logoType);
-
-        // router.post("/setting/general/upload-logo", uploadData, {
-        //     forceFormData: true,
-        //     onSuccess: () => {
-        //         toast.success("Logo updated successfully");
-        //         setLogoType(null);
-        //     },
-        // });
-        router.post("/setting/general/upload-logo", {
-            logo: file,
-            type: logoType, // 'topbar' atau 'document'
-        }, {
-            forceFormData: true,
             onSuccess: () => {
-                toast.success("Logo updated successfully");
-                setLogoType(null);
+                toast.success("Settings updated");
+                setData(prev => ({ ...prev, logo: null, doc_logo: null }));
             },
-            onError: (err) => {
-                toast.error("Failed to upload logo");
-                console.error(err);
-            }
         });
     };
 
-    // compute effective URLs: prefer precomputed full URLs, fallback to storage paths
-    const topbarUrl = get('logo_url') ?? (get('logo_path') ? `/storage/${get('logo_path')}` : null);
-    const docLogoUrl = get('doc_logo_url') ?? (get('doc_logo_path') ? `/storage/${get('doc_logo_path')}` : null);
+    const handlePrepareLogo = (file) => {
+        if (logoType === "topbar") {
+            setData("logo", file);
+        } else {
+            setData("doc_logo", file);
+        }
+        setLogoType(null);
+    };
 
     return (
-        <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+        <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 px-4 sm:px-6">
             <div>
-                <h2 className="text-xl font-bold text-red-700 mb-6">
+                <h2 className="text-xl font-bold text-red-700 mb-6 uppercase tracking-wider">
                     General Settings
                 </h2>
 
                 <div className="space-y-6">
                     {/* Input Company Name */}
-                    <div className="space-y-2">
+                    <div className="space-y-2 w-full max-w-4xl mx-auto">
                         <Label htmlFor="company_name">Company Name*</Label>
                         <Input
                             id="company_name"
@@ -97,24 +92,24 @@ export default function GeneralSettings({ config, app_config }) {
                             onChange={(e) =>
                                 setData("company_name", e.target.value)
                             }
-                            className="max-w-4xl"
+                            className="w-full"
                         />
                     </div>
 
                     {/* Input Address */}
-                    <div className="space-y-2">
+                    <div className="space-y-2 w-full max-w-4xl mx-auto">
                         <Label htmlFor="address">Address*</Label>
                         <Input
                             id="address"
                             value={data.address}
                             onChange={(e) => setData("address", e.target.value)}
-                            className="max-w-4xl"
+                            className="w-full"
                         />
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8 w-full max-w-4xl mx-auto">
                         {/* Select Language */}
-                        <div className="bg-green-50/50 p-4 rounded-lg space-y-3">
+                        <div className="bg-green-50/50 p-4 rounded-lg space-y-3 w-full">
                             <Label className="font-semibold">
                                 Default Language
                             </Label>
@@ -139,7 +134,7 @@ export default function GeneralSettings({ config, app_config }) {
                         </div>
 
                         {/* Select Allow Change */}
-                        <div className="bg-green-50/50 p-4 rounded-lg space-y-3">
+                        <div className="bg-green-50/50 p-4 rounded-lg space-y-3 w-full">
                             <Label className="font-semibold">
                                 Allow User To Change Language
                             </Label>
@@ -166,28 +161,27 @@ export default function GeneralSettings({ config, app_config }) {
                     </div>
 
                     {/* Logo Section */}
-                    <div className="bg-green-50/50 p-6 rounded-lg max-w-4xl">
+                    <div className="bg-green-50/50 p-6 rounded-lg w-full max-w-4xl mx-auto">
                         <Label className="font-bold mb-4 block">Logo Assets</Label>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                             <LogoBox
                                 title="Topbar Logo"
-                                url={topbarUrl}
+                                url={topbarPreview}
                                 onAction={() => setLogoType("topbar")}
                             />
                             <LogoBox
                                 title="Document Logo"
-                                url={docLogoUrl}
+                                url={docPreview}
                                 onAction={() => setLogoType("document")}
                             />
                         </div>
                     </div>
                 </div>
-
-                <div className="mt-8 flex justify-end max-w-4xl">
+                <div className="mt-8 flex flex-col sm:flex-row justify-end gap-2 w-full max-w-4xl mx-auto">
                     <Button
                         onClick={handleSave}
                         disabled={processing}
-                        className="bg-red-700 hover:bg-red-800 text-white px-8"
+                        className="bg-red-700 hover:bg-red-800 text-white px-8 w-full sm:w-auto"
                     >
                         {processing ? (
                             <Loader2 className="animate-spin mr-2" />
@@ -202,8 +196,8 @@ export default function GeneralSettings({ config, app_config }) {
                 <LogoUploadModal
                     open={!!logoType}
                     onClose={() => setLogoType(null)}
-                    onSave={handleUploadLogo}
-                    initialPreview={logoType === 'topbar' ? topbarUrl : docLogoUrl}
+                    onSave={handlePrepareLogo}
+                    initialPreview={logoType === 'topbar' ? topbarPreview : docPreview}
                 />
             )}
         </div>
@@ -306,7 +300,7 @@ function LogoUploadModal({ open, onClose, onSave, initialPreview = null }) {
                         onClick={() => onSave(file)}
                         className="bg-cyan-600 hover:bg-cyan-700 text-white px-6"
                     >
-                        Confirm & Upload
+                        Confirm
                     </Button>
                 </div>
             </div>

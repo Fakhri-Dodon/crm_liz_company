@@ -17,6 +17,10 @@ use Illuminate\Support\Facades\Auth;
 
 class QuotationController extends Controller {
     public function index(Request $request) {
+        // SYNC: Update status di database sebelum melakukan perhitungan apapun
+        Quotation::syncExpiredStatus();
+
+        // Summary (Sekarang data 'expired' sudah terhitung dengan benar oleh database)
         $summary = Quotation::select('status', DB::raw('count(*) as count'))
             ->where('deleted', 0)
             ->groupBy('status')
@@ -24,7 +28,7 @@ class QuotationController extends Controller {
             ->pluck('count', 'status')
             ->toArray();
 
-        // Totals per status (sum of `total` field)
+        // Totals per status
         $totals = Quotation::select('status', DB::raw('SUM(total) as total_amount'))
             ->where('deleted', 0)
             ->groupBy('status')
@@ -53,7 +57,7 @@ class QuotationController extends Controller {
             });
         });
 
-        // Filter Status
+        // Filter Status (Sudah otomatis mendukung 'expired' karena sudah di-update di DB)
         $query->when($request->input('status') && $request->input('status') !== 'all', function ($q) use ($request) {
             $q->where('status', $request->input('status'));
         });
@@ -79,8 +83,6 @@ class QuotationController extends Controller {
                 return $quotation;
             })
             ->withQueryString();
-
-        // dd($quotations);
 
         return Inertia::render('Quotations/Index', [
             'quotations' => $quotations,
@@ -196,10 +198,11 @@ class QuotationController extends Controller {
                             ->delete();
 
                     $manager->notify(new DocumentNotification([
-                        'id'      => $quotation->id,
-                        'type'    => 'quotation',
-                        'status'  => 'draft',
-                        'message' => "Quotation baru #{$quotation->quotation_number} menunggu persetujuan.",
+                        'id'               => $quotation->id,
+                        'type'             => 'quotation',
+                        'status'           => 'draft',
+                        'url'              => "/storage/quotations/{$quotation->id}",
+                        'message'          => "Quotation baru #{$quotation->quotation_number} menunggu persetujuan.",
                     ]));
                 }
 
@@ -362,10 +365,11 @@ class QuotationController extends Controller {
                         ->delete();
 
                 $manager->notify(new DocumentNotification([
-                    'id'      => $quotation->id,
-                    'type'    => 'quotation',
-                    'status'  => 'draft',
-                    'message' => "Quotation #{$quotation->quotation_number} telah diperbarui dan siap di-review ulang.",
+                    'id'               => $quotation->id,
+                    'type'             => 'quotation',
+                    'status'           => 'draft',
+                    'url'              => "/storage/{$quotation->pdf_path}",
+                    'message'          => "Quotation #{$quotation->quotation_number} telah diperbarui dan siap di-review ulang.",
                 ]));
             }
 

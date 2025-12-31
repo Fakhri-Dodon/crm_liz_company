@@ -5,6 +5,8 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Database\Eloquent\Casts\Attribute;
+use Carbon\Carbon;
 
 class Quotation extends Model
 {
@@ -41,6 +43,8 @@ class Quotation extends Model
     ];
 
     protected $casts = [
+        'date' => 'date',
+        'valid_until' => 'date',
         'subtotal' => 'decimal:2',
         'discount' => 'decimal:2',
         'tax' => 'decimal:2',
@@ -51,6 +55,31 @@ class Quotation extends Model
         'updated_at' => 'datetime',
         'deleted_at' => 'datetime'
     ];
+
+    protected function status(): Attribute
+    {
+        return Attribute::make(
+            get: function ($value) {
+                if (in_array($value, ['accepted', 'rejected'])) {
+                    return $value;
+                }
+
+                if ($this->valid_until && Carbon::now()->startOfDay()->gt($this->valid_until)) {
+                    return 'expired';
+                }
+
+                return $value;
+            },
+        );
+    }
+
+    public function scopeSyncExpiredStatus($query)
+    {
+        return $query->where('deleted', 0)
+            ->whereNotIn('status', ['accepted', 'rejected', 'expired'])
+            ->where('valid_until', '<', now()->startOfDay())
+            ->update(['status' => 'expired']);
+    }
 
     public static function boot()
     {

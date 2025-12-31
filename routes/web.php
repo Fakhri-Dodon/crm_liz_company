@@ -74,7 +74,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     // Route::get('/invoice', fn() => Inertia::render('Invoices/Index'))->name('invoice.index');
     Route::get('/payment', fn() => Inertia::render('Payments/Index'))->name('payment.index');
-    Route::get('/email', fn() => Inertia::render('Email/Index'))->name('email.index');
     // Route::get('/user', fn() => Inertia::render('Users/Index'))->name('user.index');
     // Route::get('/project', fn() => Inertia::render('Projects/Index'))->name('project.index');
     // Route::get('/email-inbox', fn() => Inertia::render('Email/Index'))->name('email.index');
@@ -85,6 +84,13 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::patch('/update/{id}', [UserController::class, 'update'])->name('update');
         Route::delete('/destroy/{id}', [UserController::class, 'destroy'])->name('destroy');
         Route::post('/send-email/{id}', [UserController::class, 'sendUserEmail'])->name('send-email');
+    });
+
+    Route::prefix('email')->name('email.')->group(function () {
+        Route::get('/', [EmailController::class, 'index'])->name('index');
+        Route::post('/store', [EmailController::class, 'store'])->name('store');
+        Route::put('/update/{id}', [EmailController::class, 'update'])->name('update');
+        Route::delete('/destroy/{id}', [EmailController::class, 'destroy'])->name('destroy');
     });
 
     Route::get('/development', function () {
