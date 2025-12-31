@@ -97,17 +97,17 @@ export default function UserRoleSettings() {
         router.post(
             "/setting/user-roles/role-store",
             {
-              name: newRoleName,
-              description: newRoleDesc,
+                name: newRoleName,
+                description: newRoleDesc,
             },
             {
-              onSuccess: () => {
-                  setIsRoleModalOpen(false);
-                  setNewRoleName("");
-                  setNewRoleDesc(""); // Reset deskripsi
-                  toast.success("Role berhasil ditambahkan");
-              },
-              onError: () => toast.error("Gagal menambahkan role"),
+                onSuccess: () => {
+                    setIsRoleModalOpen(false);
+                    setNewRoleName("");
+                    setNewRoleDesc(""); // Reset deskripsi
+                    toast.success("Role berhasil ditambahkan");
+                },
+                onError: () => toast.error("Gagal menambahkan role"),
             }
         );
     };
@@ -220,7 +220,7 @@ export default function UserRoleSettings() {
     return (
         <div className="p-6 relative">
             <div className="mb-6 flex justify-between items-center">
-                <h1 className="text-xl font-black uppercase tracking-widest text-gray-800">
+                <h1 className="text-xl font-bold text-red-700 mb-6 uppercase tracking-wider">
                     Role Permissions Mapping
                 </h1>
 
@@ -235,81 +235,85 @@ export default function UserRoleSettings() {
                 </Button>
             </div>
 
-            <div className="border border-gray-300 rounded-lg bg-white overflow-hidden shadow-md">
-                <Table>
-                    <TableHeader>
-                        <TableRow className="bg-gray-900 hover:bg-gray-900">
-                            <TableHead className="w-56 font-bold border-r border-gray-700 text-white uppercase text-xs tracking-wider">
-                                Menu / Module
-                            </TableHead>
-                            {roles.map((role) => (
-                                <TableHead
-                                    key={role.id}
-                                    className="text-center font-bold uppercase text-xs text-white tracking-wider border-r border-gray-800 last:border-r-0"
-                                >
-                                    {role.name}
-                                </TableHead>
-                            ))}
-                        </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                        {menus.map((menu) => (
-                            <TableRow
-                                key={menu.id}
-                                className="hover:bg-gray-50/80 transition-colors h-14"
-                            >
-                                <TableCell className="font-bold border-r bg-gray-50/50 text-gray-700 text-xs uppercase">
-                                    {menu.name}
-                                </TableCell>
-                                {roles.map((role) => {
-                                    // Mencari data permission di array
-                                    const perm = rawPermissions.find(
-                                        (p) =>
-                                            p.menu_id === menu.id &&
-                                            p.role_id === role.id
-                                    );
-
-                                    return (
-                                        <TableCell
+            <div className="-mx-4 sm:mx-0 px-4 sm:px-0 overflow-x-auto">
+                <div className="min-w-[720px]">
+                    <div className="border border-gray-300 rounded-lg bg-white overflow-hidden shadow-md">
+                        <Table>
+                            <TableHeader>                        
+                                <TableRow className="bg-gray-900 hover:bg-gray-900">
+                                    <TableHead className="w-56 font-bold border-r border-gray-700 text-white uppercase text-xs tracking-wider">
+                                        Menu / Module
+                                    </TableHead>
+                                    {roles.map((role) => (
+                                        <TableHead
                                             key={role.id}
-                                            className="p-0 text-center relative border-r last:border-r-0"
+                                            className="text-center font-bold uppercase text-xs text-white tracking-wider border-r border-gray-800 last:border-r-0"
                                         >
-                                            <div
-                                                onClick={(e) => {
-                                                    const rect =
-                                                        e.currentTarget.getBoundingClientRect();
-                                                    setActiveEditor({
-                                                        pos: {
-                                                            top:
-                                                                rect.bottom +
-                                                                window.scrollY +
-                                                                5,
-                                                            left:
-                                                                rect.left +
-                                                                window.scrollX,
-                                                        },
-                                                        // Kirim data asli jika ada, jika tidak kirim blueprint untuk Create
-                                                        data: perm
-                                                            ? perm
-                                                            : {
-                                                                  role_id:
-                                                                      role.id,
-                                                                  menu_id:
-                                                                      menu.id,
-                                                              },
-                                                    });
-                                                }}
-                                                className={`h-14 w-full flex items-center justify-center cursor-pointer transition-all hover:bg-teal-50/30 active:scale-95`}
-                                            >
-                                                {renderCRUD(perm)}
-                                            </div>
+                                            {role.name}
+                                        </TableHead>
+                                    ))}
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {menus.map((menu) => (
+                                    <TableRow
+                                        key={menu.id}
+                                        className="hover:bg-gray-50/80 transition-colors h-14"
+                                    >
+                                        <TableCell className="font-bold border-r bg-gray-50/50 text-gray-700 text-xs uppercase">
+                                            {menu.name}
                                         </TableCell>
-                                    );
-                                })}
-                            </TableRow>
-                        ))}
-                    </TableBody>
-                </Table>
+                                        {roles.map((role) => {
+                                            // Mencari data permission di array
+                                            const perm = rawPermissions.find(
+                                                (p) =>
+                                                    p.menu_id === menu.id &&
+                                                    p.role_id === role.id
+                                            );
+
+                                            return (
+                                                <TableCell
+                                                    key={role.id}
+                                                    className="p-0 text-center relative border-r last:border-r-0"
+                                                >
+                                                    <div
+                                                        onClick={(e) => {
+                                                            const rect =
+                                                                e.currentTarget.getBoundingClientRect();
+                                                            setActiveEditor({
+                                                                pos: {
+                                                                    top:
+                                                                        rect.bottom +
+                                                                        window.scrollY +
+                                                                        5,
+                                                                    left:
+                                                                        rect.left +
+                                                                        window.scrollX,
+                                                                },
+                                                                // Kirim data asli jika ada, jika tidak kirim blueprint untuk Create
+                                                                data: perm
+                                                                    ? perm
+                                                                    : {
+                                                                          role_id:
+                                                                              role.id,
+                                                                          menu_id:
+                                                                              menu.id,
+                                                                      },
+                                                            });
+                                                        }}
+                                                        className={`h-14 w-full flex items-center justify-center cursor-pointer transition-all hover:bg-teal-50/30 active:scale-95`}
+                                                    >
+                                                        {renderCRUD(perm)}
+                                                    </div>
+                                                </TableCell>
+                                            );
+                                        })}
+                                    </TableRow>
+                                ))}
+                            </TableBody>
+                        </Table>
+                    </div>
+                </div>
             </div>
 
             {/* Pop-up Editor Overlay */}

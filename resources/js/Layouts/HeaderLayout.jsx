@@ -15,6 +15,7 @@ import { Link, usePage, router } from "@inertiajs/react";
 import { useState, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import Swal from "sweetalert2";
+import { FiEdit2 } from "react-icons/fi";
 
 export default function HeaderLayout({ header, children }) {
     const { url, props } = usePage();
@@ -28,9 +29,18 @@ export default function HeaderLayout({ header, children }) {
     const [isHamburgerNotifOpen, setIsHamburgerNotifOpen] = useState(false);
     const [isHamburgerLangOpen, setIsHamburgerLangOpen] = useState(false);
     const hamburgerRef = useRef(null);
+    const [localNotifications, setLocalNotifications] = useState(props.auth.notifications || []);
+    const [unreadCount, setUnreadCount] = useState(props.auth.unreadNotificationsCount || 0);
 
-    const notifications = props.auth.notifications || [];
-    const unreadCount = props.auth.unreadNotificationsCount || 0;
+    console.log(localNotifications);
+
+    // const notifications = props.auth.notifications || [];
+    // const unreadCount = props.auth.unreadNotificationsCount || 0;
+
+    useEffect(() => {
+        setLocalNotifications(props.auth.notifications || []);
+        setUnreadCount(props.auth.unreadNotificationsCount || 0);
+    }, [props.auth.notifications, props.auth.unreadNotificationsCount]);
 
     const app_config = props?.app_config;
     const allowChange = app_config?.allow_language_change ?? false;
@@ -165,17 +175,42 @@ export default function HeaderLayout({ header, children }) {
         }
     };
 
+    const getPreviewHref = (data) => {
+        if (!data) return '#';
+        if (data.url) return data.url;
+
+        const pdfPath = data.pdf_path || data.pdfPath || data.pdf_url || data.pdfUrl || data.path;
+        if (pdfPath) return `/storage/${String(pdfPath).replace(/^\//, '')}`;
+
+        if (data.id) return `/quotation/preview/${data.id}`;
+
+        return '#';
+    };
+
+    const handlePreviewClick = (data) => {
+        const href = getPreviewHref(data);
+        if (!href || href === '#') {
+            Swal.fire({ icon: 'error', title: 'File tidak tersedia', toast: true, position: 'top-end', timer: 2500, showConfirmButton: false });
+            return;
+        }
+        window.open(href, '_blank', 'noopener,noreferrer');
+    };
+
     useEffect(() => {
         if (user) {
             window.Echo.private(`App.Models.User.${user.id}`)
                 .notification((notification) => {
-                    console.log("Notif masuk:", notification.message);
+                    console.log("Notif baru diterima:", notification);
                     
+                    // Trigger Inertia untuk ambil data terbaru dari HandleInertiaRequests
                     router.reload({ 
                         only: ['auth'], 
                         preserveScroll: true,
-                        preserveState: true,
-                        preserveScroll: true 
+                        onSuccess: (page) => {
+                            // Paksa update state setelah reload berhasil
+                            setLocalNotifications(page.props.auth.notifications);
+                            setUnreadCount(page.props.auth.unreadNotificationsCount);
+                        }
                     });
                 });
         }
@@ -319,8 +354,8 @@ export default function HeaderLayout({ header, children }) {
                             </div>
 
                             <div className="max-h-80 overflow-y-auto divide-y divide-gray-100">
-                                {notifications.length > 0 ? (
-                                    notifications.map((n) => (
+                                {localNotifications.length > 0 ? (
+                                    localNotifications.map((n) => (
                                         <div key={n.id} className="px-4 py-3 hover:bg-gray-50 transition-colors">
                                             <div className="flex items-start justify-between gap-3">
                                                 <div className="flex-1">
@@ -354,6 +389,12 @@ export default function HeaderLayout({ header, children }) {
                                                         >
                                                             REVISE
                                                         </button>
+                                                        <button
+                                                            onClick={() => handlePreviewClick(n.data)}
+                                                            className="px-3 py-1.5 text-xs rounded-md bg-blue-500 text-white hover:bg-red-600"
+                                                        >
+                                                            PREVIEW
+                                                        </button>
                                                     </>
                                                 )}
 
@@ -364,6 +405,16 @@ export default function HeaderLayout({ header, children }) {
                                                         className="inline-flex items-center gap-2 px-3 py-1.5 bg-orange-500 text-white text-xs rounded-md hover:bg-orange-600"
                                                     >
                                                         <Send size={12} /> {t('header.send_to_client') || 'SEND'}
+                                                    </Link>
+                                                )}
+
+                                                {user.role_name !== 'Manager' && n.data.status === 'revised' && (
+                                                    <Link
+                                                        href={route('quotation.edit', n.data.id)}
+                                                        onClick={() => setIsHamburgerOpen(false)}
+                                                        className="inline-flex items-center gap-2 px-3 py-1.5 bg-orange-500 text-white text-xs rounded-md hover:bg-orange-600"
+                                                    >
+                                                        <FiEdit2 className="w-4 h-4" />EDIT
                                                     </Link>
                                                 )}
                                             </div>

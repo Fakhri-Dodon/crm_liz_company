@@ -38,4 +38,7 @@ RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cac
 EXPOSE 8000
 
 # Jalankan Reverb, PHP-FPM, dan Nginx
-CMD php artisan reverb:start --host=0.0.0.0 --port=8080 & php-fpm -D && nginx -g "daemon off;"
+CMD php artisan reverb:start --host=0.0.0.0 --port=8080 & \
+    php artisan queue:work --tries=3 --timeout=90 & \
+    php-fpm -D && \
+    nginx -g "daemon off;"

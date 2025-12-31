@@ -7,6 +7,7 @@ import {
     FiChevronsRight,
     FiMail,
 } from "react-icons/fi";
+import { useTranslation } from "react-i18next";
 
 /**
  * TableLayout Component
@@ -33,6 +34,7 @@ export default function TableLayout({
     showAction = true,
     pagination = null,
 }) {
+    const { t } = useTranslation();
     // Calculate pagination range
     const getPaginationRange = () => {
         if (!pagination) return [];
@@ -111,7 +113,7 @@ export default function TableLayout({
 
                             {showAction && (
                                 <th className="px-6 py-4 text-left text-xs font-semibold text-black uppercase tracking-wider">
-                                    Actions
+                                    {t('users.table.actions') || 'Actions'}
                                 </th>
                             )}
                         </tr>
@@ -352,7 +354,7 @@ export default function TableLayout({
                 <div className="px-6 py-3 border-t border-gray-200 bg-gray-50">
                     <div className="flex items-center justify-between">
                         <div className="text-xs text-gray-500">
-                            Total rows:{" "}
+                            {t('users.table.total_rows') || 'Total rows:'}{" "}
                             <span className="font-medium">{data.length}</span>
                         </div>
                         {pagination && (

@@ -11,7 +11,7 @@ window.Echo = new Echo({
     // Deteksi otomatis port: 443 untuk produksi (Koyeb), 8080 untuk lokal
     wsPort: import.meta.env.VITE_REVERB_PORT || (import.meta.env.MODE === 'production' ? 443 : 8080),
     wssPort: import.meta.env.VITE_REVERB_PORT || (import.meta.env.MODE === 'production' ? 443 : 8080),
-    forceTLS: true,
+    forceTLS: (import.meta.env.VITE_REVERB_SCHEME ?? 'https') === 'https',
     enabledTransports: ['ws', 'wss'],
     auth: {
         headers: {

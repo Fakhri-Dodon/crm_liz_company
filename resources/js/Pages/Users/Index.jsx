@@ -112,17 +112,20 @@ export default function UsersIndex({ users, roles, templates }) {
         console.log("Menghapus ID:", id);
 
         if (!id) {
-            alert("Error: ID tidak ditemukan!");
+            toast.error("Error: ID tidak ditemukan!");
             return;
         }
 
         if (confirm("Are you sure you want to delete this user?")) {
+            const toastId = toast.loading("Menghapus user...");
+
             router.delete(`/user/destroy/${id}`, {
                 onSuccess: () => {
-                    alert("User deleted successfully");
+                    toast.success("User deleted successfully", { id: toastId });
                 },
                 onError: (err) => {
                     console.error("Terjadi kesalahan:", err);
+                    toast.error("Terjadi kesalahan saat menghapus user.", { id: toastId });
                 },
             });
         }
@@ -181,14 +184,14 @@ export default function UsersIndex({ users, roles, templates }) {
             <ModalAdd
                 isOpen={isModalOpen}
                 onClose={() => setIsModalOpen(false)}
-                title={editId ? "Edit User" : "Add New User"}
+                title={editId ? t('users.modals.edit_title') || "Edit User" : t('users.modals.add_title') || "Add User"}
                 footer={
                     <>
                         <button
                             onClick={() => setIsModalOpen(false)}
                             className="text-gray-500 hover:text-gray-700 font-bold px-4 py-2"
                         >
-                            Cancle
+                            {t('users.modals.btn_cancel') || "Cancel"}
                         </button>
                         <PrimaryButton
                             onClick={handleSubmit}
@@ -208,17 +211,17 @@ export default function UsersIndex({ users, roles, templates }) {
                                     d="M12 4v16m8-8H4"
                                 />
                             </svg>
-                            <span>{editId ? "Update" : "Add"}</span>
+                            <span>{editId ? t('users.modals.btn_update') || "Update" : t('users.modals.btn_add') || "Add"}</span>
                         </PrimaryButton>
                     </>
                 }
             >
                 {/* Isi Form Input Di Sini (Children) */}
-                <div className="space-y-4">
-                    <div className="flex flex-row gap-4">
+                    <div className="space-y-4">
+                    <div className="flex flex-col sm:flex-row gap-4">
                         <div className="flex-1">
                             <label className="block text-sm font-medium text-gray-700">
-                                Full Name*
+                                {t('users.modals.label_name') || "Name*"}
                             </label>
                             <input
                                 type="text"
@@ -231,7 +234,7 @@ export default function UsersIndex({ users, roles, templates }) {
                         </div>
                         <div className="flex-1">
                             <label className="block text-sm font-medium text-gray-700">
-                                Position*
+                                {t('users.modals.label_position') || "Position*"}
                             </label>
                             <input
                                 value={data.position}
@@ -244,10 +247,10 @@ export default function UsersIndex({ users, roles, templates }) {
                         </div>
                     </div>
 
-                    <div className="flex flex-row gap-4">
+                    <div className="flex flex-col sm:flex-row gap-4">
                         <div className="flex-1">
                             <label className="block text-sm font-medium text-gray-700">
-                                Email*
+                                {t('users.modals.label_email') || "Email*"}
                             </label>
                             <input
                                 value={data.email}
@@ -260,7 +263,7 @@ export default function UsersIndex({ users, roles, templates }) {
                         </div>
                         <div className="flex-1">
                             <label className="block text-sm font-medium text-gray-700">
-                                Phone*
+                                {t('users.modals.label_phone') || "Phone*"}
                             </label>
                             <input
                                 value={data.phone}
@@ -273,10 +276,10 @@ export default function UsersIndex({ users, roles, templates }) {
                         </div>
                     </div>
 
-                    <div className="flex flex-row gap-4">
+                    <div className="flex flex-col sm:flex-row gap-4">
                         <div className="flex-1">
                             <label className="block text-sm font-medium text-gray-700">
-                                Role*
+                                {t('users.modals.label_role') || "Role*"}
                             </label>
                             <select
                                 value={data.role_id}
@@ -285,7 +288,7 @@ export default function UsersIndex({ users, roles, templates }) {
                                 }
                                 className="mt-1 block w-full border border-gray-300 rounded-md p-2 focus:ring-indigo-500 focus:border-indigo-500"
                             >
-                                <option value="">-- Choose Role --</option>
+                                <option value="">{t('users.modals.choose_role') || "-- Choose Role --"}</option>
 
                                 {roles && roles.length > 0 ? (
                                     roles.map((role) => (
@@ -294,13 +297,13 @@ export default function UsersIndex({ users, roles, templates }) {
                                         </option>
                                     ))
                                 ) : (
-                                    <option disabled>No roles available</option>
+                                    <option disabled>{t('users.modals.no_roles') || "No roles available"}</option>
                                 )}
                             </select>
                         </div>
                         <div className="flex-1">
                             <label className="block text-sm font-medium text-gray-700">
-                                Password*
+                                {t('users.modals.label_password') || "Password*"}
                             </label>
                             <input
                                 value={data.password}
@@ -322,10 +325,10 @@ export default function UsersIndex({ users, roles, templates }) {
 
                         <div className="text-center">
                             <p className="font-bold text-gray-800 text-lg">
-                                Mengirim Email
+                                {t('users.email_overlay.sending') || "Sending Email..."}
                             </p>
                             <p className="text-sm text-gray-500">
-                                Mohon tunggu sebentar...
+                                {t('users.email_overlay.wait') || "Please wait while we process your request."}
                             </p>
                         </div>
 
@@ -333,7 +336,7 @@ export default function UsersIndex({ users, roles, templates }) {
                             onClick={() => setIsSendingEmail(false)}
                             className="mt-2 text-xs text-gray-400 hover:text-gray-600 underline"
                         >
-                            Sembunyikan Overlay
+                            {t('users.email_overlay.hide') || "Cancel"}
                         </button>
                     </div>
                 </div>
@@ -361,10 +364,10 @@ export default function UsersIndex({ users, roles, templates }) {
 
                             <div className="text-center mb-6">
                                 <h3 className="text-xl font-black text-gray-800">
-                                    Kirim Email
+                                    {t('users.email_modal.title') || "Send Email Template"}
                                 </h3>
                                 <p className="text-sm text-gray-500">
-                                    Kirim pesan ke{" "}
+                                    {t('users.email_modal.subtitle') || "Send message to"}{" "}
                                     <span className="font-bold text-gray-700">
                                         {selectedUser?.name}
                                     </span>
@@ -373,13 +376,13 @@ export default function UsersIndex({ users, roles, templates }) {
 
                             {/* DROPDOWN PILIHAN TEMPLATE */}
                             <div className="space-y-2 text-left mb-6">
-                                <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">Choose Email Template</label>
+                                <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">{t('users.email_modal.label_template') || "Choose Email Template"}</label>
                                 <select 
-                                    value={selectedTemplateId}
-                                    onChange={(e) => setSelectedTemplateId(e.target.value)}
-                                    className="w-full border-gray-200 rounded-xl focus:ring-blue-500 focus:border-blue-500 bg-gray-50 text-sm"
-                                >
-                                    <option value="" disabled>-- Choose Template --</option>
+                                        value={selectedTemplateId}
+                                        onChange={(e) => setSelectedTemplateId(e.target.value)}
+                                        className="w-full border border-gray-200 rounded-xl p-2 focus:ring-blue-500 focus:border-blue-500 bg-gray-50 text-sm"
+                                    >
+                                    <option value="" disabled>{t('users.email_modal.choose_template') || "-- Choose Template --"}</option>
                                     {templates.map((t) => (
                                         <option key={t.id} value={t.id}>
                                             {t.name} - {t.subject}
@@ -396,18 +399,18 @@ export default function UsersIndex({ users, roles, templates }) {
                             </div>
                         </div>
 
-                        <div className="flex p-4 gap-3 bg-gray-50">
+                        <div className="flex flex-col sm:flex-row p-4 gap-3 bg-gray-50">
                             <button
                                 onClick={() => setEmailModalOpen(false)}
                                 className="flex-1 px-4 py-3 text-gray-500 font-bold hover:bg-white rounded-xl transition-all border border-transparent hover:border-gray-200"
                             >
-                                Batal
+                                {t('users.email_modal.btn_cancel') || "Cancel"}
                             </button>
                             <button
                                 onClick={confirmSendEmail}
                                 className="flex-1 px-4 py-3 bg-blue-600 text-white font-bold rounded-xl shadow-lg shadow-blue-200 hover:bg-blue-700 active:scale-95 transition-all"
                             >
-                                Kirim Sekarang
+                                {t('users.email_modal.btn_send') || "Send Email"}
                             </button>
                         </div>
                     </div>
@@ -416,7 +419,7 @@ export default function UsersIndex({ users, roles, templates }) {
 
             <HeaderLayout title={t('users.title')} />
 
-            <div className="px-8 py-6">
+            <div className="px-4 sm:px-8 py-6">
                 <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
                     <h1 className="text-xl font-black uppercase tracking-widest text-gray-800">
                         {t('users.title')}
@@ -445,14 +448,18 @@ export default function UsersIndex({ users, roles, templates }) {
                 </div>
 
                 <div className="py-8">
-                    <TableLayout
-                        data={tableData}
-                        columns={columns}
-                        onSendEmail={(user) => handleSendEmail(user)}
-                        onEdit={handleEdit}
-                        onDelete={handleDelete}
-                        showAction={true}
-                    />
+                    <div className="-mx-4 sm:mx-0 px-4 sm:px-0 overflow-x-auto">
+                        <div className="min-w-[720px]">
+                            <TableLayout
+                                data={tableData}
+                                columns={columns}
+                                onSendEmail={(user) => handleSendEmail(user)}
+                                onEdit={handleEdit}
+                                onDelete={handleDelete}
+                                showAction={true}
+                            />
+                        </div>
+                    </div>
                 </div>
             </div>
         </>

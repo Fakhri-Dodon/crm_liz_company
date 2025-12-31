@@ -25,6 +25,7 @@
         "marketing": "Dasbor Pemasaran",
         "finance": "Dasbor Keuangan"
     },
+
     "quotations": {
         "title": "PENAWARAN",
         "button_add": "TAMBAH PENAWARAN",
@@ -60,6 +61,7 @@
             "actions": "AKSI"
         }
     },
+
     "leads": {
         "title": "PROSPEK",
         "sub_title": "Daftar manajemen prospek pelanggan",
@@ -87,6 +89,7 @@
         "start_add": "Mulai dengan menambahkan prospek pertama Anda"
         }
     },
+    
     "users": {
         "title": "PENGGUNA",
         "button_add": "TAMBAH PENGGUNA",
@@ -99,7 +102,7 @@
             "phone": "TELEPON",
             "last_seen": "TERAKHIR DILIHAT",
             "actions": "AKSI",
-            "total_rows": "Total baris: {{count}}"
+            "total_rows": "Total baris:"
         },
         "time": {
             "seconds_ago": "{{count}} detik yang lalu",
@@ -129,11 +132,31 @@
         },
         "email_modal": {
             "title": "Kirim Email",
-            "subtitle": "Kirim pesan ke {{name}}",
+            "subtitle": "Kirim pesan ke ",
             "label_template": "Pilih Template Email",
             "choose_template": "-- Pilih Template --",
             "btn_cancel": "Batal",
             "btn_send": "Kirim Sekarang"
+        }
+    },
+
+    "emails": {
+        "title": "TEMPLATE EMAIL",
+        "button_add": "TAMBAH TEMPLATE EMAIL",
+        "table": {
+            "name": "NAMA",
+            "subject": "SUBJEK",
+            "actions": "AKSI"
+        },
+        "modals": {
+            "add_title": "Tambah Template Email",
+            "edit_title": "Edit Template Email",
+            "label_name": "Nama Template*",
+            "label_subject": "Subjek*",
+            "label_body": "Isi*",
+            "btn_cancel": "Batal",
+            "btn_add": "Tambah",
+            "btn_update": "Perbarui"
         }
     }
 }       

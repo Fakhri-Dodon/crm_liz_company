@@ -72,7 +72,7 @@ export default function EmailSettings({ config }) {
     return (
         <div className="space-y-12 pt-10 pb-20">
             <div>
-                <h2 className="text-xl font-bold text-red-700 mb-6">
+                <h2 className="text-xl font-bold text-red-700 mb-6 uppercase tracking-wider">
                     Email Settings
                 </h2>
 
@@ -202,8 +202,10 @@ export default function EmailSettings({ config }) {
                 </div>
 
                 <h3 className="font-bold mb-4">Email Visibility by User</h3>
-                <div className="border border-teal-900 rounded-t-lg overflow-hidden mb-10">
-                    <Table>
+                <div className="-mx-4 sm:mx-0 px-4 sm:px-0 overflow-x-auto mb-10">
+                    <div className="min-w-[720px]">
+                        <div className="border border-teal-900 rounded-t-lg overflow-hidden">
+                            <Table>
                         <TableHeader className="bg-teal-900">
                             <TableRow className="hover:bg-teal-900 border-none">
                                 <TableHead className="text-white font-bold w-16 text-center">
@@ -261,12 +263,16 @@ export default function EmailSettings({ config }) {
                                 </TableCell>
                             </TableRow>
                         </TableBody>
-                    </Table>
+                            </Table>
+                        </div>
+                    </div>
                 </div>
 
                 <h3 className="font-bold mb-4">Email Log</h3>
-                <div className="border border-teal-900 rounded-t-lg overflow-hidden">
-                    <Table>
+                <div className="-mx-4 sm:mx-0 px-4 sm:px-0 overflow-x-auto">
+                    <div className="min-w-[720px]">
+                        <div className="border border-teal-900 rounded-t-lg overflow-hidden">
+                            <Table>
                         <TableHeader className="bg-teal-900">
                             <TableRow className="hover:bg-teal-900 border-none">
                                 <TableHead className="text-white font-bold w-32 text-center border-r border-teal-800">
@@ -340,7 +346,9 @@ export default function EmailSettings({ config }) {
                                 </TableRow>
                             )}
                         </TableBody>
-                    </Table>
+                            </Table>
+                        </div>
+                    </div>
                 </div>
                 {/* Modal Detail Log */}
                 {isModalOpen && selectedLog && (
