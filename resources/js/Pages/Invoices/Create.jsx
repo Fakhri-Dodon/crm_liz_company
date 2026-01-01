@@ -253,7 +253,7 @@ export default function Create({ nextNumber, leads = [], companies = [], quotati
                             <div className="grid grid-cols-2 gap-3">
                                 <div>
                                     <label className="text-[10px] font-bold uppercase text-gray-400">
-                                        Processing
+                                        Qualification
                                     </label>
                                     <input
                                         className="w-full border-gray-300 rounded-lg p-2 text-sm"
