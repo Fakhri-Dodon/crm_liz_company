@@ -93,10 +93,6 @@ class Proposal extends Model
                 $model->deleted = 0;
             }
             
-            if (empty($model->proposal_statuses_id)) {
-                $model->proposal_statuses_id = '4de1376f-aa1d-4b72-9d12-4716fc648b7d';
-            }
-            
             if (empty($model->status)) {
                 $model->status = 'draft';
             }

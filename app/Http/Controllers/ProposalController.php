@@ -70,7 +70,7 @@ class ProposalController extends Controller
                     ->exists();
 
                 $proposals->date = Carbon::parse($proposals->created_at)->format('d-m-Y');
-                $proposals->edited = $proposals->proposal_element_template->first()?->html ? true : false;
+                $proposals->edited = $proposals->proposal_element_template->first()?->html_output ? true : false;
                     
                 return $proposals;
             })
@@ -116,6 +116,8 @@ class ProposalController extends Controller
                 $number5Digit = str_pad($nextNumber, 5, '0', STR_PAD_LEFT);
                 $resultNumber = $format . $number5Digit;
 
+                $status = ProposalStatuses::where('name', 'Draft')->where('deleted', false)->first();
+
                 $template = ProposalElementTemplate::create([
                     'name'          => $validated['name'],
                     'slug'          => $resultNumber,
@@ -127,6 +129,7 @@ class ProposalController extends Controller
                 $proposal = Proposal::create([
                     'proposal_number_formated_id'   => $proposalFormat->id,
                     'proposal_element_template_id'  => $template->id,
+                    'proposal_statuses_id'          => $status->id,
                     'lead_id'                       => $validated['lead_id'],
                     'proposal_number'               => $resultNumber,
                     'title'                         => $validated['name'],
@@ -251,7 +254,12 @@ class ProposalController extends Controller
     public function show($id)
     {
 
+        $data = ProposalElementTemplate::findOrFail($id);
 
+        return Inertia::render('Proposals/Show', [
+            'html' => $data->html_output,
+            'css'  => $data->css_output,
+        ]);
 
     }
 
