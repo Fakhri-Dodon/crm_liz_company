@@ -156,6 +156,8 @@
         "title": "PROPOSALS",
         "button_add": "ADD PROPOSAL",
         "stats": {
+            "approved": "APPROVED",
+            "revised": "REVISED",
             "opened": "OPENED",
             "failed": "FAILED",
             "draft": "DRAFT",
@@ -179,6 +181,7 @@
         "table": {
             "no": "NO",
             "no_date": "NO & DATE",
+            "title": "TITLE",
             "subject": "SUBJECT",
             "company_name": "COMPANY NAME",
             "contact": "CONTACT",
