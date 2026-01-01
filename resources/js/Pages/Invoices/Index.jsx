@@ -10,7 +10,7 @@ export default function Index() {
     }
     const { props } = usePage();
 
-    // Try to use server props if available, otherwise fallback to sample data for UI preview
+    // Get invoices and generate year options
     const invoices = props.invoices ?? [
         {
             id: 1,
@@ -53,8 +53,20 @@ export default function Index() {
     const unpaidCount = invoices.filter((i) => i.status === "Unpaid").length;
     const cancelledCount = invoices.filter((i) => i.status === "Cancelled").length;
 
+    // Generate year options dynamically
+    const currentYear = new Date().getFullYear();
+    const yearOptions = [];
+    for (let year = currentYear; year >= 2020; year--) {
+        yearOptions.push(year);
+    }
+
     const formatRp = (value) =>
         value.toLocaleString("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 });
+
+    const handlePreview = (invoice) => {
+        // Navigate to invoice show/preview route
+        router.visit(route("invoice.show", invoice.id));
+    };
 
     const handleCreateInvoice = () => {
         router.visit(route("invoice.create"));
@@ -76,6 +88,20 @@ export default function Index() {
                 }
             });
         }
+    };
+
+    const handleStatusChange = (id, newStatus) => {
+        router.patch(route("invoice.update-status", id), {
+            status: newStatus
+        }, {
+            preserveScroll: true,
+            onSuccess: () => {
+                console.log('Status updated to ' + newStatus);
+            },
+            onError: () => {
+                alert('Failed to update status');
+            }
+        });
     };
 
     return (
@@ -157,8 +183,10 @@ export default function Index() {
                 <div className="w-48">
                     <label className="text-xs text-gray-500">Year</label>
                     <select className="w-full border rounded px-3 py-2">
-                        <option>2024</option>
-                        <option>2025</option>
+                        <option value="">All Years</option>
+                        {yearOptions.map(year => (
+                            <option key={year} value={year}>{year}</option>
+                        ))}
                     </select>
                 </div>
                 <div>
@@ -186,8 +214,8 @@ export default function Index() {
                             <tr key={inv.id} className="hover:bg-gray-50">
                                 <td className="px-4 py-4">{idx + 1}</td>
                                 <td className="px-4 py-4">
-                                    <div className="text-teal-700 font-semibold">
-                                        <Link href={`#`}>{inv.number}</Link>
+                                    <div className="text-teal-700 font-semibold cursor-pointer hover:text-teal-900" onClick={() => handlePreview(inv)}>
+                                        {inv.number}
                                     </div>
                                     <div className="text-xs text-gray-500">{inv.date}</div>
                                 </td>

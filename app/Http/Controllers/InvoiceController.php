@@ -33,6 +33,7 @@ class InvoiceController extends Controller
                 ],
                 'due_amount' => (int) $inv->amount_due,
                 'status' => $inv->status,
+                'pdf_path' => $inv->pdf_path,
             ];
         });
 
@@ -204,7 +205,49 @@ class InvoiceController extends Controller
     public function show(Invoice $invoice)
     {
         $invoice->load(['contactPerson', 'items']);
-        return Inertia::render('Invoices/Show', ['invoice' => $invoice]);
+        
+        // Format invoice data for the view
+        $contactPerson = $invoice->contactPerson;
+        $isClient = $contactPerson && $contactPerson->company_id !== null;
+        
+        // Get lead or company data
+        $lead = null;
+        $company = null;
+        
+        if ($isClient && $contactPerson->company_id) {
+            $company = Company::with('lead')->find($contactPerson->company_id);
+            $lead = $company ? $company->lead : null;
+        } elseif ($contactPerson && $contactPerson->lead_id) {
+            $lead = Lead::find($contactPerson->lead_id);
+        }
+        
+        $invoiceData = [
+            'id' => $invoice->id,
+            'invoice_number' => $invoice->invoice_number,
+            'date' => $invoice->date,
+            'company_name' => $lead ? $lead->company_name : '',
+            'address' => $lead ? $lead->address : '',
+            'contact_person' => $lead ? $lead->contact_person : '',
+            'position' => $contactPerson ? $contactPerson->position : '',
+            'email' => $lead ? $lead->email : '',
+            'phone' => $lead ? $lead->phone : '',
+            'quotation_id' => $invoice->quotation_id,
+            'payment_type' => $invoice->payment_type,
+            'payment_percentage' => (float) $invoice->payment_percentage,
+            'payment_terms' => $invoice->payment_terms,
+            'note' => $invoice->note,
+            'items' => $invoice->items,
+            'invoice_amout' => (float) $invoice->invoice_amout,
+            'ppn' => (float) $invoice->ppn,
+            'pph' => (float) $invoice->pph,
+            'total' => (float) $invoice->total,
+            'amount_due' => (float) $invoice->amount_due,
+            'down_payment' => (float) $invoice->invoice_amout * (float) $invoice->payment_percentage,
+            'status' => $invoice->status,
+            'pdf_path' => $invoice->pdf_path,
+        ];
+        
+        return Inertia::render('Invoices/Show', ['invoice' => $invoiceData]);
     }
 
     public function edit(Invoice $invoice)
@@ -439,5 +482,17 @@ class InvoiceController extends Controller
         $invoice->save();
         // TODO: Notifikasi ke user (bisa pakai event/notification/email)
         return redirect()->route('invoice.index')->with('success', 'Invoice marked as revised.');
+    }
+
+    public function updateStatus(Request $request, Invoice $invoice)
+    {
+        $validated = $request->validate([
+            'status' => 'required|string|in:Draft,Unpaid,Paid,Partial,Cancelled'
+        ]);
+
+        $invoice->status = $validated['status'];
+        $invoice->save();
+
+        return back()->with('success', 'Invoice status updated successfully.');
     }
 }

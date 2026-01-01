@@ -36,6 +36,7 @@ export default function Edit({ leads = [], companies = [], quotations = [], invo
         date: invoice.date || "",
         number: invoice.invoice_number || "",
         company_id: invoice.company_id || null,
+        contact_person_id: invoice.contact_person_id || null,
         company_name: invoice.company_name || "",
         address: invoice.address || "",
         contact_person: invoice.contact_person || "",
@@ -206,7 +207,7 @@ export default function Edit({ leads = [], companies = [], quotations = [], invo
                             <div className="grid grid-cols-2 gap-3">
                                 <div>
                                     <label className="text-[10px] font-bold uppercase text-gray-400">
-                                        Processing
+                                        Qualification
                                     </label>
                                     <input
                                         className="w-full border-gray-300 rounded-lg p-2 text-sm"
