@@ -22,33 +22,42 @@ export default function AddProposal({proposal_id, templates}) {
                     </h2>
                 </a>
                 <div className="grid grid-cols-4 gap-8 w-5/6 mx-auto">
-                    {templates.map((tpl) => (
-                        <a 
-                            href={`/proposal/${tpl.id}`} 
-                            target="_blank" 
-                            rel="noopener noreferrer"
-                        >
-                            <div
-                                key={tpl.name}
-                                className="border-2 border-green-700 rounded-md overflow-hidden flex flex-col items-center hover:shadow-lg transition cursor-pointer"
+                    {templates.map((tpl) => {
+
+                        const thumbnail = tpl?.preview_image
+                            ? `/storage/proposal_thumbnails/${tpl.preview_image}`
+                            : null;
+
+                        return (
+
+                            <a 
+                                href={`/proposal/${tpl.id}`} 
+                                target="_blank" 
+                                rel="noopener noreferrer"
                             >
-                                <div className="w-full h-48 bg-gray-100 flex items-center justify-center">
-                                    <img
-                                        src={tpl.preview_image}
-                                        alt={tpl.name}
-                                        className="object-cover w-full h-full"
-                                    />
+                                <div
+                                    key={tpl.name}
+                                    className="border-2 border-green-700 rounded-md overflow-hidden flex flex-col items-center hover:shadow-lg transition cursor-pointer"
+                                >
+                                    <div className="w-full h-48 bg-gray-100 flex items-center justify-center">
+                                        <img
+                                            src={thumbnail}
+                                            alt={tpl.name}
+                                            className="object-cover w-full h-full"
+                                        />
+                                    </div>
+                                    <div className="py-3 text-center font-medium">
+                                        <Link href={`${route('proposal.create', { id: tpl.id, id_proposal: proposal_id  })}`}>
+                                            <button className="bg-teal-800 hover:bg-teal-900 text-white px-6 py-2 rounded-md font-semibold">
+                                                Use Template
+                                            </button>
+                                        </Link>
+                                    </div>
                                 </div>
-                                <div className="py-3 text-center font-medium">
-                                    <Link href={`${route('proposal.create', { id: tpl.id, id_proposal: proposal_id  })}`}>
-                                        <button className="bg-teal-800 hover:bg-teal-900 text-white px-6 py-2 rounded-md font-semibold">
-                                            Use Template
-                                        </button>
-                                    </Link>
-                                </div>
-                            </div>
-                        </a>
-                    ))}
+                            </a>
+
+                        );
+                    })}
                 </div>
             </div>
         </>

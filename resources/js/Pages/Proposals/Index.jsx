@@ -211,8 +211,8 @@ export default function ProposalsIndex({ proposals, statusOptions, summary, filt
     };
 
     const handleEdit = (item) => {
-        if (item.edited) {
-            router.visit(`/proposal/edit/${item.id}`);
+        if (!item.edited) {
+            router.visit(`/proposal/addProposal/${item.id}`);
         } else {
             router.visit('/proposal/create', {
             method: 'get',
