@@ -17,6 +17,8 @@ class Invoice extends Model
 
     protected $fillable = [
         'id',
+        'lead_id',
+        'company_id',
         'quotation_id',
         'company_contact_persons_id',
         'invoice_number',
@@ -28,9 +30,11 @@ class Invoice extends Model
         'note',
         'ppn',
         'pph',
+        'sub_total',
         'total',
         'amount_due',
         'status',
+        'pdf_path',
         'created_by',
         'updated_by',
     ];

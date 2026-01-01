@@ -18,6 +18,12 @@ export default function Login({ status, canResetPassword }) {
 
         post('/login', {
             onFinish: () => reset('password'),
+            onError: (errors) => {
+                // Jika ada indikasi session expired, paksa refresh
+                if (Object.keys(errors).length === 0) {
+                    window.location.reload();
+                }
+            }
         });
     };
 

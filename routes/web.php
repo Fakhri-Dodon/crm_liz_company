@@ -51,7 +51,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/', [QuotationController::class, 'index'])->name('index');
         Route::get('/create', [QuotationController::class, 'create'])->name('create');
         Route::post('/store', [QuotationController::class, 'store'])->name('store');
-        // TAMBAHKAN INI: Route untuk show quotation
         Route::get('/{quotation}', [QuotationController::class, 'show'])->name('show');
         Route::patch('/{quotation}/status', [QuotationController::class, 'updateStatus'])->name('update-status');
         Route::get('/edit/{quotation}', [QuotationController::class, 'edit'])->name('edit');
@@ -208,6 +207,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
             ->name('companies.quotations.store');
     });
     
+    // ====================== INVOICE routes (dengan company context) ======================
     Route::prefix('companies/{company}')->group(function () {
         Route::get('/invoices/create', [InvoiceController::class, 'createForCompany'])
             ->name('companies.invoices.create');

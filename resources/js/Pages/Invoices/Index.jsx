@@ -1,16 +1,14 @@
 import React, { useState } from "react";
 import HeaderLayout from "@/Layouts/HeaderLayout";
-import { Link, usePage, useForm } from "@inertiajs/react";
+import { Link, usePage, router } from "@inertiajs/react";
 import DevelopmentPage from "../DevelopmentPage";
 
 export default function Index() {
-    const dev = true; // Ubah ke true untuk menampilkan halaman development
+    const dev = false; // Ubah ke true untuk menampilkan halaman development
     if (dev) {
         return <DevelopmentPage />;
     }
     const { props } = usePage();
-    const contacts = props.contacts ?? [];
-
 
     // Try to use server props if available, otherwise fallback to sample data for UI preview
     const invoices = props.invoices ?? [
@@ -58,77 +56,27 @@ export default function Index() {
     const formatRp = (value) =>
         value.toLocaleString("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 });
 
-    // Modal & form state
-    const [isCreateOpen, setIsCreateOpen] = useState(false);
-    const [isEditOpen, setIsEditOpen] = useState(false);
-    const [isDeleteOpen, setIsDeleteOpen] = useState(false);
-    const [editingId, setEditingId] = useState(null);
-    const [deletingId, setDeletingId] = useState(null);
+    const handleCreateInvoice = () => {
+        router.visit(route("invoice.create"));
+    };
 
-    const form = useForm({
-        invoice_number: "",
-        date: "",
-        company_contact_persons_id: "",
-        invoice_amout: "",
-        ppn: 0,
-        pph: 0,
-        amount_due: "",
-        status: "Draft",
-    });
+    const handleEditInvoice = (id) => {
+        router.visit(route("invoice.edit", id));
+    };
 
-    const deleteForm = useForm();
-
-    function openCreate() {
-        form.reset();
-        setEditingId(null);
-        setIsCreateOpen(true);
-    }
-
-    function openEdit(inv) {
-        form.setData({
-            invoice_number: inv.number || "",
-            date: inv.date || "",
-            company_contact_persons_id: inv.company_id || "",
-            invoice_amout: inv.amount || 0,
-            ppn: inv.tax?.ppn || 0,
-            pph: inv.tax?.pph || 0,
-            amount_due: inv.due_amount || 0,
-            status: inv.status || "Draft",
-        });
-        setEditingId(inv.id);
-        setIsEditOpen(true);
-    }
-
-    function openDelete(id) {
-        setDeletingId(id);
-        setIsDeleteOpen(true);
-    }
-
-    function submitCreate(e) {
-        e.preventDefault();
-        form.post(route("invoice.store"), {
-            onSuccess: () => {
-                setIsCreateOpen(false);
-                window.location.href = route("invoice.index");
-            },
-        });
-    }
-
-    function submitEdit(e) {
-        e.preventDefault();
-        form.put(route("invoice.update", editingId), {
-            onSuccess: () => {
-                setIsEditOpen(false);
-                window.location.href = route("invoice.index");
-            },
-        });
-    }
-
-    function submitDelete() {
-        deleteForm.delete(route("invoice.destroy", deletingId), {
-            onSuccess: () => setIsDeleteOpen(false),
-        });
-    }
+    const handleDeleteInvoice = (id, number) => {
+        if (confirm(`Are you sure you want to delete invoice ${number}?`)) {
+            router.delete(route("invoice.destroy", id), {
+                onSuccess: () => {
+                    // Invoice deleted successfully
+                },
+                onError: (errors) => {
+                    console.error("Delete failed:", errors);
+                    alert("Failed to delete invoice");
+                }
+            });
+        }
+    };
 
     return (
         <div className="p-6">
@@ -214,7 +162,7 @@ export default function Index() {
                     </select>
                 </div>
                 <div>
-                    <button onClick={openCreate} className="bg-teal-800 text-white px-4 py-2 rounded">Add invoice</button>
+                    <button onClick={handleCreateInvoice} className="bg-teal-800 text-white px-4 py-2 rounded">Add invoice</button>
                 </div>
             </div>
 
@@ -257,150 +205,14 @@ export default function Index() {
                                     </span>
                                 </td>
                                 <td className="px-4 py-4">
-                                    <button onClick={() => openEdit(inv)} className="mr-2 text-gray-600">✎</button>
-                                    <button onClick={() => openDelete(inv.id)} className="text-gray-600">🗑</button>
+                                    <button onClick={() => handleEditInvoice(inv.id)} className="mr-2 text-gray-600 hover:text-gray-800">✎</button>
+                                    <button onClick={() => handleDeleteInvoice(inv.id, inv.number)} className="text-red-600 hover:text-red-800">🗑</button>
                                 </td>
                             </tr>
                         ))}
                     </tbody>
                 </table>
             </div>
-
-            {/* Create Modal */}
-            {isCreateOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center">
-                    <div className="absolute inset-0 bg-black opacity-40" onClick={() => setIsCreateOpen(false)} />
-                    <form onSubmit={submitCreate} className="bg-white rounded shadow p-6 z-10 w-11/12 max-w-2xl">
-                        <h3 className="text-lg font-semibold mb-4">Create Invoice</h3>
-                        <div className="grid grid-cols-2 gap-3">
-                            <div>
-                                <label className="block text-xs text-gray-600">Invoice Number</label>
-                                <input value={form.data.invoice_number} onChange={e => form.setData('invoice_number', e.target.value)} className="w-full border rounded px-2 py-2" />
-                                {form.errors.invoice_number && <div className="text-red-600 text-xs">{form.errors.invoice_number}</div>}
-                            </div>
-                            <div>
-                                <label className="block text-xs text-gray-600">Date</label>
-                                <input type="date" value={form.data.date} onChange={e => form.setData('date', e.target.value)} className="w-full border rounded px-2 py-2" />
-                                {form.errors.date && <div className="text-red-600 text-xs">{form.errors.date}</div>}
-                            </div>
-                            <div>
-                                <label className="block text-xs text-gray-600">Contact Person</label>
-                                <select value={form.data.company_contact_persons_id} onChange={e => form.setData('company_contact_persons_id', e.target.value)} className="w-full border rounded px-2 py-2">
-                                    <option value="">-- Select Contact --</option>
-                                    {contacts.map(c => (
-                                        <option key={c.id} value={c.id}>{c.name}</option>
-                                    ))}
-                                </select>
-                                {form.errors.company_contact_persons_id && <div className="text-red-600 text-xs">{form.errors.company_contact_persons_id}</div>}
-                            </div>
-                            <div>
-                                <label className="block text-xs text-gray-600">Invoice Amount</label>
-                                <input type="number" value={form.data.invoice_amout} onChange={e => form.setData('invoice_amout', e.target.value)} className="w-full border rounded px-2 py-2" />
-                            </div>
-                            <div>
-                                <label className="block text-xs text-gray-600">PPN</label>
-                                <input type="number" value={form.data.ppn} onChange={e => form.setData('ppn', e.target.value)} className="w-full border rounded px-2 py-2" />
-                            </div>
-                            <div>
-                                <label className="block text-xs text-gray-600">PPh</label>
-                                <input type="number" value={form.data.pph} onChange={e => form.setData('pph', e.target.value)} className="w-full border rounded px-2 py-2" />
-                            </div>
-                            <div>
-                                <label className="block text-xs text-gray-600">Amount Due</label>
-                                <input type="number" value={form.data.amount_due} onChange={e => form.setData('amount_due', e.target.value)} className="w-full border rounded px-2 py-2" />
-                            </div>
-                            <div>
-                                <label className="block text-xs text-gray-600">Status</label>
-                                <select value={form.data.status} onChange={e => form.setData('status', e.target.value)} className="w-full border rounded px-2 py-2">
-                                    <option>Draft</option>
-                                    <option>Paid</option>
-                                    <option>Unpaid</option>
-                                    <option>Cancelled</option>
-                                </select>
-                            </div>
-                        </div>
-                        <div className="mt-4 flex justify-end gap-2">
-                            <button type="button" onClick={() => setIsCreateOpen(false)} className="px-4 py-2 border rounded">Cancel</button>
-                            <button type="submit" disabled={form.processing} className="px-4 py-2 bg-teal-800 text-white rounded">Save</button>
-                        </div>
-                    </form>
-                </div>
-            )}
-
-            {/* Edit Modal */}
-            {isEditOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center">
-                    <div className="absolute inset-0 bg-black opacity-40" onClick={() => setIsEditOpen(false)} />
-                    <form onSubmit={submitEdit} className="bg-white rounded shadow p-6 z-10 w-11/12 max-w-2xl">
-                        <h3 className="text-lg font-semibold mb-4">Edit Invoice</h3>
-                        <div className="grid grid-cols-2 gap-3">
-                            <div>
-                                <label className="block text-xs text-gray-600">Invoice Number</label>
-                                <input value={form.data.invoice_number} onChange={e => form.setData('invoice_number', e.target.value)} className="w-full border rounded px-2 py-2" />
-                                {form.errors.invoice_number && <div className="text-red-600 text-xs">{form.errors.invoice_number}</div>}
-                            </div>
-                            <div>
-                                <label className="block text-xs text-gray-600">Date</label>
-                                <input type="date" value={form.data.date} onChange={e => form.setData('date', e.target.value)} className="w-full border rounded px-2 py-2" />
-                            </div>
-                            <div>
-                                <label className="block text-xs text-gray-600">Contact Person</label>
-                                <select value={form.data.company_contact_persons_id} onChange={e => form.setData('company_contact_persons_id', e.target.value)} className="w-full border rounded px-2 py-2">
-                                    <option value="">-- Select Contact --</option>
-                                    {contacts.map(c => (
-                                        <option key={c.id} value={c.id}>{c.name}</option>
-                                    ))}
-                                </select>
-                                {form.errors.company_contact_persons_id && <div className="text-red-600 text-xs">{form.errors.company_contact_persons_id}</div>}
-                            </div>
-                            <div>
-                                <label className="block text-xs text-gray-600">Invoice Amount</label>
-                                <input type="number" value={form.data.invoice_amout} onChange={e => form.setData('invoice_amout', e.target.value)} className="w-full border rounded px-2 py-2" />
-                            </div>
-                            <div>
-                                <label className="block text-xs text-gray-600">PPN</label>
-                                <input type="number" value={form.data.ppn} onChange={e => form.setData('ppn', e.target.value)} className="w-full border rounded px-2 py-2" />
-                            </div>
-                            <div>
-                                <label className="block text-xs text-gray-600">PPh</label>
-                                <input type="number" value={form.data.pph} onChange={e => form.setData('pph', e.target.value)} className="w-full border rounded px-2 py-2" />
-                            </div>
-                            <div>
-                                <label className="block text-xs text-gray-600">Amount Due</label>
-                                <input type="number" value={form.data.amount_due} onChange={e => form.setData('amount_due', e.target.value)} className="w-full border rounded px-2 py-2" />
-                            </div>
-                            <div>
-                                <label className="block text-xs text-gray-600">Status</label>
-                                <select value={form.data.status} onChange={e => form.setData('status', e.target.value)} className="w-full border rounded px-2 py-2">
-                                    <option>Draft</option>
-                                    <option>Paid</option>
-                                    <option>Unpaid</option>
-                                    <option>Cancelled</option>
-                                </select>
-                            </div>
-                        </div>
-                        <div className="mt-4 flex justify-end gap-2">
-                            <button type="button" onClick={() => setIsEditOpen(false)} className="px-4 py-2 border rounded">Cancel</button>
-                            <button type="submit" disabled={form.processing} className="px-4 py-2 bg-teal-800 text-white rounded">Update</button>
-                        </div>
-                    </form>
-                </div>
-            )}
-
-            {/* Delete Modal */}
-            {isDeleteOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center">
-                    <div className="absolute inset-0 bg-black opacity-40" onClick={() => setIsDeleteOpen(false)} />
-                    <div className="bg-white rounded shadow p-6 z-10 w-11/12 max-w-lg">
-                        <h3 className="text-lg font-semibold mb-4">Confirm Delete</h3>
-                        <p>Are you sure you want to delete this invoice?</p>
-                        <div className="mt-4 flex justify-end gap-2">
-                            <button type="button" onClick={() => setIsDeleteOpen(false)} className="px-4 py-2 border rounded">Cancel</button>
-                            <button type="button" onClick={submitDelete} className="px-4 py-2 bg-red-600 text-white rounded">Delete</button>
-                        </div>
-                    </div>
-                </div>
-            )}
         </div>
     );
 }

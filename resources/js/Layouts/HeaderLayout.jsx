@@ -507,6 +507,7 @@ export default function HeaderLayout({ header, children }) {
                                 method="post"
                                 href={route("logout")}
                                 as="button"
+                                onSuccess={() => window.location.href = '/'}
                                 className="block w-full px-4 py-2 text-start text-sm text-red-600 hover:bg-red-50"
                             >
                                 Logout
