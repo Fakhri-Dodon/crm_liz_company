@@ -402,15 +402,11 @@ public function store(Request $request)
     }
 }
 
-/**
- * Show company details with all related data.
- */
 public function show($id)
 {
     try {
         Log::info('=== SHOW COMPANY REQUEST ===');
         Log::info('Company ID: ' . $id);
-        Log::info('Request URL: ' . request()->fullUrl());
         
         // Cari company berdasarkan ID (UUID)
         $company = Company::with([
@@ -428,10 +424,17 @@ public function show($id)
 
         if (!$company) {
             Log::error('Company not found: ' . $id);
-            return response()->json([
-                'success' => false,
-                'message' => 'Company not found'
-            ], 404);
+            return Inertia::render('Companies/Show', [
+                'company' => null,
+                'quotations' => [],
+                'grouped_quotations' => [],
+                'invoices' => [],
+                'payments' => [],
+                'projects' => [],
+                'contacts' => [],
+                'statistics' => [],
+                'error' => 'Company not found'
+            ]);
         }
 
         Log::info('Company found:', [
@@ -562,67 +565,77 @@ public function show($id)
 
         // ==================== INVOICES LOGIC ====================
         Log::info('=== START INVOICES FETCHING ===');
-        
-        // Ambil semua invoices yang terkait dengan company ini
-        $invoices = $this->getCompanyInvoices($company);
-        
-        Log::info('Total invoices found: ' . $invoices->count());
-        
-        // Format invoices untuk response
+
+        // QUERY SINGKAT DAN PASTI BEKERJA
+        $invoices = DB::table('invoices as i')
+            ->select([
+                'i.id',
+                'i.invoice_number',
+                'i.date',
+                'i.invoice_amout as invoice_amount',
+                'i.amount_due',
+                'i.status',
+                'i.payment_terms',
+                'i.payment_type',
+                'i.note',
+                'i.ppn',
+                'i.pph',
+                'i.total',
+                'i.created_at',
+                'i.updated_at',
+                'l.contact_person',
+                'l.email',
+                'l.phone',
+                'ccp.position',
+                'q.quotation_number',
+                'q.subject'
+            ])
+            ->join('company_contact_persons as ccp', 'i.company_contact_persons_id', '=', 'ccp.id')
+            ->leftJoin('leads as l', 'ccp.lead_id', '=', 'l.id')
+            ->leftJoin('quotations as q', 'i.quotation_id', '=', 'q.id')
+            ->where('ccp.company_id', $company->id)
+            ->orderBy('i.date', 'desc')
+            ->get();
+
+        Log::info('Invoices found: ' . $invoices->count());
+
+        // Format data sederhana
         $formattedInvoices = $invoices->map(function($invoice) {
             return [
                 'id' => $invoice->id,
-                'quotation_id' => $invoice->quotation_id,
-                'company_contact_persons_id' => $invoice->company_contact_persons_id,
                 'invoice_number' => $invoice->invoice_number,
-                'date' => $invoice->date ? 
-                    (is_string($invoice->date) ? 
-                        $invoice->date : 
-                        $invoice->date->format('Y-m-d')) : null,
-                'invoice_amount' => (float) $invoice->invoice_amout, // Note: typo in column name
+                'date' => $invoice->date,
+                'invoice_amount' => (float) $invoice->invoice_amount,
+                'amount_due' => (float) $invoice->amount_due,
+                'status' => $invoice->status,
                 'payment_terms' => $invoice->payment_terms,
                 'payment_type' => $invoice->payment_type,
-                'payment_percentage' => $invoice->payment_percentage ? (float) $invoice->payment_percentage : null,
                 'note' => $invoice->note,
                 'ppn' => $invoice->ppn ? (float) $invoice->ppn : null,
                 'pph' => $invoice->pph ? (float) $invoice->pph : null,
                 'total' => $invoice->total ? (float) $invoice->total : null,
-                'amount_due' => (float) $invoice->amount_due,
-                'status' => strtolower($invoice->status), // Convert to lowercase for consistency
-                'status_display' => $invoice->status, // Original status
-                'created_at' => $invoice->created_at ? 
-                    (is_string($invoice->created_at) ? 
-                        $invoice->created_at : 
-                        $invoice->created_at->format('Y-m-d H:i:s')) : null,
-                'updated_at' => $invoice->updated_at ? 
-                    (is_string($invoice->updated_at) ? 
-                        $invoice->updated_at : 
-                        $invoice->updated_at->format('Y-m-d H:i:s')) : null,
-                // Tambahkan data quotation jika ada
-                'quotation' => $invoice->quotation ? [
-                    'id' => $invoice->quotation->id,
-                    'quotation_number' => $invoice->quotation->quotation_number,
-                    'subject' => $invoice->quotation->subject
+                'created_at' => $invoice->created_at,
+                'updated_at' => $invoice->updated_at,
+                'contact_person' => $invoice->contact_person ? [
+                    'name' => $invoice->contact_person,
+                    'email' => $invoice->email,
+                    'phone' => $invoice->phone,
+                    'position' => $invoice->position
                 ] : null,
-                // Tambahkan data contact person
-                'contact_person' => $invoice->contactPerson ? [
-                    'id' => $invoice->contactPerson->id,
-                    'name' => $invoice->contactPerson->name,
-                    'email' => $invoice->contactPerson->email,
-                    'phone' => $invoice->contactPerson->phone,
-                    'position' => $invoice->contactPerson->position
+                'quotation' => $invoice->quotation_number ? [
+                    'quotation_number' => $invoice->quotation_number,
+                    'subject' => $invoice->subject
                 ] : null
             ];
-        })->values();
-        
+        });
+
         Log::info('=== END INVOICES FETCHING ===');
         // ==================== END INVOICES LOGIC ====================
 
         // ==================== PAYMENTS LOGIC ====================
         Log::info('=== START PAYMENTS FETCHING ===');
         
-        // Ambil data payments dari database (asumsi tabel payments)
-        // Jika belum ada tabel payments, gunakan array kosong
+        // Ambil data payments dari database
         $payments = $this->getCompanyPayments($company);
         
         Log::info('Total payments found: ' . $payments->count());
@@ -632,7 +645,7 @@ public function show($id)
         // ==================== PROJECTS LOGIC ====================
         Log::info('=== START PROJECTS FETCHING ===');
         
-        // Ambil data projects dari database (asumsi tabel projects)
+        // Ambil data projects dari database
         $projects = $this->getCompanyProjects($company);
         
         Log::info('Total projects found: ' . $projects->count());
@@ -681,7 +694,6 @@ public function show($id)
             ] : null,
             'quotation_id' => $company->quotation_id,
             'lead_id' => $company->lead_id,
-            // Data contact person
             'contact_person' => $primaryContact ? $primaryContact->name : null,
             'contact_email' => $primaryContact ? $primaryContact->email : null,
             'contact_phone' => $primaryContact ? $primaryContact->phone : null,
@@ -784,58 +796,86 @@ public function show($id)
         Log::error('Error in company show: ' . $e->getMessage());
         Log::error('Stack trace: ' . $e->getTraceAsString());
         
-        return response()->json([
-            'success' => false,
-            'message' => 'Server error: ' . $e->getMessage(),
-            'error' => $e->getMessage(),
-            'trace' => $e->getTraceAsString()
-        ], 500);
+        // Redirect back with error message
+        return redirect()->back()->with('error', 'Error loading company data: ' . $e->getMessage());
     }
 }
 
 /**
- * Get invoices related to company through contact persons
+ * Get invoices related to a company via contact persons (WORKING VERSION)
  */
-private function getCompanyInvoices($company)
+private function getCompanyInvoices(Company $company)
 {
-    // Strategy 1: Cari invoices melalui company_contact_persons yang memiliki company_id sama
-    $contactPersonIds = DB::table('company_contact_persons')
-        ->where('company_id', $company->id)
-        ->where('deleted', 0)
-        ->pluck('id');
+    Log::info('=== GET COMPANY INVOICES ===');
+    Log::info('Company ID: ' . $company->id);
     
-    Log::info('Contact person IDs found: ' . $contactPersonIds->count());
-    
-    // Jika tidak ada contact persons melalui company_id, coba melalui lead_id
-    if ($contactPersonIds->isEmpty() && $company->lead_id) {
-        $contactPersonIds = DB::table('company_contact_persons')
-            ->where('lead_id', $company->lead_id)
-            ->where('deleted', 0)
-            ->pluck('id');
+    try {
+        // Gunakan Eloquent dengan eager loading yang benar
+        $invoices = Invoice::with([
+                'contactPerson' => function($query) {
+                    $query->where('deleted', 0)
+                          ->with(['lead', 'company']);
+                },
+                'quotation'
+            ])
+            ->whereHas('contactPerson', function($query) use ($company) {
+                $query->where('company_id', $company->id)
+                      ->where('deleted', 0);
+            })
+            ->orderBy('date', 'desc')
+            ->get();
         
-        Log::info('Contact person IDs found via lead_id: ' . $contactPersonIds->count());
-    }
-    
-    if ($contactPersonIds->isEmpty()) {
-        Log::info('No contact person IDs found for company/lead');
+        Log::info('Invoices found: ' . $invoices->count());
+        
+        // Debug: Tampilkan data yang ditemukan
+        if ($invoices->count() > 0) {
+            foreach ($invoices as $index => $invoice) {
+                Log::info("Invoice {$index}:", [
+                    'id' => $invoice->id,
+                    'invoice_number' => $invoice->invoice_number,
+                    'date' => $invoice->date,
+                    'amount' => $invoice->invoice_amout,
+                    'status' => $invoice->status,
+                    'company_contact_persons_id' => $invoice->company_contact_persons_id,
+                    'has_contact_person' => !is_null($invoice->contactPerson),
+                    'contact_person_name' => $invoice->contactPerson && $invoice->contactPerson->lead 
+                        ? $invoice->contactPerson->lead->contact_person 
+                        : 'No name',
+                    'contact_person_company_id' => $invoice->contactPerson ? $invoice->contactPerson->company_id : 'none'
+                ]);
+            }
+        } else {
+            Log::info('No invoices found via Eloquent, trying direct query...');
+            
+            // Fallback: Query langsung
+            $invoices = DB::table('invoices')
+                ->select('invoices.*')
+                ->join('company_contact_persons', 'invoices.company_contact_persons_id', '=', 'company_contact_persons.id')
+                ->where('company_contact_persons.company_id', $company->id)
+                ->where('company_contact_persons.deleted', 0)
+                ->orderBy('invoices.date', 'desc')
+                ->get();
+            
+            Log::info('Direct query result: ' . $invoices->count());
+            
+            // Convert to Eloquent models jika ditemukan
+            if ($invoices->isNotEmpty()) {
+                $invoiceIds = $invoices->pluck('id')->toArray();
+                $invoices = Invoice::with(['contactPerson.lead', 'contactPerson.company', 'quotation'])
+                    ->whereIn('id', $invoiceIds)
+                    ->get();
+            }
+        }
+        
+        return $invoices;
+        
+    } catch (\Exception $e) {
+        Log::error('Error in getCompanyInvoices: ' . $e->getMessage());
+        Log::error('Stack trace: ' . $e->getTraceAsString());
         return collect();
     }
-    
-    // Ambil invoices yang terkait dengan contact person IDs
-    $invoices = Invoice::with([
-        'quotation:id,quotation_number,subject',
-        'contactPerson:id,name,email,phone,position'
-    ])
-    ->whereIn('company_contact_persons_id', $contactPersonIds)
-    ->where('deleted', 0)
-    ->orderBy('date', 'desc')
-    ->orderBy('invoice_number', 'desc')
-    ->get();
-    
-    Log::info('Invoices fetched: ' . $invoices->count());
-    
-    return $invoices;
 }
+
 
 /**
  * Get payments related to company

@@ -14,7 +14,6 @@ class CompanyContactPerson extends Model
     public $incrementing = false;
     protected $keyType = 'string';
     
-    // PERBAIKI: Hanya kolom yang ada di database
     protected $fillable = [
         'id',
         'company_id',
@@ -27,7 +26,6 @@ class CompanyContactPerson extends Model
         'deleted_by',
         'deleted',
         'deleted_at'
-        // HAPUS: 'name', 'email', 'phone' karena tidak ada di database
     ];
 
     protected $casts = [
@@ -38,6 +36,8 @@ class CompanyContactPerson extends Model
         'updated_at' => 'datetime',
         'deleted_at' => 'datetime'
     ];
+
+    protected $appends = ['name', 'email', 'phone'];
 
     protected static function boot()
     {
@@ -79,7 +79,7 @@ class CompanyContactPerson extends Model
         return $this->belongsTo(Lead::class, 'lead_id', 'id');
     }
 
-    // Accessor untuk mendapatkan nama dari lead jika ada
+    // Accessors - HARUS ADA DI DALAM CLASS
     public function getNameAttribute()
     {
         // Jika ada lead, ambil nama dari lead
@@ -87,7 +87,6 @@ class CompanyContactPerson extends Model
             return $this->lead->contact_person;
         }
         
-        // Jika ada relasi lain yang menyimpan nama
         return $this->attributes['name'] ?? null;
     }
 
@@ -108,7 +107,4 @@ class CompanyContactPerson extends Model
         
         return $this->attributes['phone'] ?? null;
     }
-
-    // Jika perlu menyimpan data sementara (tidak ke database)
-    protected $appends = ['name', 'email', 'phone'];
 }
