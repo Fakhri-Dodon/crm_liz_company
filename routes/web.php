@@ -13,6 +13,7 @@ use App\Http\Controllers\EmailSettingsController;
 use App\Http\Controllers\CompanyController;
 use App\Http\Controllers\EmailController;
 use App\Http\Controllers\InvoiceController;
+use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\Quotation\QuotationController;
 use App\Http\Controllers\ProposalController;
 use App\Http\Controllers\ProposalNumberFormated;
@@ -73,8 +74,15 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // notif send document(quotation/invoice)email
     Route::post('/send-email/{type}/{id}', [EmailController::class, 'sendDocument'])->name('email.send-document');
 
-    // Route::get('/invoice', fn() => Inertia::render('Invoices/Index'))->name('invoice.index');
-    Route::get('/payment', fn() => Inertia::render('Payments/Index'))->name('payment.index');
+    // Payment routes
+    Route::prefix('payment')->name('payment.')->group(function () {
+        Route::get('/', [PaymentController::class, 'index'])->name('index');
+        Route::get('/invoices', [PaymentController::class, 'getInvoices'])->name('get-invoices');
+        Route::post('/store', [PaymentController::class, 'store'])->name('store');
+        Route::patch('/update/{payment}', [PaymentController::class, 'update'])->name('update');
+        Route::delete('/destroy/{payment}', [PaymentController::class, 'destroy'])->name('destroy');
+    });
+
     Route::get('/email', fn() => Inertia::render('Email/Index'))->name('email.index');
     // Route::get('/user', fn() => Inertia::render('Users/Index'))->name('user.index');
     // Route::get('/project', fn() => Inertia::render('Projects/Index'))->name('project.index');

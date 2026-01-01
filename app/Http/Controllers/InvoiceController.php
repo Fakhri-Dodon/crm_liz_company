@@ -17,13 +17,28 @@ class InvoiceController extends Controller
 {
     public function index(Request $request)
     {
-        $invoices = Invoice::with(['contactPerson', 'items'])->orderBy('created_at', 'desc')->get();
+        $invoices = Invoice::with(['contactPerson.company.lead', 'contactPerson.lead', 'items'])->orderBy('created_at', 'desc')->get();
         $data = $invoices->map(function ($inv) {
+            // Get company name from the proper source
+            $contactPerson = $inv->contactPerson;
+            $companyName = 'N/A';
+            
+            if ($contactPerson) {
+                // Check if it's a client (has company_id)
+                if ($contactPerson->company_id && $contactPerson->company) {
+                    // Get company name from the lead associated with the company
+                    $companyName = optional($contactPerson->company->lead)->company_name ?? 'N/A';
+                } elseif ($contactPerson->lead_id && $contactPerson->lead) {
+                    // Get company name directly from lead
+                    $companyName = $contactPerson->lead->company_name ?? 'N/A';
+                }
+            }
+            
             return [
                 'id' => $inv->id,
                 'number' => $inv->invoice_number,
                 'date' => optional($inv->date)->format('Y-m-d') ?? $inv->date,
-                'company' => optional($inv->contactPerson)->company_name ?? optional($inv->contactPerson)->name ?? 'N/A',
+                'company' => $companyName,
                 'company_id' => $inv->company_contact_persons_id,
                 'amount' => (int) $inv->invoice_amout,
                 'paid_amount' => (int) ($inv->total - $inv->amount_due),
@@ -493,6 +508,6 @@ class InvoiceController extends Controller
         $invoice->status = $validated['status'];
         $invoice->save();
 
-        return back()->with('success', 'Invoice status updated successfully.');
+        return redirect()->back()->with('success', 'Invoice status updated successfully.');
     }
 }
