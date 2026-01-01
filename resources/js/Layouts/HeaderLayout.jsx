@@ -29,8 +29,12 @@ export default function HeaderLayout({ header, children }) {
     const [isHamburgerNotifOpen, setIsHamburgerNotifOpen] = useState(false);
     const [isHamburgerLangOpen, setIsHamburgerLangOpen] = useState(false);
     const hamburgerRef = useRef(null);
-    const [localNotifications, setLocalNotifications] = useState(props.auth.notifications || []);
-    const [unreadCount, setUnreadCount] = useState(props.auth.unreadNotificationsCount || 0);
+    const [localNotifications, setLocalNotifications] = useState(
+        props.auth.notifications || []
+    );
+    const [unreadCount, setUnreadCount] = useState(
+        props.auth.unreadNotificationsCount || 0
+    );
 
     console.log(localNotifications);
 
@@ -60,16 +64,16 @@ export default function HeaderLayout({ header, children }) {
     // ];
 
     const menus = [
-        { name: t('menus.dashboard'), path: "/dashboard" },
-        { name: t('menus.clients'), path: "/companies" },
-        { name: t('menus.lead'), path: "/lead" },
-        { name: t('menus.proposal'), path: "/proposal" },
-        { name: t('menus.quotation'), path: "/quotation" },
-        { name: t('menus.invoice'), path: "/invoice" },
-        { name: t('menus.payment'), path: "/payment" },
-        { name: t('menus.project'), path: "/projects" },
-        { name: t('menus.email'), path: "/email" },
-        { name: t('menus.user'), path: "/user" },
+        { name: t("menus.dashboard"), path: "/dashboard" },
+        { name: t("menus.clients"), path: "/companies" },
+        { name: t("menus.lead"), path: "/lead" },
+        { name: t("menus.proposal"), path: "/proposal" },
+        { name: t("menus.quotation"), path: "/quotation" },
+        { name: t("menus.invoice"), path: "/invoice" },
+        { name: t("menus.payment"), path: "/payment" },
+        { name: t("menus.project"), path: "/projects" },
+        { name: t("menus.email"), path: "/email" },
+        { name: t("menus.user"), path: "/user" },
     ];
 
     const handleReviseClick = (id) => {
@@ -78,8 +82,13 @@ export default function HeaderLayout({ header, children }) {
     };
 
     const submitRevision = () => {
+        const targetNotif = localNotifications.find(
+            (n) => n.data.id === selectedDocId
+        );
+        const type = targetNotif?.data?.type;
+
         router.post(
-            `/quotation/status-notify/${selectedDocId}`,
+            route(`${type}.notification-status`, { id: selectedDocId }),
             {
                 status: "revised",
                 revision_note: note, // Kirim note revisi ke backend
@@ -127,9 +136,9 @@ export default function HeaderLayout({ header, children }) {
         );
     };
 
-    const handleApproveClick = (id) => {
+    const handleApproveClick = (id, type) => {
         Swal.fire({
-            title: "Approve Quotation?",
+            title: `Approve ${type.toUpperCase()}?`,
             text: "Status akan diubah menjadi Approved.",
             icon: "question",
             showCancelButton: true,
@@ -138,7 +147,7 @@ export default function HeaderLayout({ header, children }) {
         }).then((result) => {
             if (result.isConfirmed) {
                 router.post(
-                    `/quotation/status-notify/${id}`,
+                    route(`${type}.notification-status`, { id: id }),
                     {
                         status: "approved",
                     },
@@ -162,57 +171,71 @@ export default function HeaderLayout({ header, children }) {
     const markNotificationsAsRead = () => {
         if (unreadCount > 0) {
             router.post(
-                "/quotation/notifications/mark-all-read",
+                "/notifications/mark-all-read",
                 {},
                 {
                     preserveScroll: true,
                     preserveState: true,
-                    onSuccess: () => {
-                        // Titik merah bakal ilang karena unreadCount jadi 0
-                    },
                 }
             );
         }
     };
 
-    const getPreviewHref = (data) => {
-        if (!data) return '#';
+    const getPreviewHref = (data, type) => {
+        if (!data) return "#";
         if (data.url) return data.url;
 
-        const pdfPath = data.pdf_path || data.pdfPath || data.pdf_url || data.pdfUrl || data.path;
-        if (pdfPath) return `/storage/${String(pdfPath).replace(/^\//, '')}`;
+        const pdfPath =
+            data.pdf_path ||
+            data.pdfPath ||
+            data.pdf_url ||
+            data.pdfUrl ||
+            data.path;
+        if (pdfPath) return `/storage/${String(pdfPath).replace(/^\//, "")}`;
 
-        if (data.id) return `/quotation/preview/${data.id}`;
+        if (data.id) return `/${type}/preview/${data.id}`;
 
-        return '#';
+        return "#";
     };
 
     const handlePreviewClick = (data) => {
         const href = getPreviewHref(data);
-        if (!href || href === '#') {
-            Swal.fire({ icon: 'error', title: 'File tidak tersedia', toast: true, position: 'top-end', timer: 2500, showConfirmButton: false });
+        if (!href || href === "#") {
+            Swal.fire({
+                icon: "error",
+                title: "File tidak tersedia",
+                toast: true,
+                position: "top-end",
+                timer: 2500,
+                showConfirmButton: false,
+            });
             return;
         }
-        window.open(href, '_blank', 'noopener,noreferrer');
+        window.open(href, "_blank", "noopener,noreferrer");
     };
 
     useEffect(() => {
         if (user) {
-            window.Echo.private(`App.Models.User.${user.id}`)
-                .notification((notification) => {
+            window.Echo.private(`App.Models.User.${user.id}`).notification(
+                (notification) => {
                     console.log("Notif baru diterima:", notification);
-                    
+
                     // Trigger Inertia untuk ambil data terbaru dari HandleInertiaRequests
-                    router.reload({ 
-                        only: ['auth'], 
+                    router.reload({
+                        only: ["auth"],
                         preserveScroll: true,
                         onSuccess: (page) => {
                             // Paksa update state setelah reload berhasil
-                            setLocalNotifications(page.props.auth.notifications);
-                            setUnreadCount(page.props.auth.unreadNotificationsCount);
-                        }
+                            setLocalNotifications(
+                                page.props.auth.notifications
+                            );
+                            setUnreadCount(
+                                page.props.auth.unreadNotificationsCount
+                            );
+                        },
                     });
-                });
+                }
+            );
         }
 
         return () => window.Echo.leave(`App.Models.User.${user.id}`);
@@ -223,21 +246,24 @@ export default function HeaderLayout({ header, children }) {
         if (!isHamburgerOpen) return;
 
         function onKey(e) {
-            if (e.key === 'Escape') setIsHamburgerOpen(false);
+            if (e.key === "Escape") setIsHamburgerOpen(false);
         }
 
         function onClick(e) {
-            if (hamburgerRef.current && !hamburgerRef.current.contains(e.target)) {
+            if (
+                hamburgerRef.current &&
+                !hamburgerRef.current.contains(e.target)
+            ) {
                 setIsHamburgerOpen(false);
             }
         }
 
-        document.addEventListener('keydown', onKey);
-        document.addEventListener('mousedown', onClick);
+        document.addEventListener("keydown", onKey);
+        document.addEventListener("mousedown", onClick);
 
         return () => {
-            document.removeEventListener('keydown', onKey);
-            document.removeEventListener('mousedown', onClick);
+            document.removeEventListener("keydown", onKey);
+            document.removeEventListener("mousedown", onClick);
         };
     }, [isHamburgerOpen]);
 
@@ -322,9 +348,7 @@ export default function HeaderLayout({ header, children }) {
 
                     <Dropdown>
                         <Dropdown.Trigger>
-                            <div
-                                className="relative flex flex-col items-center p-2 hover:bg-gray-50 rounded-xl transition-all group cursor-pointer"
-                            >
+                            <div className="relative flex flex-col items-center p-2 hover:bg-gray-50 rounded-xl transition-all group cursor-pointer">
                                 <Bell
                                     size={22}
                                     className="text-gray-500 group-hover:text-teal-600 transition-colors"
@@ -342,7 +366,9 @@ export default function HeaderLayout({ header, children }) {
                         </Dropdown.Trigger>
                         <Dropdown.Content align="right" width="80">
                             <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
-                                <span className="font-bold text-sm">Notifications</span>
+                                <span className="font-bold text-sm">
+                                    Notifications
+                                </span>
                                 {unreadCount > 0 && (
                                     <button
                                         onClick={markNotificationsAsRead}
@@ -355,73 +381,149 @@ export default function HeaderLayout({ header, children }) {
 
                             <div className="max-h-80 overflow-y-auto divide-y divide-gray-100">
                                 {localNotifications.length > 0 ? (
-                                    localNotifications.map((n) => (
-                                        <div key={n.id} className="px-4 py-3 hover:bg-gray-50 transition-colors">
-                                            <div className="flex items-start justify-between gap-3">
-                                                <div className="flex-1">
-                                                    <p className="text-sm text-gray-800 font-medium">{n.data.message}</p>
-                                                    {n.data?.meta && (
-                                                        <div className="text-xs text-gray-500 mt-1">{n.data.meta}</div>
-                                                    )}
+                                    localNotifications.map((n) => {
+                                        const docType = n.data.type;
+                                        const docId = n.data.id;
+                                        const status = n.data.status;
+
+                                        return (
+                                            <div
+                                                key={n.id}
+                                                className={`px-4 py-3 hover:bg-gray-50 transition-colors border-b ${
+                                                    !n.read_at
+                                                        ? "bg-blue-50/50"
+                                                        : ""
+                                                }`}
+                                            >
+                                                <div className="flex items-start justify-between gap-3">
+                                                    <div className="flex-1">
+                                                        <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-slate-200 text-slate-700 uppercase mb-1 inline-block">
+                                                            {docType}
+                                                        </span>
+                                                        <p className="text-sm text-gray-800 font-medium">
+                                                            {n.data.message}
+                                                        </p>
+                                                        {n.data?.meta && (
+                                                            <div className="text-xs text-gray-500 mt-1 italic">
+                                                                "{n.data.meta}"
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                    <div className="ml-2 text-right">
+                                                        <span
+                                                            className={`inline-block text-[10px] px-2 py-0.5 rounded-full font-bold uppercase ${
+                                                                status ===
+                                                                "approved"
+                                                                    ? "bg-green-100 text-green-800"
+                                                                    : status ===
+                                                                      "revised"
+                                                                    ? "bg-orange-100 text-orange-800"
+                                                                    : "bg-yellow-100 text-yellow-800"
+                                                            }`}
+                                                        >
+                                                            {status}
+                                                        </span>
+                                                    </div>
                                                 </div>
-                                                <div className="ml-2 text-right">
-                                                    {n.data.status === 'draft' && (
-                                                        <span className="inline-block text-xs px-2 py-0.5 rounded-full bg-yellow-100 text-yellow-800">DRAFT</span>
+
+                                                <div className="mt-3 flex flex-wrap items-center gap-2">
+                                                    {/* AKSI UNTUK MANAGER (APPROVE/REVISE) */}
+                                                    {user.role_name ===
+                                                        "Manager" &&
+                                                        status === "draft" && (
+                                                            <>
+                                                                <button
+                                                                    onClick={() =>
+                                                                        handleApproveClick(
+                                                                            docId,
+                                                                            docType
+                                                                        )
+                                                                    }
+                                                                    className="px-3 py-1.5 text-[10px] font-bold rounded-md bg-teal-600 text-white hover:bg-teal-700 transition"
+                                                                >
+                                                                    APPROVE
+                                                                </button>
+                                                                <button
+                                                                    onClick={() =>
+                                                                        handleReviseClick(
+                                                                            docId
+                                                                        )
+                                                                    }
+                                                                    className="px-3 py-1.5 text-[10px] font-bold rounded-md bg-red-500 text-white hover:bg-red-600 transition"
+                                                                >
+                                                                    REVISE
+                                                                </button>
+                                                            </>
+                                                        )}
+
+                                                    {/* AKSI UNTUK STAFF (EDIT KALAU REVISED / SEND KALAU APPROVED) */}
+                                                    {user.role_name !==
+                                                        "Manager" && (
+                                                        <>
+                                                            {status ===
+                                                                "approved" && (
+                                                                <Link
+                                                                    href={route(
+                                                                        "markAsSent",
+                                                                        docId
+                                                                    )}
+                                                                    method="post"
+                                                                    as="button"
+                                                                    className="inline-flex items-center gap-2 px-3 py-1.5 bg-orange-500 text-white text-[10px] font-bold rounded-md hover:bg-orange-600 transition"
+                                                                >
+                                                                    <Send
+                                                                        size={
+                                                                            10
+                                                                        }
+                                                                    />{" "}
+                                                                    {t(
+                                                                        "header.send_to_client"
+                                                                    ) ||
+                                                                        "SEND TO CLIENT"}
+                                                                </Link>
+                                                            )}
+
+                                                            {status ===
+                                                                "revised" && (
+                                                                <Link
+                                                                    href={route(
+                                                                        `${docType}.edit`,
+                                                                        docId
+                                                                    )}
+                                                                    className="inline-flex items-center gap-2 px-3 py-1.5 bg-blue-600 text-white text-[10px] font-bold rounded-md hover:bg-blue-700 transition"
+                                                                >
+                                                                    <FiEdit2
+                                                                        size={
+                                                                            10
+                                                                        }
+                                                                    />{" "}
+                                                                    EDIT{" "}
+                                                                    {docType.toUpperCase()}
+                                                                </Link>
+                                                            )}
+                                                        </>
                                                     )}
-                                                    {n.data.status === 'approved' && (
-                                                        <span className="inline-block text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-800">APPROVED</span>
-                                                    )}
+
+                                                    {/* TOMBOL PREVIEW (ALWAYS AVAILABLE) */}
+                                                    <button
+                                                        onClick={() =>
+                                                            handlePreviewClick(
+                                                                n.data
+                                                            )
+                                                        }
+                                                        className="px-3 py-1.5 text-[10px] font-bold rounded-md bg-slate-100 text-slate-600 hover:bg-slate-200 transition"
+                                                    >
+                                                        PREVIEW
+                                                    </button>
                                                 </div>
                                             </div>
-
-                                            <div className="mt-3 flex items-center gap-2">
-                                                {user.role_name === 'Manager' && n.data.status === 'draft' && (
-                                                    <>
-                                                        <button
-                                                            onClick={() => handleApproveClick(n.data.id)}
-                                                            className="px-3 py-1.5 text-xs rounded-md bg-teal-600 text-white hover:bg-teal-700"
-                                                        >
-                                                            APPROVE
-                                                        </button>
-                                                        <button
-                                                            onClick={() => handleReviseClick(n.data.id)}
-                                                            className="px-3 py-1.5 text-xs rounded-md bg-red-500 text-white hover:bg-red-600"
-                                                        >
-                                                            REVISE
-                                                        </button>
-                                                        <button
-                                                            onClick={() => handlePreviewClick(n.data)}
-                                                            className="px-3 py-1.5 text-xs rounded-md bg-blue-500 text-white hover:bg-red-600"
-                                                        >
-                                                            PREVIEW
-                                                        </button>
-                                                    </>
-                                                )}
-
-                                                {user.role_name !== 'Manager' && n.data.status === 'approved' && (
-                                                    <Link
-                                                        href={route('quotation.markAsSent', n.data.id)}
-                                                        method="post"
-                                                        className="inline-flex items-center gap-2 px-3 py-1.5 bg-orange-500 text-white text-xs rounded-md hover:bg-orange-600"
-                                                    >
-                                                        <Send size={12} /> {t('header.send_to_client') || 'SEND'}
-                                                    </Link>
-                                                )}
-
-                                                {user.role_name !== 'Manager' && n.data.status === 'revised' && (
-                                                    <Link
-                                                        href={route('quotation.edit', n.data.id)}
-                                                        onClick={() => setIsHamburgerOpen(false)}
-                                                        className="inline-flex items-center gap-2 px-3 py-1.5 bg-orange-500 text-white text-xs rounded-md hover:bg-orange-600"
-                                                    >
-                                                        <FiEdit2 className="w-4 h-4" />EDIT
-                                                    </Link>
-                                                )}
-                                            </div>
-                                        </div>
-                                    ))
+                                        );
+                                    })
                                 ) : (
-                                    <div className="p-6 text-center text-gray-400 text-sm">No notifications</div>
+                                    <div className="p-6 text-center text-gray-400 text-sm italic">
+                                        {t("header.no_notifications") ||
+                                            "No notifications"}
+                                    </div>
                                 )}
                             </div>
                         </Dropdown.Content>
@@ -507,7 +609,7 @@ export default function HeaderLayout({ header, children }) {
                                 method="post"
                                 href={route("logout")}
                                 as="button"
-                                onSuccess={() => window.location.href = '/'}
+                                onSuccess={() => (window.location.href = "/")}
                                 className="block w-full px-4 py-2 text-start text-sm text-red-600 hover:bg-red-50"
                             >
                                 Logout
@@ -519,50 +621,153 @@ export default function HeaderLayout({ header, children }) {
                 {/* Hamburger for small screens */}
                 <div className="sm:hidden relative">
                     <button
-                        onClick={() => setIsHamburgerOpen(prev => !prev)}
+                        onClick={() => setIsHamburgerOpen((prev) => !prev)}
                         className="p-2 rounded-lg hover:bg-gray-100 transition"
                         aria-expanded={isHamburgerOpen}
                         aria-label="Open menu"
                     >
-                        <svg className="w-6 h-6 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                        <svg
+                            className="w-6 h-6 text-gray-700"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                        >
+                            <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M4 6h16M4 12h16M4 18h16"
+                            />
                         </svg>
                     </button>
 
                     {isHamburgerOpen && (
                         <>
-                            <div className="fixed inset-0 z-40" onClick={() => setIsHamburgerOpen(false)} aria-hidden="true"></div>
-                            <div ref={hamburgerRef} className="absolute right-0 mt-2 w-72 bg-white border border-gray-100 rounded-xl shadow-xl z-50 py-2 transform transition ease-out duration-150 origin-top-right">
+                            <div
+                                className="fixed inset-0 z-40"
+                                onClick={() => setIsHamburgerOpen(false)}
+                                aria-hidden="true"
+                            ></div>
+                            <div
+                                ref={hamburgerRef}
+                                className="absolute right-0 mt-2 w-72 bg-white border border-gray-100 rounded-xl shadow-xl z-50 py-2 transform transition ease-out duration-150 origin-top-right"
+                            >
                                 <div className="px-3 py-2">
-                                    <Link href="/setting/general" onClick={() => setIsHamburgerOpen(false)} className="block px-2 py-2 rounded-md text-sm text-gray-700 hover:bg-gray-50 hover:shadow-sm">{t('header.setting') || 'Setting'}</Link>
+                                    <Link
+                                        href="/setting/general"
+                                        onClick={() =>
+                                            setIsHamburgerOpen(false)
+                                        }
+                                        className="block px-2 py-2 rounded-md text-sm text-gray-700 hover:bg-gray-50 hover:shadow-sm"
+                                    >
+                                        {t("header.setting") || "Setting"}
+                                    </Link>
 
                                     <div className="mt-2">
-                                        <button onClick={() => setIsHamburgerNotifOpen(v => !v)} className="w-full flex items-center justify-between px-2 py-2 rounded-md hover:bg-gray-50">
-                                            <span className="text-sm font-medium text-gray-700">{t('header.notifications')}</span>
-                                            {unreadCount > 0 && <span className="text-xs text-red-600 font-bold">{unreadCount}</span>}
+                                        <button
+                                            onClick={() =>
+                                                setIsHamburgerNotifOpen(
+                                                    (v) => !v
+                                                )
+                                            }
+                                            className="w-full flex items-center justify-between px-2 py-2 rounded-md hover:bg-gray-50"
+                                        >
+                                            <span className="text-sm font-medium text-gray-700">
+                                                {t("header.notifications")}
+                                            </span>
+                                            {unreadCount > 0 && (
+                                                <span className="text-xs text-red-600 font-bold">
+                                                    {unreadCount}
+                                                </span>
+                                            )}
                                         </button>
 
                                         {isHamburgerNotifOpen && (
                                             <div className="max-h-48 overflow-y-auto mt-2 border rounded-md">
                                                 {notifications.length > 0 ? (
                                                     notifications.map((n) => (
-                                                        <div key={n.id} className="px-2 py-2 border-b last:border-b-0">
-                                                            <p className="text-xs font-semibold text-gray-700">{n.data.message}</p>
-                                                            {user.role_name === 'Manager' && n.data.status === 'draft' && (
-                                                                <div className="mt-2 flex gap-2">
-                                                                    <button onClick={() => { handleApproveClick(n.data.id); setIsHamburgerOpen(false); }} className="flex-1 bg-teal-600 text-white text-xs py-1 rounded-md">APPROVE</button>
-                                                                    <button onClick={() => { handleReviseClick(n.data.id); setIsHamburgerOpen(false); }} className="flex-1 bg-red-500 text-white text-xs py-1 rounded-md">REVISE</button>
-                                                                </div>
-                                                            )}
-                                                            {user.role_name !== 'Manager' && n.data.status === 'approved' && (
-                                                                <Link href={route('quotation.markAsSent', n.data.id)} method="post" onClick={() => setIsHamburgerOpen(false)} className="mt-2 inline-flex items-center gap-2 bg-orange-500 text-white text-xs px-2 py-1 rounded-md">
-                                                                    <Send size={12} /> {t('header.send_to_client') || 'Send'}
-                                                                </Link>
-                                                            )}
+                                                        <div
+                                                            key={n.id}
+                                                            className="px-2 py-2 border-b last:border-b-0"
+                                                        >
+                                                            <p className="text-xs font-semibold text-gray-700">
+                                                                {n.data.message}
+                                                            </p>
+                                                            {user.role_name ===
+                                                                "Manager" &&
+                                                                n.data
+                                                                    .status ===
+                                                                    "draft" && (
+                                                                    <div className="mt-2 flex gap-2">
+                                                                        <button
+                                                                            onClick={() => {
+                                                                                handleApproveClick(
+                                                                                    n
+                                                                                        .data
+                                                                                        .id
+                                                                                );
+                                                                                setIsHamburgerOpen(
+                                                                                    false
+                                                                                );
+                                                                            }}
+                                                                            className="flex-1 bg-teal-600 text-white text-xs py-1 rounded-md"
+                                                                        >
+                                                                            APPROVE
+                                                                        </button>
+                                                                        <button
+                                                                            onClick={() => {
+                                                                                handleReviseClick(
+                                                                                    n
+                                                                                        .data
+                                                                                        .id
+                                                                                );
+                                                                                setIsHamburgerOpen(
+                                                                                    false
+                                                                                );
+                                                                            }}
+                                                                            className="flex-1 bg-red-500 text-white text-xs py-1 rounded-md"
+                                                                        >
+                                                                            REVISE
+                                                                        </button>
+                                                                    </div>
+                                                                )}
+                                                            {user.role_name !==
+                                                                "Manager" &&
+                                                                n.data
+                                                                    .status ===
+                                                                    "approved" && (
+                                                                    <Link
+                                                                        href={route(
+                                                                            "quotation.markAsSent",
+                                                                            n
+                                                                                .data
+                                                                                .id
+                                                                        )}
+                                                                        method="post"
+                                                                        onClick={() =>
+                                                                            setIsHamburgerOpen(
+                                                                                false
+                                                                            )
+                                                                        }
+                                                                        className="mt-2 inline-flex items-center gap-2 bg-orange-500 text-white text-xs px-2 py-1 rounded-md"
+                                                                    >
+                                                                        <Send
+                                                                            size={
+                                                                                12
+                                                                            }
+                                                                        />{" "}
+                                                                        {t(
+                                                                            "header.send_to_client"
+                                                                        ) ||
+                                                                            "Send"}
+                                                                    </Link>
+                                                                )}
                                                         </div>
                                                     ))
                                                 ) : (
-                                                    <div className="p-3 text-center text-gray-400 text-xs">No notifications</div>
+                                                    <div className="p-3 text-center text-gray-400 text-xs">
+                                                        No notifications
+                                                    </div>
                                                 )}
                                             </div>
                                         )}
@@ -570,14 +775,41 @@ export default function HeaderLayout({ header, children }) {
 
                                     {allowChange && (
                                         <div className="mt-3">
-                                            <button onClick={() => setIsHamburgerLangOpen(v => !v)} className="w-full flex items-center justify-between px-2 py-2 rounded-md hover:bg-gray-50">
-                                                <span className="text-sm font-medium text-gray-700">Language</span>
-                                                <span className="text-xs text-gray-500">{isHamburgerLangOpen ? '-' : '+'}</span>
+                                            <button
+                                                onClick={() =>
+                                                    setIsHamburgerLangOpen(
+                                                        (v) => !v
+                                                    )
+                                                }
+                                                className="w-full flex items-center justify-between px-2 py-2 rounded-md hover:bg-gray-50"
+                                            >
+                                                <span className="text-sm font-medium text-gray-700">
+                                                    Language
+                                                </span>
+                                                <span className="text-xs text-gray-500">
+                                                    {isHamburgerLangOpen
+                                                        ? "-"
+                                                        : "+"}
+                                                </span>
                                             </button>
                                             {isHamburgerLangOpen && (
                                                 <div className="mt-2 flex gap-2 flex-wrap">
-                                                    {languages.map(lang => (
-                                                        <button key={lang.code} onClick={() => { i18n.changeLanguage(lang.code); setIsHamburgerOpen(false); }} className="px-2 py-1 rounded-md text-sm hover:bg-gray-50">{lang.flag} {lang.code.toUpperCase()}</button>
+                                                    {languages.map((lang) => (
+                                                        <button
+                                                            key={lang.code}
+                                                            onClick={() => {
+                                                                i18n.changeLanguage(
+                                                                    lang.code
+                                                                );
+                                                                setIsHamburgerOpen(
+                                                                    false
+                                                                );
+                                                            }}
+                                                            className="px-2 py-1 rounded-md text-sm hover:bg-gray-50"
+                                                        >
+                                                            {lang.flag}{" "}
+                                                            {lang.code.toUpperCase()}
+                                                        </button>
                                                     ))}
                                                 </div>
                                             )}
@@ -585,8 +817,26 @@ export default function HeaderLayout({ header, children }) {
                                     )}
 
                                     <div className="mt-3 border-t pt-3">
-                                        <Link href="/profile" onClick={() => setIsHamburgerOpen(false)} className="block px-2 py-2 text-sm text-gray-700 hover:bg-gray-50">Profile</Link>
-                                        <Link method="post" href={route('logout')} as="button" onClick={() => setIsHamburgerOpen(false)} className="block w-full text-left px-2 py-2 text-sm text-red-600 hover:bg-red-50">Logout</Link>
+                                        <Link
+                                            href="/profile"
+                                            onClick={() =>
+                                                setIsHamburgerOpen(false)
+                                            }
+                                            className="block px-2 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                                        >
+                                            Profile
+                                        </Link>
+                                        <Link
+                                            method="post"
+                                            href={route("logout")}
+                                            as="button"
+                                            onClick={() =>
+                                                setIsHamburgerOpen(false)
+                                            }
+                                            className="block w-full text-left px-2 py-2 text-sm text-red-600 hover:bg-red-50"
+                                        >
+                                            Logout
+                                        </Link>
                                     </div>
                                 </div>
                             </div>
@@ -600,7 +850,10 @@ export default function HeaderLayout({ header, children }) {
             <nav className="min-h-[4rem] bg-teal-800 flex items-center px-2 sm:px-4 py-3 md:px-8 shadow-inner overflow-x-auto">
                 <ul className="flex flex-nowrap md:flex-wrap items-center justify-center md:justify-start gap-y-3 gap-x-3 md:gap-x-4 w-max md:w-full">
                     {menus.map((item) => (
-                        <li key={item.path} className="flex-shrink-0 md:flex-shrink">
+                        <li
+                            key={item.path}
+                            className="flex-shrink-0 md:flex-shrink"
+                        >
                             <Link
                                 href={item.path}
                                 className={`inline-block min-w-[9rem] md:min-w-0 text-center px-3 py-2 rounded-lg font-bold text-[10px] md:text-xs lg:text-sm uppercase tracking-wider transition-all hover:shadow-sm ${

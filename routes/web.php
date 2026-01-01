@@ -21,10 +21,10 @@ use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Artisan;
 use Inertia\Inertia;
 
-Route::get('/run-migration', function () {
-    Artisan::call('migrate --force');
-    return "Migration success!";
-});
+// Route::get('/run-migration', function () {
+//     Artisan::call('migrate --force');
+//     return "Migration success!";
+// });
 
 Route::get('/', function () {
     return Inertia::render('Auth/Login', [
@@ -57,10 +57,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::patch('/update/{quotation}', [QuotationController::class, 'update'])->name('update');
         Route::delete('/destroy/{quotation}', [QuotationController::class, 'destroy'])->name('destroy');
         Route::post('/status-notify/{id}', [QuotationController::class, 'notificationUpdateStatus'])->name('notification-status');
-        // tanda notif udh di read
-        Route::post('/notifications/mark-all-read', [QuotationController::class, 'markAllRead']);
-        Route::post('/notifications/mark-as-sent{id}', [QuotationController::class, 'MarkAsSent'])->name('markAsSent');
     });
+
+    // tanda notif udh di read
+    Route::post('/notifications/mark-all-read', [QuotationController::class, 'markAllRead']);
+    Route::post('/notifications/mark-as-sent/{id}', [QuotationController::class, 'MarkAsSent'])->name('markAsSent');
 
     // Invoice resource routes (CRUD)
     Route::resource('invoice', InvoiceController::class);

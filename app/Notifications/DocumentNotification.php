@@ -73,6 +73,8 @@ class DocumentNotification extends Notification
             'message' => $this->data['message'], 
             'id'      => $this->data['id'],
             'type'    => $this->data['type'],
+            'status'  => $this->data['status'],
+            'url'     => $this->data['url'] ?? null,
         ]);
     }
 }

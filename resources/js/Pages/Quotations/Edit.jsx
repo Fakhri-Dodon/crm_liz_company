@@ -50,7 +50,7 @@ export default function Edit({ leads = [], companies = [], auth, quotation }) {
             : "",
         company_name: quotation.lead?.company_name || null,
         address: quotation.lead?.address || "",
-        contact_person: quotation.lead?.contact_person || "",
+        contact_person: quotation.lead?.contact_person || quotation.company?.lead?.contact_person || "",
         position: quotation.lead?.position || "",
         email: quotation.lead?.email || "",
         phone: quotation.lead?.phone || "",
@@ -612,7 +612,33 @@ export default function Edit({ leads = [], companies = [], auth, quotation }) {
 
                     const getContactList = (org) => {
                         if (!org) return [];
-                        return org.contact_persons || org.contactPersons || org.contacts || [];
+
+                        // Prefer explicit contacts arrays from company objects
+                        const contactsArr =
+                            org.contacts || org.contact_persons || org.contactPersons;
+
+                        if (Array.isArray(contactsArr) && contactsArr.length > 0) {
+                            return contactsArr.map((c) => ({
+                                id: c.id ?? c.contact_id ?? c.lead_id ?? c.email ?? "",
+                                name: c.name ?? c.contact_person ?? c.full_name ?? (c.lead && c.lead.contact_person) ?? "",
+                                email: c.email ?? (c.lead && c.lead.email) ?? "",
+                                phone: c.phone ?? (c.lead && c.lead.phone) ?? c.mobile ?? "",
+                                position: c.position ?? c.job_title ?? "",
+                                raw: c,
+                            }));
+                        }
+
+                        // Fallback: treat the org itself (Lead) as a single contact
+                        return [
+                            {
+                                id: org.id,
+                                name: org.contact_person ?? org.name ?? org.company_name ?? "",
+                                email: org.email ?? "",
+                                phone: org.phone ?? "",
+                                position: org.position ?? "",
+                                raw: org,
+                            },
+                        ];
                     };
 
                     const handleContactChange = (contactId) => {
@@ -623,48 +649,69 @@ export default function Edit({ leads = [], companies = [], auth, quotation }) {
                             (c) => String(c.id) === String(data.company_id)
                         );
 
-                        if (selectedOrg) {
-                            let personRow = null;
-                            const list = getContactList(selectedOrg);
+                        if (!selectedOrg) return;
 
-                            if (isClient) {
-                                personRow = list.find((p) => String(p.id) === String(contactId));
-                            } else {
-                                personRow = selectedOrg;
-                            }
+                        const list = getContactList(selectedOrg);
+                        const selectedContact = list.find(
+                            (p) => String(p.id) === String(contactId)
+                        );
 
-                            if (personRow) {
-                                const finalData = {
-                                    contact_person_id: contactId,
-                                    contact_person: isClient
-                                        ? personRow.lead?.contact_person || personRow.name || selectedOrg.lead?.contact_person || "---"
-                                        : selectedOrg.contact_person || "",
+                        if (!selectedContact) return;
 
-                                    email: isClient
-                                        ? personRow.lead?.email || personRow.email || selectedOrg.lead?.email || ""
-                                        : personRow.email || "",
+                        const finalData = {
+                            contact_person_id: selectedContact.id,
+                            contact_person: selectedContact.name || "",
+                            email: selectedContact.email || "",
+                            phone: selectedContact.phone || "",
+                            position: selectedContact.position || "",
+                        };
 
-                                    phone: isClient
-                                        ? personRow.lead?.phone || personRow.phone || selectedOrg.lead?.phone || ""
-                                        : personRow.phone || "",
+                        Object.entries(finalData).forEach(([f, v]) => {
+                            if (typeof builderUpdate === "function") builderUpdate(f, v);
+                        });
 
-                                    position: isClient
-                                        ? personRow.position || ""
-                                        : selectedOrg.job_title || selectedOrg.position || "",
-                                };
-
-                                console.log("Data yang dikirim ke builder:", finalData);
-
-                                Object.entries(finalData).forEach(([f, v]) => {
-                                    if (typeof builderUpdate === "function") {
-                                        builderUpdate(f, v);
-                                    }
-                                });
-
-                                setData((prev) => ({ ...prev, ...finalData }));
-                            }
-                        }
+                        setData((prev) => ({ ...prev, ...finalData }));
                     };
+
+                    // Auto-select a contact when company_id is present but contact_person_id is not
+                    useEffect(() => {
+                        if (!data.company_id) return;
+                        if (data.contact_person_id) return;
+
+                        const isClient = data.client_type === "Client";
+                        const source = isClient ? companies : leads;
+                        const selectedOrg = source.find(
+                            (c) => String(c.id) === String(data.company_id)
+                        );
+                        if (!selectedOrg) return;
+
+                        const list = getContactList(selectedOrg);
+                        if (!list || list.length === 0) return;
+
+                        const first = list[0];
+                        const id = first.id;
+
+                        const finalData = {
+                            contact_person_id: String(id),
+                            contact_person: first.name || "",
+                            email: first.email || "",
+                            phone: first.phone || "",
+                            position: first.position || "",
+                        };
+
+                        Object.entries(finalData).forEach(([f, v]) => {
+                            if (typeof builderUpdate === "function") builderUpdate(f, v);
+                        });
+
+                        setData((prev) => ({ ...prev, ...finalData }));
+                    }, [data.company_id, data.client_type]);
+
+                    // Sync date and valid_until into builder so inputs show existing values
+                    useEffect(() => {
+                        if (typeof builderUpdate !== "function") return;
+                        if (data.date) builderUpdate("date", data.date);
+                        if (data.valid_until) builderUpdate("valid_until", data.valid_until);
+                    }, [data.date, data.valid_until]);
 
                     const handleDiscountChange = (value) => {
                         builderUpdate("discount", value);
@@ -855,77 +902,32 @@ export default function Edit({ leads = [], companies = [], auth, quotation }) {
                                 </label>
                                 <select
                                     className="w-full border-gray-300 rounded text-sm"
-                                    value={String(
-                                        data.contact_person_id ||
-                                            (data.client_type !== "Client"
-                                                ? data.company_id
-                                                : "") ||
-                                            ""
-                                    )}
+                                    value={String(data.contact_person_id || "")}
                                     onChange={(e) =>
                                         handleContactChange(e.target.value)
                                     }
                                     disabled={!data.company_id}
                                 >
-                                    <option value="">
-                                        -- Choose Person --
-                                    </option>
+                                    <option value="">-- Choose Person --</option>
                                     {(() => {
-                                        const isClient =
-                                            data.client_type === "Client";
-                                        const source = isClient
-                                            ? companies
-                                            : leads;
+                                        const isClient = data.client_type === "Client";
+                                        const source = isClient ? companies : leads;
 
                                         const selectedOrg = source.find(
-                                            (c) =>
-                                                String(c.id) ===
-                                                String(data.company_id)
+                                            (c) => String(c.id) === String(data.company_id)
                                         );
 
                                         if (!selectedOrg) return null;
 
-                                        let list = [];
-                                        // let contacts =
-                                        //     selectedOrg.contact_persons || [];
-                                        if (isClient) {
-                                            list =
-                                                selectedOrg.contact_persons ||
-                                                [];
-                                        } else {
-                                            list = [
-                                                {
-                                                    id: selectedOrg.id,
-                                                    name:
-                                                        selectedOrg.contact_person ||
-                                                        "No Name",
-                                                    position:
-                                                        selectedOrg.position ||
-                                                        "",
-                                                },
-                                            ];
-                                        }
+                                        const list = getContactList(selectedOrg);
 
-                                        if (list.length === 0) return null;
+                                        if (!list || list.length === 0) return null;
 
                                         return list.map((ct) => {
-                                            const labelName = isClient
-                                                ? selectedOrg.lead
-                                                      ?.contact_person ||
-                                                  "No Name"
-                                                : selectedOrg.contact_person ||
-                                                  "No Name";
-
-                                            const positionDisplay =
-                                                isClient && ct.position
-                                                    ? ` (${ct.position})`
-                                                    : "";
-
+                                            const labelName = ct.name || ct.contact_person || "No Name";
+                                            const positionDisplay = ct.position ? ` (${ct.position})` : "";
                                             return (
-                                                <option
-                                                    key={ct.id}
-                                                    value={ct.id}
-                                                >
+                                                <option key={ct.id} value={ct.id}>
                                                     {labelName}
                                                     {positionDisplay}
                                                 </option>

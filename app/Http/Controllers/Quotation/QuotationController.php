@@ -392,48 +392,48 @@ class QuotationController extends Controller {
         }
     }
 
-public function destroy(Quotation $quotation) 
-{
-    try {
-        // Cek apakah quotation sudah dihapus
-        if ($quotation->deleted == 1) {
-            return redirect()->route('quotation.index')
-                ->with('error', 'Quotation sudah dihapus sebelumnya.');
-        }
+    public function destroy(Quotation $quotation) 
+    {
+        try {
+            // Cek apakah quotation sudah dihapus
+            if ($quotation->deleted == 1) {
+                return redirect()->route('quotation.index')
+                    ->with('error', 'Quotation sudah dihapus sebelumnya.');
+            }
 
-        $user = Auth::user();
-        
-        // Lakukan soft delete
-        $quotation->update([
-            'deleted' => 1,
-            'deleted_by' => $user->id,
-            'deleted_at' => now(),
-            'updated_by' => $user->id,
-        ]);
-
-        // Hapus juga quotation items terkait (soft delete)
-        QuotationItem::where('quotation_id', $quotation->id)
-            ->update([
+            $user = Auth::user();
+            
+            // Lakukan soft delete
+            $quotation->update([
                 'deleted' => 1,
                 'deleted_by' => $user->id,
                 'deleted_at' => now(),
+                'updated_by' => $user->id,
             ]);
 
-        // Hapus notifikasi terkait quotation ini
-        DB::table('notifications')
-            ->where('data->id', (string)$quotation->id)
-            ->where('data->type', 'quotation')
-            ->delete();
+            // Hapus juga quotation items terkait (soft delete)
+            QuotationItem::where('quotation_id', $quotation->id)
+                ->update([
+                    'deleted' => 1,
+                    'deleted_by' => $user->id,
+                    'deleted_at' => now(),
+                ]);
 
-        return redirect()->route('quotation.index')
-            ->with('success', 'Quotation berhasil dihapus!');
+            // Hapus notifikasi terkait quotation ini
+            DB::table('notifications')
+                ->where('data->id', (string)$quotation->id)
+                ->where('data->type', 'quotation')
+                ->delete();
 
-    } catch (\Exception $e) {
-        \Log::error('Error deleting quotation: ' . $e->getMessage());
-        return redirect()->route('quotation.index')
-            ->with('error', 'Gagal menghapus quotation: ' . $e->getMessage());
+            return redirect()->route('quotation.index')
+                ->with('success', 'Quotation berhasil dihapus!');
+
+        } catch (\Exception $e) {
+            \Log::error('Error deleting quotation: ' . $e->getMessage());
+            return redirect()->route('quotation.index')
+                ->with('error', 'Gagal menghapus quotation: ' . $e->getMessage());
+        }
     }
-}
 
     public function notificationUpdateStatus(Request $request, $id) 
     {
