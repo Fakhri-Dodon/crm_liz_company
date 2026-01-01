@@ -9,6 +9,7 @@ use App\Models\Proposal;
 use App\Models\ProposalStatuses;
 use App\Models\ProposalElementTemplate;
 use App\Models\ProposalNumberFormatted;
+use App\Notifications\DocumentNotification;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Illuminate\Support\Str;
@@ -70,7 +71,9 @@ class ProposalController extends Controller
                     ->exists();
 
                 $proposals->date = Carbon::parse($proposals->created_at)->format('d-m-Y');
-                $proposals->edited = $proposals->proposal_element_template->first()?->html_output ? true : false;
+                $proposals->edited = (bool) !empty(
+                    $proposals->proposal_element_template?->html_output
+                );
                     
                 return $proposals;
             })
@@ -201,6 +204,15 @@ class ProposalController extends Controller
                 $image = $validated['image'];
 
                 if ($image) {
+                    
+                    if (!empty($element->preview_image)) {
+                        $oldPath = 'proposal_thumbnails/' . $element->preview_image;
+
+                        if (Storage::disk('public')->exists($oldPath)) {
+                            Storage::disk('public')->delete($oldPath);
+                        }
+                    }
+
                     $image = str_replace('data:image/png;base64,', '', $image);
                     $image = str_replace(' ', '+', $image);
 
@@ -243,6 +255,7 @@ class ProposalController extends Controller
 
             });
         } catch (\Exception $e) {
+            if (isset($oldPath)) Storage::disk('public')->delete($oldPath);
             return back()->withErrors(['error' => 'Gagal Simpan: ' . $e->getMessage()]);
         }
 
@@ -282,9 +295,43 @@ class ProposalController extends Controller
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(string $id)
+    public function destroy($id)
     {
-        //
+
+        try {
+
+            $proposal = Proposal::findOrFail($id);
+
+            // $element = ProposalElementTemplate::findOrFail($proposal->proposal_element_template_id);
+                    
+            // if (!empty($element->preview_image)) {
+            //     $oldPath = 'proposal_thumbnails/' . $element->preview_image;
+
+            //     if (Storage::disk('public')->exists($oldPath)) {
+            //         Storage::disk('public')->delete($oldPath);
+            //     }
+            // }
+
+            $proposal->deleted = 1;
+            $proposal->deleted_at = Carbon::now();
+            $proposal->deleted_by = Auth::id();
+            $proposal->save();
+
+            // $element->deleted = 1;
+            // $element->deleted_at = Carbon::now();
+            // $element->deleted_by = Auth::id();
+            // $element->save();
+
+            return redirect()->route('proposal.index')
+                ->with('success', 'Proposal deleted successfully!');
+        
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => 'error',
+                'msg' => 'Gagal menghapus data: ' . $e->getMessage(),
+            ], 500);
+        }
+
     }
 
     public function templates()

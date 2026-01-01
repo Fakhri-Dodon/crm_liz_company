@@ -34,25 +34,38 @@ export default function ProposalsIndex({ proposals, statusOptions, summary, filt
         {
             key: "no",
             label: t('proposals.table.no_date'),
-            render: (value, row) => (
-                <div>
-                    <a 
-                        href="#"
-                        target="_blank" 
-                        rel="noopener noreferrer"
-                        className="text-blue-600 font-semibold hover:underline flex items-center gap-1"
-                    >
-                        {value}
-                    </a>
-                    <div className="text-gray-500 text-sm mt-1">
-                        {row.date || "-"}
+            render: (value, row) => {
+                console.log(row);
+                const isEdited = Boolean(row.edited);
+
+                return (
+                    <div>
+                        <a
+                            href={isEdited ? `/proposal/${row.element_id}` : undefined}
+                            target={isEdited ? "_blank" : undefined}
+                            rel={isEdited ? "noopener noreferrer" : undefined}
+                            onClick={(e) => {
+                                if (!isEdited) e.preventDefault();
+                            }}
+                            className={`font-semibold flex items-center gap-1 ${
+                                isEdited
+                                    ? "text-blue-600 hover:underline"
+                                    : "text-gray-400 cursor-not-allowed"
+                            }`}
+                        >
+                            {value}
+                        </a>
+
+                        <div className="text-gray-500 text-sm mt-1">
+                            {row.date || "-"}
+                        </div>
                     </div>
-                </div>
-            ),
+                );
+            }
         },
         {
-            key: "subject",
-            label: t('proposals.table.subject')
+            key: "title",
+            label: t('proposals.table.title')
         },
         {
             key: "company_name",
@@ -119,6 +132,8 @@ export default function ProposalsIndex({ proposals, statusOptions, summary, filt
                         <option value="accepted">{t('quotations.stats.accepted')}</option>
                         <option value="expired">{t('quotations.stats.expired')}</option>
                         <option value="rejected">{t('quotations.stats.rejected')}</option>
+                        <option value="revised">{t('quotations.stats.revised')}</option>
+                        <option value="approved">{t('quotations.stats.approved')}</option>
                     </select>
                 );
             }
@@ -174,11 +189,13 @@ export default function ProposalsIndex({ proposals, statusOptions, summary, filt
     };
 
     const statusColors = {
+        approved: { bg: 'bg-greed-100', text: 'text-greed-800', border: 'border-greed-200' },
         opened: { bg: 'bg-greed-100', text: 'text-greed-800', border: 'border-greed-200' },
         draft: { bg: 'bg-grey-100', text: 'text-grey-800', border: 'border-grey-200' },
         sent: { bg: 'bg-blue-100', text: 'text-blue-800', border: 'border-blue-200' },
         failed: { bg: 'bg-orange-100', text: 'text-orange-800', border: 'border-orange-200' },
-        rejected: { bg: 'bg-red-100', text: 'text-red-800', border: 'border-red-200' }
+        rejected: { bg: 'bg-red-100', text: 'text-red-800', border: 'border-red-200' },
+        revised: { bg: 'bg-red-100', text: 'text-red-800', border: 'border-red-200' }
     };
 
     const tableData = proposals.data.map((q) => ({
@@ -215,18 +232,18 @@ export default function ProposalsIndex({ proposals, statusOptions, summary, filt
             router.visit(`/proposal/addProposal/${item.id}`);
         } else {
             router.visit('/proposal/create', {
-            method: 'get',
-            data: {
-                id: item.element_id,
-                id_proposal: item.id,
-            },
-});
+                method: 'get',
+                data: {
+                    id: item.element_id,
+                    id_proposal: item.id,
+                },
+            });
         }
     };
 
     const handleDelete = (item) => {
         if (item && item.id) {
-            router.delete(`/proposal/destroy/${item.id}`);
+            router.delete(`/proposal/${item.id}`);
         } else {
             console.error("Data proposal tidak memiliki ID", item);
         }

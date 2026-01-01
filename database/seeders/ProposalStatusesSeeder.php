@@ -21,12 +21,22 @@ class ProposalStatusesSeeder extends Seeder
                 'color_name'    => 'blue'
             ],
             [
+                'name'  => 'Approved',
+                'color' => '#22C55E',
+                'color_name'    => 'Green'
+            ],
+            [
                 'name'  => 'Opened',
                 'color' => '#22C55E',
                 'color_name'    => 'Green'
             ],
             [
                 'name'  => 'Rejected',
+                'color' => '#ef4444',
+                'color_name'    => 'Red'
+            ],
+            [
+                'name'  => 'Revised',
                 'color' => '#ef4444',
                 'color_name'    => 'Red'
             ],

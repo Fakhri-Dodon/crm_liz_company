@@ -140,6 +140,8 @@
         "title": "PROPOSAL",
         "button_add": "TAMBAH PROPOSAL",
         "stats": {
+            "approved": "DISETUJUI",
+            "revised": "DIREVISI",
             "opened": "DIBUKA",
             "failed": "GAGAL",
             "draft": "RANCANGAN",
@@ -163,6 +165,7 @@
         "table": {
             "no": "NO",
             "no_date": "NO & TANGGAL",
+            "title": "JUDUL",
             "subject": "SUBJEK",
             "company_name": "NAMA PERUSAHAAN",
             "contact": "KONTAK",

@@ -21,7 +21,7 @@ return new class extends Migration
             $table->string('title');
             $table->timestamp('sent_at')->nullable();
             $table->timestamp('opened_at')->nullable();
-            $table->enum('status', ['draft', 'sent', 'opened', 'rejected', 'failed'])->default('draft');
+            $table->enum('status', ['draft', 'sent', 'opened', 'rejected', 'failed', 'approved', 'revised'])->default('draft');
             $table->longText('content_json');
             $table->string('view_token', 100)->unique();
             $table->char('created_by', 36)->nullable();
