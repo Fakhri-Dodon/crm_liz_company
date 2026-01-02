@@ -10,165 +10,234 @@ use App\Models\User;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
 
 class LeadController extends Controller
 {
     /**
-     * Get valid user ID or NULL
+     * Get current logged in user ID
      */
-    private function getValidUserId()
+    private function getCurrentUserId()
     {
         try {
-            $firstUser = User::first();
-            return $firstUser ? $firstUser->id : null;
+            return Auth::id();
         } catch (\Exception $e) {
+            Log::error('Failed to get current user ID: ' . $e->getMessage());
             return null;
         }
     }
 
     /**
-     * Get default status ID
+     * Get current logged in user data
      */
-    private function getDefaultStatusId()
+    private function getCurrentUser()
     {
         try {
-            $defaultStatus = LeadStatuses::where('deleted', false)
-                ->orderBy('order')
-                ->first();
-            
-            return $defaultStatus ? $defaultStatus->id : null;
+            return Auth::user();
         } catch (\Exception $e) {
+            Log::error('Failed to get current user: ' . $e->getMessage());
             return null;
         }
     }
 
-    /**
-     * Display leads page
-     */
-    public function index()
-    {
-        try {
-            $leads = Lead::with('status')
-                ->where('deleted', false)
-                ->orderByDesc('created_at')
-                ->get()
-                ->map(function ($lead) {
-                    return [
-                        'id' => $lead->id,
-                        'company_name' => $lead->company_name,
-                        'address' => $lead->address,
-                        'contact_person' => $lead->contact_person,
-                        'email' => $lead->email,
-                        'phone' => $lead->phone,
-                        'assigned_to' => $lead->assigned_to,
-                        'lead_statuses_id' => $lead->lead_statuses_id,
-                        'status_name' => $lead->status ? $lead->status->name : 'New',
-                        'status_color' => $lead->status ? $lead->status->color : '#3b82f6',
-                        'created_at' => $lead->created_at,
-                        'updated_at' => $lead->updated_at,
-                    ];
-                });
+/**
+ * Display leads page (Inertia) - SIMPLE VERSION
+ */
+public function index()
+{
+    try {
+        $currentUser = Auth::user();
+        
+        // Query sederhana: ambil semua leads dari database
+        $leads = Lead::where('deleted_at', null)
+            ->orWhere('deleted', 0) // Backup condition
+            ->orderByDesc('created_at')
+            ->get()
+            ->map(function ($lead) {
+                // Cari assigned user jika ada
+                $assignedUser = null;
+                if ($lead->assigned_to) {
+                    $user = User::find($lead->assigned_to);
+                    if ($user) {
+                        $assignedUser = [
+                            'id' => $user->id,
+                            'name' => $user->name,
+                            'email' => $user->email,
+                        ];
+                    }
+                }
+                
+                // Cari status
+                $status = LeadStatuses::find($lead->lead_statuses_id);
+                
+                return [
+                    'id' => $lead->id,
+                    'company_name' => $lead->company_name,
+                    'address' => $lead->address,
+                    'contact_person' => $lead->contact_person,
+                    'email' => $lead->email,
+                    'phone' => $lead->phone,
+                    'assigned_to' => $lead->assigned_to,
+                    'assigned_user' => $assignedUser,
+                    'lead_statuses_id' => $lead->lead_statuses_id,
+                    'status_name' => $status ? $status->name : 'New',
+                    'status_color' => $status ? $status->color : '#3b82f6',
+                    'created_at' => $lead->created_at ? $lead->created_at->format('Y-m-d H:i:s') : null,
+                    'updated_at' => $lead->updated_at ? $lead->updated_at->format('Y-m-d H:i:s') : null,
+                ];
+            });
 
-            return Inertia::render('Leads/Index', [
-                'leads' => $leads,
-            ]);
-        } catch (\Exception $e) {
-            Log::error('Failed to fetch leads: ' . $e->getMessage());
-            return Inertia::render('Leads/Index', [
-                'leads' => [],
-            ]);
-        }
+        return Inertia::render('Leads/Index', [
+            'leads' => $leads,
+            'auth' => [
+                'user' => $currentUser ? [
+                    'id' => $currentUser->id,
+                    'name' => $currentUser->name,
+                    'email' => $currentUser->email,
+                    'is_admin' => $this->isAdmin($currentUser),
+                ] : null
+            ]
+        ]);
+        
+    } catch (\Exception $e) {
+        \Log::error('Error in leads index: ' . $e->getMessage());
+        
+        return Inertia::render('Leads/Index', [
+            'leads' => [],
+            'auth' => ['user' => null]
+        ]);
     }
+}
 
-    /**
-     * API: Get all leads
-     */
-    public function indexApi()
-    {
-        try {
-            $leads = Lead::with('status')
-                ->where('deleted', false)
-                ->orderByDesc('created_at')
-                ->get()
-                ->map(function ($lead) {
-                    return [
-                        'id' => $lead->id,
-                        'company_name' => $lead->company_name,
-                        'address' => $lead->address,
-                        'contact_person' => $lead->contact_person,
-                        'email' => $lead->email,
-                        'phone' => $lead->phone,
-                        'assigned_to' => $lead->assigned_to,
-                        'lead_statuses_id' => $lead->lead_statuses_id,
-                        'status_name' => $lead->status ? $lead->status->name : 'New',
-                        'status_color' => $lead->status ? $lead->status->color : '#3b82f6',
-                        'status' => $lead->status,
-                        'created_at' => $lead->created_at,
-                        'updated_at' => $lead->updated_at,
+/**
+ * API: Get all leads
+ */
+public function indexApi()
+{
+    try {
+        Log::info('=== LEADS API CALLED (indexApi) ===');
+        
+        $currentUser = $this->getCurrentUser();
+        
+        // Debug: Log semua leads dulu
+        $allLeads = Lead::with(['status', 'assignedUser'])
+            ->where('deleted_at', null)
+            ->orderByDesc('created_at')
+            ->get();
+        
+        Log::info('Total leads in DB:', [$allLeads->count()]);
+        Log::info('First lead (if any):', $allLeads->first() ? [
+            'id' => $allLeads->first()->id,
+            'company_name' => $allLeads->first()->company_name,
+            'assigned_to' => $allLeads->first()->assigned_to,
+            'assigned_user' => $allLeads->first()->assignedUser ? $allLeads->first()->assignedUser->id : null,
+        ] : 'No leads');
+        
+        // Transform dengan error handling
+        $leads = $allLeads->map(function ($lead) use ($currentUser) {
+            try {
+                $assignedUserData = null;
+                
+                if ($lead->assignedUser) {
+                    $assignedUserData = [
+                        'id' => $lead->assignedUser->id,
+                        'name' => $lead->assignedUser->name,
+                        'email' => $lead->assignedUser->email,
                     ];
-                });
-
-            return response()->json($leads);
-        } catch (\Exception $e) {
-            Log::error('Failed to fetch leads API: ' . $e->getMessage());
-            return response()->json([
-                'error' => 'Failed to fetch leads'
-            ], 500);
-        }
+                }
+                
+                return [
+                    'id' => $lead->id,
+                    'company_name' => $lead->company_name,
+                    'address' => $lead->address,
+                    'contact_person' => $lead->contact_person,
+                    'email' => $lead->email,
+                    'phone' => $lead->phone,
+                    'assigned_to' => $lead->assigned_to,
+                    'assigned_user' => $assignedUserData,
+                    'lead_statuses_id' => $lead->lead_statuses_id,
+                    'status_name' => $lead->status ? $lead->status->name : 'New',
+                    'status_color' => $lead->status ? $lead->status->color : '#3b82f6',
+                    'created_at' => $lead->created_at ? $lead->created_at->format('Y-m-d H:i:s') : null,
+                    'updated_at' => $lead->updated_at ? $lead->updated_at->format('Y-m-d H:i:s') : null,
+                ];
+            } catch (\Exception $e) {
+                Log::error('Error transforming lead ' . $lead->id . ': ' . $e->getMessage());
+                return null;
+            }
+        })->filter(); // Hapus null values
+        
+        Log::info('Transformed leads count:', [$leads->count()]);
+        
+        $currentUserData = $currentUser ? [
+            'id' => $currentUser->id,
+            'name' => $currentUser->name,
+            'email' => $currentUser->email,
+            'is_admin' => $this->isAdmin($currentUser),
+        ] : null;
+        
+        return response()->json([
+            'leads' => $leads->values(), // Reset keys
+            'current_user' => $currentUserData,
+            'debug' => [
+                'total_leads' => $allLeads->count(),
+                'transformed_leads' => $leads->count(),
+            ]
+        ]);
+        
+    } catch (\Exception $e) {
+        Log::error('CRITICAL ERROR in indexApi: ' . $e->getMessage());
+        Log::error('Stack trace: ' . $e->getTraceAsString());
+        
+        return response()->json([
+            'error' => 'Server Error',
+            'message' => $e->getMessage(),
+            'trace' => env('APP_DEBUG') ? $e->getTraceAsString() : null,
+        ], 500);
     }
+}
 
     /**
-     * API: Create new lead
+     * API: Create new lead (SIMPLE VERSION)
      */
     public function store(StoreLeadRequest $request)
     {
         DB::beginTransaction();
         try {
+            Log::info('=== STORE LEAD ===');
+            Log::info('Request data:', $request->all());
+            Log::info('Auth user:', [Auth::user()]);
+            
             $data = $request->validated();
-            $userId = $this->getValidUserId();
+            $currentUser = Auth::user();
             
-            Log::info('=== STORE LEAD REQUEST ===');
-            Log::info('Request data:', $data);
+            // Auto-assign jika ada user login
+            if ($currentUser) {
+                $data['assigned_to'] = $currentUser->id;
+                $data['created_by'] = $currentUser->id;
+                $data['updated_by'] = $currentUser->id;
+            }
             
-            // Check if lead_statuses_id exists and is valid
+            // Set default status jika tidak ada
             if (!isset($data['lead_statuses_id']) || empty($data['lead_statuses_id'])) {
-                $defaultStatusId = $this->getDefaultStatusId();
-                if (!$defaultStatusId) {
-                    return response()->json([
-                        'error' => 'No lead statuses found. Please create a status first.'
-                    ], 400);
-                }
-                $data['lead_statuses_id'] = $defaultStatusId;
-                Log::info('Using default status ID:', [$defaultStatusId]);
-            } else {
-                // Validate that the status exists
-                $statusExists = LeadStatuses::where('id', $data['lead_statuses_id'])
-                    ->where('deleted', false)
-                    ->exists();
-                
-                if (!$statusExists) {
-                    return response()->json([
-                        'error' => 'Selected status does not exist.'
-                    ], 400);
+                $defaultStatus = LeadStatuses::where('deleted', false)
+                    ->orderBy('order')
+                    ->first();
+                if ($defaultStatus) {
+                    $data['lead_statuses_id'] = $defaultStatus->id;
                 }
             }
             
-            $data['created_by'] = $userId;
-            $data['id'] = $data['id'] ?? (string) Str::uuid();
-            
             Log::info('Creating lead with data:', $data);
             
-            // Create lead
             $lead = Lead::create($data);
             
             DB::commit();
 
-            // Load the status relationship
-            $lead->load('status');
+            $lead->load(['status', 'assignedUser']);
             
-            Log::info('Lead created successfully. ID:', [$lead->id]);
-            Log::info('Lead status:', [$lead->status]);
+            Log::info('Lead created successfully:', [$lead->id]);
 
             return response()->json([
                 'message' => 'Lead created successfully',
@@ -177,7 +246,6 @@ class LeadController extends Controller
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error('Failed to create lead: ' . $e->getMessage());
-            Log::error('Stack trace: ' . $e->getTraceAsString());
             
             return response()->json([
                 'error' => 'Failed to create lead',
@@ -187,67 +255,29 @@ class LeadController extends Controller
     }
 
     /**
-     * API: Update lead
+     * API: Update lead (SIMPLE VERSION)
      */
     public function update(UpdateLeadRequest $request, $id)
     {
         DB::beginTransaction();
         try {
-            $lead = Lead::with('status')
+            $lead = Lead::with(['status', 'assignedUser'])
                 ->where('id', $id)
-                ->where('deleted', false)
                 ->firstOrFail();
             
             $data = $request->validated();
-            $userId = $this->getValidUserId();
-            $data['updated_by'] = $userId;
             
-            Log::info('=== UPDATE LEAD REQUEST ===');
-            Log::info('Lead ID:', [$id]);
-            Log::info('Request data:', $data);
-            Log::info('Current lead_statuses_id:', [$lead->lead_statuses_id]);
-            Log::info('Current status name:', [$lead->status ? $lead->status->name : 'null']);
-            
-            // Validate and handle lead_statuses_id
-            if (isset($data['lead_statuses_id']) && !empty($data['lead_statuses_id'])) {
-                // Check if the new status exists
-                $statusExists = LeadStatuses::where('id', $data['lead_statuses_id'])
-                    ->where('deleted', false)
-                    ->exists();
-                
-                if (!$statusExists) {
-                    Log::warning('Status not found:', [$data['lead_statuses_id']]);
-                    return response()->json([
-                        'error' => 'Selected status does not exist.'
-                    ], 400);
-                }
-                
-                Log::info('Updating status to new ID:', [$data['lead_statuses_id']]);
-                
-                // Get the new status for logging
-                $newStatus = LeadStatuses::find($data['lead_statuses_id']);
-                Log::info('New status name:', [$newStatus ? $newStatus->name : 'null']);
-                
-            } else {
-                // If lead_statuses_id is not provided, keep the existing one
-                $data['lead_statuses_id'] = $lead->lead_statuses_id;
-                Log::info('No new status provided, keeping current:', [$data['lead_statuses_id']]);
+            // Update updated_by jika ada user login
+            if (Auth::user()) {
+                $data['updated_by'] = Auth::id();
             }
             
-            Log::info('Final data for update:', $data);
-            
-            // Update the lead
             $lead->update($data);
             
             DB::commit();
 
-            // Refresh the model to get updated relationships
-            $lead->refresh()->load('status');
+            $lead->refresh()->load(['status', 'assignedUser']);
             
-            Log::info('Lead updated successfully');
-            Log::info('Updated lead_statuses_id:', [$lead->lead_statuses_id]);
-            Log::info('Updated status name:', [$lead->status ? $lead->status->name : 'null']);
-
             return response()->json([
                 'message' => 'Lead updated successfully',
                 'data' => $lead
@@ -255,7 +285,6 @@ class LeadController extends Controller
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error('Failed to update lead: ' . $e->getMessage());
-            Log::error('Stack trace: ' . $e->getTraceAsString());
             
             return response()->json([
                 'error' => 'Failed to update lead',
@@ -265,7 +294,7 @@ class LeadController extends Controller
     }
 
     /**
-     * API: Delete lead (HARD DELETE)
+     * API: Delete lead (SOFT DELETE)
      */
     public function destroy($id)
     {
@@ -279,13 +308,18 @@ class LeadController extends Controller
                 ], 404);
             }
             
-            Log::info('Deleting lead:', [$id, $lead->company_name]);
+            // Set deleted_by jika ada user login
+            if (Auth::user()) {
+                $lead->deleted_by = Auth::id();
+                $lead->save();
+            }
+            
             $lead->delete();
             
             DB::commit();
 
             return response()->json([
-                'message' => 'Lead permanently deleted',
+                'message' => 'Lead deleted successfully',
                 'deleted_id' => $id
             ]);
         } catch (\Exception $e) {
@@ -309,9 +343,6 @@ class LeadController extends Controller
                 ->orderBy('order')
                 ->get(['id', 'name', 'color', 'color_name', 'order']);
             
-            Log::info('Fetched statuses count:', [$statuses->count()]);
-            Log::info('Statuses:', $statuses->toArray());
-            
             return response()->json($statuses);
         } catch (\Exception $e) {
             Log::error('Failed to fetch lead statuses: ' . $e->getMessage());
@@ -322,15 +353,73 @@ class LeadController extends Controller
     }
 
     /**
+     * API: Get current user info
+     */
+    public function getCurrentUserInfo()
+    {
+        try {
+            $user = Auth::user();
+            
+            if (!$user) {
+                return response()->json([
+                    'error' => 'No user logged in'
+                ], 401);
+            }
+            
+            return response()->json([
+                'id' => $user->id,
+                'name' => $user->name,
+                'email' => $user->email,
+                'is_admin' => $this->isAdmin($user),
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Failed to get current user info: ' . $e->getMessage());
+            return response()->json([
+                'error' => 'Failed to get user information'
+            ], 500);
+        }
+    }
+
+    /**
      * API: Test endpoint
      */
     public function test()
     {
+        $currentUser = Auth::user();
+        
         return response()->json([
             'message' => 'LeadController is working',
             'timestamp' => now()->toDateTimeString(),
             'statuses_count' => LeadStatuses::where('deleted', false)->count(),
-            'leads_count' => Lead::where('deleted', false)->count(),
+            'leads_count' => Lead::count(),
+            'current_user' => $currentUser ? [
+                'id' => $currentUser->id,
+                'name' => $currentUser->name,
+            ] : null,
+            'session_id' => session()->getId(),
+            'auth_check' => Auth::check(),
         ]);
+    }
+
+    /**
+     * Check if user is admin
+     */
+    private function isAdmin($user)
+    {
+        if (!$user) return false;
+        
+        if (method_exists($user, 'hasRole')) {
+            return $user->hasRole('admin');
+        }
+        
+        if (isset($user->role)) {
+            return $user->role === 'admin';
+        }
+        
+        if (isset($user->is_admin)) {
+            return (bool) $user->is_admin;
+        }
+        
+        return false;
     }
 }

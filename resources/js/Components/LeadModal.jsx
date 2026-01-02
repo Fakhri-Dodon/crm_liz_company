@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 
-export default function LeadModal({ open, onClose, onSubmit, initialData }) {
+export default function LeadModal({ open, onClose, onSubmit, initialData, currentUser }) {
   const [form, setForm] = useState({
     company_name: "",
     address: "",
@@ -13,11 +13,13 @@ export default function LeadModal({ open, onClose, onSubmit, initialData }) {
 
   const [statuses, setStatuses] = useState([]);
   const [loadingStatuses, setLoadingStatuses] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Fetch statuses when modal opens
   useEffect(() => {
     if (open) {
       fetchStatuses();
+      setIsSubmitting(false);
     }
   }, [open]);
 
@@ -29,7 +31,7 @@ export default function LeadModal({ open, onClose, onSubmit, initialData }) {
       const data = await response.json();
       setStatuses(data);
       
-      // Set default status if none selected
+      // Set default status for NEW lead only
       if (!initialData && data.length > 0 && !form.status) {
         const defaultStatus = data.find(s => s.name.toLowerCase() === 'new') || data[0];
         setForm(prev => ({
@@ -49,6 +51,7 @@ export default function LeadModal({ open, onClose, onSubmit, initialData }) {
   useEffect(() => {
     if (open) {
       if (initialData) {
+        // EDIT MODE: Pertahankan assigned_to yang sudah ada
         setForm({
           company_name: initialData.company_name || "",
           address: initialData.address || "",
@@ -56,9 +59,10 @@ export default function LeadModal({ open, onClose, onSubmit, initialData }) {
           email: initialData.email || "",
           phone: initialData.phone || "",
           status: initialData.lead_statuses_id || "",
-          assigned_to: initialData.assigned_to || "",
+          assigned_to: initialData.assigned_to || "", // PENTING: gunakan nilai dari database
         });
       } else {
+        // CREATE MODE: Auto-assign to current user
         setForm({
           company_name: "",
           address: "",
@@ -66,54 +70,91 @@ export default function LeadModal({ open, onClose, onSubmit, initialData }) {
           email: "",
           phone: "",
           status: "",
-          assigned_to: "",
+          assigned_to: currentUser?.id || "", // Auto-assign hanya untuk lead baru
         });
       }
     }
-  }, [initialData, open]);
+  }, [initialData, open, currentUser]);
 
   if (!open) return null;
 
   const handleChange = (e) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+    setForm(prev => ({ ...prev, [name]: value }));
   };
 
-// In LeadModal.jsx - handleSubmit
-const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     
-    // Debug
-    console.log('Form status value:', form.status);
-    console.log('Statuses available:', statuses);
+    if (isSubmitting) return;
     
-    // Cari status object berdasarkan ID
-    const selectedStatus = statuses.find(s => s.id === form.status);
+    setIsSubmitting(true);
     
-    if (!selectedStatus) {
-        alert('Please select a valid status');
+    try {
+      console.log('Form data before submit:', form);
+      console.log('Initial data:', initialData);
+      console.log('Current user:', currentUser);
+      
+      // Validate required fields
+      if (!form.company_name.trim()) {
+        alert('Company name is required');
+        setIsSubmitting(false);
         return;
-    }
-    
-    // Prepare payload - KIRIM lead_statuses_id, bukan status
-    const payload = {
+      }
+      
+      if (!form.contact_person.trim()) {
+        alert('Contact person is required');
+        setIsSubmitting(false);
+        return;
+      }
+      
+      if (!form.status) {
+        alert('Please select a status');
+        setIsSubmitting(false);
+        return;
+      }
+      
+      // Prepare payload dengan logic yang benar
+      const payload = {
         company_name: form.company_name,
         address: form.address,
         contact_person: form.contact_person,
         email: form.email,
         phone: form.phone,
-        assigned_to: form.assigned_to,
-        lead_statuses_id: form.status, // INI YANG DIBUTUHKAN API
-    };
-    
-    console.log('Payload being sent:', payload);
-    
-    // If editing, include the ID
-    if (initialData?.id) {
-        payload.id = initialData.id;
+        lead_statuses_id: form.status,
+        // PENTING: Logika untuk assigned_to
+        assigned_to: initialData 
+          ? form.assigned_to // EDIT: gunakan nilai dari form (yang sudah ada di database)
+          : (currentUser?.id || form.assigned_to), // CREATE: auto-assign ke current user
+      };
+      
+      console.log('Submitting payload:', payload);
+      
+      await onSubmit(payload);
+      
+    } catch (error) {
+      console.error('Error submitting form:', error);
+      alert('Failed to submit form. Please try again.');
+    } finally {
+      setIsSubmitting(false);
     }
-    
-    onSubmit(payload);
-};
+  };
+
+  // Get status name for display
+  const getStatusName = (statusId) => {
+    const status = statuses.find(s => s.id === statusId);
+    return status ? status.name : 'Unknown';
+  };
+
+  // Get assigned user info for display
+  const getAssignedUserInfo = () => {
+    if (initialData && initialData.assigned_user) {
+      return initialData.assigned_user;
+    }
+    return currentUser;
+  };
+
+  const assignedUserInfo = getAssignedUserInfo();
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto">
@@ -149,7 +190,8 @@ const handleSubmit = (e) => {
               </div>
               <button
                 onClick={onClose}
-                className="text-gray-400 hover:text-gray-600 transition-colors p-1 hover:bg-gray-100 rounded-lg"
+                disabled={isSubmitting}
+                className="text-gray-400 hover:text-gray-600 transition-colors p-1 hover:bg-gray-100 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -171,7 +213,8 @@ const handleSubmit = (e) => {
                   placeholder="Enter company name"
                   value={form.company_name}
                   onChange={handleChange}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  disabled={isSubmitting}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
                   required
                 />
               </div>
@@ -186,8 +229,9 @@ const handleSubmit = (e) => {
                   placeholder="Enter company address"
                   value={form.address}
                   onChange={handleChange}
+                  disabled={isSubmitting}
                   rows="2"
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none disabled:bg-gray-100 disabled:cursor-not-allowed"
                 />
               </div>
 
@@ -201,7 +245,8 @@ const handleSubmit = (e) => {
                   placeholder="Enter contact person name"
                   value={form.contact_person}
                   onChange={handleChange}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  disabled={isSubmitting}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
                   required
                 />
               </div>
@@ -217,7 +262,8 @@ const handleSubmit = (e) => {
                   placeholder="contact@company.com"
                   value={form.email}
                   onChange={handleChange}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  disabled={isSubmitting}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
                 />
               </div>
 
@@ -231,17 +277,18 @@ const handleSubmit = (e) => {
                   placeholder="+1 (555) 123-4567"
                   value={form.phone}
                   onChange={handleChange}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  disabled={isSubmitting}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
                 />
               </div>
 
               {/* Status */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Status
+                  Status <span className="text-red-500">*</span>
                 </label>
                 {loadingStatuses ? (
-                  <div className="w-full border border-gray-300 rounded-lg px-3 py-2.5">
+                  <div className="w-full border border-gray-300 rounded-lg px-3 py-2.5 bg-gray-50">
                     <div className="flex items-center">
                       <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 mr-2"></div>
                       <span className="text-gray-500">Loading statuses...</span>
@@ -256,7 +303,9 @@ const handleSubmit = (e) => {
                     name="status"
                     value={form.status}
                     onChange={handleChange}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none bg-white"
+                    disabled={isSubmitting}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none bg-white disabled:bg-gray-100 disabled:cursor-not-allowed"
+                    required
                   >
                     <option value="">Select a status</option>
                     {statuses.map((status) => (
@@ -266,19 +315,57 @@ const handleSubmit = (e) => {
                     ))}
                   </select>
                 )}
+                {form.status && (
+                  <div className="mt-1 text-sm text-gray-500">
+                    Selected: {getStatusName(form.status)}
+                  </div>
+                )}
               </div>
 
-              {/* Assigned To */}
+              {/* Assigned To - Display Info */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Assigned To
                 </label>
+                <div className="flex items-center gap-3 p-3 bg-gray-50 border border-gray-200 rounded-lg">
+                  {assignedUserInfo ? (
+                    <>
+                      <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                        <span className="text-blue-600 font-semibold text-lg">
+                          {assignedUserInfo.name?.charAt(0).toUpperCase() || '?'}
+                        </span>
+                      </div>
+                      <div className="flex-1">
+                        <div className="font-medium text-gray-900">
+                          {assignedUserInfo.name}
+                          {currentUser && assignedUserInfo.id === currentUser.id && (
+                            <span className="ml-2 text-sm text-green-600 font-medium px-2 py-0.5 bg-green-50 rounded">
+                              You
+                            </span>
+                          )}
+                        </div>
+                        <div className="text-sm text-gray-500">{assignedUserInfo.email}</div>
+                      </div>
+                      <div className="text-xs text-gray-500">
+                        {initialData ? 'Assigned' : 'Will be assigned'}
+                      </div>
+                    </>
+                  ) : (
+                    <div className="text-gray-500 italic w-full text-center py-2">
+                      {initialData ? 'No user assigned' : 'Will be assigned to you'}
+                    </div>
+                  )}
+                </div>
+                <p className="text-xs text-gray-500 mt-1">
+                  {initialData 
+                    ? 'Assigned user cannot be changed here'
+                    : 'Lead will be assigned to you automatically'
+                  }
+                </p>
                 <input
+                  type="hidden"
                   name="assigned_to"
-                  placeholder="Assign to team member"
-                  value={form.assigned_to}
-                  onChange={handleChange}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  value={form.assigned_to || ""}
                 />
               </div>
             </div>
@@ -292,20 +379,26 @@ const handleSubmit = (e) => {
                 <button
                   type="button"
                   onClick={onClose}
-                  className="px-4 py-2.5 border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition-colors duration-200"
+                  disabled={isSubmitting}
+                  className="px-4 py-2.5 border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  disabled={statuses.length === 0 || !form.status}
+                  disabled={statuses.length === 0 || !form.status || !form.company_name || !form.contact_person || isSubmitting}
                   className={`px-6 py-2.5 font-medium rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-2 transition-colors duration-200 flex items-center gap-2 ${
-                    (statuses.length === 0 || !form.status)
+                    (statuses.length === 0 || !form.status || !form.company_name || !form.contact_person || isSubmitting)
                       ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
                       : 'bg-blue-600 hover:bg-blue-700 text-white focus:ring-blue-500'
                   }`}
                 >
-                  {initialData ? (
+                  {isSubmitting ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                      {initialData ? "Updating..." : "Creating..."}
+                    </>
+                  ) : initialData ? (
                     <>
                       <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
