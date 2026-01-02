@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import grapesjs from "grapesjs";
 import "grapesjs/dist/css/grapes.min.css";
+import "@/assets/css/grapes-custom.css";
 import presetWebpage from "grapesjs-preset-webpage";
 import * as htmlToImage from 'html-to-image';
 

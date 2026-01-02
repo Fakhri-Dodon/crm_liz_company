@@ -1,8 +1,9 @@
 import React from "react";
 import HeaderLayout from "@/Layouts/HeaderLayout";
-import { Link } from "@inertiajs/react";
+import { Link, usePage } from "@inertiajs/react";
 
 export default function AddProposal({proposal_id, templates}) {
+    const { flash } = usePage().props;
 
     return (
         <>
@@ -11,6 +12,12 @@ export default function AddProposal({proposal_id, templates}) {
                 title="Add Proposal"
                 subtitle="Choose a template for creating the proposal"
             />
+
+            {flash?.message && (
+                <div className="mb-4 rounded-lg bg-green-100 text-green-700 px-4 py-3">
+                    {flash.message}
+                </div>
+            )}
             <div className="p-8">
                 <a 
                     href={route('proposal.create', { id: 0, id_proposal: proposal_id })} 

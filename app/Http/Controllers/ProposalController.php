@@ -287,9 +287,34 @@ class ProposalController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, string $id)
+    public function update(Request $request, $id)
     {
-        //
+
+        $validated = $request->validate([
+            'name'      => 'required|string',
+            'lead_id'   => 'required|exists:leads,id', 
+        ]);
+
+        try {
+
+            $proposal = Proposal::findOrFail($id);
+            $proposal->lead_id      = $validated['lead_id'];
+            $proposal->title        = $validated['name'];
+            $proposal->updated_by   = Auth::id();
+            $proposal->save();
+
+            $element = ProposalElementTemplate::findOrFail($proposal->proposal_element_template_id);
+
+            if ($element && !empty($element->html_output)) {
+                return redirect()->route('proposal.create', ['id_proposal' => $proposal->id, 'id' => $element->id])->with('message', 'Proposal updated successfully!');
+            }
+
+            return redirect()->route('proposal.addProposal', $proposal->id)->with('message', 'Proposal updated successfully!');
+
+        } catch (\Exception $e) {
+            return back()->withErrors(['error' => 'Gagal Simpan: ' . $e->getMessage()]);
+        }
+
     }
 
     /**
