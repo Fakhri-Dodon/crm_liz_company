@@ -8,6 +8,7 @@ use App\Models\QuotationItem;
 use App\Models\Lead;
 use App\Models\User;
 use App\Models\Company;
+use App\Models\ActivityLogs;
 use App\Notifications\DocumentNotification;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -206,6 +207,13 @@ class QuotationController extends Controller {
                     ]));
                 }
 
+                ActivityLogs::create([
+                    'user_id' => auth()->id(),
+                    'module' => 'Quotations',
+                    'action' => 'Created',
+                    'description' => 'Create New Quotation: ' . $quotation->quotation_number,
+                ]);
+
                 return redirect()->route('quotation.index')->with('success', 'Quotation berhasil disimpan!');
             });
         } catch (\Exception $e) {
@@ -223,6 +231,13 @@ class QuotationController extends Controller {
         $quotation->update([
             'status' => $request->status,
             'updated_by' => auth()->id(),
+        ]);
+
+        ActivityLogs::create([
+            'user_id' => auth()->id(),
+            'module' => 'Quotations',
+            'action' => 'Updated',
+            'description' => 'Update Quotation Status: ' . $quotation->quotation_number,
         ]);
 
         return back()->with('message', 'Status updated successfully');
@@ -380,6 +395,13 @@ class QuotationController extends Controller {
                 ]));
             }
 
+            ActivityLogs::create([
+                'user_id' => auth()->id(),
+                'module' => 'Quotations',
+                'action' => 'Updated',
+                'description' => 'Update Quotation: ' . $quotation->quotation_number,
+            ]);
+
             DB::commit();
 
             return redirect()->route('quotation.index')
@@ -424,6 +446,13 @@ class QuotationController extends Controller {
                 ->where('data->id', (string)$quotation->id)
                 ->where('data->type', 'quotation')
                 ->delete();
+
+             ActivityLogs::create([
+                 'user_id' => auth()->id(),
+                 'module' => 'Quotations',
+                 'action' => 'Deleted',
+                 'description' => 'Delete Quotation: ' . $quotation->quotation_number,
+             ]);
 
             return redirect()->route('quotation.index')
                 ->with('success', 'Quotation berhasil dihapus!');

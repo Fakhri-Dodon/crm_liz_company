@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import HeaderLayout from "@/Layouts/HeaderLayout";
 import { Link, usePage, router } from "@inertiajs/react";
 import DevelopmentPage from "../DevelopmentPage";
@@ -9,6 +9,13 @@ export default function Index() {
         return <DevelopmentPage />;
     }
     const { props } = usePage();
+
+    // Show success message if exists
+    useEffect(() => {
+        if (props.flash?.success) {
+            console.log('Flash message:', props.flash.success);
+        }
+    }, [props.flash]);
 
     // Get invoices and generate year options
     const invoices = props.invoices ?? [
@@ -91,15 +98,26 @@ export default function Index() {
     };
 
     const handleStatusChange = (id, newStatus) => {
+        console.log('Attempting to update invoice', id, 'to status:', newStatus);
+        console.log('Route:', route("invoice.update-status", id));
+        
         router.patch(route("invoice.update-status", id), {
             status: newStatus
         }, {
             preserveScroll: true,
-            onSuccess: () => {
-                console.log('Status updated to ' + newStatus);
+            onStart: () => {
+                console.log('Request started...');
             },
-            onError: () => {
-                alert('Failed to update status');
+            onSuccess: (page) => {
+                console.log('Status updated successfully to ' + newStatus);
+                console.log('Response:', page);
+            },
+            onError: (errors) => {
+                console.error('Update failed:', errors);
+                alert('Failed to update status: ' + JSON.stringify(errors));
+            },
+            onFinish: () => {
+                console.log('Request finished');
             }
         });
     };
@@ -228,9 +246,24 @@ export default function Index() {
                                 </td>
                                 <td className="px-4 py-4 font-bold">{formatRp(inv.due_amount)}</td>
                                 <td className="px-4 py-4">
-                                    <span className={`px-3 py-1 rounded border text-sm ${inv.status==='Paid'? 'border-green-500 text-green-600':'border-gray-300 text-gray-700'}`}>
-                                        {inv.status}
-                                    </span>
+                                    <select 
+                                        value={inv.status} 
+                                        onChange={(e) => handleStatusChange(inv.id, e.target.value)}
+                                        className={`px-3 py-1 rounded border text-sm font-semibold cursor-pointer ${
+                                            inv.status === 'Paid' ? 'border-green-500 text-green-600 bg-green-50' :
+                                            inv.status === 'Unpaid' ? 'border-orange-500 text-orange-600 bg-orange-50' :
+                                            inv.status === 'Partial' ? 'border-yellow-500 text-yellow-600 bg-yellow-50' :
+                                            inv.status === 'Draft' ? 'border-gray-500 text-gray-600 bg-gray-50' :
+                                            inv.status === 'Cancelled' ? 'border-red-500 text-red-600 bg-red-50' :
+                                            'border-gray-300 text-gray-700 bg-white'
+                                        }`}
+                                    >
+                                        <option value="Draft">Draft</option>
+                                        <option value="Unpaid">Unpaid</option>
+                                        <option value="Partial">Partial</option>
+                                        <option value="Paid">Paid</option>
+                                        <option value="Cancelled">Cancelled</option>
+                                    </select>
                                 </td>
                                 <td className="px-4 py-4">
                                     <button onClick={() => handleEditInvoice(inv.id)} className="mr-2 text-gray-600 hover:text-gray-800">✎</button>

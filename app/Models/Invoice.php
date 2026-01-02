@@ -53,8 +53,23 @@ class Invoice extends Model
         return $this->hasMany(InvoiceItem::class, 'invoice_id', 'id');
     }
 
+    public function quotation()
+    {
+        return $this->belongsTo(Quotation::class, 'quotation_id', 'id');
+    }
+
     public function contactPerson()
     {
         return $this->belongsTo(CompanyContactPerson::class, 'company_contact_persons_id', 'id');
+    }
+
+    public function company()
+    {
+        return $this->belongsTo(Company::class, 'company_id', 'id');
+    }
+
+    public function payments()
+    {
+        return $this->hasMany(Payment::class, 'invoice_id', 'id');
     }
 }

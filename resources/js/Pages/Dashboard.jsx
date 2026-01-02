@@ -1,11 +1,123 @@
 import AuthenticatedLayout from "@/Layouts/HeaderLayout";
 import { Head } from "@inertiajs/react";
-import { useTranslation } from 'react-i18next';
+import { useTranslation } from "react-i18next";
+import React from "react";
 
-export default function Dashboard(props) {
+export default function Dashboard({
+    auth,
+    Clients,
+    Leads,
+    Users,
+    Projects,
+    NewLeads,
+    Converted,
+    TotalInvoice,
+    PaidCount,
+    UnpaidCount,
+    Revenue,
+    RecentInvoices,
+    RecentActivities,
+    RecentLeads,
+}) {
     const { t } = useTranslation();
+    const role = auth?.user?.role_name;
+
+    const getRoleConfig = () => {
+        switch (role) {
+            case "Marketing":
+                return {
+                    total_lead: {
+                        bg: "bg-purple-50",
+                        border: "border-purple-200",
+                        text: "text-purple-600",
+                        val: Leads,
+                        label: "Total Lead",
+                    },
+                    new_lead: {
+                        bg: "bg-blue-50",
+                        border: "border-blue-200",
+                        text: "text-blue-600",
+                        val: NewLeads,
+                        label: "New Lead",
+                    },
+                    converted: {
+                        bg: "bg-green-50",
+                        border: "border-green-200",
+                        text: "text-green-600",
+                        val: Converted,
+                        label: "Converted",
+                    },
+                };
+            case "Finance":
+                return {
+                    invoice: {
+                        bg: "bg-green-50",
+                        border: "border-green-200",
+                        text: "text-green-600",
+                        val: TotalInvoice,
+                        label: "Invoice",
+                    },
+                    paid: {
+                        bg: "bg-emerald-50",
+                        border: "border-emerald-200",
+                        text: "text-emerald-600",
+                        val: PaidCount,
+                        label: "Paid",
+                    },
+                    unpaid: {
+                        bg: "bg-yellow-50",
+                        border: "border-yellow-200",
+                        text: "text-yellow-600",
+                        val: UnpaidCount,
+                        label: "Unpaid",
+                    },
+                    revenue: {
+                        bg: "bg-blue-50",
+                        border: "border-blue-200",
+                        text: "text-blue-600",
+                        val: Revenue,
+                        label: "Revenue",
+                    },
+                };
+            default:
+                return {
+                    clients: {
+                        bg: "bg-blue-50",
+                        border: "border-blue-200",
+                        text: "text-blue-600",
+                        val: Clients,
+                        label: "Clients",
+                    },
+                    leads: {
+                        bg: "bg-indigo-50",
+                        border: "border-indigo-200",
+                        text: "text-indigo-600",
+                        val: Leads,
+                        label: "Leads Active",
+                    },
+                    projects: {
+                        bg: "bg-sky-50",
+                        border: "border-sky-200",
+                        text: "text-sky-600",
+                        val: Projects,
+                        label: "Projects",
+                    },
+                    users: {
+                        bg: "bg-slate-50",
+                        border: "border-slate-200",
+                        text: "text-slate-600",
+                        val: Users,
+                        label: "Users Online",
+                    },
+                };
+        }
+    };
+
+    const statusConfig = getRoleConfig();
+
     return (
         <AuthenticatedLayout
+            user={auth.user}
             header={
                 <h2 className="text-xl md:text-2xl font-semibold leading-tight text-gray-800">
                     Dashboard
@@ -14,201 +126,362 @@ export default function Dashboard(props) {
         >
             <Head title="Dashboard" />
 
-            <div className="py-6 sm:py-10 md:py-12">
-                <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
-                    {/* Dashboard Cards */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6 mb-8">
-                        {/* Lead Card */}
-                        <div className="bg-white rounded-lg shadow p-4 sm:p-6 flex flex-col sm:flex-row items-center gap-3 sm:gap-4 border-l-4 border-green-700 min-w-0">
-                            <div className="bg-green-100 p-2 sm:p-3 rounded-full">
-                                <svg
-                                    className="w-6 h-6 sm:w-7 sm:h-7 text-green-700"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    strokeWidth="2"
-                                    viewBox="0 0 24 24"
-                                >
-                                    <path
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                        d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
-                                    />
-                                </svg>
-                            </div>
-                            <div className="flex-1 min-w-0">
-                                <div className="text-base sm:text-lg font-bold">12</div>
-                                <div className="text-gray-600 text-xs sm:text-sm">
-                                    {t('cards_dashboard.lead')}
-                                </div>
-                            </div>
+            <div>
+                <div className="max-w-7xl mx-auto sm:px-6 lg:px-8">
+                    <div className="bg-white overflow-hidden shadow-sm sm:rounded-lg p-6">
+                        {/* Judul Dashboard Dinamis */}
+                        <div className="mb-2">
+                            <h1 className="text-2xl font-bold text-gray-800 capitalize">
+                                {role} Dashboard -{" "}
+                                {role === "Admin" || role === "Manager"
+                                    ? "System Overview" 
+                                    : "Performance Overview"}
+                            </h1>
                         </div>
-                        {/* Company Card */}
-                        <div className="bg-white rounded-lg shadow p-4 sm:p-6 flex flex-col sm:flex-row items-center gap-3 sm:gap-4 border-l-4 border-blue-700 min-w-0">
-                            <div className="bg-blue-100 p-2 sm:p-3 rounded-full">
-                                <svg
-                                    className="w-6 h-6 sm:w-7 sm:h-7 text-blue-700"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    strokeWidth="2"
-                                    viewBox="0 0 24 24"
-                                >
-                                    <path
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                        d="M3 21v-4a2 2 0 012-2h3a2 2 0 012 2v4m0 0h4m-4 0v-4a2 2 0 012-2h3a2 2 0 012 2v4m0 0h1a2 2 0 002-2v-7a2 2 0 00-2-2h-1.5M16 3.13a4 4 0 010 7.75"
-                                    />
-                                </svg>
-                            </div>
-                            <div className="flex-1 min-w-0">
-                                <div className="text-base sm:text-lg font-bold">8</div>
-                                <div className="text-gray-600 text-xs sm:text-sm">
-                                    {t('cards_dashboard.company')}
-                                </div>
-                            </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 my-7">
+                            {Object.entries(statusConfig).map(
+                                ([key, colors]) => (
+                                    <div
+                                        key={key}
+                                        className={`rounded-xl p-4 sm:p-5 shadow-sm border ${colors.border} ${colors.bg} transition-transform hover:scale-[1.02] hover:shadow-md min-h-[110px] flex flex-col justify-between`}
+                                    >
+                                        <div className="flex items-center justify-between">
+                                            <div>
+                                                <p
+                                                    className={`text-sm font-medium ${colors.text} uppercase tracking-wide`}
+                                                >
+                                                    {colors.label}
+                                                </p>
+                                                <p className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 mt-2">
+                                                    {colors.val}
+                                                </p>
+                                            </div>
+                                            <div
+                                                className={`p-3 rounded-full ${colors.bg} ${colors.text}`}
+                                            >
+                                                <div
+                                                    className={`w-3 h-3 rounded-full ${colors.text.replace(
+                                                        "text-",
+                                                        "bg-"
+                                                    )}`}
+                                                ></div>
+                                            </div>
+                                        </div>
+                                        <div className="mt-3 pt-3 border-t border-gray-200">
+                                            <p className="text-sm text-gray-600 font-semibold truncate">
+                                                {colors.label} Updated
+                                            </p>
+                                        </div>
+                                    </div>
+                                )
+                            )}
                         </div>
-                        {/* Proposal Card */}
-                        <div className="bg-white rounded-lg shadow p-4 sm:p-6 flex flex-col sm:flex-row items-center gap-3 sm:gap-4 border-l-4 border-purple-700 min-w-0">
-                            <div className="bg-purple-100 p-2 sm:p-3 rounded-full">
-                                <svg
-                                    className="w-6 h-6 sm:w-7 sm:h-7 text-purple-700"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    strokeWidth="2"
-                                    viewBox="0 0 24 24"
-                                >
-                                    <path
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                        d="M9 17v-2a2 2 0 012-2h2a2 2 0 012 2v2m-6 0h6m-6 0a2 2 0 01-2-2V7a2 2 0 012-2h6a2 2 0 012 2v8a2 2 0 01-2 2m-6 0v2a2 2 0 002 2h2a2 2 0 002-2v-2"
-                                    />
-                                </svg>
+
+                        {/* --- DETAIL DATA SECTION --- */}
+                        {/* <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mt-8"> */}
+                        <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+                            <div className="p-4 border-b border-gray-200 bg-gray-50">
+                                <h3 className="font-bold text-gray-700">
+                                    {(role === "Admin" || role === "Manager") && "Recent Activities"}
+                                    {role === "Marketing" &&
+                                        "Lead Source & Funnel"}
+                                    {role === "Finance" &&
+                                        "Monthly Revenue Status"}
+                                </h3>
                             </div>
-                            <div className="flex-1 min-w-0">
-                                <div className="text-base sm:text-lg font-bold">5</div>
-                                <div className="text-gray-600 text-xs sm:text-sm">        
-                                    {t('cards_dashboard.proposal')}
+                            <div className="p-4">
+                                {(role === "Admin" || role === "Manager") && (
+                                    <table className="w-full text-left text-sm">
+                                        <thead>
+                                            <tr className="text-gray-400 uppercase text-xs border-b">
+                                                <th className="pb-2 font-medium">
+                                                    Date
+                                                </th>
+                                                <th className="pb-2 font-medium">
+                                                    User
+                                                </th>
+                                                <th className="pb-2 font-medium">
+                                                    Action
+                                                </th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="text-gray-600">
+                                            {RecentActivities &&
+                                            RecentActivities.length > 0 ? (
+                                                RecentActivities.map(
+                                                    (activity, index) => (
+                                                        <tr
+                                                            key={index}
+                                                            className="border-b last:border-0 hover:bg-gray-50 transition-colors"
+                                                        >
+                                                            <td className="py-3 text-xs text-gray-400">
+                                                                {activity.date}
+                                                            </td>
+                                                            <td className="py-3 font-medium text-gray-900">
+                                                                {activity.user}
+                                                            </td>
+                                                            <td className="py-3 italic text-gray-500">
+                                                                {
+                                                                    activity.action
+                                                                }
+                                                            </td>
+                                                        </tr>
+                                                    )
+                                                )
+                                            ) : (
+                                                <tr>
+                                                    <td
+                                                        colSpan="3"
+                                                        className="py-10 text-center text-gray-400"
+                                                    >
+                                                        Belum ada log aktivitas
+                                                        tercatat.
+                                                    </td>
+                                                </tr>
+                                            )}
+                                        </tbody>
+                                    </table>
+                                )}
+
+                                {/* BAGIAN KANAN: Recent Lead List (Hanya muncul jika role Marketing) */}
+                                {role === "Marketing" && (
+                                    <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+                                        <div className="p-4 border-b border-gray-200 bg-gray-50">
+                                            <h3 className="font-bold text-gray-700">
+                                                Recent Lead List
+                                            </h3>
+                                        </div>
+                                        <div className="p-4">
+                                            <div className="overflow-x-auto">
+                                                <table className="w-full text-left text-sm">
+                                                    <thead>
+                                                        <tr className="text-gray-400 uppercase text-xs border-b">
+                                                            <th className="pb-2 font-medium">
+                                                                Company / PIC
+                                                            </th>
+                                                            <th className="pb-2 font-medium">
+                                                                Status
+                                                            </th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody className="text-gray-600">
+                                                        {RecentLeads &&
+                                                        RecentLeads.length >
+                                                            0 ? (
+                                                            RecentLeads.map(
+                                                                (lead) => (
+                                                                    <tr
+                                                                        key={
+                                                                            lead.id
+                                                                        }
+                                                                        className="border-b last:border-0 hover:bg-gray-50"
+                                                                    >
+                                                                        <td className="py-3">
+                                                                            <div className="font-medium text-gray-900">
+                                                                                {
+                                                                                    lead.company_name
+                                                                                }
+                                                                            </div>
+                                                                            <div className="text-xs text-gray-400">
+                                                                                {
+                                                                                    lead.contact_person
+                                                                                }
+                                                                            </div>
+                                                                        </td>
+                                                                        <td className="py-3">
+                                                                            <span
+                                                                                className={`px-2 py-1 rounded-full text-[10px] font-bold uppercase bg-${lead.status_color}-100 text-${lead.status_color}-700`}
+                                                                            >
+                                                                                {
+                                                                                    lead.status_name
+                                                                                }
+                                                                            </span>
+                                                                        </td>
+                                                                    </tr>
+                                                                )
+                                                            )
+                                                        ) : (
+                                                            <tr>
+                                                                <td
+                                                                    colSpan="3"
+                                                                    className="py-4 text-center text-gray-400"
+                                                                >
+                                                                    No leads
+                                                                    available.
+                                                                </td>
+                                                            </tr>
+                                                        )}
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* BAGIAN KANAN: Invoice List (Hanya muncul jika role Finance) */}
+                                {role === "Finance" && (
+                                    <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+                                        <div className="p-4 border-b border-gray-200 bg-gray-50">
+                                            <h3 className="font-bold text-gray-700">
+                                                Recent Invoice List
+                                            </h3>
+                                        </div>
+                                        <div className="p-4">
+                                            <div className="overflow-x-auto">
+                                                <table className="w-full text-left text-sm">
+                                                    <thead>
+                                                        <tr className="text-gray-400 uppercase text-xs border-b">
+                                                            <th className="pb-2 font-medium">
+                                                                Inv Number /
+                                                                Date
+                                                            </th>
+                                                            <th className="pb-2 font-medium">
+                                                                Amount
+                                                            </th>
+                                                            <th className="pb-2 font-medium">
+                                                                Status
+                                                            </th>
+                                                            <th className="pb-2 font-medium text-right">
+                                                                Action
+                                                            </th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody className="text-gray-600">
+                                                        {RecentInvoices &&
+                                                        RecentInvoices.length >
+                                                            0 ? (
+                                                            RecentInvoices.map(
+                                                                (inv) => (
+                                                                    <tr
+                                                                        key={
+                                                                            inv.id
+                                                                        }
+                                                                        className="border-b last:border-0 hover:bg-gray-50"
+                                                                    >
+                                                                        <td className="py-3">
+                                                                            <div className="font-medium text-gray-900">
+                                                                                {
+                                                                                    inv.invoice_number
+                                                                                }
+                                                                            </div>
+                                                                            <div className="text-xs text-gray-400">
+                                                                                {
+                                                                                    inv.due_date
+                                                                                }
+                                                                            </div>
+                                                                        </td>
+                                                                        <td className="py-3 font-semibold text-gray-700">
+                                                                            {new Intl.NumberFormat(
+                                                                                "id-ID",
+                                                                                {
+                                                                                    style: "currency",
+                                                                                    currency:
+                                                                                        "IDR",
+                                                                                    maximumFractionDigits: 0,
+                                                                                }
+                                                                            ).format(
+                                                                                inv.amount
+                                                                            )}
+                                                                        </td>
+                                                                        <td className="py-3">
+                                                                            <span
+                                                                                className={`px-2 py-1 rounded-full text-[10px] font-bold uppercase ${
+                                                                                    inv.status ===
+                                                                                    "Paid"
+                                                                                        ? "bg-green-100 text-green-700"
+                                                                                        : inv.status ===
+                                                                                          "Unpaid"
+                                                                                        ? "bg-red-100 text-red-700"
+                                                                                        : "bg-yellow-100 text-yellow-700"
+                                                                                }`}
+                                                                            >
+                                                                                {
+                                                                                    inv.status
+                                                                                }
+                                                                            </span>
+                                                                        </td>
+                                                                        <td className="py-3 text-right">
+                                                                            <button className="text-blue-600 hover:text-blue-800 font-medium">
+                                                                                Details
+                                                                            </button>
+                                                                        </td>
+                                                                    </tr>
+                                                                )
+                                                            )
+                                                        ) : (
+                                                            <tr>
+                                                                <td
+                                                                    colSpan="4"
+                                                                    className="py-4 text-center text-gray-400"
+                                                                >
+                                                                    No invoices
+                                                                    found.
+                                                                </td>
+                                                            </tr>
+                                                        )}
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                            {/* </div> */}
+
+                            {/* BAGIAN KANAN */}
+                            {/* <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+                                <div className="p-4 border-b border-gray-200 bg-gray-50">
+                                    <h3 className="font-bold text-gray-700">
+                                        {role === "admin" && "Module Status"}
+                                        {role === "marketing" &&
+                                            "Recent Lead List"}
+                                        {role === "finance" && "Invoice List"}
+                                    </h3>
                                 </div>
-                            </div>
-                        </div>
-                        {/* Invoice Card */}
-                        <div className="bg-white rounded-lg shadow p-4 sm:p-6 flex flex-col sm:flex-row items-center gap-3 sm:gap-4 border-l-4 border-yellow-600 min-w-0">
-                            <div className="bg-yellow-100 p-2 sm:p-3 rounded-full">
-                                <svg
-                                    className="w-6 h-6 sm:w-7 sm:h-7 text-yellow-600"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    strokeWidth="2"
-                                    viewBox="0 0 24 24"
-                                >
-                                    <path
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                        d="M9 14l2-2m0 0l2-2m-2 2v6m6-6a9 9 0 11-18 0 9 9 0 0118 0z"
-                                    />
-                                </svg>
-                            </div>
-                            <div className="flex-1 min-w-0">
-                                <div className="text-base sm:text-lg font-bold">3</div>
-                                <div className="text-gray-600 text-xs sm:text-sm">
-                                    {t('cards_dashboard.invoice')}
+                                <div className="p-4">
+                                    <table className="w-full text-left text-sm">
+                                        <thead>
+                                            <tr className="text-gray-400 uppercase text-xs border-b">
+                                                <th className="pb-2 font-medium">
+                                                    {role === "finance"
+                                                        ? "Invoice"
+                                                        : "Name/Module"}
+                                                </th>
+                                                <th className="pb-2 font-medium">
+                                                    {role === "finance"
+                                                        ? "Client"
+                                                        : "Status"}
+                                                </th>
+                                                <th className="pb-2 font-medium text-right">
+                                                    Action
+                                                </th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="text-gray-600">
+                                            <tr className="border-b last:border-0">
+                                                <td className="py-3 font-medium text-gray-900">
+                                                    {role === "finance"
+                                                        ? "INV-45"
+                                                        : "PT Alpha"}
+                                                </td>
+                                                <td className="py-3">
+                                                    <span className="px-2 py-1 rounded-full text-[10px] font-bold bg-green-100 text-green-700 uppercase">
+                                                        {role === "finance"
+                                                            ? "Paid"
+                                                            : "Active"}
+                                                    </span>
+                                                </td>
+                                                <td className="py-3 text-right">
+                                                    <button className="text-blue-600 hover:underline font-medium">
+                                                        Detail
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
                                 </div>
-                            </div>
-                        </div>
-                        {/* Payment Card */}
-                        <div className="bg-white rounded-lg shadow p-4 sm:p-6 flex flex-col sm:flex-row items-center gap-3 sm:gap-4 border-l-4 border-teal-700 min-w-0">
-                            <div className="bg-teal-100 p-2 sm:p-3 rounded-full">
-                                <svg
-                                    className="w-6 h-6 sm:w-7 sm:h-7 text-teal-700"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    strokeWidth="2"
-                                    viewBox="0 0 24 24"
-                                >
-                                    <path
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                        d="M17 9V7a5 5 0 00-10 0v2a2 2 0 00-2 2v5a2 2 0 002 2h10a2 2 0 002-2v-5a2 2 0 00-2-2z"
-                                    />
-                                </svg>
-                            </div>
-                            <div className="flex-1 min-w-0">
-                                <div className="text-base sm:text-lg font-bold">2</div>
-                                <div className="text-gray-600 text-xs sm:text-sm">
-                                    {t('cards_dashboard.payment')}
-                                </div>
-                            </div>
-                        </div>
-                        {/* Report Card */}
-                        <div className="bg-white rounded-lg shadow p-4 sm:p-6 flex flex-col sm:flex-row items-center gap-3 sm:gap-4 border-l-4 border-gray-700 min-w-0">
-                            <div className="bg-gray-100 p-2 sm:p-3 rounded-full">
-                                <svg
-                                    className="w-6 h-6 sm:w-7 sm:h-7 text-gray-700"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    strokeWidth="2"
-                                    viewBox="0 0 24 24"
-                                >
-                                    <path
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                        d="M9 17v-2a2 2 0 012-2h2a2 2 0 012 2v2m-6 0h6m-6 0a2 2 0 01-2-2V7a2 2 0 012-2h6a2 2 0 012 2v8a2 2 0 01-2 2m-6 0v2a2 2 0 002 2h2a2 2 0 002-2v-2"
-                                    />
-                                </svg>
-                            </div>
-                            <div className="flex-1 min-w-0">
-                                <div className="text-base sm:text-lg font-bold">1</div>
-                                <div className="text-gray-600 text-xs sm:text-sm">
-                                    {t('cards_dashboard.report')}
-                                </div>
-                            </div>
-                        </div>
-                        {/* Marketing Dashboard Card */}
-                        <div className="bg-white rounded-lg shadow p-4 sm:p-6 flex flex-col sm:flex-row items-center gap-3 sm:gap-4 border-l-4 border-pink-600 min-w-0">
-                            <div className="bg-pink-100 p-2 sm:p-3 rounded-full">
-                                <svg
-                                    className="w-6 h-6 sm:w-7 sm:h-7 text-pink-600"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    strokeWidth="2"
-                                    viewBox="0 0 24 24"
-                                >
-                                    <path
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                        d="M13 16h-1v-4h-1m4 0h-1v4h-1m-4 0h-1v-4h-1"
-                                    />
-                                </svg>
-                            </div>
-                            <div className="flex-1 min-w-0">
-                                <div className="text-base sm:text-lg font-bold">0</div>
-                                <div className="text-gray-600 text-xs sm:text-sm">
-                                    {t('cards_dashboard.marketing')}
-                                </div>
-                            </div>
-                        </div>
-                        {/* Finance Dashboard Card */}
-                        <div className="bg-white rounded-lg shadow p-4 sm:p-6 flex flex-col sm:flex-row items-center gap-3 sm:gap-4 border-l-4 border-indigo-700 min-w-0">
-                            <div className="bg-indigo-100 p-2 sm:p-3 rounded-full">
-                                <svg
-                                    className="w-6 h-6 sm:w-7 sm:h-7 text-indigo-700"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    strokeWidth="2"
-                                    viewBox="0 0 24 24"
-                                >
-                                    <path
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                        d="M12 8c-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4-1.79-4-4-4zm0 0V4m0 16v-4"
-                                    />
-                                </svg>
-                            </div>
-                            <div className="flex-1 min-w-0">
-                                <div className="text-base sm:text-lg font-bold">0</div>
-                                <div className="text-gray-600 text-xs sm:text-sm">
-                                    {t('cards_dashboard.finance')}
-                                </div>
-                            </div>
+                            </div> */}
                         </div>
                     </div>
                 </div>

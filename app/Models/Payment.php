@@ -1,16 +1,16 @@
 <?php
-// app/Models/Payment.php
+
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Str;
 
 class Payment extends Model
 {
-    use SoftDeletes;
+    use HasFactory, SoftDeletes;
 
-    protected $table = 'payments';
-    protected $primaryKey = 'id';
     protected $keyType = 'string';
     public $incrementing = false;
 
@@ -31,13 +31,21 @@ class Payment extends Model
         'amount' => 'decimal:2',
         'date' => 'date',
         'deleted' => 'boolean',
-        'created_at' => 'datetime',
-        'updated_at' => 'datetime',
-        'deleted_at' => 'datetime'
     ];
 
+    protected static function boot()
+    {
+        parent::boot();
+        
+        static::creating(function ($model) {
+            if (empty($model->id)) {
+                $model->id = (string) Str::uuid();
+            }
+        });
+    }
+
     /**
-     * Relasi ke invoice
+     * Get the invoice that owns the payment.
      */
     public function invoice()
     {
@@ -45,7 +53,7 @@ class Payment extends Model
     }
 
     /**
-     * Relasi ke user yang membuat
+     * Get the user who created the payment.
      */
     public function creator()
     {
@@ -53,7 +61,7 @@ class Payment extends Model
     }
 
     /**
-     * Relasi ke user yang mengupdate
+     * Get the user who last updated the payment.
      */
     public function updater()
     {
@@ -61,38 +69,27 @@ class Payment extends Model
     }
 
     /**
-     * Scope untuk exclude deleted records
+     * Scope a query to only include payments with specific method.
      */
-    public function scopeActive($query)
+    public function scopeByMethod($query, $method)
     {
-        return $query->where('deleted', 0);
+        return $query->where('method', $method);
     }
 
     /**
-     * Get method label
+     * Scope a query to filter by date range.
      */
-    public function getMethodLabelAttribute()
+    public function scopeByDateRange($query, $startDate, $endDate)
     {
-        $methods = [
-            'transfer' => 'Bank Transfer',
-            'cash' => 'Cash',
-            'check' => 'Check'
-        ];
-
-        return $methods[$this->method] ?? $this->method;
+        return $query->whereBetween('date', [$startDate, $endDate]);
     }
 
     /**
-     * Get method color class
+     * Scope a query to filter by month and year.
      */
-    public function getMethodColorAttribute()
+    public function scopeByMonthYear($query, $month, $year)
     {
-        $colors = [
-            'transfer' => 'bg-blue-100 text-blue-800',
-            'cash' => 'bg-green-100 text-green-800',
-            'check' => 'bg-purple-100 text-purple-800'
-        ];
-
-        return $colors[$this->method] ?? 'bg-gray-100 text-gray-800';
+        return $query->whereMonth('date', $month)
+                    ->whereYear('date', $year);
     }
 }

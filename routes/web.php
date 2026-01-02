@@ -12,10 +12,12 @@ use App\Http\Controllers\EmailSettingsController;
 use App\Http\Controllers\CompanyController;
 use App\Http\Controllers\EmailController;
 use App\Http\Controllers\InvoiceController;
+use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\Quotation\QuotationController;
 use App\Http\Controllers\ProposalController;
 use App\Http\Controllers\ProposalNumberFormated;
 use App\Http\Controllers\RolesController;
+use App\Http\Controllers\DashboardController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Artisan;
@@ -35,9 +37,11 @@ Route::get('/', function () {
 });
 
 Route::middleware(['auth', 'verified'])->group(function () {
-    Route::get('/dashboard', function () {
-        return Inertia::render('Dashboard');
-    })->name('dashboard');
+    // Route::get('/dashboard', function () {
+    //     return Inertia::render('Dashboard');
+    // })->name('dashboard');
+
+    Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
@@ -73,7 +77,16 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // notif send document(quotation/invoice)email
     Route::post('/send-email/{type}/{id}', [EmailController::class, 'sendDocument'])->name('email.send-document');
 
-    Route::get('/payment', fn() => Inertia::render('Payments/Index'))->name('payment.index');
+    // Payment routes
+    Route::prefix('payment')->name('payment.')->group(function () {
+        Route::get('/', [PaymentController::class, 'index'])->name('index');
+        Route::get('/invoices', [PaymentController::class, 'getInvoices'])->name('get-invoices');
+        Route::post('/store', [PaymentController::class, 'store'])->name('store');
+        Route::patch('/update/{payment}', [PaymentController::class, 'update'])->name('update');
+        Route::delete('/destroy/{payment}', [PaymentController::class, 'destroy'])->name('destroy');
+    });
+
+    // Route::get('/email', fn() => Inertia::render('Email/Index'))->name('email.index');
     // Route::get('/user', fn() => Inertia::render('Users/Index'))->name('user.index');
     // Route::get('/project', fn() => Inertia::render('Projects/Index'))->name('project.index');
     // Route::get('/email-inbox', fn() => Inertia::render('Email/Index'))->name('email.index');
