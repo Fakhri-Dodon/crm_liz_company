@@ -7,7 +7,7 @@ import ModalAdd from "@/Components/ModalAdd";
 import { toast } from "react-hot-toast";
 import { useTranslation } from "react-i18next";
 
-export default function UsersIndex({ users, roles, templates }) {
+export default function UsersIndex({ users, roles, templates, auth_permissions }) {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editId, setEditId] = useState(null);
     const [isSendingEmail, setIsSendingEmail] = useState(false);
@@ -15,6 +15,11 @@ export default function UsersIndex({ users, roles, templates }) {
     const [selectedUser, setSelectedUser] = useState(null);
     const [selectedTemplate, setSelectedTemplate] = useState("welcome");
     const [selectedTemplateId, setSelectedTemplateId] = useState("");
+
+    const canRead = auth_permissions.can_read === 1;
+    const canCreate = auth_permissions.can_create === 1;
+    const canUpdate   = auth_permissions.can_update === 1;
+    const canDelete = auth_permissions.can_delete === 1;
 
     const { t } = useTranslation();
 
@@ -426,25 +431,27 @@ export default function UsersIndex({ users, roles, templates }) {
                     </h1>
 
                     {/* ADD BUTTON */}
-                    <PrimaryButton
-                        onClick={handleAdd}
-                        className="w-full sm:w-auto px-5 py-2.5 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-all duration-200 flex items-center justify-center gap-2 shadow-sm hover:shadow focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-                    >
-                        <svg
-                            className="h-4 w-4"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
+                    {canCreate && (
+                        <PrimaryButton
+                            onClick={handleAdd}
+                            className="w-full sm:w-auto px-5 py-2.5 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-all duration-200 flex items-center justify-center gap-2 shadow-sm hover:shadow focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
                         >
-                            <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M12 4v16m8-8H4"
-                            />
-                        </svg>
-                        <span>{t('users.button_add')}</span>
-                    </PrimaryButton>
+                            <svg
+                                className="h-4 w-4"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                stroke="currentColor"
+                            >
+                                <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={2}
+                                    d="M12 4v16m8-8H4"
+                                />
+                            </svg>
+                            <span>{t('users.button_add')}</span>
+                        </PrimaryButton>
+                    )}
                 </div>
 
                 <div className="py-8">
@@ -454,9 +461,9 @@ export default function UsersIndex({ users, roles, templates }) {
                                 data={tableData}
                                 columns={columns}
                                 onSendEmail={(user) => handleSendEmail(user)}
-                                onEdit={handleEdit}
-                                onDelete={handleDelete}
-                                showAction={true}
+                                onEdit={canUpdate ? handleEdit : null}
+                                onDelete={canDelete ? handleDelete : null}
+                                showAction={canUpdate || canDelete}
                             />
                         </div>
                     </div>

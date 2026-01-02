@@ -28,7 +28,7 @@ const PermissionEditor = ({ permission, onSave, onCancel }) => {
     ];
 
     return (
-        <div className="absolute z-50 bg-white border border-gray-300 shadow-2xl rounded-md p-4 w-56 animate-in fade-in zoom-in-95 duration-150">
+        <div className="bg-white border border-gray-300 shadow-2xl rounded-md p-4 w-56 animate-in fade-in zoom-in-95 duration-150">
             <div className="mb-2 pb-2 border-b">
                 <span className="text-[10px] font-black uppercase text-teal-600 tracking-tighter">
                     {permission.id ? "Edit Permission" : "Setup New Permission"}
@@ -280,18 +280,7 @@ export default function UserRoleSettings() {
                                                         onClick={(e) => {
                                                             const rect =
                                                                 e.currentTarget.getBoundingClientRect();
-                                                            setActiveEditor({
-                                                                pos: {
-                                                                    top:
-                                                                        rect.bottom +
-                                                                        window.scrollY +
-                                                                        5,
-                                                                    left:
-                                                                        rect.left +
-                                                                        window.scrollX,
-                                                                },
-                                                                // Kirim data asli jika ada, jika tidak kirim blueprint untuk Create
-                                                                data: perm
+                                                            setActiveEditor( perm
                                                                     ? perm
                                                                     : {
                                                                           role_id:
@@ -299,7 +288,7 @@ export default function UserRoleSettings() {
                                                                           menu_id:
                                                                               menu.id,
                                                                       },
-                                                            });
+                                                            );
                                                         }}
                                                         className={`h-14 w-full flex items-center justify-center cursor-pointer transition-all hover:bg-teal-50/30 active:scale-95`}
                                                     >
@@ -318,26 +307,21 @@ export default function UserRoleSettings() {
 
             {/* Pop-up Editor Overlay */}
             {activeEditor && (
-                <>
+                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
                     <div
-                        className="fixed inset-0 z-40"
+                        className="fixed inset-0"
                         onClick={() => setActiveEditor(null)}
                     />
                     <div
-                        className="fixed z-50 shadow-2xl"
-                        style={{
-                            top: activeEditor.pos.top,
-                            left: activeEditor.pos.left,
-                            minWidth: "224px",
-                        }}
+                        className="relative z-10 w-full flex justify-center p-4"
                     >
                         <PermissionEditor
-                            permission={activeEditor.data}
+                            permission={activeEditor}
                             onCancel={() => setActiveEditor(null)}
                             onSave={handleSave}
                         />
                     </div>
-                </>
+                </div>
             )}
             {isRoleModalOpen && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">

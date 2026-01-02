@@ -7,7 +7,7 @@ import TableLayout from "@/Layouts/TableLayout";
 import { toast } from "react-hot-toast";
 import { useTranslation } from "react-i18next";
 
-export default function EmailIndex() {
+export default function EmailIndex({ auth_permissions }) {
     const { templates } = usePage().props;
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editId, setEditId] = useState(null);
@@ -18,6 +18,11 @@ export default function EmailIndex() {
         subject: "",
         content: "",
     });
+
+    const canRead = auth_permissions.can_read === 1;
+    const canCreate = auth_permissions.can_create === 1;
+    const canUpdate   = auth_permissions.can_update === 1;
+    const canDelete = auth_permissions.can_delete === 1;
 
     // Menangani pembukaan modal (Tambah atau Edit)
     const handleOpenModal = (template = null) => {
@@ -80,20 +85,22 @@ export default function EmailIndex() {
                         {t('emails.title') || 'Email Templates'}
                     </h1>
 
-                    <PrimaryButton onClick={() => handleOpenModal()} className="flex items-center gap-2">
-                        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                        </svg>
-                        <span>{t('emails.button_add') || 'Add New Template'}</span>
-                    </PrimaryButton>
+                    {canCreate && (
+                        <PrimaryButton onClick={() => handleOpenModal()} className="flex items-center gap-2">
+                            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                            </svg>
+                            <span>{t('emails.button_add') || 'Add New Template'}</span>
+                        </PrimaryButton>
+                    )}
                 </div>
 
                 <TableLayout
                     data={templates}
                     columns={columns}
-                    onEdit={(item) => handleOpenModal(item)}
-                    onDelete={(item) => handleDelete(item.id)}
-                    showAction={true}
+                    onEdit={canUpdate ? (item) => handleOpenModal(item) : null}
+                    onDelete={canDelete ? (item) => handleDelete(item.id) : null}
+                    showAction={canUpdate || canDelete}
                 />
             </div>
 

@@ -31,21 +31,21 @@ export default function Dashboard({
                         border: "border-purple-200",
                         text: "text-purple-600",
                         val: Leads,
-                        label: "Total Lead",
+                        label: t("dashboard.marketing.total_leads"),
                     },
                     new_lead: {
                         bg: "bg-blue-50",
                         border: "border-blue-200",
                         text: "text-blue-600",
                         val: NewLeads,
-                        label: "New Lead",
+                        label: t("dashboard.marketing.new_leads"),
                     },
                     converted: {
                         bg: "bg-green-50",
                         border: "border-green-200",
                         text: "text-green-600",
                         val: Converted,
-                        label: "Converted",
+                        label: t("dashboard.marketing.converted"),
                     },
                 };
             case "Finance":
@@ -55,28 +55,28 @@ export default function Dashboard({
                         border: "border-green-200",
                         text: "text-green-600",
                         val: TotalInvoice,
-                        label: "Invoice",
+                        label: t("dashboard.finance.invoice"),
                     },
                     paid: {
                         bg: "bg-emerald-50",
                         border: "border-emerald-200",
                         text: "text-emerald-600",
                         val: PaidCount,
-                        label: "Paid",
+                        label: t("dashboard.finance.paid"),
                     },
                     unpaid: {
                         bg: "bg-yellow-50",
                         border: "border-yellow-200",
                         text: "text-yellow-600",
                         val: UnpaidCount,
-                        label: "Unpaid",
+                        label: t("dashboard.finance.unpaid"),
                     },
                     revenue: {
                         bg: "bg-blue-50",
                         border: "border-blue-200",
                         text: "text-blue-600",
                         val: Revenue,
-                        label: "Revenue",
+                        label: t("dashboard.finance.revenue"),
                     },
                 };
             default:
@@ -86,28 +86,28 @@ export default function Dashboard({
                         border: "border-blue-200",
                         text: "text-blue-600",
                         val: Clients,
-                        label: "Clients",
+                        label: t("dashboard.default.clients"),
                     },
                     leads: {
                         bg: "bg-indigo-50",
                         border: "border-indigo-200",
                         text: "text-indigo-600",
                         val: Leads,
-                        label: "Leads Active",
+                        label: t("dashboard.default.leads_active"),
                     },
                     projects: {
                         bg: "bg-sky-50",
                         border: "border-sky-200",
                         text: "text-sky-600",
                         val: Projects,
-                        label: "Projects",
+                        label: t("dashboard.default.projects"),
                     },
                     users: {
                         bg: "bg-slate-50",
                         border: "border-slate-200",
                         text: "text-slate-600",
                         val: Users,
-                        label: "Users Online",
+                        label: t("dashboard.default.users_online"),
                     },
                 };
         }
@@ -132,10 +132,10 @@ export default function Dashboard({
                         {/* Judul Dashboard Dinamis */}
                         <div className="mb-2">
                             <h1 className="text-2xl font-bold text-gray-800 capitalize">
-                                {role} Dashboard -{" "}
+                                {role} {t("dashboard.default.title")} -{" "}
                                 {role === "Admin" || role === "Manager"
-                                    ? "System Overview" 
-                                    : "Performance Overview"}
+                                    ? t("dashboard.default.system_overview") 
+                                    : t("dashboard.default.system_overview")}
                             </h1>
                         </div>
 
@@ -170,7 +170,7 @@ export default function Dashboard({
                                         </div>
                                         <div className="mt-3 pt-3 border-t border-gray-200">
                                             <p className="text-sm text-gray-600 font-semibold truncate">
-                                                {colors.label} Updated
+                                                {colors.label} {t("dashboard.default.updated")}
                                             </p>
                                         </div>
                                     </div>
@@ -183,11 +183,11 @@ export default function Dashboard({
                         <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
                             <div className="p-4 border-b border-gray-200 bg-gray-50">
                                 <h3 className="font-bold text-gray-700">
-                                    {(role === "Admin" || role === "Manager") && "Recent Activities"}
+                                    {(role === "Admin" || role === "Manager") && t("dashboard.default.recent_activities")}
                                     {role === "Marketing" &&
-                                        "Lead Source & Funnel"}
+                                        t("dashboard.marketing.source_funnel")}
                                     {role === "Finance" &&
-                                        "Monthly Revenue Status"}
+                                        t("dashboard.finance.recent_invoice_list")}
                                 </h3>
                             </div>
                             <div className="p-4">
@@ -196,13 +196,13 @@ export default function Dashboard({
                                         <thead>
                                             <tr className="text-gray-400 uppercase text-xs border-b">
                                                 <th className="pb-2 font-medium">
-                                                    Date
+                                                    {t("dashboard.default.table.date")}
                                                 </th>
                                                 <th className="pb-2 font-medium">
-                                                    User
+                                                    {t("dashboard.default.table.user")}
                                                 </th>
                                                 <th className="pb-2 font-medium">
-                                                    Action
+                                                    {t("dashboard.default.table.action")}
                                                 </th>
                                             </tr>
                                         </thead>
@@ -235,8 +235,8 @@ export default function Dashboard({
                                                         colSpan="3"
                                                         className="py-10 text-center text-gray-400"
                                                     >
-                                                        Belum ada log aktivitas
-                                                        tercatat.
+                                                        No recent activities
+                                                        found.
                                                     </td>
                                                 </tr>
                                             )}
@@ -247,21 +247,16 @@ export default function Dashboard({
                                 {/* BAGIAN KANAN: Recent Lead List (Hanya muncul jika role Marketing) */}
                                 {role === "Marketing" && (
                                     <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-                                        <div className="p-4 border-b border-gray-200 bg-gray-50">
-                                            <h3 className="font-bold text-gray-700">
-                                                Recent Lead List
-                                            </h3>
-                                        </div>
                                         <div className="p-4">
                                             <div className="overflow-x-auto">
                                                 <table className="w-full text-left text-sm">
                                                     <thead>
                                                         <tr className="text-gray-400 uppercase text-xs border-b">
                                                             <th className="pb-2 font-medium">
-                                                                Company / PIC
+                                                                {t("dashboard.marketing.table.company")}
                                                             </th>
                                                             <th className="pb-2 font-medium">
-                                                                Status
+                                                                {t("dashboard.marketing.table.status")}
                                                             </th>
                                                         </tr>
                                                     </thead>
@@ -322,28 +317,19 @@ export default function Dashboard({
                                 {/* BAGIAN KANAN: Invoice List (Hanya muncul jika role Finance) */}
                                 {role === "Finance" && (
                                     <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-                                        <div className="p-4 border-b border-gray-200 bg-gray-50">
-                                            <h3 className="font-bold text-gray-700">
-                                                Recent Invoice List
-                                            </h3>
-                                        </div>
                                         <div className="p-4">
                                             <div className="overflow-x-auto">
                                                 <table className="w-full text-left text-sm">
                                                     <thead>
                                                         <tr className="text-gray-400 uppercase text-xs border-b">
                                                             <th className="pb-2 font-medium">
-                                                                Inv Number /
-                                                                Date
+                                                                {t("dashboard.finance.table.number_date")}
                                                             </th>
                                                             <th className="pb-2 font-medium">
-                                                                Amount
+                                                                {t("dashboard.finance.table.amount")}
                                                             </th>
                                                             <th className="pb-2 font-medium">
-                                                                Status
-                                                            </th>
-                                                            <th className="pb-2 font-medium text-right">
-                                                                Action
+                                                                {t("dashboard.finance.table.status")}
                                                             </th>
                                                         </tr>
                                                     </thead>
@@ -400,11 +386,6 @@ export default function Dashboard({
                                                                                     inv.status
                                                                                 }
                                                                             </span>
-                                                                        </td>
-                                                                        <td className="py-3 text-right">
-                                                                            <button className="text-blue-600 hover:text-blue-800 font-medium">
-                                                                                Details
-                                                                            </button>
                                                                         </td>
                                                                     </tr>
                                                                 )

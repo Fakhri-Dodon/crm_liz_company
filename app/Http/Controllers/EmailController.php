@@ -11,6 +11,7 @@ class EmailController extends Controller
     {
         return inertia('Email/Index', [
             'templates' => EmailTemplates::where('deleted', 0)->get(),
+            'auth_permissions' => auth()->user()->getPermissions('EMAIL'),
         ]);
     }
 

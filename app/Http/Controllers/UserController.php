@@ -30,6 +30,7 @@ class UserController extends Controller
             'users' => $users,
             'roles' => $roles,
             'templates' => $templates,
+            'auth_permissions' => auth()->user()->getPermissions('USER'),
         ]);
     }
 
@@ -163,6 +164,13 @@ class UserController extends Controller
 
             return back()->with('success', 'Email terkirim.');
         } catch (\Exception $e) {
+            EmailLogs::create([
+                'sent_date' => now(),
+                'to'        => $user->email,
+                'subject'   => $template->subject,
+                'body'      => $body,
+                'status'    => 'failed'
+            ]);
             return back()->withErrors([
                 'error' => 'Detail Error: ' . $e->getMessage()
             ]);

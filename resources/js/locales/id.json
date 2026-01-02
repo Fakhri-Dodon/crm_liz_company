@@ -15,15 +15,45 @@
         "email": "EMAIL",
         "user": "PENGGUNA"
     },
-    "cards_dashboard": {
-        "lead": "Prospek",
-        "company": "Perusahaan",
-        "proposal": "Proposal",
-        "invoice": "Tagihan",
-        "payment": "Pembayaran",
-        "report": "Laporan",
-        "marketing": "Dasbor Pemasaran",
-        "finance": "Dasbor Keuangan"
+    "dashboard": {
+        "default": {
+            "title": "Dasbor",
+            "system_overview": "Gambaran Sistem",
+            "clients": "Klien",
+            "leads_active": "Prospek Aktif",
+            "projects": "Proyek",
+            "users_online": "Pengguna Online",
+            "recent_activities": "Aktivitas Terbaru",
+            "updated": "Diperbarui",
+            "table": {
+                "date": "Tanggal",
+                "user": "Pengguna",
+                "action": "Aksi"
+            }
+        },
+        "marketing": {
+            "total_leads": "Total Prospek",
+            "new_leads": "Prospek Baru",
+            "converted": "Terkonversi",
+            "source_funnel": "Sumber & Corong Prospek",
+            "table": {
+                "company": "Perusahaan",
+                "status": "Status"
+            }
+        },
+        "finance": {
+            "invoice": "Tagihan",
+            "paid": "Dibayar",
+            "unpaid": "Belum Dibayar",
+            "revenue": "Pendapatan",
+            "recent_invoice_list": "Daftar Tagihan Terbaru",
+            "table": {
+                "number_date": "No & Tanggal",
+                "amount": "Jumlah",
+                "status": "Status",
+                "action": "Aksi"
+            }
+        }
     },
 
     "quotations": {

@@ -28,6 +28,7 @@ class DatabaseSeeder extends Seeder
             LeadStatusesSeeder::class,
             ProposalStatusesSeeder::class,
             EmailTemplateSeeder::class,
+            MenuMappingSeeder::class,
         ]);
     }
 }

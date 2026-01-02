@@ -16,8 +16,6 @@ class MenuSeeder extends Seeder
         $allMenus = [
             // Header Menus
             ['name' => 'Setting', 'route' => '/setting/general'],
-            ['name' => 'Language', 'route' => '/language'],
-            ['name' => 'Notifications', 'route' => '/notifications'],
             
             // Main Menus
             ['name' => 'DASHBOARD', 'route' => '/dashboard'],

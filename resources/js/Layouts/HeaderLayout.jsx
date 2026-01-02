@@ -17,7 +17,7 @@ import { useTranslation } from "react-i18next";
 import Swal from "sweetalert2";
 import { FiEdit2 } from "react-icons/fi";
 
-export default function HeaderLayout({ header, children }) {
+export default function HeaderLayout({ header, children, }) {
     const { url, props } = usePage();
     const user = props.auth.user;
     const { t, i18n } = useTranslation();
@@ -35,11 +35,17 @@ export default function HeaderLayout({ header, children }) {
     const [unreadCount, setUnreadCount] = useState(
         props.auth.unreadNotificationsCount || 0
     );
+    const auth_permissions_setting = props.auth_permissions_setting;
 
     console.log(localNotifications);
 
     // const notifications = props.auth.notifications || [];
     // const unreadCount = props.auth.unreadNotificationsCount || 0;
+
+    const canReadSetting = auth_permissions_setting?.can_read === 1;
+    const canUpdateSetting = auth_permissions_setting?.can_update === 1;
+    const canCreateSetting = auth_permissions_setting?.can_create === 1;
+    const canDeleteSetting = auth_permissions_setting?.can_delete === 1;
 
     useEffect(() => {
         setLocalNotifications(props.auth.notifications || []);
@@ -333,18 +339,20 @@ export default function HeaderLayout({ header, children }) {
                 </div>
 
                 <div className="hidden sm:flex items-center gap-1 md:gap-2">
-                    <Link
-                        href="/setting/general"
-                        className="flex flex-col items-center p-2 hover:bg-gray-50 rounded-xl transition-all group"
-                    >
-                        <Settings
-                            size={22}
-                            className="text-gray-500 group-hover:text-teal-600 transition-colors"
-                        />
-                        <span className="text-[10px] font-medium text-gray-500">
-                            Setting
-                        </span>
-                    </Link>
+                    {(canReadSetting || canCreateSetting || canUpdateSetting || canDeleteSetting) && (
+                        <Link
+                            href="/setting/general"
+                            className="flex flex-col items-center p-2 hover:bg-gray-50 rounded-xl transition-all group"
+                        >
+                            <Settings
+                                size={22}
+                                className="text-gray-500 group-hover:text-teal-600 transition-colors"
+                            />
+                            <span className="text-[10px] font-medium text-gray-500">
+                                Setting
+                            </span>
+                        </Link>
+                    )}
 
                     <Dropdown>
                         <Dropdown.Trigger>

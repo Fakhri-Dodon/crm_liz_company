@@ -75,6 +75,26 @@ class User extends Authenticatable
         return $this->belongsTo(Roles::class);
     }
 
+    public function getPermissions($menuName)
+    {
+        return \DB::table('menu_mapping')
+            ->join('menu', 'menu_mapping.menu_id', '=', 'menu.id')
+            ->where('menu_mapping.role_id', $this->role_id)
+            ->where('menu.name', $menuName)
+            ->select(
+                'menu_mapping.can_read',
+                'menu_mapping.can_create',
+                'menu_mapping.can_update',
+                'menu_mapping.can_delete'
+            )
+            ->first() ?? (object)[ // Default jika tidak ditemukan mapping
+                'can_read' => 0,
+                'can_create' => 0,
+                'can_update' => 0,
+                'can_delete' => 0
+            ];
+    }
+
     /**
      * Get the attributes that should be cast.
      *

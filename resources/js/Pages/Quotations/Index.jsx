@@ -26,8 +26,13 @@ export const toast = (title, icon = 'success') => {
     });
 };
 
-export default function QoutationsIndex({ quotations, statusOptions, summary, years, filters, totals }) {
+export default function QoutationsIndex({ quotations, statusOptions, summary, years, filters, totals, auth_permissions }) {
     const { t } = useTranslation();
+
+    const canRead = auth_permissions.can_read === 1;
+    const canCreate = auth_permissions.can_create === 1;
+    const canUpdate   = auth_permissions.can_update === 1;
+    const canDelete = auth_permissions.can_delete === 1;
 
     const columns = [
         {
@@ -282,25 +287,27 @@ export default function QoutationsIndex({ quotations, statusOptions, summary, ye
                     </h1>
 
                     {/* ADD BUTTON */}
-                    <PrimaryButton
-                        onClick={handleAdd}
-                        className="w-full sm:w-auto px-5 py-2.5 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-all duration-200 flex items-center justify-center gap-2 shadow-sm hover:shadow focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-                    >
-                        <svg
-                            className="h-4 w-4"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
+                    {canCreate && (
+                        <PrimaryButton
+                            onClick={handleAdd}
+                            className="w-full sm:w-auto px-5 py-2.5 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-all duration-200 flex items-center justify-center gap-2 shadow-sm hover:shadow focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
                         >
-                            <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M12 4v16m8-8H4"
-                            />
-                        </svg>
-                        <span>{t('quotations.button_add')}</span>
-                    </PrimaryButton>
+                            <svg
+                                className="h-4 w-4"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                stroke="currentColor"
+                            >
+                                <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={2}
+                                    d="M12 4v16m8-8H4"
+                                />
+                            </svg>
+                            <span>{t('quotations.button_add')}</span>
+                        </PrimaryButton>
+                    )}
                 </div>
 
                 {/* Status Section */}
@@ -439,9 +446,9 @@ export default function QoutationsIndex({ quotations, statusOptions, summary, ye
                         <TableLayout
                             data={tableData}
                             columns={columns}
-                            onEdit={handleEdit}
-                            onDelete={handleDelete}
-                            showAction={true}
+                            onEdit={ canUpdate ? handleEdit : null}
+                            onDelete={ canDelete ? handleDelete : null}
+                            showAction={ canUpdate || canDelete}
                         />
                     </div>
                 </div>

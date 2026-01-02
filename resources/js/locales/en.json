@@ -15,15 +15,45 @@
         "email": "EMAIL",
         "user": "USER"
     },
-    "cards_dashboard": {
-        "lead": "Lead",
-        "company": "Company",
-        "proposal": "Proposal",
-        "invoice": "Invoice",
-        "payment": "Payment",
-        "report": "Report",
-        "marketing": "Marketing Dashboard",
-        "finance": "Finance Dashboard"
+    "dashboard": {
+        "default": {
+            "title": "Dashboard",
+            "system_overview": "System Overview",
+            "clients": "Clients",
+            "leads_active": "Leads Active",
+            "projects": "Projects",
+            "users_online": "Users Online",
+            "recent_activities": "Recent Activities",
+            "updated": "Updated",
+            "table": {
+                "date": "Date",
+                "user": "User",
+                "action": "Action"
+            }
+        },
+        "marketing": {
+            "total_leads": "Total Leads",
+            "new_leads": "New Leads",
+            "converted": "Converted",
+            "source_funnel": "Lead Source & Funnel",
+            "table": {
+                "company": "Company",
+                "status": "Status"
+            }
+        },
+        "finance": {
+            "invoice": "Invoice",
+            "paid": "Paid",
+            "unpaid": "Unpaid",
+            "revenue": "Revenue",
+            "recent_invoice_list": "Recent Invoice List",
+            "table": {
+                "number_date": "No & Date",
+                "amount": "Amount",
+                "status": "Status",
+                "action": "Action"
+            }
+        }
     },
     "quotations": {
         "title": "QUOTATIONS",

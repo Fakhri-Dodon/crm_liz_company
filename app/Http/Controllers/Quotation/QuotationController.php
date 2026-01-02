@@ -97,6 +97,7 @@ class QuotationController extends Controller {
             'summary'    => $summary,
             'years'      => $years,
             'totals'     => $totals,
+            'auth_permissions' => auth()->user()->getPermissions('QUOTATION'),
         ]);
     }
 
@@ -522,7 +523,6 @@ class QuotationController extends Controller {
         $quotation = Quotation::findOrFail($id);
         $quotation->update(['status' => 'sent']);
 
-        // Hapus notifikasi di lonceng Staff karena sudah dikirim ke client
         auth()->user()->notifications()
             ->where('data->id', (string)$id)
             ->where('data->type', 'quotation')
