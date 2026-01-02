@@ -24,6 +24,8 @@ export default function ProposalsIndex({ proposals, statusOptions, summary, filt
 
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [loading, setLoading] = useState(false);
+    const [mode, setMode] = useState("add");
+    const [editingId, setEditingId] = useState(null);
 
     // Debug: log totals to confirm prop is received from server
     useEffect(() => {
@@ -35,7 +37,6 @@ export default function ProposalsIndex({ proposals, statusOptions, summary, filt
             key: "no",
             label: t('proposals.table.no_date'),
             render: (value, row) => {
-                console.log(row);
                 const isEdited = Boolean(row.edited);
 
                 return (
@@ -203,6 +204,7 @@ export default function ProposalsIndex({ proposals, statusOptions, summary, filt
         no: q.proposal_number, 
         date: q.date,
         title: q.title || "-",
+        lead_id: q.lead_id || "-",
         company_name: q.lead?.company_name || "-",
         contact: q.lead?.contact_person || "-",
         created_by: q.creator?.name || "Admin", // Sesuaikan field ini
@@ -211,35 +213,64 @@ export default function ProposalsIndex({ proposals, statusOptions, summary, filt
         element_id: q.proposal_element_template_id,
     }));
 
-    const { data, setData, post, processing, errors, reset } = useForm({
-        lead_id: "",
+    const { data, setData, post, put, processing, errors, reset } = useForm({
         name: "",
+        lead_id: "",
     });
 
     const handleAdd = () => {
+        setMode("add");
+        setEditingId(null);
         reset();
         setIsModalOpen(true);
     };
 
     const handleSubmit = (e) => {
-        e.preventDefault();
+        if (mode === "add") {
+            post(route("proposal.store"), {
+                onSuccess: () => {
+                    reset();
+                    setIsModalOpen(false);
+                },
+            });
+        }
 
-        router.get(`/proposal/add`, data);
-    };
-
-    const handleEdit = (item) => {
-        if (!item.edited) {
-            router.visit(`/proposal/addProposal/${item.id}`);
-        } else {
-            router.visit('/proposal/create', {
-                method: 'get',
-                data: {
-                    id: item.element_id,
-                    id_proposal: item.id,
+        if (mode === "edit") {
+            put(route("proposal.update", editingId), {
+                onSuccess: () => {
+                    reset();
+                    setIsModalOpen(false);
                 },
             });
         }
     };
+
+    const handleEdit = (item) => {
+        console.log(item);
+        setMode("edit");
+        setEditingId(item.id);
+
+        setData({
+            name: item.title ?? "",
+            lead_id: item.lead_id ?? "",
+        });
+
+        setIsModalOpen(true);
+    };
+
+    // const handleEdit = (item) => {
+    //     if (!item.edited) {
+    //         router.visit(`/proposal/addProposal/${item.id}`);
+    //     } else {
+    //         router.visit('/proposal/create', {
+    //             method: 'get',
+    //             data: {
+    //                 id: item.element_id,
+    //                 id_proposal: item.id,
+    //             },
+    //         });
+    //     }
+    // };
 
     const handleDelete = (item) => {
         if (item && item.id) {
@@ -262,7 +293,7 @@ export default function ProposalsIndex({ proposals, statusOptions, summary, filt
             <ModalAdd
                 isOpen={isModalOpen}
                 onClose={() => setIsModalOpen(false)}
-                title="Create Proposal"
+                title={mode === "add" ? "Create Proposal" : "Edit Proposal"}
                 footer={
                     <>
                         <button
@@ -276,7 +307,7 @@ export default function ProposalsIndex({ proposals, statusOptions, summary, filt
                             disabled={processing}
                             className="w-full sm:w-auto px-5 py-2.5 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-all duration-200 flex items-center justify-center gap-2 shadow-sm hover:shadow focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
                         >
-                            <span>Create</span>
+                            <span>{mode === "add" ? "Create" : "Update"}</span>
                         </PrimaryButton>
                     </>
                 }
