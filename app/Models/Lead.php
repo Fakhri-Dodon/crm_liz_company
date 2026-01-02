@@ -68,6 +68,24 @@ class Lead extends Model
         return $this->hasOne(Company::class, 'lead_id');
     }
 
+    // TAMBAHKAN RELATIONSHIP INI
+    public function assignedUser()
+    {
+        return $this->belongsTo(User::class, 'assigned_to');
+    }
+
+    // Relationship dengan creator
+    public function creator()
+    {
+        return $this->belongsTo(User::class, 'created_by');
+    }
+
+    // Relationship dengan updater
+    public function updater()
+    {
+        return $this->belongsTo(User::class, 'updated_by');
+    }
+
     // Accessor for status name
     public function getStatusNameAttribute()
     {
@@ -86,9 +104,8 @@ class Lead extends Model
         if (Schema::hasColumn('leads', 'converted_to_company')) {
             return $query->where('converted_to_company', true);
         }
-        // Alternative fallback if needed
         return $query->whereHas('status', function($q) {
-            $q->where('name', 'converted'); // Assuming you have a status named 'converted'
+            $q->where('name', 'converted');
         });
     }
     
@@ -97,7 +114,6 @@ class Lead extends Model
         if (Schema::hasColumn('leads', 'converted_to_company')) {
             return $query->where('converted_to_company', false);
         }
-        // Alternative fallback if needed
         return $query->whereHas('status', function($q) {
             $q->where('name', '!=', 'converted');
         })->orDoesntHave('status');
@@ -109,5 +125,17 @@ class Lead extends Model
         return $query->whereHas('status', function($q) use ($statusName) {
             $q->where('name', $statusName);
         });
+    }
+
+    // Scope untuk leads yang di-assign ke user tertentu
+    public function scopeAssignedTo($query, $userId)
+    {
+        return $query->where('assigned_to', $userId);
+    }
+
+    // Scope untuk leads yang dibuat oleh user tertentu
+    public function scopeCreatedBy($query, $userId)
+    {
+        return $query->where('created_by', $userId);
     }
 }
