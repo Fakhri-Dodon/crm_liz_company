@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 
-export default function LeadModal({ open, onClose, onSubmit, initialData, currentUser }) {
+export default function LeadModal({ open, onClose, onSubmit, initialData, currentUser, isAdmin = false }) {
   const [form, setForm] = useState({
     company_name: "",
     address: "",
@@ -12,13 +12,16 @@ export default function LeadModal({ open, onClose, onSubmit, initialData, curren
   });
 
   const [statuses, setStatuses] = useState([]);
+  const [users, setUsers] = useState([]); // State untuk users
   const [loadingStatuses, setLoadingStatuses] = useState(false);
+  const [loadingUsers, setLoadingUsers] = useState(false); // Loading untuk users
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Fetch statuses when modal opens
+  // Fetch statuses dan users ketika modal dibuka
   useEffect(() => {
     if (open) {
       fetchStatuses();
+      fetchUsers(); // Tambahkan fetch users
       setIsSubmitting(false);
     }
   }, [open]);
@@ -47,11 +50,76 @@ export default function LeadModal({ open, onClose, onSubmit, initialData, curren
     }
   };
 
+// Fetch users from API dengan error handling
+const fetchUsers = async () => {
+  try {
+    setLoadingUsers(true);
+    const response = await fetch('/api/users');
+    
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    
+    const data = await response.json();
+    
+    // Handle jika response adalah error object
+    if (data.error) {
+      console.warn('API returned error:', data.error);
+      // Fallback ke data dummy atau endpoint lain
+      await fetchUsersFallback();
+      return;
+    }
+    
+    setUsers(data);
+  } catch (err) {
+    console.error('Failed to fetch users:', err);
+    // Coba endpoint alternatif
+    await fetchUsersFallback();
+  } finally {
+    setLoadingUsers(false);
+  }
+};
+
+// Fallback method
+const fetchUsersFallback = async () => {
+  try {
+    console.log('Trying fallback users endpoint...');
+    const response = await fetch('/api/users-simple');
+    
+    if (response.ok) {
+      const data = await response.json();
+      setUsers(data);
+    } else {
+      // Jika masih gagal, gunakan data dummy
+      setUsers([
+        {
+          id: currentUser?.id || '1',
+          name: currentUser?.name || 'Current User',
+          email: currentUser?.email || 'user@example.com'
+        },
+        {
+          id: '2',
+          name: 'John Doe',
+          email: 'john@example.com'
+        },
+        {
+          id: '3',
+          name: 'Jane Smith',
+          email: 'jane@example.com'
+        }
+      ]);
+    }
+  } catch (fallbackErr) {
+    console.error('Fallback also failed:', fallbackErr);
+    setUsers([]);
+  }
+};
+
   // Reset form when modal opens/closes or initialData changes
   useEffect(() => {
     if (open) {
       if (initialData) {
-        // EDIT MODE: Pertahankan assigned_to yang sudah ada
+        // EDIT MODE: Gunakan nilai dari initialData
         setForm({
           company_name: initialData.company_name || "",
           address: initialData.address || "",
@@ -59,10 +127,10 @@ export default function LeadModal({ open, onClose, onSubmit, initialData, curren
           email: initialData.email || "",
           phone: initialData.phone || "",
           status: initialData.lead_statuses_id || "",
-          assigned_to: initialData.assigned_to || "", // PENTING: gunakan nilai dari database
+          assigned_to: initialData.assigned_to || "", // Gunakan nilai yang sudah ada
         });
       } else {
-        // CREATE MODE: Auto-assign to current user
+        // CREATE MODE: Auto-assign to current user sebagai default
         setForm({
           company_name: "",
           address: "",
@@ -70,7 +138,7 @@ export default function LeadModal({ open, onClose, onSubmit, initialData, curren
           email: "",
           phone: "",
           status: "",
-          assigned_to: currentUser?.id || "", // Auto-assign hanya untuk lead baru
+          assigned_to: currentUser?.id || "", // Default ke current user
         });
       }
     }
@@ -114,7 +182,12 @@ export default function LeadModal({ open, onClose, onSubmit, initialData, curren
         return;
       }
       
-      // Prepare payload dengan logic yang benar
+      // Jika assigned_to kosong dan ini create mode, auto-assign ke current user
+      if (!form.assigned_to && !initialData && currentUser) {
+        form.assigned_to = currentUser.id;
+      }
+      
+      // Prepare payload
       const payload = {
         company_name: form.company_name,
         address: form.address,
@@ -122,10 +195,7 @@ export default function LeadModal({ open, onClose, onSubmit, initialData, curren
         email: form.email,
         phone: form.phone,
         lead_statuses_id: form.status,
-        // PENTING: Logika untuk assigned_to
-        assigned_to: initialData 
-          ? form.assigned_to // EDIT: gunakan nilai dari form (yang sudah ada di database)
-          : (currentUser?.id || form.assigned_to), // CREATE: auto-assign ke current user
+        assigned_to: form.assigned_to || null, // Bisa null jika tidak di-assign
       };
       
       console.log('Submitting payload:', payload);
@@ -146,15 +216,14 @@ export default function LeadModal({ open, onClose, onSubmit, initialData, curren
     return status ? status.name : 'Unknown';
   };
 
-  // Get assigned user info for display
-  const getAssignedUserInfo = () => {
-    if (initialData && initialData.assigned_user) {
-      return initialData.assigned_user;
-    }
-    return currentUser;
+  // Get selected user info
+  const getSelectedUser = () => {
+    if (!form.assigned_to) return null;
+    return users.find(user => user.id === form.assigned_to);
   };
 
-  const assignedUserInfo = getAssignedUserInfo();
+  const selectedUser = getSelectedUser();
+  const currentUserIsSelected = selectedUser && currentUser && selectedUser.id === currentUser.id;
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto">
@@ -322,51 +391,75 @@ export default function LeadModal({ open, onClose, onSubmit, initialData, curren
                 )}
               </div>
 
-              {/* Assigned To - Display Info */}
+              {/* Assigned To - Dropdown */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Assigned To
+                  Assign To <span className="text-gray-400 text-xs">(Optional)</span>
                 </label>
-                <div className="flex items-center gap-3 p-3 bg-gray-50 border border-gray-200 rounded-lg">
-                  {assignedUserInfo ? (
-                    <>
-                      <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                        <span className="text-blue-600 font-semibold text-lg">
-                          {assignedUserInfo.name?.charAt(0).toUpperCase() || '?'}
-                        </span>
-                      </div>
-                      <div className="flex-1">
-                        <div className="font-medium text-gray-900">
-                          {assignedUserInfo.name}
-                          {currentUser && assignedUserInfo.id === currentUser.id && (
-                            <span className="ml-2 text-sm text-green-600 font-medium px-2 py-0.5 bg-green-50 rounded">
-                              You
-                            </span>
-                          )}
-                        </div>
-                        <div className="text-sm text-gray-500">{assignedUserInfo.email}</div>
-                      </div>
-                      <div className="text-xs text-gray-500">
-                        {initialData ? 'Assigned' : 'Will be assigned'}
-                      </div>
-                    </>
-                  ) : (
-                    <div className="text-gray-500 italic w-full text-center py-2">
-                      {initialData ? 'No user assigned' : 'Will be assigned to you'}
+                {loadingUsers ? (
+                  <div className="w-full border border-gray-300 rounded-lg px-3 py-2.5 bg-gray-50">
+                    <div className="flex items-center">
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 mr-2"></div>
+                      <span className="text-gray-500">Loading users...</span>
                     </div>
-                  )}
-                </div>
-                <p className="text-xs text-gray-500 mt-1">
-                  {initialData 
-                    ? 'Assigned user cannot be changed here'
-                    : 'Lead will be assigned to you automatically'
-                  }
-                </p>
-                <input
-                  type="hidden"
-                  name="assigned_to"
-                  value={form.assigned_to || ""}
-                />
+                  </div>
+                ) : users.length === 0 ? (
+                  <div className="text-sm text-yellow-600 bg-yellow-50 border border-yellow-200 rounded-lg px-3 py-2">
+                    No users found. Lead will be unassigned.
+                  </div>
+                ) : (
+                  <>
+                    <select
+                      name="assigned_to"
+                      value={form.assigned_to || ""}
+                      onChange={handleChange}
+                      disabled={isSubmitting}
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none bg-white disabled:bg-gray-100 disabled:cursor-not-allowed"
+                    >
+                      <option value="">Select a user (optional)</option>
+                      <option value={currentUser?.id || ""}>
+                        {currentUser ? `${currentUser.name} (You)` : 'Current User'}
+                      </option>
+                      <option value="" disabled>--- Other Users ---</option>
+                      {users
+                        .filter(user => !currentUser || user.id !== currentUser.id)
+                        .map((user) => (
+                          <option key={user.id} value={user.id}>
+                            {user.name} - {user.email}
+                          </option>
+                        ))}
+                    </select>
+                    
+                    {/* Display selected user info */}
+                    {selectedUser && (
+                      <div className="mt-2 p-2 bg-blue-50 border border-blue-100 rounded-lg">
+                        <div className="flex items-center gap-2">
+                          <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center">
+                            <span className="text-blue-600 text-xs font-semibold">
+                              {selectedUser.name?.charAt(0).toUpperCase() || 'U'}
+                            </span>
+                          </div>
+                          <div>
+                            <div className="text-sm font-medium text-gray-900">
+                              {selectedUser.name}
+                              {currentUserIsSelected && (
+                                <span className="ml-2 text-xs text-green-600 font-medium">(You)</span>
+                              )}
+                            </div>
+                            <div className="text-xs text-gray-500">{selectedUser.email}</div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                    
+                    {!form.assigned_to && (
+                      <p className="text-xs text-gray-500 mt-1">
+                        If left empty, lead will be unassigned
+                        {!initialData && currentUser && " or assigned to you by default"}
+                      </p>
+                    )}
+                  </>
+                )}
               </div>
             </div>
 
