@@ -18,7 +18,7 @@ FROM php:8.3-fpm-alpine AS backend
 WORKDIR /var/www/html
 
 # Tambahkan pcntl di sini
-RUN apk add --no-cache nginx git icu-dev libpng-dev libzip-dev zip unzip mysql-client && \
+RUN apk add --no-cache nginx git icu-dev libpng-dev libzip-dev zip unzip mysql-client ca-certificates && \
     docker-php-ext-install pdo pdo_mysql bcmath intl pcntl
 
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
@@ -32,7 +32,11 @@ COPY --from=frontend /app/public/build /var/www/html/public/build
 
 RUN composer dump-autoload --optimize --no-dev --classmap-authoritative --no-scripts
 
-RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache && \
+RUN mkdir -p /var/www/html/storage/logs \
+             /var/www/html/storage/framework/views \
+             /var/www/html/storage/framework/sessions \
+             /var/www/html/storage/framework/cache && \
+    chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache && \
     chmod -R 775 /var/www/html/storage /var/www/html/bootstrap/cache
 
 EXPOSE 8000

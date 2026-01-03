@@ -205,9 +205,9 @@ public function indexApi()
     {
         DB::beginTransaction();
         try {
-            // Log::info('=== STORE LEAD ===');
-            // Log::info('Request data:', $request->all());
-            // Log::info('Auth user:', [Auth::user()]);
+            Log::info('=== STORE LEAD ===');
+            Log::info('Request data:', $request->all());
+            Log::info('Auth user:', [Auth::user()]);
             
             $data = $request->validated();
             $currentUser = Auth::user();
