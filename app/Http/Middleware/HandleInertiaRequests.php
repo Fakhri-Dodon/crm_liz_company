@@ -59,7 +59,7 @@ class HandleInertiaRequests extends Middleware
                 'error'   => fn () => $request->session()->get('error'),
             ],
 
-            'auth_permissions_setting' => auth()->user()->getPermissions('Setting'),
+'auth_permissions_setting' => $request->user() ? $request->user()->getPermissions('Setting') : [],
         ]);
     }
 }
