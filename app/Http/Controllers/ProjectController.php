@@ -1,16 +1,17 @@
 <?php
 
+
 namespace App\Http\Controllers;
 
 use App\Models\Project;
-use App\Models\ClientType;
+use App\Models\Company;
 use App\Models\Quotation;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
-use App\Models\User; // TAMBAHKAN
+use App\Models\User;
 
 class ProjectController extends Controller
 {
@@ -24,7 +25,7 @@ class ProjectController extends Controller
             ->pluck('count', 'status')
             ->toArray();
 
-        // Prepare summary data with default values
+        // Prepare summary data dengan status yang sesuai screenshot
         $summaryData = [
             'in_progress' => $summary['in_progress'] ?? 0,
             'completed' => $summary['completed'] ?? 0,
@@ -34,7 +35,7 @@ class ProjectController extends Controller
         ];
 
         // Build query with filters
-        $query = Project::with(['client:id,name', 'quotation:id,quotation_number'])
+        $query = Project::with(['company:id,client_code,city', 'quotation:id,quotation_number'])
             ->where('deleted', 0);
 
         // Apply search filter
@@ -43,8 +44,9 @@ class ProjectController extends Controller
             $query->where(function ($q) use ($search) {
                 $q->where('project_description', 'like', "%{$search}%")
                   ->orWhere('note', 'like', "%{$search}%")
-                  ->orWhereHas('client', function ($q) use ($search) {
-                      $q->where('name', 'like', "%{$search}%");
+                  ->orWhereHas('company', function ($q) use ($search) {
+                      $q->where('client_code', 'like', "%{$search}%")
+                        ->orWhere('city', 'like', "%{$search}%");
                   });
             });
         }
@@ -78,17 +80,38 @@ class ProjectController extends Controller
             ->filter()
             ->values();
 
-        // Get client types and quotations for dropdowns
-        $clients = ClientType::where('deleted', 0)
+        // Get companies for dropdown
+        $companies = Company::where('is_active', true)
+            ->where('deleted', 0)
             ->whereNull('deleted_at')
-            ->select('id', 'name')
-            ->orderBy('name')
-            ->get();
+            ->select('id', 'client_code', 'city', 'client_since')
+            ->orderBy('client_code')
+            ->get()
+            ->map(function ($company) {
+                return [
+                    'id' => $company->id,
+                    'name' => $company->client_code . ' - ' . $company->city,
+                    'client_code' => $company->client_code,
+                    'city' => $company->city,
+                    'client_since' => $company->client_since
+                ];
+            });
 
         $quotations = Quotation::where('deleted', 0)
             ->whereNull('deleted_at')
-            ->select('id', 'quotation_number')
+            ->select('id', 'quotation_number', 'date')
             ->orderBy('quotation_number', 'desc')
+            ->get()
+            ->map(function ($quotation) {
+                return [
+                    'id' => $quotation->id,
+                    'name' => $quotation->quotation_number . ' (' . $quotation->date . ')'
+                ];
+            });
+
+        // Get users for assignment
+        $users = User::select('id', 'name', 'email')
+            ->orderBy('name')
             ->get();
 
         return Inertia::render('Project/Index', [
@@ -96,8 +119,9 @@ class ProjectController extends Controller
             'summary' => $summaryData,
             'filters' => $request->only(['search', 'status', 'month', 'year']),
             'years' => $years,
-            'clients' => $clients,
+            'companies' => $companies,
             'quotations' => $quotations,
+            'users' => $users,
             'statusOptions' => [
                 ['value' => 'in_progress', 'label' => 'In Progress'],
                 ['value' => 'completed', 'label' => 'Completed'],
@@ -109,45 +133,39 @@ class ProjectController extends Controller
 
     public function store(Request $request)
     {
-        // Debug: log request
         \Log::info('Project Store Request:', $request->all());
         
+        // Validasi dengan status yang sesuai
         $validated = $request->validate([
             'quotation_id' => 'nullable|exists:quotations,id',
-            'client_id' => 'required|exists:client_type,id',
-            'project_description' => 'required|string|max:250',
+            'company_id' => 'required|exists:companies,id',
+            'user_id' => 'nullable|exists:users,id',
+            'project_description' => 'required|string|max:500',
             'start_date' => 'required|date',
             'deadline' => 'required|date|after_or_equal:start_date',
-            'note' => 'nullable|string|max:250',
-            'status' => 'required|in:in_progress,completed,pending,cancelled'
+            'note' => 'nullable|string|max:500',
+            'status' => 'required|in:in_progress,completed,pending,cancelled' // Hanya 4 status
         ]);
 
-        // **PERBAIKAN PENTING: Sesuaikan tipe data dengan database**
         $userId = Auth::id();
         $user = User::find($userId);
         
-        // Jika user tidak ditemukan, gunakan default UUID
-        if (!$user || empty($user->uuid)) {
-            // Asumsi user table punya kolom 'uuid' atau 'id' sebagai UUID
-            $userUuid = $user->uuid ?? Str::uuid()->toString();
+        if (!$user) {
+            $userUuid = Str::uuid()->toString();
         } else {
-            $userUuid = $user->uuid;
+            $userUuid = $user->id;
         }
 
         $validated['id'] = (string) Str::uuid();
         
-        // **PERBAIKAN: user_id harus char(36) bukan integer**
-        $validated['user_id'] = $userUuid; // atau $user->id jika id user adalah UUID
+        if (empty($validated['user_id'])) {
+            $validated['user_id'] = $userUuid;
+        }
         
-        // **PERBAIKAN: created_by harus char(36)**
         $validated['created_by'] = $userUuid;
-        
-        // **PERBAIKAN: updated_by harus char(36)**
         $validated['updated_by'] = $userUuid;
-        
         $validated['deleted'] = 0;
         
-        // **PERBAIKAN: quotation_id bisa NULL di database, tapi di controller tidak nullable**
         if (empty($validated['quotation_id'])) {
             $validated['quotation_id'] = null;
         }
@@ -159,16 +177,13 @@ class ProjectController extends Controller
             
             \Log::info('Project Created Successfully:', [
                 'id' => $project->id,
-                'project_description' => $project->project_description
+                'project_description' => $project->project_description,
+                'company_id' => $project->company_id
             ]);
             
-            // **OPTION 1: Redirect dengan flash message (biasa)**
             return redirect()->route('projects.index')
                 ->with('success', 'Project created successfully!');
                 
-            // **OPTION 2: Untuk Inertia, bisa pakai ini:**
-            // return back()->with('success', 'Project created successfully!');
-            
         } catch (\Exception $e) {
             \Log::error('Project Store Error:', [
                 'message' => $e->getMessage(),
@@ -188,26 +203,34 @@ class ProjectController extends Controller
                 ->with('error', 'Cannot update deleted project.');
         }
 
+        // Validasi dengan status yang sesuai
         $validated = $request->validate([
             'quotation_id' => 'nullable|exists:quotations,id',
-            'client_id' => 'required|exists:client_type,id',
-            'project_description' => 'required|string|max:250',
+            'company_id' => 'required|exists:companies,id',
+            'user_id' => 'nullable|exists:users,id',
+            'project_description' => 'required|string|max:500',
             'start_date' => 'required|date',
             'deadline' => 'required|date|after_or_equal:start_date',
-            'note' => 'nullable|string|max:250',
-            'status' => 'required|in:in_progress,completed,pending,cancelled'
+            'note' => 'nullable|string|max:500',
+            'status' => 'required|in:in_progress,completed,pending,cancelled' // Hanya 4 status
         ]);
 
-        // **PERBAIKAN: updated_by harus char(36)**
         $userId = Auth::id();
         $user = User::find($userId);
-        $userUuid = $user->uuid ?? Str::uuid()->toString();
+        $userUuid = $user ? $user->id : Str::uuid()->toString();
         
         $validated['updated_by'] = $userUuid;
         
-        // **PERBAIKAN: quotation_id bisa NULL**
         if (empty($validated['quotation_id'])) {
             $validated['quotation_id'] = null;
+        }
+
+        if ($project->company_id != $validated['company_id']) {
+            \Log::info('Project company changed:', [
+                'project_id' => $project->id,
+                'old_company' => $project->company_id,
+                'new_company' => $validated['company_id']
+            ]);
         }
 
         $project->update($validated);
@@ -223,10 +246,9 @@ class ProjectController extends Controller
                 ->with('error', 'Project already deleted.');
         }
 
-        // **PERBAIKAN: deleted_by harus char(36)**
         $userId = Auth::id();
         $user = User::find($userId);
-        $userUuid = $user->uuid ?? Str::uuid()->toString();
+        $userUuid = $user ? $user->id : Str::uuid()->toString();
         
         $project->deleted_by = $userUuid;
         $project->deleted = 1;
@@ -245,13 +267,12 @@ class ProjectController extends Controller
         }
 
         $validated = $request->validate([
-            'status' => 'required|in:in_progress,completed,pending,cancelled'
+            'status' => 'required|in:in_progress,completed,pending,cancelled' // Hanya 4 status
         ]);
 
-        // PERBAIKAN: updated_by harus char(36)
         $userId = Auth::id();
         $user = User::find($userId);
-        $userUuid = $user->uuid ?? Str::uuid()->toString();
+        $userUuid = $user ? $user->id : Str::uuid()->toString();
 
         try {
             $project->update([
@@ -266,5 +287,39 @@ class ProjectController extends Controller
             return redirect()->route('projects.index')
                 ->with('error', 'Failed to update status: ' . $e->getMessage());
         }
+    }
+
+
+    // DIUBAH: Tambahan method untuk mendapatkan projects by company
+    public function getProjectsByCompany($companyId)
+    {
+        $projects = Project::with(['quotation:id,quotation_number', 'assignedUser:id,name'])
+            ->where('company_id', $companyId)
+            ->where('deleted', 0)
+            ->orderBy('created_at', 'desc')
+            ->get()
+            ->map(function ($project) {
+                return [
+                    'id' => $project->id,
+                    'project_description' => $project->project_description,
+                    'status' => $project->status,
+                    'start_date' => $project->start_date,
+                    'deadline' => $project->deadline,
+                    'quotation_number' => $project->quotation ? $project->quotation->quotation_number : null,
+                    'assigned_user' => $project->assignedUser ? $project->assignedUser->name : null
+                ];
+            });
+
+        return response()->json([
+            'projects' => $projects,
+            'count' => $projects->count()
+        ]);
+    }
+
+    // Backup/legacy method untuk kompatibilitas
+    public function getProjectsByClient($clientId)
+    {
+        // DIUBAH: Jika ada kode yang masih memanggil dengan client_id, redirect ke company
+        return $this->getProjectsByCompany($clientId);
     }
 }

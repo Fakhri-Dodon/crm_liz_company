@@ -167,6 +167,19 @@ class Company extends Model
                     ->where('deleted', 0);
     }
 
+    // Di dalam model Company, tambahkan relationship ini:
+    public function projects()
+    {
+    return $this->hasMany(Project::class, 'company_id', 'id')
+                ->where('deleted', 0);
+    }
+
+    // Bisa juga tambahkan alias jika diperlukan
+    public function clientProjects()
+    {
+    return $this->projects();
+    }
+
     public function primaryContact()
     {
         return $this->hasOne(CompanyContactPerson::class, 'company_id', 'id')

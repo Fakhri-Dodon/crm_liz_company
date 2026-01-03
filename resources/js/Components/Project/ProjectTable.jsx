@@ -12,16 +12,31 @@ import {
     Eye,
     Plus,
     ChevronRight,
-    AlertCircle
+    AlertCircle,
+    Building // TAMBAHKAN untuk icon company
 } from 'lucide-react';
 
-const ProjectTable = ({ projects, onEdit, onStatusChange, onDelete, statusOptions }) => {
+const ProjectTable = ({ 
+    projects, 
+    onEdit, 
+    onStatusChange, 
+    onDelete, 
+    companies, // TAMBAHKAN prop companies
+    statusOptions 
+}) => {
     const [showStatusModal, setShowStatusModal] = useState(false);
     const [selectedProject, setSelectedProject] = useState(null);
 
     const handleStatusClick = (project) => {
         setSelectedProject(project);
         setShowStatusModal(true);
+    };
+
+    // Function to get company name
+    const getCompanyName = (companyId) => {
+        if (!companies || !companyId) return 'N/A';
+        const company = companies.find(c => c.id === companyId);
+        return company ? company.name || company.client_code : 'N/A';
     };
 
     const getStatusBadge = (status) => {
@@ -238,12 +253,11 @@ const ProjectTable = ({ projects, onEdit, onStatusChange, onDelete, statusOption
                             <h4 className="font-medium text-gray-900 line-clamp-1">
                                 {project.project_description}
                             </h4>
-                            {project.client && (
-                                <div className="flex items-center gap-1 text-sm text-gray-500 mt-1">
-                                    <User className="w-3 h-3" />
-                                    <span>{project.client.name}</span>
-                                </div>
-                            )}
+                            {/* PERBAIKAN: Gunakan getCompanyName */}
+                            <div className="flex items-center gap-1 text-sm text-gray-500 mt-1">
+                                <Building className="w-3 h-3" />
+                                <span>{getCompanyName(project.company_id)}</span>
+                            </div>
                         </div>
                     </div>
                     <button
@@ -384,12 +398,11 @@ const ProjectTable = ({ projects, onEdit, onStatusChange, onDelete, statusOption
                                                     {project.project_description}
                                                 </div>
                                                 <div className="flex items-center gap-3 mt-2">
-                                                    {project.client && (
-                                                        <div className="flex items-center text-sm text-gray-600">
-                                                            <User className="w-4 h-4 mr-1" />
-                                                            <span className="truncate">{project.client.name}</span>
-                                                        </div>
-                                                    )}
+                                                    {/* PERBAIKAN: Tampilkan company */}
+                                                    <div className="flex items-center text-sm text-gray-600">
+                                                        <Building className="w-4 h-4 mr-1" />
+                                                        <span className="truncate">{getCompanyName(project.company_id)}</span>
+                                                    </div>
                                                     {project.quotation && (
                                                         <div className="text-xs text-gray-500 bg-gray-50 px-2 py-1 rounded">
                                                             {project.quotation.quotation_number}
