@@ -94,11 +94,13 @@ export default function ProposalsIndex({ proposals, statusOptions, summary, filt
             label: t('proposals.table.status'),
             render: (value, row) => {
                 const statusStyles = {
+                    approved: 'border-greed-500 text-greed-700 bg-greed-50',
+                    opened: 'border-greed-500 text-greed-700 bg-greed-50',
+                    draft: 'border-grey-500 text-grey-700 bg-grey-50',
                     sent: 'border-blue-500 text-blue-700 bg-blue-50',
-                    accepted: 'border-green-500 text-green-700 bg-green-50',
-                    expired: 'border-orange-500 text-orange-700 bg-orange-50',
+                    failed: 'border-orange-500 text-orange-700 bg-orange-50',
                     rejected: 'border-red-500 text-red-700 bg-red-50',
-                    draft: 'border-gray-500 text-gray-700 bg-gray-50',
+                    revised: 'border-red-500 text-red-700 bg-red-50',
                 };
 
                 const handleStatusChange = (e) => {
@@ -128,13 +130,13 @@ export default function ProposalsIndex({ proposals, statusOptions, summary, filt
                         }}
                         className={`appearance-none text-xs font-bold py-1 px-2 rounded-lg border-2 focus:ring-0 cursor-pointer transition-all ${statusStyles[value] || 'border-gray-300'}`}
                     >
-                        <option value="draft">{t('quotations.stats.draft')}</option>
-                        <option value="sent">{t('quotations.stats.sent')}</option>
-                        <option value="accepted">{t('quotations.stats.accepted')}</option>
-                        <option value="expired">{t('quotations.stats.expired')}</option>
-                        <option value="rejected">{t('quotations.stats.rejected')}</option>
-                        <option value="revised">{t('quotations.stats.revised')}</option>
-                        <option value="approved">{t('quotations.stats.approved')}</option>
+                        <option value="approved">{t('proposals.stats.approved')}</option>
+                        <option value="opened">{t('proposals.stats.opened')}</option>
+                        <option value="draft">{t('proposals.stats.draft')}</option>
+                        <option value="sent">{t('proposals.stats.sent')}</option>
+                        <option value="failed">{t('proposals.stats.failed')}</option>
+                        <option value="rejected">{t('proposals.stats.rejected')}</option>
+                        <option value="revised">{t('proposals.stats.revised')}</option>
                     </select>
                 );
             }
@@ -227,7 +229,9 @@ export default function ProposalsIndex({ proposals, statusOptions, summary, filt
 
     const handleSubmit = (e) => {
         if (mode === "add") {
-            post(route("proposal.store"), {
+            router.get(route("proposal.add"), data, {
+                preserveState: false,
+                preserveScroll: true,
                 onSuccess: () => {
                     reset();
                     setIsModalOpen(false);
@@ -362,7 +366,7 @@ export default function ProposalsIndex({ proposals, statusOptions, summary, filt
                 subtitle="Manage all company proposals"
             />
             <div className="p-4 sm:p-6 md:p-8">
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-4 sm:gap-6 mb-8">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6 mb-8">
                     {Object.entries(statusColors).map(([status, colors]) => (
                         <div
                             key={status}

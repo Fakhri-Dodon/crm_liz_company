@@ -113,11 +113,19 @@ class ProposalController extends Controller
         try {
             return DB::transaction(function () use ($request, $validated) {
 
-                $nextNumber = Proposal::count() + 1;
+                $last = Proposal::where('deleted', false)
+                    ->lockForUpdate()
+                    ->orderByRaw('CAST(SUBSTRING(proposal_number, -5) AS UNSIGNED) DESC')
+                    ->first();
+
+                $nextNumber = $last
+                    ? ((int) substr($last->proposal_number, -5)) + 1
+                    : 1;
+
                 $proposalFormat = ProposalNumberFormatted::where('deleted', false)->first();
                 $format = $proposalFormat ? $proposalFormat->prefix : NULL;
-                $number5Digit = str_pad($nextNumber, 5, '0', STR_PAD_LEFT);
-                $resultNumber = $format . $number5Digit;
+
+                $resultNumber = $format . str_pad($nextNumber, 5, '0', STR_PAD_LEFT);
 
                 $status = ProposalStatuses::where('name', 'Draft')->where('deleted', false)->first();
 

@@ -56,12 +56,20 @@ export default function Create({id, template}) {
         });
 
         // Contoh button save
-        editor.Panels.addButton("options", {
-            id: "save-page",
-            className: "fa fa-save",
-            command: () => savePage(editor),
-            attributes: { title: "Save Page" },
-        });
+        editor.Panels.addButton("options", [
+            {
+                id: "save-page",
+                className: "fa fa-save",
+                command: () => savePage(editor),
+                attributes: { title: "Save Page" },
+            },
+            {
+                id: "go-back",
+                className: "fa fa-arrow-left",
+                command: () => window.history.back(),
+                attributes: { title: "Kembali" },
+            }
+        ]);
 
         editor.on('load', () => {
             if (template) {
