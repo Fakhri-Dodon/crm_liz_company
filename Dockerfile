@@ -35,9 +35,15 @@ RUN composer dump-autoload --optimize --no-dev --classmap-authoritative --no-scr
 RUN mkdir -p /var/www/html/storage/logs \
              /var/www/html/storage/framework/views \
              /var/www/html/storage/framework/sessions \
-             /var/www/html/storage/framework/cache && \
+             /var/www/html/storage/framework/cache \
+             /var/www/html/bootstrap/cache && \
     chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache && \
     chmod -R 775 /var/www/html/storage /var/www/html/bootstrap/cache
+
+# Jalankan ini supaya Laravel nggak manja nyari file log yang belum ada
+RUN touch /var/www/html/storage/logs/laravel.log && \
+    chown www-data:www-data /var/www/html/storage/logs/laravel.log && \
+    chmod 664 /var/www/html/storage/logs/laravel.log
 
 EXPOSE 8000
 
