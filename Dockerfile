@@ -32,11 +32,8 @@ COPY --from=frontend /app/public/build /var/www/html/public/build
 
 RUN composer dump-autoload --optimize --no-dev --classmap-authoritative --no-scripts
 
-RUN mkdir -p /var/www/html/storage/logs /var/www/html/storage/framework/views /var/www/html/storage/framework/sessions /var/www/html/storage/framework/cache \
-    chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache && \
+RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache && \
     chmod -R 775 /var/www/html/storage /var/www/html/bootstrap/cache
-
-RUN touch /var/www/html/storage/logs/laravel.log && chmod 666 /var/www/html/storage/logs/laravel.log
 
 EXPOSE 8000
 
