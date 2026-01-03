@@ -340,10 +340,10 @@ export default function LeadsIndex({ leads = [], auth }) {
                         </div>
                         <div>
                             <h3 className="text-sm font-semibold text-gray-900">
-                                All Leads Database
+                                {t('leads.headers.all_lead_database') || 'All Leads Database'}
                             </h3>
                             <p className="text-xs text-gray-600">
-                                {leadsData.length} leads • {filteredLeads.length} filtered
+                                {leadsData.length} {t('leads.headers.leads') || 'leads'} • {filteredLeads.length} {t('leads.headers.filtered') || 'filtered'}
                             </p>
                         </div>
                     </div>
@@ -398,11 +398,11 @@ export default function LeadsIndex({ leads = [], auth }) {
                                         onChange={(e) => setAssignedFilter(e.target.value)}
                                         className="w-full sm:w-64 border border-gray-300 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none bg-white pr-10"
                                     >
-                                        <option value="">All Assignments</option>
-                                        <option value="me">Assigned to Me</option>
-                                        <option value="unassigned">Unassigned</option>
-                                        <option value="others">Assigned to Others</option>
-                                        <optgroup label="Specific Users">
+                                        <option value="">{t('leads.filters.all_assignments') || 'All Assignments'}</option>
+                                        <option value="me">{t('leads.filters.assigned_to_me') || 'Assigned to Me'}</option>
+                                        <option value="unassigned">{t('leads.filters.unassigned') || 'Unassigned'}</option>
+                                        <option value="others">{t('leads.filters.assined_to_others') || 'Assigned to Others'}</option>
+                                        <optgroup label={t('leads.filters.specific_user') || 'Specific Users'}>
                                             {users.map((user) => (
                                                 <option key={user.id} value={user.id}>
                                                     {user.name} {currentUser && user.id === currentUser.id && "(You)"}
@@ -427,7 +427,7 @@ export default function LeadsIndex({ leads = [], auth }) {
                                     <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                                     </svg>
-                                    Clear Filters
+                                    {t('leads.filters.clear_search') || 'Clear Filters'}
                                 </button>
                             )}
                         </div>
@@ -480,7 +480,7 @@ export default function LeadsIndex({ leads = [], auth }) {
                             <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                             </svg>
-                            <span className="font-semibold">Add New Lead</span>
+                            <span className="font-semibold">{t('leads.button_add') || 'Add New Lead'}</span>
                         </PrimaryButton>
                     </div>
                 </div>
@@ -489,22 +489,26 @@ export default function LeadsIndex({ leads = [], auth }) {
                 <div className="mt-6 pt-4 border-t border-gray-100">
                     <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                         <div className="text-sm text-gray-600">
-                            <span className="font-medium">{filteredLeads.length}</span> of <span className="font-medium">{leadsData.length}</span> leads shown
+                            <span className="font-medium">{t("leads.filters.showing_info", { 
+                                    count: filteredLeads.length, 
+                                    total: leadsData.length 
+                                })}
+                            </span>
                             {hasActiveFilters && " (filtered)"}
                         </div>
                         
                         <div className="flex items-center gap-4 text-xs text-gray-500">
                             <div className="flex items-center gap-2">
                                 <div className="w-3 h-3 rounded-full bg-blue-500"></div>
-                                <span>New</span>
+                                <span>{t("leads.status_labels.new")}</span>
                             </div>
                             <div className="flex items-center gap-2">
                                 <div className="w-3 h-3 rounded-full bg-green-500"></div>
-                                <span>Contacted</span>
+                                <span>{t("leads.status_labels.contacted")}</span>
                             </div>
                             <div className="flex items-center gap-2">
                                 <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
-                                <span>Qualified</span>
+                                <span>{t("leads.status_labels.qualified")}</span>
                             </div>
                         </div>
                     </div>
@@ -581,10 +585,10 @@ export default function LeadsIndex({ leads = [], auth }) {
                         <div className="px-6 py-4 border-t border-gray-100 bg-gray-50">
                             <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
                                 <div className="text-sm text-gray-600">
-                                    Showing <span className="font-semibold">{filteredLeads.length}</span> leads
+                                    {t("leads.table.showing_info", { count: filteredLeads.length })}
                                 </div>
                                 <div className="text-xs text-gray-500">
-                                    Last updated: {new Date().toLocaleDateString('en-US', {
+                                    {t("leads.table.last_updated")}: {new Date().toLocaleDateString('en-US', {
                                         month: 'long',
                                         day: 'numeric',
                                         year: 'numeric',

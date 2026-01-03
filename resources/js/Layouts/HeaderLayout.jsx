@@ -37,8 +37,6 @@ export default function HeaderLayout({ header, children, }) {
     );
     const auth_permissions_setting = props.auth_permissions_setting;
 
-    console.log(localNotifications);
-
     // const notifications = props.auth.notifications || [];
     // const unreadCount = props.auth.unreadNotificationsCount || 0;
 
@@ -53,7 +51,9 @@ export default function HeaderLayout({ header, children, }) {
     }, [props.auth.notifications, props.auth.unreadNotificationsCount]);
 
     const app_config = props?.app_config;
-    const allowChange = app_config?.allow_language_change ?? false;
+    const isPowerUser = ['Admin', 'Manager'].includes(user?.role_name);
+    const canChangeLanguage = app_config?.allow_language_change || isPowerUser;
+    // const allowChange = app_config?.allow_language_change ?? false;
 
     const appLogo = app_config?.logo_path
         ? `/storage/${app_config.logo_path}`
@@ -349,7 +349,7 @@ export default function HeaderLayout({ header, children, }) {
                                 className="text-gray-500 group-hover:text-teal-600 transition-colors"
                             />
                             <span className="text-[10px] font-medium text-gray-500">
-                                Setting
+                                {t("header.setting")}
                             </span>
                         </Link>
                     )}
@@ -375,14 +375,14 @@ export default function HeaderLayout({ header, children, }) {
                         <Dropdown.Content align="right" width="80">
                             <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
                                 <span className="font-bold text-sm">
-                                    Notifications
+                                    {t("header.notification_dropdown.title")}
                                 </span>
                                 {unreadCount > 0 && (
                                     <button
                                         onClick={markNotificationsAsRead}
                                         className="text-teal-600 text-xs font-semibold hover:underline"
                                     >
-                                        Mark all as read
+                                        {t("header.notification_dropdown.mark_all_as_read")}
                                     </button>
                                 )}
                             </div>
@@ -449,7 +449,7 @@ export default function HeaderLayout({ header, children, }) {
                                                                     }
                                                                     className="px-3 py-1.5 text-[10px] font-bold rounded-md bg-teal-600 text-white hover:bg-teal-700 transition"
                                                                 >
-                                                                    APPROVE
+                                                                    {t("header.notification_dropdown.btn_approve")}
                                                                 </button>
                                                                 <button
                                                                     onClick={() =>
@@ -459,7 +459,7 @@ export default function HeaderLayout({ header, children, }) {
                                                                     }
                                                                     className="px-3 py-1.5 text-[10px] font-bold rounded-md bg-red-500 text-white hover:bg-red-600 transition"
                                                                 >
-                                                                    REVISE
+                                                                    {t("header.notification_dropdown.btn_revise")}                                                                    
                                                                 </button>
                                                             </>
                                                         )}
@@ -485,7 +485,7 @@ export default function HeaderLayout({ header, children, }) {
                                                                         }
                                                                     />{" "}
                                                                     {t(
-                                                                        "header.send_to_client"
+                                                                        "header.notification_dropdown.btn_send"
                                                                     ) ||
                                                                         "SEND TO CLIENT"}
                                                                 </Link>
@@ -521,7 +521,7 @@ export default function HeaderLayout({ header, children, }) {
                                                         }
                                                         className="px-3 py-1.5 text-[10px] font-bold rounded-md bg-slate-100 text-slate-600 hover:bg-slate-200 transition"
                                                     >
-                                                        PREVIEW
+                                                        {t("header.notification_dropdown.btn_preview")}
                                                     </button>
                                                 </div>
                                             </div>
@@ -529,7 +529,7 @@ export default function HeaderLayout({ header, children, }) {
                                     })
                                 ) : (
                                     <div className="p-6 text-center text-gray-400 text-sm italic">
-                                        {t("header.no_notifications") ||
+                                        {t("header.notification_dropdown.no_notification") ||
                                             "No notifications"}
                                     </div>
                                 )}
@@ -537,7 +537,7 @@ export default function HeaderLayout({ header, children, }) {
                         </Dropdown.Content>
                     </Dropdown>
 
-                    {allowChange && (
+                    {canChangeLanguage && (
                         <div className="relative">
                             <button
                                 onClick={() => setIsLangOpen(!isLangOpen)}
@@ -781,7 +781,7 @@ export default function HeaderLayout({ header, children, }) {
                                         )}
                                     </div>
 
-                                    {allowChange && (
+                                    {canChangeLanguage && (
                                         <div className="mt-3">
                                             <button
                                                 onClick={() =>

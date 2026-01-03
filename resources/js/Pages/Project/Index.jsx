@@ -1,19 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { Head, usePage, router, useForm } from '@inertiajs/react';
 import HeaderLayout from '@/Layouts/HeaderLayout';
-import StatCard from '@/Components/StatCard';
 import ProjectTable from '@/Components/Project/ProjectTable';
 import ProjectModal from '@/Components/Project/ProjectModal';
 import StatusModal from '@/Components/Project/StatusModal';
 import DeleteModal from '@/Components/DeleteModal';
-import { Search, Filter, Plus, Calendar, Download, RefreshCw } from 'lucide-react';
+import { Search, Filter, Plus, Calendar, Download, RefreshCw, FileText } from 'lucide-react';
 
 export default function Index({ 
     projects, 
     summary, 
     filters, 
     years, 
-    clients, 
+    companies, 
     quotations,
     statusOptions 
 }) {
@@ -39,19 +38,45 @@ export default function Index({
         year: localFilters.year
     });
 
+    // Status colors sesuai screenshot (4 status)
+    const statusColors = {
+        in_progress: { 
+            bg: 'bg-blue-100', 
+            text: 'text-blue-800', 
+            border: 'border-blue-200',
+            icon: '⚡'
+        },
+        completed: { 
+            bg: 'bg-green-100', 
+            text: 'text-green-800', 
+            border: 'border-green-200',
+            icon: '✅'
+        },
+        pending: { 
+            bg: 'bg-yellow-100', 
+            text: 'text-yellow-800', 
+            border: 'border-yellow-200',
+            icon: '⏳'
+        },
+        cancelled: { 
+            bg: 'bg-red-100', 
+            text: 'text-red-800', 
+            border: 'border-red-200',
+            icon: '❌'
+        }
+    };
+
     // Handle flash messages
     useEffect(() => {
         if (flash.success || flash.error) {
             const message = flash.success || flash.error;
             const type = flash.success ? 'success' : 'error';
             
-            // Show toast notification
             showToast(message, type);
         }
     }, [flash]);
 
     const showToast = (message, type = 'success') => {
-        // Create toast element
         const toast = document.createElement('div');
         toast.className = `fixed top-4 right-4 z-50 px-6 py-4 rounded-lg shadow-lg transform transition-all duration-300 ${
             type === 'success' ? 'bg-green-500 text-white' : 'bg-red-500 text-white'
@@ -66,7 +91,6 @@ export default function Index({
         `;
         document.body.appendChild(toast);
         
-        // Auto remove after 3 seconds
         setTimeout(() => {
             if (toast.parentElement) {
                 toast.remove();
@@ -158,16 +182,12 @@ export default function Index({
         { value: '12', label: 'Dec' }
     ];
 
-    const statusColors = {
-        in_progress: { bg: 'bg-blue-100', text: 'text-blue-800', border: 'border-blue-200' },
-        completed: { bg: 'bg-green-100', text: 'text-green-800', border: 'border-green-200' },
-        pending: { bg: 'bg-yellow-100', text: 'text-yellow-800', border: 'border-yellow-200' },
-        cancelled: { bg: 'bg-red-100', text: 'text-red-800', border: 'border-red-200' }
-    };
+    // Status yang akan ditampilkan di summary cards (sesuai screenshot)
+    const statusesToShow = ['in_progress', 'completed', 'pending', 'cancelled'];
 
     return (
         <HeaderLayout>
-        <div className="px-8 py-6">
+        <div className="px-4 md:px-8 py-6">
             <Head title="Project Management" />
             
             {/* Header Section */}
@@ -182,43 +202,43 @@ export default function Index({
                         className="px-4 py-3 bg-[#005954] text-white rounded-lg hover:bg-[#004d47] flex items-center gap-2 transition-colors shadow-sm hover:shadow-md w-full sm:w-auto justify-center"
                     >
                         <Plus className="w-4 h-4" />
-                        <span className="font-medium">New Project</span>
+                        <span className="font-medium">Add Project</span>
                     </button>
                 </div>
             </div>
 
-            {/* Summary Cards - Responsive Grid */}
+            {/* Summary Cards - 4 cards sesuai screenshot */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-8">
-                {Object.entries(statusColors).map(([status, colors]) => (
-                    <div 
-                        key={status}
-                        className={`rounded-xl p-5 shadow-sm border ${colors.border} ${colors.bg} transition-transform hover:scale-[1.02] hover:shadow-md`}
-                    >
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <p className={`text-sm font-medium ${colors.text} uppercase tracking-wide`}>
-                                    {statusOptions.find(opt => opt.value === status)?.label || status}
-                                </p>
-                                <p className="text-2xl md:text-3xl font-bold text-gray-900 mt-2">
-                                    {summary[status] || 0}
-                                </p>
-                            </div>
-                            <div className={`p-3 rounded-full ${colors.bg} ${colors.text}`}>
-                                <div className={`w-3 h-3 rounded-full ${colors.text.replace('text-', 'bg-')}`}></div>
+                {statusesToShow.map((status) => {
+                    const colors = statusColors[status];
+                    const statusLabel = statusOptions?.find(opt => opt.value === status)?.label || 
+                                      status.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+                    
+                    return (
+                        <div 
+                            key={status}
+                            className={`rounded-xl p-5 shadow-sm border ${colors.border} ${colors.bg} transition-transform hover:scale-[1.02] hover:shadow-md`}
+                        >
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <p className={`text-sm font-medium ${colors.text} uppercase tracking-wide`}>
+                                        {statusLabel}
+                                    </p>
+                                    <p className="text-2xl md:text-3xl font-bold text-gray-900 mt-2">
+                                        {summary[status] || 0}
+                                    </p>
+                                    <p className="text-xs text-gray-500 mt-2">Total Project</p>
+                                </div>
+                                <div className={`p-3 rounded-full ${colors.bg}`}>
+                                    <span className="text-lg">{colors.icon}</span>
+                                </div>
                             </div>
                         </div>
-                        <div className="mt-4 pt-3 border-t border-gray-200">
-                            <p className="text-xs text-gray-500">
-                                {status === 'in_progress' ? 'Active projects' : 
-                                 status === 'completed' ? 'Successfully delivered' :
-                                 status === 'pending' ? 'Awaiting action' : 'Terminated projects'}
-                            </p>
-                        </div>
-                    </div>
-                ))}
+                    );
+                })}
             </div>
 
-            {/* Filter Section - Improved Responsive Design */}
+            {/* Filter Section */}
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 md:p-6 mb-8">
                 <div className="flex flex-col lg:flex-row lg:items-end gap-4">
                     {/* Search Input */}
@@ -230,7 +250,7 @@ export default function Index({
                             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                             <input
                                 type="text"
-                                placeholder="Search by project, client, or note..."
+                                placeholder="Search by project description, company, or note..."
                                 value={localFilters.search}
                                 onChange={(e) => handleFilterChange('search', e.target.value)}
                                 className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#005954] focus:border-transparent transition-colors"
@@ -238,7 +258,7 @@ export default function Index({
                         </div>
                     </div>
 
-                    {/* Filter Grid - 2 columns on mobile, 3 on desktop */}
+                    {/* Filter Grid */}
                     <div className="grid grid-cols-2 lg:flex lg:space-x-4 gap-4">
                         {/* Status Filter */}
                         <div className="lg:w-40">
@@ -329,19 +349,14 @@ export default function Index({
                             Showing {projects.from || 0} to {projects.to || 0} of {projects.total || 0} projects
                         </p>
                     </div>
-                    <div className="flex gap-3">
-                        <button className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 flex items-center gap-2 text-sm transition-colors">
-                            <Download className="w-4 h-4" />
-                            <span className="hidden sm:inline">Export</span>
-                        </button>
-                    </div>
                 </div>
                 <ProjectTable
                     projects={projects || { data: [] }}
                     onEdit={handleEdit}
                     onStatusChange={handleStatusChange}
                     onDelete={handleDelete}
-                    statusOptions={statusOptions || []}  // Tambahkan ini
+                    companies={companies || []}
+                    statusOptions={statusOptions || []}
                 />
             </div>
 
@@ -349,10 +364,10 @@ export default function Index({
             <ProjectModal
                 show={showCreateModal}
                 onClose={() => setShowCreateModal(false)}
-                clients={clients || []}
+                companies={companies || []}
                 quotations={quotations || []}
                 statusOptions={statusOptions || []}
-                title="Add New Project"
+                title="Add Project"
             />
 
             {selectedProject && (
@@ -364,7 +379,7 @@ export default function Index({
                             setSelectedProject(null);
                         }}
                         project={selectedProject}
-                        clients={clients || []}
+                        companies={companies || []}
                         quotations={quotations || []}
                         statusOptions={statusOptions || []}
                         isEdit
@@ -397,6 +412,3 @@ export default function Index({
         </HeaderLayout>
     );
 }
-
-// Import FileText for the total projects card
-import { FileText } from 'lucide-react';

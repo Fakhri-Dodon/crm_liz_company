@@ -3,6 +3,7 @@ import { useForm, router } from "@inertiajs/react";
 import DocumentBuilder from "@/Components/PDF_Builder/Builder";
 import { Edit as EditIcon, Trash2, Loader2, Plus } from "lucide-react";
 import html2pdf from "html2pdf.js";
+import { useTranslation } from "react-i18next";
 
 export default function Edit({ leads = [], companies = [], auth, quotation }) {
     const [showModal, setShowModal] = useState(false);
@@ -11,6 +12,8 @@ export default function Edit({ leads = [], companies = [], auth, quotation }) {
         processing: "",
         price: "",
     });
+
+    const { t } = useTranslation();    
 
     const builderAddItem = (newItem) => {
         const itemWithId = {
@@ -558,7 +561,7 @@ export default function Edit({ leads = [], companies = [], auth, quotation }) {
 
             {/* --- DOCUMENT BUILDER --- */}
             <DocumentBuilder
-                title="Quotation Builder"
+                title={t("quotations.builder.title")}
                 data={data}
                 setData={setData}
                 onSave={handleSave}
@@ -802,7 +805,7 @@ export default function Edit({ leads = [], companies = [], auth, quotation }) {
                         <div className="space-y-5">
                             <div className="flex flex-col">
                                 <label className="text-[10px] font-bold text-gray-400 uppercase">
-                                    Date
+                                    {t("quotations.builder.date")}<span className="text-red-600">*</span>                                    
                                 </label>
                                 <input
                                     type="date"
@@ -869,7 +872,7 @@ export default function Edit({ leads = [], companies = [], auth, quotation }) {
                                 }
                             >
                                 <label className="text-[10px] font-bold text-gray-400 uppercase">
-                                    Select {data.client_type}
+                                    {t("quotations.builder.select_company")}<span className="text-red-600">*</span>                                     
                                 </label>
                                 <select
                                     className="w-full border-gray-300 rounded text-sm"
@@ -898,7 +901,7 @@ export default function Edit({ leads = [], companies = [], auth, quotation }) {
                                 }`}
                             >
                                 <label className="text-[10px] font-bold text-gray-400 uppercase">
-                                    Select Contact Person
+                                    {t("quotations.builder.select_contact")}<span className="text-red-600">*</span>                                 
                                 </label>
                                 <select
                                     className="w-full border-gray-300 rounded text-sm"
@@ -939,7 +942,7 @@ export default function Edit({ leads = [], companies = [], auth, quotation }) {
                             <div className="grid grid-cols-1 gap-3">
                                 <div className="flex flex-col justify-start">
                                     <label className="text-[10px] font-bold text-gray-400 uppercase">
-                                        Subject
+                                        {t("quotations.builder.subject")}<span className="text-red-600">*</span> 
                                     </label>
                                     <textarea
                                         rows="3"
@@ -954,7 +957,7 @@ export default function Edit({ leads = [], companies = [], auth, quotation }) {
                                 </div>
                                 <div className="flex flex-col justify-start">
                                     <label className="text-[10px] font-bold text-gray-400 uppercase">
-                                        Discount
+                                        {t("quotations.builder.discount")}
                                     </label>
                                     <select
                                         className="w-full border-gray-300 rounded text-sm"
@@ -973,7 +976,7 @@ export default function Edit({ leads = [], companies = [], auth, quotation }) {
                                 {data.discount === "yes" && (
                                     <div className="flex flex-col">
                                         <label className="text-[10px] font-bold text-gray-400 uppercase">
-                                            Discount Amount
+                                            {(t("quotations.builder.discount_amount"))}                                        
                                         </label>
                                         <input
                                             type="number"
@@ -989,7 +992,7 @@ export default function Edit({ leads = [], companies = [], auth, quotation }) {
                                 )}
                                 <div className="flex flex-col">
                                     <label className="text-[10px] font-bold text-gray-400 uppercase">
-                                        Tax
+                                        {t("quotations.builder.tax")}<span className="text-red-600">*</span>                                     
                                     </label>
                                     <select
                                         className="w-full border-gray-300 rounded text-sm"
@@ -1016,7 +1019,7 @@ export default function Edit({ leads = [], companies = [], auth, quotation }) {
                                 </div>
                                 <div className="flex flex-col justify-start">
                                     <label className="text-[10px] font-bold text-gray-400 uppercase">
-                                        Payment Terms
+                                        {t("quotations.builder.payment_terms")}<span className="text-red-600">*</span>                                         
                                     </label>
                                     <textarea
                                         rows="3"
@@ -1031,7 +1034,7 @@ export default function Edit({ leads = [], companies = [], auth, quotation }) {
                                 </div>
                                 <div className="flex flex-col justify-start">
                                     <label className="text-[10px] font-bold text-gray-400 uppercase">
-                                        Note
+                                        {t("quotations.builder.note")}<span className="text-red-600">*</span> 
                                     </label>
                                     <textarea
                                         rows="3"
@@ -1046,7 +1049,7 @@ export default function Edit({ leads = [], companies = [], auth, quotation }) {
                                 </div>
                                 <div className="flex flex-col justify-start">
                                     <label className="text-[10px] font-bold text-gray-400 uppercase">
-                                        Valid Until
+                                        {t("quotations.builder.valid_until")}<span className="text-red-600">*</span>                                     
                                     </label>
                                     <input
                                         type="date"

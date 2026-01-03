@@ -1,8 +1,17 @@
 {
     "header": {
         "setting": "Pengaturan",
-        "notifications": "Notifikasi"
-    },
+        "notifications": "Notifikasi",
+        "notification_dropdown": {
+            "title": "Notifikasi",
+            "mark_all_as_read": "Tandai semua sebagai sudah dibaca",
+            "no_notification": "Tidak ada notifikasi",
+            "btn_approve": "DISETUJUI",
+            "btn_revise": "REVISI",
+            "btn_send": "KIRIM KE KLIEN",
+            "btn_preview": "PRATINJAU"
+        }
+    },  
     "menus": {
         "dashboard": "DASBOR",
         "clients": "KLIEN",
@@ -89,34 +98,75 @@
             "ppn_total": "Termasuk PPN",
             "status": "STATUS",
             "actions": "AKSI"
+        },
+        "builder": {
+            "title": "Pembuatan Penawaran",
+            "date": "Tanggal",
+            "select_company": "Pilih Perusahaan",
+            "select_contact": "Pilih Kontak",
+            "subject": "Subjek",
+            "discount": "Diskon",
+            "discount_amount": "Jumlah Diskon",
+            "tax": "Pajak (%)",
+            "payment_terms": "Syarat Pembayaran",
+            "note": "Catatan",
+            "valid_until": "Berlaku Hingga",
+            "draft": "Rancangan",
+            "table": {
+                "item_description": "Deskripsi Item",
+                "quantity": "Kuantitas",
+                "unit_price": "Harga Satuan",
+                "total": "Total",
+                "actions": "Aksi"
+            },
+            "btn_back": "Kembali",
+            "btn_preview": "Pratinjau",
+            "btn_save": "Simpan"
         }
     },
 
     "leads": {
         "title": "PROSPEK",
         "sub_title": "Daftar manajemen prospek pelanggan",
-        "button_add": "TAMBAH PROSPEK",
+        "headers": {
+            "all_lead_database": "Semua Database Prospek",
+            "leads": "Prospek",
+            "filtered": "Tersaring"
+        },
+        "button_add": "TAMBAH PROSPEK BARU",
         "filters": {
-        "all_companies": "Semua Perusahaan",
-        "search_placeholder": "Cari prospek...",
-        "showing_info": "{{count}} dari {{total}} prospek ditampilkan",
-        "clear_search": "Hapus Pencarian"
+            "all_assignments": "Semua Penugasan",
+            "assigned_to_me": "Ditugaskan kepada Saya",
+            "unassigned": "Belum Ditugaskan",
+            "assined_to_others": "Ditugaskan kepada Orang Lain",
+            "specific_user": "Pengguna Tertentu",
+            "search_placeholder": "Cari prospek berdasarkan perusahaan, kontak, atau email...",
+            "showing_info": "{{count}} dari {{total}} prospek ditampilkan",
+            "clear_search": "Hapus Pencarian"
         },
         "table": {
-        "company_name": "NAMA PERUSAHAAN",
-        "address": "ALAMAT",
-        "contact_person": "KONTAK PERSON",
-        "email_phone": "EMAIL & TELEPON",
-        "status": "STATUS"
+            "company_name": "NAMA PERUSAHAAN",
+            "address": "ALAMAT",
+            "contact_person": "KONTAK PERSON",
+            "email_phone": "EMAIL & TELEPON",
+            "assigned_to": "DITUGASKAN KEPADA",
+            "created_at": "DIBUAT PADA",
+            "status": "STATUS",
+            "actions": "AKSI",
+            "total_rows": "Total baris: {{count}}",
+            "showing_info": "Ditampilkan {{count}} prospek",
+            "last_updated": "Terakhir Diperbarui"
         },
         "status_labels": {
-        "new": "Baru"
+            "new": "Baru",
+            "contacted": "Dihubungi",
+            "qualified": "Terkualifikasi"
         },
         "empty": {
-        "no_match": "Tidak ada prospek yang cocok",
-        "no_data": "Belum ada data prospek",
-        "try_again": "Coba gunakan kata kunci lain",
-        "start_add": "Mulai dengan menambahkan prospek pertama Anda"
+            "no_match": "Tidak ada prospek yang cocok",
+            "no_data": "Belum ada data prospek",
+            "try_again": "Coba gunakan kata kunci lain",
+            "start_add": "Mulai dengan menambahkan prospek pertama Anda"
         }
     },
     

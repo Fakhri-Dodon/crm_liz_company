@@ -1,12 +1,12 @@
 import React, { useEffect } from 'react';
 import { useForm, router } from '@inertiajs/react';
-import { X, Calendar, User, FileText, Clock, MessageSquare } from 'lucide-react';
+import { X, Calendar, User, FileText, Clock, MessageSquare, ChevronDown } from 'lucide-react';
 
 const ProjectModal = ({ 
     show, 
     onClose, 
     project, 
-    clients, 
+    companies,
     quotations, 
     statusOptions, 
     isEdit = false,
@@ -14,19 +14,19 @@ const ProjectModal = ({
 }) => {
     const { data, setData, post, put, processing, errors, reset } = useForm({
         quotation_id: project?.quotation_id || '',
-        client_id: project?.client_id || '',
+        company_id: project?.company_id || '',
         project_description: project?.project_description || '',
         start_date: project?.start_date || '',
         deadline: project?.deadline || '',
         note: project?.note || '',
-        status: project?.status || 'in_progress'
+        status: project?.status || 'in_progress' // Default ke In Progress
     });
 
     useEffect(() => {
         if (project && isEdit) {
             setData({
                 quotation_id: project.quotation_id || '',
-                client_id: project.client_id || '',
+                company_id: project.company_id || '',
                 project_description: project.project_description,
                 start_date: project.start_date,
                 deadline: project.deadline,
@@ -35,6 +35,11 @@ const ProjectModal = ({
             });
         }
     }, [project, isEdit]);
+
+    // Filter hanya 4 status yang diinginkan
+    const filteredStatusOptions = statusOptions?.filter(option => 
+        ['in_progress', 'completed', 'pending', 'cancelled'].includes(option.value)
+    ) || [];
 
     const handleSubmit = (e) => {
         e.preventDefault();
@@ -112,7 +117,7 @@ const ProjectModal = ({
                                     className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-[#005954] focus:border-transparent min-h-[100px] resize-none transition-colors ${
                                         errors.project_description ? 'border-red-300' : 'border-gray-300'
                                     }`}
-                                    maxLength={250}
+                                    maxLength={500}
                                     required
                                     placeholder="Describe the project scope and objectives..."
                                 />
@@ -125,33 +130,33 @@ const ProjectModal = ({
                                         </div>
                                     )}
                                     <div className="text-xs text-gray-500">
-                                        {data.project_description?.length || 0}/250
+                                        {data.project_description?.length || 0}/500
                                     </div>
                                 </div>
                             </div>
                         </div>
 
-                        {/* Client and Quotation Row */}
+                        {/* Company and Quotation Row */}
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            {/* Client Selection */}
+                            {/* Company Selection */}
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
                                     <User className="w-4 h-4" />
-                                    Client *
+                                    Company *
                                 </label>
                                 <div className="relative">
                                     <select
-                                        value={data.client_id}
-                                        onChange={e => setData('client_id', e.target.value)}
+                                        value={data.company_id}
+                                        onChange={e => setData('company_id', e.target.value)}
                                         className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-[#005954] focus:border-transparent appearance-none transition-colors ${
-                                            errors.client_id ? 'border-red-300' : 'border-gray-300'
+                                            errors.company_id ? 'border-red-300' : 'border-gray-300'
                                         }`}
                                         required
                                     >
-                                        <option value="" className="text-gray-400">Select a client</option>
-                                        {clients && clients.map(client => (
-                                            <option key={client.id} value={client.id}>
-                                                {client.name}
+                                        <option value="" className="text-gray-400">Select a company</option>
+                                        {companies && companies.map(company => (
+                                            <option key={company.id} value={company.id}>
+                                                {company.name}
                                             </option>
                                         ))}
                                     </select>
@@ -159,8 +164,8 @@ const ProjectModal = ({
                                         <ChevronDown className="w-4 h-4" />
                                     </div>
                                 </div>
-                                {errors.client_id && (
-                                    <p className="mt-1 text-sm text-red-600">{errors.client_id}</p>
+                                {errors.company_id && (
+                                    <p className="mt-1 text-sm text-red-600">{errors.company_id}</p>
                                 )}
                             </div>
 
@@ -179,7 +184,7 @@ const ProjectModal = ({
                                         <option value="" className="text-gray-400">Select a quotation</option>
                                         {quotations && quotations.map(quote => (
                                             <option key={quote.id} value={quote.id}>
-                                                {quote.quotation_number}
+                                                {quote.name}
                                             </option>
                                         ))}
                                     </select>
@@ -242,7 +247,8 @@ const ProjectModal = ({
                                     Status *
                                 </label>
                                 <div className="grid grid-cols-2 gap-2">
-                                    {statusOptions.map(option => {
+                                    {filteredStatusOptions.map(option => {
+                                        // Colors untuk 4 status saja
                                         const colors = {
                                             in_progress: 'bg-blue-50 text-blue-700 border-blue-200',
                                             completed: 'bg-green-50 text-green-700 border-green-200',
@@ -279,11 +285,11 @@ const ProjectModal = ({
                                     value={data.note}
                                     onChange={e => setData('note', e.target.value)}
                                     className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#005954] focus:border-transparent min-h-[100px] resize-none transition-colors"
-                                    maxLength={250}
+                                    maxLength={500}
                                     placeholder="Additional notes or requirements..."
                                 />
                                 <div className="text-right text-xs text-gray-500 mt-2">
-                                    {data.note?.length || 0}/250 characters
+                                    {data.note?.length || 0}/500 characters
                                 </div>
                             </div>
                         </div>
@@ -321,6 +327,3 @@ const ProjectModal = ({
 };
 
 export default ProjectModal;
-
-// Import ChevronDown for select dropdowns
-import { ChevronDown } from 'lucide-react';

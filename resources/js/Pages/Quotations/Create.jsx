@@ -4,6 +4,7 @@ import DocumentBuilder from "@/Components/PDF_Builder/Builder";
 import { Edit, Trash2, Loader2, Plus } from "lucide-react";
 import html2pdf from 'html2pdf.js';
 import { Toaster, toast } from 'react-hot-toast';
+import { useTranslation } from "react-i18next";
 
 export default function Create({ nextNumber, leads = [], companies = [] }) {
     const [showModal, setShowModal] = useState(false);
@@ -12,6 +13,7 @@ export default function Create({ nextNumber, leads = [], companies = [] }) {
         processing: "",
         price: "",
     });
+    const { t } = useTranslation();    
 
     const builderAddItem = (newItem) => {
         const itemWithId = {
@@ -19,8 +21,6 @@ export default function Create({ nextNumber, leads = [], companies = [] }) {
             id: Date.now() + Math.random(),
             price: Number(newItem.price) || 0
         };
-
-        console.log("Menambahkan item dengan ID:", itemWithId.id);
 
         setData('services', [...data.services, itemWithId]);
     };
@@ -424,7 +424,7 @@ export default function Create({ nextNumber, leads = [], companies = [] }) {
 
             {/* --- DOCUMENT BUILDER --- */}
             <DocumentBuilder
-                title="Quotation Builder"
+                title={t("quotations.builder.title")}
                 data={data}
                 setData={setData}
                 onSave={handleSave}
@@ -739,7 +739,7 @@ export default function Create({ nextNumber, leads = [], companies = [] }) {
                         <div className="space-y-5">
                             <div className="flex flex-col">
                                 <label className="text-[10px] font-bold text-gray-400 uppercase">
-                                    Date<span className="text-red-600">*</span> 
+                                    {t("quotations.builder.date")}<span className="text-red-600">*</span>
                                 </label>
                                 <input
                                     type="date"
@@ -800,7 +800,7 @@ export default function Create({ nextNumber, leads = [], companies = [] }) {
                                 }
                             >
                                 <label className="text-[10px] font-bold text-gray-400 uppercase">
-                                    Select Company<span className="text-red-600">*</span> 
+                                    {t("quotations.builder.select_company")}<span className="text-red-600">*</span> 
                                 </label>
                                 <select
                                     className="w-full border-gray-300 rounded text-sm"
@@ -829,7 +829,7 @@ export default function Create({ nextNumber, leads = [], companies = [] }) {
                                 }`}
                             >
                                 <label className="text-[10px] font-bold text-gray-400 uppercase">
-                                    Select Contact Person<span className="text-red-600">*</span> 
+                                    {t("quotations.builder.select_contact")}<span className="text-red-600">*</span> 
                                 </label>
                                 <select
                                     className="w-full border-gray-300 rounded text-sm"
@@ -917,7 +917,7 @@ export default function Create({ nextNumber, leads = [], companies = [] }) {
                             <div className="grid grid-cols-1 gap-3">
                                 <div className="flex flex-col justify-start">
                                     <label className="text-[10px] font-bold text-gray-400 uppercase">
-                                        Subject<span className="text-red-600">*</span> 
+                                        {t("quotations.builder.subject")}<span className="text-red-600">*</span> 
                                     </label>
                                     <textarea
                                         rows="3"
@@ -932,7 +932,7 @@ export default function Create({ nextNumber, leads = [], companies = [] }) {
                                 </div>
                                 <div className="flex flex-col justify-start">
                                     <label className="text-[10px] font-bold text-gray-400 uppercase">
-                                        Discount
+                                        {t("quotations.builder.discount")}
                                     </label>
                                     <select
                                         className="w-full border-gray-300 rounded text-sm"
@@ -951,7 +951,7 @@ export default function Create({ nextNumber, leads = [], companies = [] }) {
                                 {data.discount === "yes" && (
                                     <div className="flex flex-col">
                                         <label className="text-[10px] font-bold text-gray-400 uppercase">
-                                            Discount Amount
+                                            {(t("quotations.builder.discount_amount"))}
                                         </label>
                                         <input
                                             type="number"
@@ -967,7 +967,7 @@ export default function Create({ nextNumber, leads = [], companies = [] }) {
                                 )}
                                 <div className="flex flex-col">
                                     <label className="text-[10px] font-bold text-gray-400 uppercase">
-                                        Tax<span className="text-red-600">*</span> 
+                                        {t("quotations.builder.tax")}<span className="text-red-600">*</span> 
                                     </label>
                                     <select
                                         className="w-full border-gray-300 rounded text-sm"
@@ -989,7 +989,7 @@ export default function Create({ nextNumber, leads = [], companies = [] }) {
                                 </div>
                                 <div className="flex flex-col justify-start">
                                     <label className="text-[10px] font-bold text-gray-400 uppercase">
-                                        Payment Terms<span className="text-red-600">*</span> 
+                                        {t("quotations.builder.payment_terms")}<span className="text-red-600">*</span> 
                                     </label>
                                     <textarea
                                         rows="3"
@@ -1004,7 +1004,7 @@ export default function Create({ nextNumber, leads = [], companies = [] }) {
                                 </div>
                                 <div className="flex flex-col justify-start">
                                     <label className="text-[10px] font-bold text-gray-400 uppercase">
-                                        Note<span className="text-red-600">*</span> 
+                                        {t("quotations.builder.note")}<span className="text-red-600">*</span> 
                                     </label>
                                     <textarea
                                         rows="3"
@@ -1019,7 +1019,7 @@ export default function Create({ nextNumber, leads = [], companies = [] }) {
                                 </div>
                                 <div className="flex flex-col justify-start">
                                     <label className="text-[10px] font-bold text-gray-400 uppercase">
-                                        Valid Until<span className="text-red-600">*</span> 
+                                        {t("quotations.builder.valid_until")}<span className="text-red-600">*</span> 
                                     </label>
                                     <input
                                         type="date"

@@ -14,11 +14,11 @@ class Project extends Model
     public $incrementing = false;
     protected $keyType = 'string';
     
-    // **PERBAIKAN: Fillable harus match dengan database**
+    // **PERUBAHAN: ganti 'client_id' menjadi 'company_id'**
     protected $fillable = [
         'id',
         'quotation_id',
-        'client_id',
+        'company_id',  // DIUBAH: dari 'client_id' menjadi 'company_id'
         'user_id',
         'project_description',
         'start_date',
@@ -37,7 +37,7 @@ class Project extends Model
         'deadline' => 'date',
         'deleted' => 'boolean',
         'deleted_at' => 'datetime',
-        // **PERBAIKAN: Semua char(36) tetap string**
+        'company_id' => 'string', // DIUBAH: dari 'client_id' menjadi 'company_id'
         'user_id' => 'string',
         'created_by' => 'string',
         'updated_by' => 'string',
@@ -64,10 +64,10 @@ class Project extends Model
         });
     }
 
-    // Relationships
-    public function client()
+    // **PERUBAHAN: Relationship dengan Company**
+    public function company()
     {
-        return $this->belongsTo(ClientType::class, 'client_id');
+        return $this->belongsTo(Company::class, 'company_id');
     }
 
     public function quotation()
@@ -75,10 +75,9 @@ class Project extends Model
         return $this->belongsTo(Quotation::class, 'quotation_id');
     }
 
-    // **PERBAIKAN: Relationship dengan user (UUID)**
     public function assignedUser()
     {
-        return $this->belongsTo(User::class, 'user_id', 'id'); // asumsi id user adalah UUID
+        return $this->belongsTo(User::class, 'user_id', 'id');
     }
 
     public function creator()
@@ -94,5 +93,11 @@ class Project extends Model
     public function deleter()
     {
         return $this->belongsTo(User::class, 'deleted_by', 'id');
+    }
+
+    // **PERUBAHAN: Alias untuk backward compatibility (jika ada code yang masih pakai client())**
+    public function client()
+    {
+        return $this->company();
     }
 }

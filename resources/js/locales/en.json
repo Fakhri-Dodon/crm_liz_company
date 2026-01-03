@@ -1,7 +1,16 @@
 {
     "header": {
         "setting": "Setting",
-        "notifications": "Notifications"
+        "notifications": "Notifications",
+        "notification_dropdown": {
+            "title": "Notifications",
+            "mark_all_as_read": "Mark all as read",
+            "no_notification": "No Notifications",
+            "btn_approve": "APPROVE",
+            "btn_revise": "REVISE",
+            "btn_send": "SEND TO CLIENT",
+            "btn_preview": "PREVIEW"
+        }
     },
     "menus": {
         "dashboard": "DASHBOARD",
@@ -88,29 +97,62 @@
             "ppn_total": "Include PPN",
             "status": "STATUS",
             "actions": "ACTIONS"
+        },
+        "builder": {
+            "title": "Quotation Builder",
+            "date": "Date",
+            "select_company": "Select Company",
+            "select_contact": "Select Contact",
+            "subject": "Subject",
+            "discount": "Discount",
+            "discount_amount": "Discount Amount",
+            "tax": "Tax (%)",
+            "payment_terms": "Payment Terms",
+            "note": "Note",
+            "valid_until": "Valid Until",
+            "draft": "Draft",
+            "btn_back": "Back",
+            "btn_preview": "Preview",
+            "btn_save": "Save"
         }
     },
     "leads": {
         "title": "LEAD",
         "sub_title": "Manage all company leads",
+        "headers": {
+            "all_lead_database": "All Leads Database",
+            "leads": "Leads",
+            "filtered": "Filtered"
+        },
         "button_add": "ADD NEW LEAD",
         "filters": {
-        "all_companies": "All Companies",
-        "search_placeholder": "Search leads...",
-        "showing_info": "{{count}} of {{total}} leads shown"
+            "all_assignments": "All Assignments",
+            "assigned_to_me": "Assigned to Me",
+            "unassigned": "Unassigned",
+            "assined_to_others": "Assigned to Others",
+            "specific_user": "Specific User",
+            "search_placeholder": "Search leads by company, contact, or email...",
+            "showing_info": "{{count}} of {{total}} leads shown",
+            "clear_search": "Clear Search"
         },
         "table": {
-        "no": "NO",
-        "company_name": "COMPANY NAME",
-        "address": "ADDRESS",
-        "contact_person": "CONTACT PERSON",
-        "email_phone": "EMAIL & PHONE",
-        "status": "STATUS",
-        "actions": "ACTIONS",
-        "total_rows": "Total rows: {{count}}"
+            "no": "NO",
+            "company_name": "COMPANY NAME",
+            "address": "ADDRESS",
+            "contact_person": "CONTACT PERSON",
+            "email_phone": "EMAIL & PHONE",
+            "assigned_to": "ASSIGNED TO",
+            "created_at": "CREATED AT",
+            "status": "STATUS",
+            "actions": "ACTIONS",
+            "total_rows": "Total rows: {{count}}",
+            "showing_info": "Showing {{count}} leads",
+            "last_updated": "Last Updated"
         },
         "status_labels": {
-        "new": "New"
+            "new": "New",
+            "contacted": "Contacted",
+            "qualified": "Qualified"
         }
     },
     "users": {
