@@ -155,6 +155,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 Route::middleware(['auth', 'verified'])->group(function () {
     // Projects routes
     Route::resource('projects', ProjectController::class);
+    Route::get('/projects/{project}/edit', [ProjectController::class, 'edit']); 
     Route::put('/projects/{project}/status', [ProjectController::class, 'updateStatus'])
         ->name('projects.status.update');
 });

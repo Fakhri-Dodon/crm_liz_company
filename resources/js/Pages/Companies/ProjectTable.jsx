@@ -1,125 +1,236 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { 
-    FolderKanban, Calendar, Clock, CheckCircle, 
-    PlayCircle, AlertTriangle, TrendingUp
+    FolderKanban, 
+    Calendar, 
+    Clock, 
+    CheckCircle, 
+    PlayCircle, 
+    MoreVertical, 
+    Edit, 
+    Trash2,
+    XCircle,
+    PauseCircle,
+    AlertTriangle
 } from 'lucide-react';
 
-const ProjectTable = ({ data }) => {
+const ProjectTable = ({ data, onEdit, onDelete }) => {
+    const [actionMenu, setActionMenu] = useState(null);
+
     const formatDate = (dateString) => {
-        const date = new Date(dateString);
-        return date.toLocaleDateString('id-ID', {
-            day: 'numeric',
-            month: 'short'
-        });
+        if (!dateString) return '-';
+        try {
+            const date = new Date(dateString);
+            return date.toLocaleDateString('id-ID', {
+                day: 'numeric',
+                month: 'short',
+                year: 'numeric'
+            });
+        } catch (error) {
+            return dateString;
+        }
     };
 
     const calculateDaysLeft = (deadline) => {
-        const today = new Date();
-        const deadlineDate = new Date(deadline);
-        const diffTime = deadlineDate - today;
-        return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        if (!deadline) return 0;
+        try {
+            const today = new Date();
+            const deadlineDate = new Date(deadline);
+            const diffTime = deadlineDate - today;
+            return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        } catch (error) {
+            return 0;
+        }
     };
 
-    const getStatusBadge = (status, daysLeft) => {
-        const baseClasses = "inline-flex items-center px-2 py-1 rounded-full text-xs";
+    const getStatusBadge = (status) => {
+        const baseClasses = "inline-flex items-center px-2 py-1 rounded-full text-xs font-medium";
         
-        if (status === 'completed') {
-            return (
-                <span className={`${baseClasses} bg-green-100 text-green-800`}>
-                    <CheckCircle className="w-3 h-3 mr-1" />
-                    <span className="hidden sm:inline">Done</span>
-                </span>
-            );
+        switch(status) {
+            case 'in_progress':
+            case 'progress':
+            case 'active':
+            case 'on_progress':
+                return (
+                    <span className={`${baseClasses} bg-blue-100 text-blue-800`}>
+                        <PlayCircle className="w-3 h-3 mr-1" />
+                        In Progress
+                    </span>
+                );
+            case 'completed':
+            case 'done':
+            case 'finished':
+                return (
+                    <span className={`${baseClasses} bg-green-100 text-green-800`}>
+                        <CheckCircle className="w-3 h-3 mr-1" />
+                        Completed
+                    </span>
+                );
+            case 'pending':
+            case 'draft':
+            case 'new':
+                return (
+                    <span className={`${baseClasses} bg-yellow-100 text-yellow-800`}>
+                        <PauseCircle className="w-3 h-3 mr-1" />
+                        Pending
+                    </span>
+                );
+            case 'cancelled':
+            case 'canceled':
+            case 'rejected':
+                return (
+                    <span className={`${baseClasses} bg-red-100 text-red-800`}>
+                        <XCircle className="w-3 h-3 mr-1" />
+                        Cancelled
+                    </span>
+                );
+            case 'delayed':
+            case 'overdue':
+                return (
+                    <span className={`${baseClasses} bg-orange-100 text-orange-800`}>
+                        <AlertTriangle className="w-3 h-3 mr-1" />
+                        Delayed
+                    </span>
+                );
+            default:
+                return (
+                    <span className={`${baseClasses} bg-gray-100 text-gray-800`}>
+                        {status}
+                    </span>
+                );
         }
-        
-        if (daysLeft < 0) {
-            return (
-                <span className={`${baseClasses} bg-red-100 text-red-800`}>
-                    <AlertTriangle className="w-3 h-3 mr-1" />
-                    <span className="hidden sm:inline">Overdue</span>
-                </span>
-            );
-        }
-        
-        if (daysLeft <= 7) {
-            return (
-                <span className={`${baseClasses} bg-yellow-100 text-yellow-800`}>
-                    <Clock className="w-3 h-3 mr-1" />
-                    <span className="hidden sm:inline">Due {daysLeft}d</span>
-                </span>
-            );
-        }
-        
-        return (
-            <span className={`${baseClasses} bg-blue-100 text-blue-800`}>
-                <PlayCircle className="w-3 h-3 mr-1" />
-                <span className="hidden sm:inline">In Progress</span>
-            </span>
-        );
     };
 
-    const getDaysLeftText = (daysLeft) => {
-        if (daysLeft < 0) return `${Math.abs(daysLeft)}d late`;
-        if (daysLeft === 0) return 'Today';
-        if (daysLeft === 1) return 'Tomorrow';
-        return `${daysLeft}d left`;
+    const getDaysLeftText = (daysLeft, status) => {
+        // Jika status sudah completed atau cancelled, tampilkan status saja
+        if (status === 'completed' || status === 'done' || status === 'finished') {
+            return 'Completed';
+        }
+        if (status === 'cancelled' || status === 'canceled' || status === 'rejected') {
+            return 'Cancelled';
+        }
+        if (status === 'delayed' || status === 'overdue') {
+            return 'Overdue';
+        }
+        
+        // Jika ada daysLeft dari backend, gunakan itu
+        if (daysLeft !== null && daysLeft !== undefined) {
+            if (daysLeft < 0) return `${Math.abs(daysLeft)}d late`;
+            if (daysLeft === 0) return 'Today';
+            if (daysLeft === 1) return 'Tomorrow';
+            return `${daysLeft}d left`;
+        }
+        
+        // Jika tidak ada daysLeft dari backend, hitung manual
+        if (!daysLeft && typeof daysLeft !== 'number') {
+            return 'N/A';
+        }
+        
+        return 'N/A';
+    };
+
+    const getDaysLeftColor = (daysLeft, status) => {
+        // Prioritaskan status
+        if (status === 'completed' || status === 'done' || status === 'finished') {
+            return 'text-green-800 bg-green-100';
+        }
+        if (status === 'cancelled' || status === 'canceled' || status === 'rejected') {
+            return 'text-red-800 bg-red-100';
+        }
+        if (status === 'delayed' || status === 'overdue') {
+            return 'text-orange-800 bg-orange-100';
+        }
+        
+        // Gunakan daysLeft untuk menentukan warna
+        if (daysLeft !== null && daysLeft !== undefined) {
+            if (daysLeft < 0) return 'text-red-800 bg-red-100';
+            if (daysLeft <= 7) return 'text-yellow-800 bg-yellow-100';
+            return 'text-green-800 bg-green-100';
+        }
+        
+        return 'text-gray-800 bg-gray-100';
+    };
+
+    const toggleActionMenu = (index) => {
+        setActionMenu(actionMenu === index ? null : index);
     };
 
     // Mobile Card View
-    const MobileCardView = ({ project }) => {
-        const daysLeft = calculateDaysLeft(project.deadline);
-        const progress = project.status === 'completed' ? 100 : 
-                       daysLeft < 0 ? 100 : 65;
+    const MobileCardView = ({ project, index }) => {
+        const daysLeft = project.days_left !== undefined ? project.days_left : calculateDaysLeft(project.deadline);
         
         return (
             <div className="bg-white border border-gray-200 rounded-lg p-4 mb-3 hover:shadow-sm transition-shadow">
                 <div className="flex justify-between items-start mb-3">
-                    <div className="flex items-start space-x-2">
-                        <FolderKanban className="w-5 h-5 text-blue-600 mt-1 flex-shrink-0" />
-                        <div className="min-w-0">
-                            <h3 className="font-semibold text-gray-900 text-sm leading-tight">
-                                {project.project_description.length > 50 
-                                    ? project.project_description.substring(0, 50) + '...'
-                                    : project.project_description}
-                            </h3>
-                            <div className="flex items-center space-x-2 mt-1">
-                                <span className="text-xs text-gray-500">
-                                    {formatDate(project.start_date)} → {formatDate(project.deadline)}
-                                </span>
+                    <div className="flex items-start space-x-3">
+                        <div className="bg-blue-50 p-2 rounded-lg">
+                            <FolderKanban className="w-5 h-5 text-blue-600" />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                            <div className="flex justify-between items-start">
+                                <div>
+                                    <h3 className="font-semibold text-gray-900 text-sm leading-tight mb-1">
+                                        {index + 1}. {project.project_description?.substring(0, 60) || 'No Description'}
+                                        {project.project_description?.length > 60 && '...'}
+                                    </h3>
+                                    <div className="flex flex-wrap gap-2 mt-2">
+                                        <span className="text-xs text-gray-500 flex items-center">
+                                            <Calendar className="w-3 h-3 mr-1" />
+                                            Start: {formatDate(project.start_date)}
+                                        </span>
+                                        <span className="text-xs text-gray-500 flex items-center">
+                                            <Clock className="w-3 h-3 mr-1" />
+                                            Deadline: {formatDate(project.deadline)}
+                                        </span>
+                                    </div>
+                                </div>
+                                <div className="relative">
+                                    <button
+                                        onClick={() => toggleActionMenu(index)}
+                                        className="p-1 text-gray-400 hover:text-gray-600"
+                                    >
+                                        <MoreVertical className="w-4 h-4" />
+                                    </button>
+                                    {actionMenu === index && (
+                                        <div className="absolute right-0 mt-1 w-32 bg-white rounded-lg shadow-lg border border-gray-200 z-10">
+                                            <button
+                                                onClick={() => {
+                                                    onEdit(project);
+                                                    setActionMenu(null);
+                                                }}
+                                                className="w-full px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center"
+                                            >
+                                                <Edit className="w-3 h-3 mr-2" />
+                                                Edit
+                                            </button>
+                                            <button
+                                                onClick={() => {
+                                                    onDelete(project);
+                                                    setActionMenu(null);
+                                                }}
+                                                className="w-full px-3 py-2 text-left text-sm text-red-600 hover:bg-gray-50 flex items-center"
+                                            >
+                                                <Trash2 className="w-3 h-3 mr-2" />
+                                                Delete
+                                            </button>
+                                        </div>
+                                    )}
+                                </div>
                             </div>
+                            
+                            <div className="mt-3 flex flex-wrap gap-2">
+                                <div className={`px-2 py-1 rounded text-xs ${getDaysLeftColor(daysLeft, project.status)}`}>
+                                    {getDaysLeftText(daysLeft, project.status)}
+                                </div>
+                                {getStatusBadge(project.status)}
+                            </div>
+                            
+                            {project.note && (
+                                <div className="mt-3 p-2 bg-gray-50 rounded text-xs text-gray-600">
+                                    <span className="font-medium">Note:</span> {project.note}
+                                </div>
+                            )}
                         </div>
                     </div>
-                    {getStatusBadge(project.status, daysLeft)}
-                </div>
-                
-                {/* Progress Bar */}
-                <div className="mb-3">
-                    <div className="flex justify-between text-xs text-gray-600 mb-1">
-                        <span>Progress</span>
-                        <span>{progress}%</span>
-                    </div>
-                    <div className="w-full bg-gray-200 rounded-full h-2">
-                        <div 
-                            className={`h-2 rounded-full ${
-                                project.status === 'completed' ? 'bg-green-600' :
-                                daysLeft < 0 ? 'bg-red-600' : 'bg-blue-600'
-                            }`}
-                            style={{ width: `${progress}%` }}
-                        />
-                    </div>
-                </div>
-                
-                <div className="flex justify-between items-center">
-                    <span className={`text-xs px-2 py-1 rounded ${
-                        daysLeft < 0 ? 'bg-red-100 text-red-800' :
-                        daysLeft <= 7 ? 'bg-yellow-100 text-yellow-800' :
-                        'bg-green-100 text-green-800'
-                    }`}>
-                        {getDaysLeftText(daysLeft)}
-                    </span>
-                    <button className="text-xs text-blue-600 hover:text-blue-800">
-                        View Details
-                    </button>
                 </div>
             </div>
         );
@@ -127,85 +238,98 @@ const ProjectTable = ({ data }) => {
 
     return (
         <div>
-            <div className="mb-6">
-                <h2 className="text-lg md:text-xl font-bold text-gray-900">Project List</h2>
-                <p className="text-sm md:text-base text-gray-600">All projects for this company</p>
-            </div>
-
             {/* Mobile View */}
             <div className="sm:hidden">
-                {data.map((project) => (
-                    <MobileCardView key={project.id} project={project} />
+                {data.map((project, index) => (
+                    <MobileCardView key={project.id || index} project={project} index={index} />
                 ))}
             </div>
 
             {/* Desktop Table View */}
-            <div className="hidden sm:block">
-                <div className="overflow-x-auto -mx-2">
+            <div className="hidden sm:block overflow-hidden rounded-lg border border-gray-200">
+                <div className="overflow-x-auto">
                     <table className="min-w-full divide-y divide-gray-200 text-sm">
-                        <thead className="bg-[#e2e8f0]">
+                        <thead className="bg-gray-50">
                             <tr>
-                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase">
-                                    Description
+                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
+                                    No
                                 </th>
-                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase">
-                                    Timeline
+                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
+                                    Project Description
                                 </th>
-                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase">
+                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
+                                    Start Date
+                                </th>
+                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
+                                    Deadline
+                                </th>
+                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
                                     Time Left
                                 </th>
-                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase">
+                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
                                     Status
                                 </th>
-                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase">
-                                    Progress
+                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
+                                    Note
+                                </th>
+                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
+                                    Actions
                                 </th>
                             </tr>
                         </thead>
                         <tbody className="bg-white divide-y divide-gray-200">
-                            {data.map((project) => {
-                                const daysLeft = calculateDaysLeft(project.deadline);
-                                const progress = project.status === 'completed' ? 100 : 
-                                               daysLeft < 0 ? 100 : 65;
+                            {data.map((project, index) => {
+                                const daysLeft = project.days_left !== undefined ? project.days_left : calculateDaysLeft(project.deadline);
                                 
                                 return (
-                                    <tr key={project.id} className="hover:bg-gray-50">
-                                        <td className="px-4 py-3 max-w-[250px]">
-                                            <div className="text-gray-900 truncate" title={project.project_description}>
-                                                {project.project_description}
+                                    <tr key={project.id || index} className="hover:bg-gray-50">
+                                        <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
+                                            {index + 1}
+                                        </td>
+                                        <td className="px-4 py-3 max-w-[300px]">
+                                            <div className="text-sm text-gray-900 font-medium">
+                                                {project.project_description || '-'}
                                             </div>
                                         </td>
-                                        <td className="px-4 py-3">
-                                            <div className="text-gray-900">
-                                                {formatDate(project.start_date)} → {formatDate(project.deadline)}
+                                        <td className="px-4 py-3 whitespace-nowrap">
+                                            <div className="text-sm text-gray-900">
+                                                {formatDate(project.start_date)}
                                             </div>
                                         </td>
-                                        <td className="px-4 py-3">
-                                            <div className={`text-xs px-2 py-1 rounded inline-block ${
-                                                daysLeft < 0 ? 'bg-red-100 text-red-800' :
-                                                daysLeft <= 7 ? 'bg-yellow-100 text-yellow-800' :
-                                                'bg-green-100 text-green-800'
-                                            }`}>
-                                                {getDaysLeftText(daysLeft)}
+                                        <td className="px-4 py-3 whitespace-nowrap">
+                                            <div className="text-sm text-gray-900">
+                                                {formatDate(project.deadline)}
                                             </div>
                                         </td>
-                                        <td className="px-4 py-3">
-                                            {getStatusBadge(project.status, daysLeft)}
+                                        <td className="px-4 py-3 whitespace-nowrap">
+                                            <span className={`px-2 py-1 rounded text-xs ${getDaysLeftColor(daysLeft, project.status)}`}>
+                                                {getDaysLeftText(daysLeft, project.status)}
+                                            </span>
                                         </td>
-                                        <td className="px-4 py-3">
-                                            <div className="flex items-center">
-                                                <div className="w-full bg-gray-200 rounded-full h-2">
-                                                    <div 
-                                                        className={`h-2 rounded-full ${
-                                                            project.status === 'completed' ? 'bg-green-600' :
-                                                            daysLeft < 0 ? 'bg-red-600' : 'bg-blue-600'
-                                                        }`}
-                                                        style={{ width: `${progress}%` }}
-                                                    />
-                                                </div>
-                                                <span className="ml-2 text-xs text-gray-600">
-                                                    {progress}%
-                                                </span>
+                                        <td className="px-4 py-3 whitespace-nowrap">
+                                            {getStatusBadge(project.status)}
+                                        </td>
+                                        <td className="px-4 py-3 max-w-[200px]">
+                                            <div className="text-sm text-gray-600 truncate" title={project.note}>
+                                                {project.note || '-'}
+                                            </div>
+                                        </td>
+                                        <td className="px-4 py-3 whitespace-nowrap">
+                                            <div className="flex items-center space-x-2">
+                                                <button
+                                                    onClick={() => onEdit(project)}
+                                                    className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                                                    title="Edit project"
+                                                >
+                                                    <Edit className="w-4 h-4" />
+                                                </button>
+                                                <button
+                                                    onClick={() => onDelete(project)}
+                                                    className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                                    title="Delete project"
+                                                >
+                                                    <Trash2 className="w-4 h-4" />
+                                                </button>
                                             </div>
                                         </td>
                                     </tr>
@@ -216,33 +340,56 @@ const ProjectTable = ({ data }) => {
                 </div>
             </div>
 
+            {/* Empty State */}
+            {data.length === 0 && (
+                <div className="text-center py-12">
+                    <FolderKanban className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">No projects found</h3>
+                    <p className="text-gray-600">This company doesn't have any projects yet.</p>
+                </div>
+            )}
+
             {/* Summary */}
-            <div className="mt-6 pt-6 border-t border-gray-200">
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                    <div className="bg-blue-50 p-3 md:p-4 rounded-lg">
-                        <p className="text-xs md:text-sm text-gray-600">Total Projects</p>
-                        <p className="text-lg md:text-2xl font-bold text-gray-900">{data.length}</p>
-                    </div>
-                    <div className="bg-green-50 p-3 md:p-4 rounded-lg">
-                        <p className="text-xs md:text-sm text-gray-600">Completed</p>
-                        <p className="text-lg md:text-2xl font-bold text-gray-900">
-                            {data.filter(p => p.status === 'completed').length}
-                        </p>
-                    </div>
-                    <div className="bg-yellow-50 p-3 md:p-4 rounded-lg">
-                        <p className="text-xs md:text-sm text-gray-600">In Progress</p>
-                        <p className="text-lg md:text-2xl font-bold text-gray-900">
-                            {data.filter(p => p.status === 'in_progress').length}
-                        </p>
-                    </div>
-                    <div className="bg-red-50 p-3 md:p-4 rounded-lg">
-                        <p className="text-xs md:text-sm text-gray-600">Overdue/Delayed</p>
-                        <p className="text-lg md:text-2xl font-bold text-gray-900">
-                            {data.filter(p => p.status === 'delayed' || calculateDaysLeft(p.deadline) < 0).length}
-                        </p>
+            {data.length > 0 && (
+                <div className="mt-6 pt-6 border-t border-gray-200">
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                        <div className="bg-blue-50 p-4 rounded-lg">
+                            <p className="text-sm text-gray-600">Total Projects</p>
+                            <p className="text-2xl font-bold text-gray-900">{data.length}</p>
+                        </div>
+                        <div className="bg-green-50 p-4 rounded-lg">
+                            <p className="text-sm text-gray-600">Completed</p>
+                            <p className="text-2xl font-bold text-gray-900">
+                                {data.filter(p => 
+                                    p.status === 'completed' || 
+                                    p.status === 'done' || 
+                                    p.status === 'finished'
+                                ).length}
+                            </p>
+                        </div>
+                        <div className="bg-yellow-50 p-4 rounded-lg">
+                            <p className="text-sm text-gray-600">Pending</p>
+                            <p className="text-2xl font-bold text-gray-900">
+                                {data.filter(p => 
+                                    p.status === 'pending' || 
+                                    p.status === 'draft' || 
+                                    p.status === 'new'
+                                ).length}
+                            </p>
+                        </div>
+                        <div className="bg-red-50 p-4 rounded-lg">
+                            <p className="text-sm text-gray-600">Cancelled</p>
+                            <p className="text-2xl font-bold text-gray-900">
+                                {data.filter(p => 
+                                    p.status === 'cancelled' || 
+                                    p.status === 'canceled' || 
+                                    p.status === 'rejected'
+                                ).length}
+                            </p>
+                        </div>
                     </div>
                 </div>
-            </div>
+            )}
         </div>
     );
 };

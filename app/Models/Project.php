@@ -64,6 +64,15 @@ class Project extends Model
                 $model->status = 'in_progress';
             }
         });
+
+        static::retrieved(function ($model) {
+            \Log::debug('Project model retrieved:', [
+                'id' => $model->id,
+                'client_id' => $model->client_id,
+                'company_id' => $model->company_id,
+                'description' => $model->project_description
+            ]);
+        });
     }
 
     // TAMBAHKAN: Accessor untuk company_id alias

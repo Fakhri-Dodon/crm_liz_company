@@ -23,7 +23,8 @@ export default function Index({
     const [showEditModal, setShowEditModal] = useState(false);
     const [showStatusModal, setShowStatusModal] = useState(false);
     const [showDeleteModal, setShowDeleteModal] = useState(false);
-    const [selectedProject, setSelectedProject] = useState(null);
+    const [selectedProjectId, setSelectedProjectId] = useState(null); // Ubah ke ID saja
+    const [editingProject, setEditingProject] = useState(null); // Tambah state untuk menyimpan data project lengkap jika perlu
     const [localFilters, setLocalFilters] = useState({
         search: filters?.search || '',
         status: filters?.status || 'all',
@@ -136,27 +137,32 @@ export default function Index({
     };
 
     const handleEdit = (project) => {
-        setSelectedProject(project);
+        console.log('Editing project ID:', project.id);
+        setSelectedProjectId(project.id); // Set ID saja
+        setEditingProject(project); // Simpan data project jika perlu untuk status modal
         setShowEditModal(true);
     };
 
     const handleStatusChange = (project) => {
-        setSelectedProject(project);
+        setSelectedProjectId(project.id);
+        setEditingProject(project);
         setShowStatusModal(true);
     };
 
     const handleDelete = (project) => {
-        setSelectedProject(project);
+        setSelectedProjectId(project.id);
+        setEditingProject(project);
         setShowDeleteModal(true);
     };
 
     const confirmDelete = () => {
-        if (selectedProject) {
-            router.delete(route('projects.destroy', selectedProject.id), {
+        if (selectedProjectId) {
+            router.delete(route('projects.destroy', selectedProjectId), {
                 preserveScroll: true,
                 onSuccess: () => {
                     setShowDeleteModal(false);
-                    setSelectedProject(null);
+                    setSelectedProjectId(null);
+                    setEditingProject(null);
                     showToast('Project deleted successfully!', 'success');
                 },
                 onError: () => {
@@ -370,42 +376,49 @@ export default function Index({
                 title="Add Project"
             />
 
-            {selectedProject && (
+            {selectedProjectId && (
                 <>
+                    {/* Edit Modal dengan projectId */}
                     <ProjectModal
                         show={showEditModal}
                         onClose={() => {
                             setShowEditModal(false);
-                            setSelectedProject(null);
+                            setSelectedProjectId(null);
+                            setEditingProject(null);
                         }}
-                        project={selectedProject}
+                        projectId={selectedProjectId} // Kirim ID saja
                         companies={companies || []}
                         quotations={quotations || []}
                         statusOptions={statusOptions || []}
-                        isEdit
+                        isEdit={true}
                         title="Edit Project"
                     />
 
-                    <StatusModal
-                        show={showStatusModal}
-                        onClose={() => {
-                            setShowStatusModal(false);
-                            setSelectedProject(null);
-                        }}
-                        project={selectedProject}
-                        statusOptions={statusOptions || []}
-                        companies={companies || []}
-                    />
+                    {/* Status Modal masih bisa pakai project object karena tidak perlu fetch data */}
+                    {editingProject && (
+                        <StatusModal
+                            show={showStatusModal}
+                            onClose={() => {
+                                setShowStatusModal(false);
+                                setSelectedProjectId(null);
+                                setEditingProject(null);
+                            }}
+                            project={editingProject}
+                            statusOptions={statusOptions || []}
+                            companies={companies || []}
+                        />
+                    )}
 
                     <DeleteModal
                         show={showDeleteModal}
                         onClose={() => {
                             setShowDeleteModal(false);
-                            setSelectedProject(null);
+                            setSelectedProjectId(null);
+                            setEditingProject(null);
                         }}
                         onConfirm={confirmDelete}
                         title="Delete Project"
-                        message={`Are you sure you want to delete project "${selectedProject.project_description}"? This action cannot be undone.`}
+                        message={`Are you sure you want to delete project "${editingProject?.project_description}"? This action cannot be undone.`}
                     />
                 </>
             )}
