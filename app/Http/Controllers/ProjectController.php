@@ -202,6 +202,70 @@ public function store(Request $request)
     }
 }
 
+public function edit(Project $project)
+{
+    \Log::info('Fetching project for edit:', ['project_id' => $project->id]);
+    
+    // Cek jika project sudah dihapus
+    if ($project->deleted == 1) {
+        return response()->json([
+            'error' => 'Cannot edit deleted project.'
+        ], 404);
+    }
+
+    try {
+        // Load project dengan relasi
+        $project->load(['company:id,client_code,city,client_since', 'quotation:id,quotation_number,date']);
+        
+        \Log::info('Project loaded:', [
+            'id' => $project->id,
+            'client_id' => $project->client_id,
+            'company' => $project->company ? $project->company->id : null,
+            'quotation_id' => $project->quotation_id,
+            'project_description' => $project->project_description,
+            'start_date' => $project->start_date,
+            'deadline' => $project->deadline,
+            'status' => $project->status
+        ]);
+
+        // Format data untuk response
+        $formattedProject = [
+            'id' => $project->id,
+            'quotation_id' => $project->quotation_id,
+            'company_id' => $project->client_id, // INI YANG PENTING: client_id bukan company_id
+            'project_description' => $project->project_description,
+            'start_date' => $project->start_date ? $project->start_date->format('Y-m-d') : '',
+            'deadline' => $project->deadline ? $project->deadline->format('Y-m-d') : '',
+            'note' => $project->note ?? '',
+            'status' => $project->status,
+            'company' => $project->company ? [
+                'id' => $project->company->id,
+                'name' => $project->company->client_code . ' - ' . $project->company->city,
+                'client_code' => $project->company->client_code,
+                'city' => $project->company->city
+            ] : null,
+            'quotation' => $project->quotation ? [
+                'id' => $project->quotation->id,
+                'name' => $project->quotation->quotation_number . ' (' . $project->quotation->date . ')'
+            ] : null
+        ];
+
+        \Log::info('Formatted project response:', $formattedProject);
+
+        return response()->json($formattedProject);
+        
+    } catch (\Exception $e) {
+        \Log::error('Error in edit method:', [
+            'message' => $e->getMessage(),
+            'trace' => $e->getTraceAsString()
+        ]);
+        
+        return response()->json([
+            'error' => 'Failed to fetch project data.'
+        ], 500);
+    }
+}
+
 public function update(Request $request, Project $project)
 {
     if ($project->deleted == 1) {
