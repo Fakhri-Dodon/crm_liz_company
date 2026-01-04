@@ -108,7 +108,4 @@ class User extends Authenticatable
             'last_seen' => 'datetime'
         ];
     }
-
-    // **TAMBAHKAN INI: HAPUS booted() method yang membuat UUID**
-    // User.id adalah BIGINT (auto-increment), jadi biarkan Laravel handle
 }

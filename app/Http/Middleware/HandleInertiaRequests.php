@@ -5,6 +5,7 @@ namespace App\Http\Middleware;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 use App\Models\User;
+use App\Models\EmailTemplates;
 
 class HandleInertiaRequests extends Middleware
 {
@@ -60,6 +61,7 @@ class HandleInertiaRequests extends Middleware
             ],
 
             'auth_permissions_setting' => $request->user() ? $request->user()->getPermissions('Setting') : [],
+            'templates_email_notif' => EmailTemplates::where('deleted', 0)->get(),
         ]);
     }
 }

@@ -20,7 +20,18 @@ const leadsService = {
             console.log('✅ POST Response:', response.data);
             return response;
         } catch (error) {
-            console.error('❌ POST Error:', error.response?.data || error.message);
+            // DEBUG SAKTI:
+            // Kalau Laravel kirim error validasi atau error 500 JSON
+            if (error.response?.data?.message) {
+                console.error('❌ Server Message:', error.response.data.message);
+            }
+            
+            // Kalau ada error validasi field (misal: position rejected)
+            if (error.response?.data?.errors) {
+                console.error('❌ Validation Errors:', error.response.data.errors);
+            }
+
+            console.error('❌ POST Error Detail:', error.response?.data || error.message);
             throw error;
         }
     },

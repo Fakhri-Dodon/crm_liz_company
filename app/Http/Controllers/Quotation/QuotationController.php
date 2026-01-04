@@ -108,7 +108,7 @@ class QuotationController extends Controller {
             ->pluck('lead_id');
         $availableLeads = Lead::where('deleted', 0)
             ->whereNotIn('id', $existingLeadIds)
-            ->select(['id', 'company_name', 'address', 'contact_person', 'email', 'phone'])
+            ->select(['id', 'company_name', 'address', 'contact_person', 'email', 'phone', 'position'])
             ->get();
         $companies = Company::where('deleted', 0)->with(['quotation', 'contacts' => function($query) {$query->where('deleted', 0);}, 'contactPersons.lead', 'lead'])->get();
         

@@ -18,6 +18,7 @@ return new class extends Migration
             $table->string('contact_person', 100);
             $table->string('email')->nullable();
             $table->string('phone', 50)->nullable();
+            $table->string('position', 100)->nullable();
             $table->string('assigned_to', 100)->nullable();
             $table->char('created_by', 36)->nullable();
             $table->char('updated_by', 36)->nullable();

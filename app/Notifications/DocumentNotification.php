@@ -54,6 +54,8 @@ class DocumentNotification extends Notification
             'message' => $this->data['message'],
             'url'     => $this->data['url'] ?? null,
             'revision_note' => $this->data['revision_note'] ?? null,
+            'contact_person' => $this->data['contact_person'] ?? 'No Name',
+            'email'          => $this->data['email'] ?? null,
         ];
     }
 
@@ -75,6 +77,8 @@ class DocumentNotification extends Notification
             'type'    => $this->data['type'],
             'status'  => $this->data['status'],
             'url'     => $this->data['url'] ?? null,
+            'contact_person' => $this->data['contact_person'] ?? 'No Name',
+            'email'          => $this->data['email'] ?? null,
         ]);
     }
 }

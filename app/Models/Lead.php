@@ -16,12 +16,14 @@ class Lead extends Model
     public $incrementing = false;
 
     protected $fillable = [
+        'id',
         'lead_statuses_id',
         'company_name',
         'address',
         'contact_person',
         'email',
         'phone',
+        'position',
         'assigned_to',
         'converted_to_company',
         'converted_at',
@@ -39,8 +41,9 @@ class Lead extends Model
     // Append status_name for easier access
     protected $appends = ['status_name'];
 
-    protected static function booted()
+    protected static function boot()
     {
+        parent::boot();
         static::creating(function ($model) {
             $model->id = (string) Str::uuid();
         });
@@ -137,5 +140,28 @@ class Lead extends Model
     public function scopeCreatedBy($query, $userId)
     {
         return $query->where('created_by', $userId);
+    }
+
+    public function scopeApplyAccessControl($query, $user)
+    {
+        $config = \DB::table('app_configs')->where('deleted', 0)->first();
+
+        $roleName = $user->role?->name;
+        if (in_array($roleName, ['Admin', 'Manager'])) {
+            return $query;
+        }
+
+        if ($config && $config->lead_user_base_visibility == 1) {
+            $query->where(function ($q) use ($user) {
+                $q->where('created_by', $user->id)
+                ->orWhere('assigned_to', $user->id);
+            });
+        }
+
+        if ($config && $config->lead_default_filter_by_login == 1 && !request()->has('search')) {
+            $query->where('assigned_to', $user->id);
+        }
+
+        return $query;
     }
 }

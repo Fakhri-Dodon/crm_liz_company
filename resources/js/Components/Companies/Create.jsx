@@ -127,7 +127,7 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId, onSuccess }) => {
             contact_person: quotation.lead?.contact_person || prev.contact_person,
             contact_email: quotation.lead?.email || prev.contact_email,
             contact_phone: quotation.lead?.phone || prev.contact_phone,
-            contact_position: prev.contact_position || 'Contact Person'
+            contact_position: quotation.lead?.position || 'Contact Person'
         }));
         
         // Set lead data
@@ -157,7 +157,7 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId, onSuccess }) => {
                     contact_person: leadData.contact_person || prev.contact_person,
                     contact_email: leadData.email || prev.contact_email,
                     contact_phone: leadData.phone || prev.contact_phone,
-                    contact_position: prev.contact_position || 'Contact Person',
+                    contact_position: leadData.position || 'Contact Person',
                     city: leadData.city || prev.city,
                     province: leadData.province || prev.province,
                     country: leadData.country || prev.country,

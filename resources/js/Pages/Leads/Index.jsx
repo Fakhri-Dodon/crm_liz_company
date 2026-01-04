@@ -60,12 +60,12 @@ export default function LeadsIndex({ leads = [], auth }) {
     };
 
     // Debug info
-    useEffect(() => {
-        console.log('=== ALL LEADS FROM DATABASE ===');
-        console.log('Total leads:', leads.length);
-        console.log('Current user:', currentUser);
-        console.log('Available users:', users.length);
-    }, [leads, currentUser, users]);
+    // useEffect(() => {
+    //     console.log('=== ALL LEADS FROM DATABASE ===');
+    //     console.log('Total leads:', leads.length);
+    //     console.log('Current user:', currentUser);
+    //     console.log('Available users:', users.length);
+    // }, [leads, currentUser, users]);
 
     // Columns definition - TAMPILKAN SEMUA DATA
     const columns = [

@@ -36,6 +36,11 @@ export default function HeaderLayout({ header, children, }) {
         props.auth.unreadNotificationsCount || 0
     );
     const auth_permissions_setting = props.auth_permissions_setting;
+    const [emailModalOpen, setEmailModalOpen] = useState(false);
+    const [selectedUser, setSelectedUser] = useState(null);
+    const [selectedQuotationId, setSelectedQuotationId] = useState(null);
+    const [selectedTemplateId, setSelectedTemplateId] = useState("");
+    const [processing, setProcessing] = useState(false);
 
     // const notifications = props.auth.notifications || [];
     // const unreadCount = props.auth.unreadNotificationsCount || 0;
@@ -273,8 +278,106 @@ export default function HeaderLayout({ header, children, }) {
         };
     }, [isHamburgerOpen]);
 
+    const confirmSendEmail = () => {
+        if (!selectedTemplateId) {
+            toast.error("Please select a template first!");
+            return;
+        }
+
+        router.post(route("quotation.markAsSent", selectedQuotationId), {
+            template_id: selectedTemplateId,
+        }, {
+            onBefore: () => setProcessing(true),
+            onFinish: () => setProcessing(false),
+            onSuccess: () => {
+                setEmailModalOpen(false);
+                setSelectedTemplateId("");
+                toast.success("Email sent successfully!");
+            },
+            onError: (errors) => {
+                console.error(errors);
+                toast.error("Failed to send email.");
+            }
+        });
+    };
+
     return (
         <>
+            {emailModalOpen && (
+                <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+                    <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden animate-in zoom-in duration-300">
+                        <div className="p-8">
+                            <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-blue-50 mb-4">
+                                <svg
+                                    className="h-8 w-8 text-blue-600"
+                                    fill="none"
+                                    viewBox="0 0 24 24"
+                                    stroke="currentColor"
+                                >
+                                    <path
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        strokeWidth="2"
+                                        d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
+                                    />
+                                </svg>
+                            </div>
+
+                            <div className="text-center mb-6">
+                                <h3 className="text-xl font-black text-gray-800">
+                                    {t('users.email_modal.title') || "Send Email Template"}
+                                </h3>
+                                <p className="text-sm text-gray-500">
+                                    {t('users.email_modal.subtitle') || "Send message to"}{" "}
+                                    <span className="font-bold text-gray-700">
+                                        {selectedUser?.name}
+                                    </span>
+                                </p>
+                            </div>
+
+                            {/* DROPDOWN PILIHAN TEMPLATE */}
+                            <div className="space-y-2 text-left mb-6">
+                                <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">{t('users.email_modal.label_template') || "Choose Email Template"}</label>
+                                <select 
+                                        value={selectedTemplateId}
+                                        onChange={(e) => setSelectedTemplateId(e.target.value)}
+                                        className="w-full border border-gray-200 rounded-xl p-2 focus:ring-blue-500 focus:border-blue-500 bg-gray-50 text-sm"
+                                    >
+                                    <option value="" disabled>{t('users.email_modal.choose_template') || "-- Choose Template --"}</option>
+                                    {templates.map((t) => (
+                                        <option key={t.id} value={t.id}>
+                                            {t.name} - {t.subject}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            <div className="mt-4 px-4 py-2 bg-blue-50/50 rounded-lg border border-blue-100 flex items-center gap-3">
+                                <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></div>
+                                <span className="text-blue-700 text-[11px] font-bold truncate uppercase">
+                                    {selectedUser?.email}
+                                </span>
+                            </div>
+                        </div>
+
+                        <div className="flex flex-col sm:flex-row p-4 gap-3 bg-gray-50">
+                            <button
+                                onClick={() => setEmailModalOpen(false)}
+                                className="flex-1 px-4 py-3 text-gray-500 font-bold hover:bg-white rounded-xl transition-all border border-transparent hover:border-gray-200"
+                            >
+                                {t('users.email_modal.btn_cancel') || "Cancel"}
+                            </button>
+                            <button
+                                onClick={confirmSendEmail}
+                                className="flex-1 px-4 py-3 bg-blue-600 text-white font-bold rounded-xl shadow-lg shadow-blue-200 hover:bg-blue-700 active:scale-95 transition-all"
+                            >
+                                {t('users.email_modal.btn_send') || "Send Email"}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {showReviseModal && (
                 <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4 animate-in fade-in duration-200">
                     <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl overflow-hidden transform animate-in zoom-in-95 duration-200">
@@ -393,6 +496,10 @@ export default function HeaderLayout({ header, children, }) {
                                         const docType = n.data.type;
                                         const docId = n.data.id;
                                         const status = n.data.status;
+                                        const clientName = n.data.contact_person;
+                                        const clientEmail = n.data.email;
+
+                                        console.log("test: ", n);
 
                                         return (
                                             <div
@@ -744,31 +851,18 @@ export default function HeaderLayout({ header, children, }) {
                                                                 n.data
                                                                     .status ===
                                                                     "approved" && (
-                                                                    <Link
-                                                                        href={route(
-                                                                            "quotation.markAsSent",
-                                                                            n
-                                                                                .data
-                                                                                .id
-                                                                        )}
-                                                                        method="post"
-                                                                        onClick={() =>
-                                                                            setIsHamburgerOpen(
-                                                                                false
-                                                                            )
-                                                                        }
-                                                                        className="mt-2 inline-flex items-center gap-2 bg-orange-500 text-white text-xs px-2 py-1 rounded-md"
+                                                                    <button
+                                                                        onClick={() => {
+                                                                            setSelectedUser(n.data);
+                                                                            setSelectedQuotationId(n.data.id);
+                                                                            setEmailModalOpen(true); 
+                                                                            setIsHamburgerOpen(false); 
+                                                                        }}
+                                                                        className="mt-2 inline-flex items-center gap-2 bg-orange-500 text-white text-xs px-2 py-1 rounded-md hover:bg-orange-600 transition-colors"
                                                                     >
-                                                                        <Send
-                                                                            size={
-                                                                                12
-                                                                            }
-                                                                        />{" "}
-                                                                        {t(
-                                                                            "header.send_to_client"
-                                                                        ) ||
-                                                                            "Send"}
-                                                                    </Link>
+                                                                        <Send size={12} />
+                                                                        {t("header.send_to_client") || "Send"}
+                                                                    </button>
                                                                 )}
                                                         </div>
                                                     ))

@@ -12,9 +12,15 @@ class UserActivity
     public function handle(Request $request, Closure $next): Response
     {
         if (auth()->check()) {
-            auth()->user()->updateQuietly([
-                'last_seen' => now()
-            ]);
+            try {
+                \DB::reconnect(); 
+
+                auth()->user()->updateQuietly([
+                    'last_seen' => now()
+                ]);
+            } catch (\Exception $e) {
+                \Log::error("Gagal update last_seen: " . $e->getMessage());
+            }
         } 
         
         return $next($request);

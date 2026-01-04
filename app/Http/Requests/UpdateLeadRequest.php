@@ -19,6 +19,7 @@ class UpdateLeadRequest extends FormRequest
             'contact_person' => 'sometimes|required|string|max:100',
             'email' => 'nullable|email|max:255',
             'phone' => 'nullable|string|max:50',
+            'position' => 'nullable|string|max:100',
             'lead_statuses_id' => 'required|exists:lead_statuses,id', // INI YANG PERLU DIPERBAIKI
             'assigned_to' => 'nullable|string|max:255',
             'company_id' => 'nullable|exists:companies,id',

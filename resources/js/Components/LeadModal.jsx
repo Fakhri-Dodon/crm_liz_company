@@ -7,6 +7,7 @@ export default function LeadModal({ open, onClose, onSubmit, initialData, curren
     contact_person: "",
     email: "",
     phone: "",
+    position: "",
     status: "",
     assigned_to: "",
   });
@@ -126,6 +127,7 @@ const fetchUsersFallback = async () => {
           contact_person: initialData.contact_person || "",
           email: initialData.email || "",
           phone: initialData.phone || "",
+          position: initialData.position || "",
           status: initialData.lead_statuses_id || "",
           assigned_to: initialData.assigned_to || "", // Gunakan nilai yang sudah ada
         });
@@ -137,6 +139,7 @@ const fetchUsersFallback = async () => {
           contact_person: "",
           email: "",
           phone: "",
+          position: "",
           status: "",
           assigned_to: currentUser?.id || "", // Default ke current user
         });
@@ -194,6 +197,7 @@ const fetchUsersFallback = async () => {
         contact_person: form.contact_person,
         email: form.email,
         phone: form.phone,
+        position: form.position,
         lead_statuses_id: form.status,
         assigned_to: form.assigned_to || null, // Bisa null jika tidak di-assign
       };
@@ -313,6 +317,21 @@ const fetchUsersFallback = async () => {
                   name="contact_person"
                   placeholder="Enter contact person name"
                   value={form.contact_person}
+                  onChange={handleChange}
+                  disabled={isSubmitting}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Position <span className="text-red-500">*</span>
+                </label>
+                <input
+                  name="position"
+                  placeholder="Enter position"
+                  value={form.position}
                   onChange={handleChange}
                   disabled={isSubmitting}
                   className="w-full border border-gray-300 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"

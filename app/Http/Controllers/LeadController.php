@@ -41,74 +41,64 @@ class LeadController extends Controller
         }
     }
 
-/**
- * Display leads page (Inertia) - SIMPLE VERSION
- */
-public function index()
-{
-    try {
-        $currentUser = Auth::user();
-        
-        // Query sederhana: ambil semua leads dari database
-        $leads = Lead::where('deleted_at', null)
-            ->orWhere('deleted', 0) // Backup condition
-            ->orderByDesc('created_at')
-            ->get()
-            ->map(function ($lead) {
-                // Cari assigned user jika ada
-                $assignedUser = null;
-                if ($lead->assigned_to) {
-                    $user = User::find($lead->assigned_to);
-                    if ($user) {
-                        $assignedUser = [
-                            'id' => $user->id,
-                            'name' => $user->name,
-                            'email' => $user->email,
-                        ];
-                    }
-                }
-                
-                // Cari status
-                $status = LeadStatuses::find($lead->lead_statuses_id);
-                
-                return [
-                    'id' => $lead->id,
-                    'company_name' => $lead->company_name,
-                    'address' => $lead->address,
-                    'contact_person' => $lead->contact_person,
-                    'email' => $lead->email,
-                    'phone' => $lead->phone,
-                    'assigned_to' => $lead->assigned_to,
-                    'assigned_user' => $assignedUser,
-                    'lead_statuses_id' => $lead->lead_statuses_id,
-                    'status_name' => $status ? $status->name : 'New',
-                    'status_color' => $status ? $status->color : '#3b82f6',
-                    'created_at' => $lead->created_at ? $lead->created_at->format('Y-m-d H:i:s') : null,
-                    'updated_at' => $lead->updated_at ? $lead->updated_at->format('Y-m-d H:i:s') : null,
-                ];
-            });
+    /**
+     * Display leads page (Inertia) - SIMPLE VERSION
+     */
+    public function index()
+    {
+        try {
+            $currentUser = Auth::user()->load('role');
 
-        return Inertia::render('Leads/Index', [
-            'leads' => $leads,
-            'auth' => [
-                'user' => $currentUser ? [
-                    'id' => $currentUser->id,
-                    'name' => $currentUser->name,
-                    'email' => $currentUser->email,
-                    'is_admin' => $this->isAdmin($currentUser),
-                ] : null
-            ]
-        ]);
-        
-    } catch (\Exception $e) {
-        \Log::error('Error in leads index: ' . $e->getMessage());
-        
-        return Inertia::render('Leads/Index', [
-            'leads' => [],
-            'auth' => ['user' => null]
-        ]);
+            // Gunakan scope applyAccessControl yang baru dibuat
+            // Eager Load 'status' dan 'assignedUser' untuk performa maksimal
+            $leads = Lead::with(['status', 'assignedUser'])
+                ->applyAccessControl($currentUser)
+                ->whereNull('deleted_at')
+                ->orderByDesc('created_at')
+                ->get()
+                ->map(function ($lead) {
+                    return [
+                        'id'               => $lead->id,
+                        'company_name'     => $lead->company_name,
+                        'address'          => $lead->address,
+                        'contact_person'   => $lead->contact_person,
+                        'email'            => $lead->email,
+                        'phone'            => $lead->phone,
+                        'assigned_to'      => $lead->assigned_to,
+                        'assigned_user'    => $lead->assignedUser ? [
+                            'id'    => $lead->assignedUser->id,
+                            'name'  => $lead->assignedUser->name,
+                            'email' => $lead->assignedUser->email,
+                        ] : null,
+                        'lead_statuses_id' => $lead->lead_statuses_id,
+                        'status_name'      => $lead->status_name ?? 'New',
+                        'status_color'     => $lead->status_color ?? '#3b82f6',
+                        'created_at'       => $lead->created_at?->format('Y-m-d H:i:s'),
+                        'updated_at'       => $lead->updated_at?->format('Y-m-d H:i:s'),
+                    ];
+                });
+
+            return Inertia::render('Leads/Index', [
+                'leads' => $leads,
+                'auth' => [
+                    'user' => [
+                        'id'    => $currentUser->id,
+                        'name'  => $currentUser->name,
+                        'email' => $currentUser->email,
+                        // Cek role dengan aman
+                        'role_name' => $currentUser->role?->name 
+                    ]
+                ]
+            ]);
+            
+        } catch (\Exception $e) {
+            \Log::error('Error in leads index: ' . $e->getMessage());
+            return Inertia::render('Leads/Index', [
+                'leads' => [],
+                'auth'  => ['user' => null]
+            ]);
+        }
     }
-}
 
 /**
  * API: Get all leads
@@ -202,7 +192,7 @@ public function indexApi()
      * API: Create new lead (SIMPLE VERSION)
      */
     public function store(StoreLeadRequest $request)
-    {
+    {   
         DB::beginTransaction();
         try {
             Log::info('=== STORE LEAD ===');
@@ -247,10 +237,7 @@ public function indexApi()
             DB::rollBack();
             Log::error('Failed to create lead: ' . $e->getMessage());
             
-            return response()->json([
-                'error' => 'Failed to create lead',
-                'message' => $e->getMessage()
-            ], 500);
+            return response()->json(['error_debug' => $e->getMessage()], 500);
         }
     }
 

@@ -15,9 +15,15 @@ return new class extends Migration
             $table->char('id', 36)->primary();
             $table->char('company_id', 36)->nullable();
             $table->char('lead_id', 36)->nullable();
+            
+            $table->string('name', 100);
+            $table->string('email', 100); 
+            $table->string('phone', 50)->nullable();
             $table->string('position', 100)->nullable();
+            
             $table->boolean('is_primary')->default(0);
             $table->boolean('is_active')->default(1);
+            
             $table->char('created_by', 36)->nullable();
             $table->char('updated_by', 36)->nullable();
             $table->char('deleted_by', 36)->nullable();

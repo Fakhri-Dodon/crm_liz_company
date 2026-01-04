@@ -1348,7 +1348,8 @@ public function getAcceptedQuotations(Request $request)
                         'company_name' => $quotation->lead->company_name,
                         'contact_person' => $quotation->lead->contact_person,
                         'email' => $quotation->lead->email,
-                        'phone' => $quotation->lead->phone
+                        'phone' => $quotation->lead->phone,
+                        'position' => $quotation->lead->position
                     ] : null
                 ];
             });
@@ -1424,6 +1425,7 @@ public function getLeadFromQuotation($quotationId)
             'contact_person' => $lead->contact_person,
             'email' => $lead->email,
             'phone' => $lead->phone,
+            'position' => $lead->position,
             'address' => $lead->address,
             'city' => $lead->city,
             'province' => $lead->province,
