@@ -394,6 +394,7 @@ export default function Index({
                         }}
                         project={selectedProject}
                         statusOptions={statusOptions || []}
+                        companies={companies || []}
                     />
 
                     <DeleteModal

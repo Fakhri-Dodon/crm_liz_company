@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { useForm, router } from '@inertiajs/react';
-import { X, Calendar, User, FileText, Clock, MessageSquare, ChevronDown } from 'lucide-react';
+import { X, Calendar, User, FileText, Clock, MessageSquare, ChevronDown, Building } from 'lucide-react';
 
 const ProjectModal = ({ 
     show, 
@@ -19,7 +19,7 @@ const ProjectModal = ({
         start_date: project?.start_date || '',
         deadline: project?.deadline || '',
         note: project?.note || '',
-        status: project?.status || 'in_progress' // Default ke In Progress
+        status: project?.status || 'in_progress'
     });
 
     useEffect(() => {
@@ -33,8 +33,19 @@ const ProjectModal = ({
                 note: project.note || '',
                 status: project.status
             });
+        } else {
+            // Reset form saat create modal dibuka
+            reset({
+                quotation_id: '',
+                company_id: '',
+                project_description: '',
+                start_date: '',
+                deadline: '',
+                note: '',
+                status: 'in_progress'
+            });
         }
-    }, [project, isEdit]);
+    }, [project, isEdit, show]);
 
     // Filter hanya 4 status yang diinginkan
     const filteredStatusOptions = statusOptions?.filter(option => 
@@ -43,6 +54,8 @@ const ProjectModal = ({
 
     const handleSubmit = (e) => {
         e.preventDefault();
+        
+        console.log('Form data submitted:', data);
         
         if (isEdit) {
             put(route('projects.update', project.id), {
@@ -55,6 +68,9 @@ const ProjectModal = ({
                         only: ['projects', 'summary', 'filters'],
                         preserveScroll: true 
                     });
+                },
+                onError: (errors) => {
+                    console.error('Update errors:', errors);
                 }
             });
         } else {
@@ -68,6 +84,9 @@ const ProjectModal = ({
                         only: ['projects', 'summary', 'filters'],
                         preserveScroll: true 
                     });
+                },
+                onError: (errors) => {
+                    console.error('Store errors:', errors);
                 }
             });
         }
@@ -117,7 +136,7 @@ const ProjectModal = ({
                                     className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-[#005954] focus:border-transparent min-h-[100px] resize-none transition-colors ${
                                         errors.project_description ? 'border-red-300' : 'border-gray-300'
                                     }`}
-                                    maxLength={500}
+                                    maxLength={250} // PERBAIKAN: dari 500 ke 250
                                     required
                                     placeholder="Describe the project scope and objectives..."
                                 />
@@ -126,11 +145,11 @@ const ProjectModal = ({
                                         <p className="text-sm text-red-600">{errors.project_description}</p>
                                     ) : (
                                         <div className="text-xs text-gray-400">
-                                            Brief and descriptive
+                                            Brief and descriptive (max 250 characters)
                                         </div>
                                     )}
                                     <div className="text-xs text-gray-500">
-                                        {data.project_description?.length || 0}/500
+                                        {data.project_description?.length || 0}/250 {/* PERBAIKAN: dari 500 ke 250 */}
                                     </div>
                                 </div>
                             </div>
@@ -141,7 +160,7 @@ const ProjectModal = ({
                             {/* Company Selection */}
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
-                                    <User className="w-4 h-4" />
+                                    <Building className="w-4 h-4" />
                                     Company *
                                 </label>
                                 <div className="relative">
@@ -273,6 +292,9 @@ const ProjectModal = ({
                                         );
                                     })}
                                 </div>
+                                {errors.status && (
+                                    <p className="mt-1 text-sm text-red-600">{errors.status}</p>
+                                )}
                             </div>
 
                             {/* Note */}
@@ -285,11 +307,11 @@ const ProjectModal = ({
                                     value={data.note}
                                     onChange={e => setData('note', e.target.value)}
                                     className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#005954] focus:border-transparent min-h-[100px] resize-none transition-colors"
-                                    maxLength={500}
+                                    maxLength={250} // PERBAIKAN: dari 500 ke 250
                                     placeholder="Additional notes or requirements..."
                                 />
                                 <div className="text-right text-xs text-gray-500 mt-2">
-                                    {data.note?.length || 0}/500 characters
+                                    {data.note?.length || 0}/250 characters {/* PERBAIKAN: dari 500 ke 250 */}
                                 </div>
                             </div>
                         </div>

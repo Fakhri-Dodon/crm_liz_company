@@ -131,22 +131,22 @@ class ProjectController extends Controller
         ]);
     }
 
-    public function store(Request $request)
-    {
-        \Log::info('Project Store Request:', $request->all());
-        
-        // Validasi dengan status yang sesuai
-        $validated = $request->validate([
-            'quotation_id' => 'nullable|exists:quotations,id',
-            'company_id' => 'required|exists:companies,id',
-            'user_id' => 'nullable|exists:users,id',
-            'project_description' => 'required|string|max:500',
-            'start_date' => 'required|date',
-            'deadline' => 'required|date|after_or_equal:start_date',
-            'note' => 'nullable|string|max:500',
-            'status' => 'required|in:in_progress,completed,pending,cancelled' // Hanya 4 status
-        ]);
+public function store(Request $request)
+{
+    \Log::info('Project Store Request:', $request->all());
+    
+    // Validasi dengan company_id (alias untuk client_id)
+    $validated = $request->validate([
+        'quotation_id' => 'nullable|exists:quotations,id',
+        'company_id' => 'required|exists:companies,id',
+        'project_description' => 'required|string|max:250',
+        'start_date' => 'required|date',
+        'deadline' => 'required|date|after_or_equal:start_date',
+        'note' => 'nullable|string|max:250',
+        'status' => 'required|in:in_progress,completed,pending,cancelled'
+    ]);
 
+    try {
         $userId = Auth::id();
         $user = User::find($userId);
         
@@ -156,88 +156,99 @@ class ProjectController extends Controller
             $userUuid = $user->id;
         }
 
-        $validated['id'] = (string) Str::uuid();
+        // PERBAIKAN: Pastikan client_id terisi
+        $projectData = [
+            'id' => (string) Str::uuid(),
+            'client_id' => $validated['company_id'], // Langsung isi client_id
+            'quotation_id' => $validated['quotation_id'] ?? null,
+            'user_id' => $userUuid,
+            'project_description' => $validated['project_description'],
+            'start_date' => $validated['start_date'],
+            'deadline' => $validated['deadline'],
+            'note' => $validated['note'] ?? null,
+            'status' => $validated['status'],
+            'created_by' => $userUuid,
+            'updated_by' => $userUuid,
+            'deleted' => 0,
+            'created_at' => now(),
+            'updated_at' => now()
+        ];
+
+        \Log::info('Project Store Data to be created:', $projectData);
+
+        $project = Project::create($projectData);
         
-        if (empty($validated['user_id'])) {
-            $validated['user_id'] = $userUuid;
-        }
-        
-        $validated['created_by'] = $userUuid;
-        $validated['updated_by'] = $userUuid;
-        $validated['deleted'] = 0;
-        
-        if (empty($validated['quotation_id'])) {
-            $validated['quotation_id'] = null;
-        }
-
-        \Log::info('Project Store Final Data:', $validated);
-
-        try {
-            $project = Project::create($validated);
-            
-            \Log::info('Project Created Successfully:', [
-                'id' => $project->id,
-                'project_description' => $project->project_description,
-                'company_id' => $project->company_id
-            ]);
-            
-            return redirect()->route('projects.index')
-                ->with('success', 'Project created successfully!');
-                
-        } catch (\Exception $e) {
-            \Log::error('Project Store Error:', [
-                'message' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
-            ]);
-            
-            return back()
-                ->withInput()
-                ->withErrors(['error' => 'Failed to create project: ' . $e->getMessage()]);
-        }
-    }
-
-    public function update(Request $request, Project $project)
-    {
-        if ($project->deleted == 1) {
-            return redirect()->route('projects.index')
-                ->with('error', 'Cannot update deleted project.');
-        }
-
-        // Validasi dengan status yang sesuai
-        $validated = $request->validate([
-            'quotation_id' => 'nullable|exists:quotations,id',
-            'company_id' => 'required|exists:companies,id',
-            'user_id' => 'nullable|exists:users,id',
-            'project_description' => 'required|string|max:500',
-            'start_date' => 'required|date',
-            'deadline' => 'required|date|after_or_equal:start_date',
-            'note' => 'nullable|string|max:500',
-            'status' => 'required|in:in_progress,completed,pending,cancelled' // Hanya 4 status
+        \Log::info('Project Created Successfully:', [
+            'id' => $project->id,
+            'project_description' => $project->project_description,
+            'client_id' => $project->client_id,
+            'status' => $project->status
         ]);
-
-        $userId = Auth::id();
-        $user = User::find($userId);
-        $userUuid = $user ? $user->id : Str::uuid()->toString();
         
-        $validated['updated_by'] = $userUuid;
-        
-        if (empty($validated['quotation_id'])) {
-            $validated['quotation_id'] = null;
-        }
-
-        if ($project->company_id != $validated['company_id']) {
-            \Log::info('Project company changed:', [
-                'project_id' => $project->id,
-                'old_company' => $project->company_id,
-                'new_company' => $validated['company_id']
-            ]);
-        }
-
-        $project->update($validated);
-
         return redirect()->route('projects.index')
-            ->with('success', 'Project updated successfully!');
+            ->with('success', 'Project created successfully!');
+            
+    } catch (\Exception $e) {
+        \Log::error('Project Store Error:', [
+            'message' => $e->getMessage(),
+            'trace' => $e->getTraceAsString(),
+            'file' => $e->getFile(),
+            'line' => $e->getLine()
+        ]);
+        
+        return back()
+            ->withInput()
+            ->withErrors(['error' => 'Failed to create project: ' . $e->getMessage()]);
     }
+}
+
+public function update(Request $request, Project $project)
+{
+    if ($project->deleted == 1) {
+        return redirect()->route('projects.index')
+            ->with('error', 'Cannot update deleted project.');
+    }
+
+    $validated = $request->validate([
+        'quotation_id' => 'nullable|exists:quotations,id',
+        'company_id' => 'required|exists:companies,id',
+        'project_description' => 'required|string|max:250',
+        'start_date' => 'required|date',
+        'deadline' => 'required|date|after_or_equal:start_date',
+        'note' => 'nullable|string|max:250',
+        'status' => 'required|in:in_progress,completed,pending,cancelled'
+    ]);
+
+    $userId = Auth::id();
+    $user = User::find($userId);
+    $userUuid = $user ? $user->id : Str::uuid()->toString();
+    
+    // PERBAIKAN: Update dengan client_id
+    $updateData = [
+        'client_id' => $validated['company_id'], // Langsung pakai client_id
+        'quotation_id' => $validated['quotation_id'] ?? null,
+        'project_description' => $validated['project_description'],
+        'start_date' => $validated['start_date'],
+        'deadline' => $validated['deadline'],
+        'note' => $validated['note'] ?? null,
+        'status' => $validated['status'],
+        'updated_by' => $userUuid,
+        'updated_at' => now()
+    ];
+
+    if ($project->client_id != $validated['company_id']) {
+        \Log::info('Project company changed:', [
+            'project_id' => $project->id,
+            'old_company' => $project->client_id,
+            'new_company' => $validated['company_id']
+        ]);
+    }
+
+    $project->update($updateData);
+
+    return redirect()->route('projects.index')
+        ->with('success', 'Project updated successfully!');
+}
 
     public function destroy(Project $project)
     {
