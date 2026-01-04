@@ -645,10 +645,152 @@ public function show($id)
         // ==================== PROJECTS LOGIC ====================
         Log::info('=== START PROJECTS FETCHING ===');
         
-        // Ambil data projects dari database
-        $projects = $this->getCompanyProjects($company);
+        // AMBIL DATA PROJECTS DENGAN QUERY YANG BENAR
+        Log::info('Fetching projects for company ID: ' . $company->id);
         
-        Log::info('Total projects found: ' . $projects->count());
+        // OPTION 1: Menggunakan query langsung dengan logging
+        $rawProjects = DB::table('projects')
+            ->where('client_id', $company->id)
+            ->where('deleted', 0)
+            ->get();
+        
+        Log::info('Raw DB query found: ' . $rawProjects->count() . ' projects');
+        
+        if ($rawProjects->count() > 0) {
+            Log::info('Sample raw project data:', [
+                'first_project' => $rawProjects->first()
+            ]);
+        }
+        
+        // OPTION 2: Load dengan model untuk mendapatkan relationships
+        $projects = Project::with(['assignedUser', 'quotation'])
+            ->where('client_id', $company->id)
+            ->where('deleted', 0)
+            ->orderBy('created_at', 'desc')
+            ->get();
+        
+        Log::info('Model query found: ' . $projects->count() . ' projects');
+        
+        // Debug: Cek data projects
+        foreach ($projects as $index => $project) {
+            Log::info("Project #" . ($index + 1) . ":", [
+                'id' => $project->id,
+                'client_id' => $project->client_id,
+                'company_id' => $project->company_id,
+                'description' => $project->project_description,
+                'status' => $project->status,
+                'deadline' => $project->deadline
+            ]);
+        }
+        
+        // FORMAT DATA PROJECTS UNTUK RESPONSE
+        $formattedProjects = $projects->map(function($project) {
+            // Hitung days left
+            $daysLeft = null;
+            if ($project->deadline) {
+                try {
+                    $deadline = Carbon::parse($project->deadline);
+                    $today = Carbon::today();
+                    $daysLeft = $today->diffInDays($deadline, false);
+                    
+                    // Jika deadline sudah lewat, buat negatif
+                    if ($today > $deadline) {
+                        $daysLeft = -abs($daysLeft);
+                    }
+                } catch (\Exception $e) {
+                    Log::error('Error parsing deadline for project ' . $project->id . ': ' . $e->getMessage());
+                }
+            }
+            
+            // Hitung progress
+            $progress = 0;
+            $status = strtolower($project->status ?? 'pending');
+            
+            switch ($status) {
+                case 'completed':
+                case 'done':
+                    $progress = 100;
+                    break;
+                case 'in_progress':
+                case 'progress':
+                case 'active':
+                    if ($daysLeft !== null && $daysLeft > 0) {
+                        // Contoh: jika deadline masih 30 hari, progress = 30%
+                        $progress = min(95, max(10, 100 - ($daysLeft * 2)));
+                    } else if ($daysLeft !== null && $daysLeft <= 0) {
+                        // Sudah lewat deadline tapi masih in progress
+                        $progress = 95;
+                    } else {
+                        $progress = 50;
+                    }
+                    break;
+                case 'delayed':
+                case 'overdue':
+                    $progress = 100;
+                    break;
+                case 'pending':
+                case 'draft':
+                case 'new':
+                    $progress = 10;
+                    break;
+                case 'on_hold':
+                case 'hold':
+                    $progress = 30;
+                    break;
+                default:
+                    $progress = 30;
+            }
+            
+            // Helper function untuk format tanggal
+            $formatDate = function($dateValue) {
+                if (!$dateValue) return null;
+                
+                if (is_string($dateValue)) {
+                    try {
+                        return Carbon::parse($dateValue)->format('Y-m-d');
+                    } catch (\Exception $e) {
+                        return $dateValue;
+                    }
+                }
+                
+                if ($dateValue instanceof \DateTime || $dateValue instanceof \Carbon\Carbon) {
+                    return $dateValue->format('Y-m-d');
+                }
+                
+                return null;
+            };
+            
+            return [
+                'id' => $project->id,
+                'project_description' => $project->project_description ?? 'No Description',
+                'start_date' => $formatDate($project->start_date),
+                'deadline' => $formatDate($project->deadline),
+                'status' => $project->status ?? 'pending',
+                'note' => $project->note,
+                'days_left' => $daysLeft,
+                'progress' => $progress,
+                'assigned_user' => $project->assignedUser ? [
+                    'id' => $project->assignedUser->id,
+                    'name' => $project->assignedUser->name,
+                    'email' => $project->assignedUser->email
+                ] : null,
+                'quotation' => $project->quotation ? [
+                    'id' => $project->quotation->id,
+                    'quotation_number' => $project->quotation->quotation_number,
+                    'subject' => $project->quotation->subject
+                ] : null,
+                'created_at' => $project->created_at ? 
+                    (is_string($project->created_at) ? 
+                        $project->created_at : 
+                        $project->created_at->format('Y-m-d H:i:s')) : null,
+                'updated_at' => $project->updated_at ? 
+                    (is_string($project->updated_at) ? 
+                        $project->updated_at : 
+                        $project->updated_at->format('Y-m-d H:i:s')) : null
+            ];
+        })->values();
+        
+        Log::info('Formatted projects count: ' . $formattedProjects->count());
         Log::info('=== END PROJECTS FETCHING ===');
         // ==================== END PROJECTS LOGIC ====================
 
@@ -736,6 +878,7 @@ public function show($id)
         Log::info('Company data prepared successfully');
         Log::info('Quotations count: ' . $formattedQuotations->count());
         Log::info('Invoices count: ' . $formattedInvoices->count());
+        Log::info('Projects count: ' . $formattedProjects->count());
 
         // ==================== STATISTICS ====================
         $statistics = [
@@ -760,10 +903,14 @@ public function show($id)
             'total_payments' => $payments->count(),
             'total_payment_amount' => $payments->sum('amount'),
             
-            // Project statistics
-            'total_projects' => $projects->count(),
-            'active_projects' => $projects->where('status', 'in_progress')->count(),
-            'completed_projects' => $projects->where('status', 'completed')->count(),
+            // Project statistics - DIUPDATE
+            'total_projects' => $formattedProjects->count(),
+            'active_projects' => $formattedProjects->whereIn('status', ['in_progress', 'progress', 'active'])->count(),
+            'completed_projects' => $formattedProjects->where('status', 'completed')->count(),
+            'pending_projects' => $formattedProjects->whereIn('status', ['pending', 'draft', 'new'])->count(),
+            'delayed_projects' => $formattedProjects->where('status', 'delayed')->count(),
+            'overdue_projects' => $formattedProjects->where('days_left', '<', 0)->count(),
+            'projects_with_assignee' => $formattedProjects->where('assigned_user', '!=', null)->count(),
             
             // Contact statistics
             'active_contacts' => count($companyData['contacts']),
@@ -780,6 +927,13 @@ public function show($id)
         $groupedQuotations = $this->groupQuotationsByLead($formattedQuotations);
 
         Log::info('Rendering Inertia page...');
+        Log::info('Final data counts:', [
+            'quotations' => $formattedQuotations->count(),
+            'invoices' => $formattedInvoices->count(),
+            'payments' => $payments->count(),
+            'projects' => $formattedProjects->count(),
+            'contacts' => count($companyData['contacts'])
+        ]);
 
         return Inertia::render('Companies/Show', [
             'company' => $companyData,
@@ -787,7 +941,7 @@ public function show($id)
             'grouped_quotations' => $groupedQuotations,
             'invoices' => $formattedInvoices,
             'payments' => $payments,
-            'projects' => $projects,
+            'projects' => $formattedProjects, // PASTIKAN INI $formattedProjects
             'contacts' => $companyData['contacts'],
             'statistics' => $statistics
         ]);
