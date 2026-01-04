@@ -8,26 +8,28 @@ import InvoiceTable from './InvoiceTable';
 import PaymentTable from './PaymentTable';
 import ProjectTable from './ProjectTable';
 import ContactTable from './ContactTable';
+import ProjectModal from '@/Components/Project/ProjectModal';
 import HeaderLayout from '@/Layouts/HeaderLayout';
+import { Trash2 } from 'lucide-react';
 
 const Show = ({ company, quotations, invoices, payments, projects, contacts, statistics, grouped_quotations }) => {
     const { props } = usePage();
     const [activeTab, setActiveTab] = useState('profile');
     const [loading, setLoading] = useState(false);
+    const [showProjectModal, setShowProjectModal] = useState(false);
+    const [showDeleteModal, setShowDeleteModal] = useState(false);
+    const [selectedProject, setSelectedProject] = useState(null);
+    const [modalMode, setModalMode] = useState('create'); // 'create' atau 'edit'
     
     console.log('========== SHOW PAGE DATA ==========');
-    console.log('Full props:', props);
     console.log('Company:', company);
-    console.log('Company ID:', company?.id);
-    console.log('Company Name:', company?.client_code);
+    console.log('Projects data:', projects);
     console.log('===================================');
 
     // Debug log untuk memastikan data diterima
     useEffect(() => {
         if (!company || !company.id) {
             console.error('ERROR: Company data is missing!');
-            console.error('Check if the controller is sending data correctly');
-            console.error('Current route:', window.location.href);
         } else {
             console.log('SUCCESS: Company data received:', {
                 id: company.id,
@@ -36,6 +38,61 @@ const Show = ({ company, quotations, invoices, payments, projects, contacts, sta
             });
         }
     }, [company]);
+
+    // Toast notification function
+    const showToast = (message, type = 'success') => {
+        const toast = document.createElement('div');
+        toast.className = `fixed top-4 right-4 z-50 px-6 py-4 rounded-lg shadow-lg transform transition-all duration-300 ${
+            type === 'success' ? 'bg-green-500 text-white' : 'bg-red-500 text-white'
+        }`;
+        toast.innerHTML = `
+            <div class="flex items-center">
+                <span>${message}</span>
+                <button onclick="this.parentElement.parentElement.remove()" class="ml-4">
+                    ✕
+                </button>
+            </div>
+        `;
+        document.body.appendChild(toast);
+        
+        setTimeout(() => {
+            if (toast.parentElement) {
+                toast.remove();
+            }
+        }, 3000);
+    };
+
+    // Function untuk handle edit project
+    const handleProjectEdit = (project) => {
+        console.log('Editing project:', project);
+        setSelectedProject(project);
+        setModalMode('edit');
+        setShowProjectModal(true);
+    };
+
+    // Function untuk handle delete project
+    const handleProjectDelete = (project) => {
+        console.log('Deleting project:', project);
+        setSelectedProject(project);
+        setShowDeleteModal(true);
+    };
+
+    // Function untuk confirm delete project
+    const confirmProjectDelete = () => {
+        if (selectedProject) {
+            router.delete(route('projects.destroy', selectedProject.id), {
+                preserveScroll: true,
+                onSuccess: () => {
+                    setShowDeleteModal(false);
+                    setSelectedProject(null);
+                    showToast('Project deleted successfully!', 'success');
+                },
+                onError: () => {
+                    showToast('Failed to delete project!', 'error');
+                }
+            });
+        }
+    };
 
     // Jika company tidak ada, tampilkan error message
     if (!company || !company.id) {
@@ -127,7 +184,13 @@ const Show = ({ company, quotations, invoices, payments, projects, contacts, sta
             case 'payment':
                 return <PaymentTable data={displayData.payments} />;
             case 'project':
-                return <ProjectTable data={displayData.projects} />;
+                return (
+                    <ProjectTable 
+                        data={displayData.projects} 
+                        onEdit={handleProjectEdit}
+                        onDelete={handleProjectDelete}
+                    />
+                );
             case 'contact':
                 return <ContactTable data={displayData.contacts} />;
             default:
@@ -160,12 +223,12 @@ const Show = ({ company, quotations, invoices, payments, projects, contacts, sta
             <Head title={`${displayData.company.client_code} - Detail Perusahaan`} />
             
             <div className="flex min-h-screen bg-gray-50">
-                {/* Sidebar - Pas di kiri tanpa margin */}
+                {/* Sidebar */}
                 <div className="flex-shrink-0">
                     <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
                 </div>
                 
-                {/* Main Content - Tepat di sebelah sidebar */}
+                {/* Main Content */}
                 <div className="flex-1 min-w-0">
                     <div className="p-0">
                         {/* Success Message */}
@@ -220,6 +283,74 @@ const Show = ({ company, quotations, invoices, payments, projects, contacts, sta
                     </div>
                 </div>
             </div>
+
+            {/* Project Modal */}
+            {showProjectModal && (
+                <ProjectModal
+                    show={showProjectModal}
+                    onClose={() => {
+                        setShowProjectModal(false);
+                        setSelectedProject(null);
+                    }}
+                    projectId={selectedProject?.id}
+                    companies={[{
+                        id: company.id,
+                        name: company.client_code,
+                        client_code: company.client_code,
+                        city: company.city || ''
+                    }]} // Kirim company saat ini saja untuk project modal
+                    quotations={[]} // Anda bisa menambahkan quotations jika diperlukan
+                    statusOptions={[
+                        { value: 'in_progress', label: 'In Progress' },
+                        { value: 'completed', label: 'Completed' },
+                        { value: 'pending', label: 'Pending' },
+                        { value: 'cancelled', label: 'Cancelled' }
+                    ]}
+                    isEdit={modalMode === 'edit'}
+                    title={modalMode === 'edit' ? 'Edit Project' : 'Add Project'}
+                />
+            )}
+
+            {/* Delete Confirmation Modal */}
+            {showDeleteModal && selectedProject && (
+                <div className="fixed inset-0 bg-gray-900/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+                    <div className="bg-white rounded-xl shadow-2xl max-w-md w-full">
+                        <div className="p-6">
+                            <div className="flex items-center gap-3 mb-4">
+                                <div className="p-2 bg-red-100 rounded-lg">
+                                    <Trash2 className="w-6 h-6 text-red-600" />
+                                </div>
+                                <div>
+                                    <h3 className="text-lg font-bold text-gray-900">Delete Project</h3>
+                                    <p className="text-sm text-gray-600 mt-1">This action cannot be undone</p>
+                                </div>
+                            </div>
+                            
+                            <p className="text-gray-700 mb-6">
+                                Are you sure you want to delete project "{selectedProject.project_description}"?
+                            </p>
+                            
+                            <div className="flex gap-3">
+                                <button
+                                    onClick={() => {
+                                        setShowDeleteModal(false);
+                                        setSelectedProject(null);
+                                    }}
+                                    className="px-4 py-2.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors flex-1"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={confirmProjectDelete}
+                                    className="px-4 py-2.5 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors flex-1"
+                                >
+                                    Delete
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
         </HeaderLayout>
     );
 };
