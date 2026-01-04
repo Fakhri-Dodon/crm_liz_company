@@ -39,7 +39,7 @@ class ProposalController extends Controller
             ->pluck('count', 'status')
             ->toArray();
 
-        $query = Proposal::with(['lead', 'proposal_element_template', 'creator'])->where('deleted', 0);
+        $query = Proposal::with(['lead', 'proposal_element_template', 'creator'])->applyAccessControl()->where('deleted', 0);
 
         // Filter Search
         $query->when($request->input('search'), function ($q, $search) {

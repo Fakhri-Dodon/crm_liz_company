@@ -7,6 +7,7 @@
 namespace App\Models;
 
 use Carbon\Carbon;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -123,4 +124,28 @@ class Proposal extends Model
     {
         return $this->belongsTo(User::class, 'created_by', 'id');
     }
+
+    public function scopeApplyAccessControl($query)
+	{
+	    $config = DB::table('app_configs')->first();
+	    $user = auth()->user();
+
+	    if ($user->role_name === 'Admin') {
+	        return $query;
+	    }
+
+	    if ($config->proposal_user_base_visibility) {
+	        $query->where(function($q) use ($user) {
+	            $q->where('created_by', $user->id); // Sesuaikan nama kolom di tabelmu
+	        });
+	    }
+
+	    // 2. Logika Default Filter by Login (Hanya jika belum ada filter manual dari Request)
+	    if ($config->proposal_default_filter_by_login && !request()->has('filter')) {
+	        $query->where('created_by', $user->id);
+	    }
+
+	    return $query;
+	}
+
 }
