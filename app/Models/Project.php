@@ -14,11 +14,11 @@ class Project extends Model
     public $incrementing = false;
     protected $keyType = 'string';
     
-    // **PERUBAHAN: ganti 'client_id' menjadi 'company_id'**
+    // Tetap pakai client_id untuk database
     protected $fillable = [
         'id',
         'quotation_id',
-        'company_id',  // DIUBAH: dari 'client_id' menjadi 'company_id'
+        'client_id',  // Database pakai client_id
         'user_id',
         'project_description',
         'start_date',
@@ -37,12 +37,15 @@ class Project extends Model
         'deadline' => 'date',
         'deleted' => 'boolean',
         'deleted_at' => 'datetime',
-        'company_id' => 'string', // DIUBAH: dari 'client_id' menjadi 'company_id'
+        'client_id' => 'string',
         'user_id' => 'string',
         'created_by' => 'string',
         'updated_by' => 'string',
         'deleted_by' => 'string',
     ];
+
+    // TAMBAHKAN: Appends untuk alias company_id
+    protected $appends = ['company_id'];
 
     public static function boot()
     {
@@ -53,7 +56,6 @@ class Project extends Model
                 $model->id = (string) \Illuminate\Support\Str::uuid();
             }
             
-            // Set defaults
             if (empty($model->deleted)) {
                 $model->deleted = 0;
             }
@@ -64,10 +66,22 @@ class Project extends Model
         });
     }
 
-    // **PERUBAHAN: Relationship dengan Company**
+    // TAMBAHKAN: Accessor untuk company_id alias
+    public function getCompanyIdAttribute()
+    {
+        return $this->client_id;
+    }
+
+    // TAMBAHKAN: Mutator untuk company_id alias
+    public function setCompanyIdAttribute($value)
+    {
+        $this->attributes['client_id'] = $value;
+    }
+
+    // Relationship dengan Company - pakai client_id
     public function company()
     {
-        return $this->belongsTo(Company::class, 'company_id');
+        return $this->belongsTo(Company::class, 'client_id');
     }
 
     public function quotation()
@@ -95,7 +109,7 @@ class Project extends Model
         return $this->belongsTo(User::class, 'deleted_by', 'id');
     }
 
-    // **PERUBAHAN: Alias untuk backward compatibility (jika ada code yang masih pakai client())**
+    // Alias untuk backward compatibility
     public function client()
     {
         return $this->company();
