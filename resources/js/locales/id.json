@@ -278,5 +278,98 @@
             "status": "STATUS",
             "actions": "AKSI"
         }
+    },
+    "payments": {
+        "title": "PEMBAYARAN",
+        "button_add": "TAMBAH PEMBAYARAN",
+        "stats": {
+            "draft": "RANCANGAN",
+            "sent": "DIKIRIM",
+            "accepted": "DITERIMA",
+            "expired": "KADALUARSA",
+            "rejected": "DITOLAK"
+        },
+        "filters": {
+            "search_placeholder": "Cari berdasarkan invoice, perusahaan, atau metode",
+            "status": "Status",
+            "all_status": "Semua Status",
+            "method": "Metode",
+            "all_methods": "Semua Metode",
+            "month": "Bulan",
+            "all_months": "Semua Bulan",
+            "year": "Tahun",
+            "all_years": "Semua Tahun",
+            "apply": "Terapkan",
+            "reset": "Atur Ulang"
+        },
+        "method": {
+            "transfer": "Transfer",
+            "cash": "Tunai",
+            "check": "Cek"
+        },
+        "month": {
+            "january": "Januari",
+            "february": "Februari",
+            "march": "Maret",
+            "april": "April",
+            "may": "Mei",
+            "june": "Juni",
+            "july": "Juli",
+            "august": "Agustus",
+            "september": "September",
+            "october": "Oktober",
+            "november": "November",
+            "december": "Desember"
+        },
+        "table": {
+            "no": "NO",
+            "date": "TANGGAL",
+            "company_name": "NAMA PERUSAHAAN",
+            "invoice": "INVOICE",
+            "amount": "JUMLAH",
+            "method": "METODE",
+            "bank": "BANK",
+            "note": "CATATAN",
+            "status": "STATUS",
+            "actions": "AKSI"
+        }
+    },
+    "invoices": {
+        "title": "TAGIHAN",
+        "button_add": "Tambah Tagihan",
+        "stats": {
+            "paid": "Dibayar",
+            "unpaid": "Belum Dibayar",
+            "draft": "Rancangan",
+            "cancelled": "Dibatalkan",
+            "total_invoice": "Total Tagihan",
+            "partial": "Sebagian"
+        },
+        "filters": {
+            "keyword": "Kata Kunci",
+            "status": "Status",
+            "all_status": "Semua",
+            "year": "Tahun",
+            "all_years": "Semua Tahun",
+            "search_placeholder": "Cari"
+        },
+        "table": {
+            "no": "No",
+            "invoice": "Tagihan",
+            "company_name": "Nama Perusahaan",
+            "amount": "Jumlah Tagihan",
+            "payment": "Pembayaran",
+            "tax": "Pajak",
+            "due_amount": "Jumlah Tertunggak",
+            "status": "Status",
+            "actions": "Aksi"
+        },
+        "add_service": "Tambah Layanan Baru",
+        "service_name": "Nama Layanan",
+        "qualification": "Kualifikasi",
+        "price": "Harga",
+        "cancel": "Batal",
+        "add_item": "Tambah Item",
+        "builder_title": "Pembuatan Tagihan"
     }
-}       
+}
