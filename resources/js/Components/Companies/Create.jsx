@@ -286,6 +286,10 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId, onSuccess }) => {
             }
         });
 
+        if (formData.contact_person) {
+            formDataToSend.append('name', formData.contact_person);
+        }
+
         // Pastikan ada quotation_id jika dari prop
         if (quotationId && !formData.quotation_id) {
             formDataToSend.append('quotation_id', quotationId);
