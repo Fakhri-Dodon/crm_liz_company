@@ -2508,43 +2508,43 @@ private function getCompanyProjects($company)
     /**
      * Get all contacts for a company
      */
-    public function getContacts($companyId)
-    {
-        try {
-            \Log::info('Fetching contacts for company:', ['company_id' => $companyId]);
-            
-            $contacts = CompanyContactPerson::with(['lead'])
-                ->where('company_id', $companyId)
-                ->where('deleted', 0)
-                ->get()
-                ->map(function ($contact) {
-                    return [
-                        'id' => $contact->id,
-                        'name' => $contact->lead->contact_person ?? 'N/A',
-                        'email' => $contact->lead->email ?? 'N/A',
-                        'phone' => $contact->lead->phone ?? 'N/A',
-                        'position' => $contact->position,
-                        'is_primary' => (bool) $contact->is_primary,
-                        'is_active' => (bool) $contact->is_active,
-                        'lead_id' => $contact->lead_id,
-                        'created_at' => $contact->created_at ? $contact->created_at->format('Y-m-d') : null
-                    ];
-                });
+public function getContacts($companyId)
+{
+    try {
+        \Log::info('Fetching contacts for company:', ['company_id' => $companyId]);
+        
+        $contacts = CompanyContactPerson::where('company_id', $companyId)
+            ->where('deleted', 0)
+            ->get()
+            ->map(function ($contact) {
+                return [
+                    'id' => $contact->id,
+                    'name' => $contact->name, // Ambil dari company_contact_persons
+                    'email' => $contact->email, // Ambil dari company_contact_persons
+                    'phone' => $contact->phone, // Ambil dari company_contact_persons
+                    'position' => $contact->position,
+                    'is_primary' => (bool) $contact->is_primary,
+                    'is_active' => (bool) $contact->is_active,
+                    'lead_id' => $contact->lead_id,
+                    'company_id' => $contact->company_id,
+                    'created_at' => $contact->created_at ? $contact->created_at->format('Y-m-d H:i:s') : null
+                ];
+            });
 
-            \Log::info('Contacts found:', ['count' => $contacts->count()]);
-            
-            return response()->json([
-                'success' => true,
-                'data' => $contacts
-            ]);
-        } catch (\Exception $e) {
-            \Log::error('Error getting contacts: ' . $e->getMessage());
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to get contacts'
-            ], 500);
-        }
+        \Log::info('Contacts found:', ['count' => $contacts->count()]);
+        
+        return response()->json([
+            'success' => true,
+            'data' => $contacts
+        ]);
+    } catch (\Exception $e) {
+        \Log::error('Error getting contacts: ' . $e->getMessage());
+        return response()->json([
+            'success' => false,
+            'message' => 'Failed to get contacts'
+        ], 500);
     }
+}
 
 
 /**
@@ -2560,8 +2560,8 @@ public function addContact(Request $request, $companyId)
     try {
         $validator = Validator::make($request->all(), [
             'name' => 'required|string|max:255',
-            'email' => 'required|email|max:255',
-            'phone' => 'required|string|max:20',
+            'email' => 'required|email|max:100', // Max 100 sesuai database
+            'phone' => 'required|string|max:50',
             'position' => 'nullable|string|max:100',
             'is_primary' => 'boolean',
             'is_active' => 'boolean'
@@ -2576,8 +2576,6 @@ public function addContact(Request $request, $companyId)
             ], 422);
         }
 
-        \Log::info('Validation passed');
-
         // Check if company exists
         $company = Company::where('id', $companyId)->where('deleted', 0)->first();
         if (!$company) {
@@ -2591,9 +2589,7 @@ public function addContact(Request $request, $companyId)
         \Log::info('Company found:', ['company_name' => $company->client_code]);
 
         // Check if contact already exists with same email for this company
-        $existingContact = CompanyContactPerson::whereHas('lead', function($query) use ($request) {
-                $query->where('email', $request->email);
-            })
+        $existingContact = CompanyContactPerson::where('email', $request->email)
             ->where('company_id', $companyId)
             ->where('deleted', 0)
             ->first();
@@ -2606,53 +2602,11 @@ public function addContact(Request $request, $companyId)
             ], 409);
         }
 
-        // **SOLUSI SEDERHANA: Gunakan pendekatan langsung**
-        // Cek apakah lead_statuses_id bisa NULL dengan cara sederhana
-        try {
-            // Coba insert dengan NULL dulu
-            $testNullable = DB::table('leads')->insert([
-                'id' => Str::uuid(),
-                'lead_statuses_id' => null,
-                'company_name' => 'test',
-                'contact_person' => 'test',
-                'email' => 'test@test.com',
-                'phone' => '123',
-                'deleted' => 0,
-                'created_at' => now(),
-                'updated_at' => now()
-            ]);
-            $canBeNull = true;
-            // Hapus data test
-            DB::table('leads')->where('email', 'test@test.com')->delete();
-        } catch (\Exception $e) {
-            $canBeNull = false;
-        }
-        
-        \Log::info('Lead statuses_id nullable check:', ['can_be_null' => $canBeNull]);
-
-        // Cari atau buat lead status ID
-        $defaultStatusId = null;
-        
-        // Coba ambil dari tabel lead_statuses jika ada
-        if (Schema::hasTable('lead_statuses')) {
-            $defaultStatus = DB::table('lead_statuses')->first();
-            if ($defaultStatus) {
-                $defaultStatusId = $defaultStatus->id;
-                \Log::info('Found lead status:', ['id' => $defaultStatusId]);
-            }
-        }
-        
-        // Jika tidak ditemukan, gunakan UUID default
-        if (!$defaultStatusId) {
-            $defaultStatusId = '550e8400-e29b-41d4-a716-446655440000';
-            \Log::info('Using default UUID for lead status:', ['id' => $defaultStatusId]);
-        }
-
-        // Create lead first for contact person
+        // **PERBAIKAN 1: Buat lead untuk referensi**
         $lead = Lead::where('email', $request->email)->first();
         
         if (!$lead) {
-            // Prepare lead data - VERSI SEDERHANA
+            // Prepare lead data
             $leadData = [
                 'id' => Str::uuid(),
                 'company_name' => $company->client_code,
@@ -2664,38 +2618,22 @@ public function addContact(Request $request, $companyId)
                 'updated_at' => now()
             ];
 
-            // Handle created_by dan updated_by jika kolom ada
-            if (auth()->check()) {
+            // Tambahkan lead_statuses_id jika kolom ada
+            if (Schema::hasColumn('leads', 'lead_statuses_id')) {
+                $defaultStatus = DB::table('lead_statuses')->first();
+                if ($defaultStatus) {
+                    $leadData['lead_statuses_id'] = $defaultStatus->id;
+                }
+            }
+
+            // Tambahkan created_by jika ada auth
+            if (auth()->check() && Schema::hasColumn('leads', 'created_by')) {
                 $leadData['created_by'] = auth()->id();
                 $leadData['updated_by'] = auth()->id();
             }
 
-            // Handle lead_statuses_id berdasarkan kondisi
-            if ($canBeNull) {
-                $leadData['lead_statuses_id'] = null;
-            } else {
-                $leadData['lead_statuses_id'] = $defaultStatusId;
-            }
-
-            // Handle field opsional
-            if ($request->position) {
-                $leadData['address'] = $request->position;
-            }
-
             \Log::info('Creating new lead with data:', $leadData);
-            
-            // Gunakan try-catch untuk insert lead
-            try {
-                $lead = Lead::create($leadData);
-                \Log::info('New lead created:', ['lead_id' => $lead->id]);
-            } catch (\Exception $e) {
-                \Log::error('Failed to create lead:', ['error' => $e->getMessage()]);
-                
-                // Coba tanpa lead_statuses_id jika error
-                unset($leadData['lead_statuses_id']);
-                $lead = Lead::create($leadData);
-                \Log::info('New lead created without lead_statuses_id:', ['lead_id' => $lead->id]);
-            }
+            $lead = Lead::create($leadData);
         } else {
             \Log::info('Existing lead found:', ['lead_id' => $lead->id]);
             // Update existing lead
@@ -2704,7 +2642,6 @@ public function addContact(Request $request, $companyId)
                 'phone' => $request->phone,
                 'updated_at' => now()
             ]);
-            \Log::info('Lead updated');
         }
 
         // If setting as primary, update existing primary contacts
@@ -2716,11 +2653,14 @@ public function addContact(Request $request, $companyId)
             \Log::info('Updated existing primary contacts');
         }
 
-        // Prepare contact data
+        // **PERBAIKAN 2: Siapkan data lengkap sesuai struktur tabel**
         $contactData = [
             'id' => Str::uuid(),
             'company_id' => $companyId,
-            'lead_id' => $lead->id,
+            'lead_id' => $lead->id, // Simpan lead_id untuk relasi
+            'name' => $request->name,
+            'email' => $request->email, // <-- INI YANG DITAMBAHKAN
+            'phone' => $request->phone,
             'position' => $request->position ?: null,
             'is_primary' => $request->boolean('is_primary') ? 1 : 0,
             'is_active' => $request->boolean('is_active', true) ? 1 : 0,
@@ -2728,6 +2668,11 @@ public function addContact(Request $request, $companyId)
             'created_at' => now(),
             'updated_at' => now()
         ];
+
+        // Tambahkan created_by jika ada auth
+        if (auth()->check()) {
+            $contactData['created_by'] = auth()->id();
+        }
 
         \Log::info('Creating contact with data:', $contactData);
 
@@ -2743,14 +2688,14 @@ public function addContact(Request $request, $companyId)
             'message' => 'Contact added successfully',
             'data' => [
                 'id' => $contact->id,
-                'name' => $request->name,
-                'email' => $request->email,
-                'phone' => $request->phone,
-                'position' => $request->position,
+                'name' => $contact->name,
+                'email' => $contact->email,
+                'phone' => $contact->phone,
+                'position' => $contact->position,
                 'is_primary' => (bool) $contact->is_primary,
                 'is_active' => (bool) $contact->is_active,
-                'lead_id' => $lead->id,
-                'company_id' => $companyId
+                'lead_id' => $contact->lead_id,
+                'company_id' => $contact->company_id
             ]
         ], 201);
 
@@ -2758,13 +2703,6 @@ public function addContact(Request $request, $companyId)
         DB::rollBack();
         \Log::error('Error adding contact: ' . $e->getMessage());
         \Log::error('Stack trace: ' . $e->getTraceAsString());
-        
-        // Log tambahan untuk debugging
-        \Log::error('Error context:', [
-            'company_id' => $companyId,
-            'user_id' => auth()->id(),
-            'request_data' => $request->all()
-        ]);
         
         return response()->json([
             'success' => false,
@@ -2776,98 +2714,93 @@ public function addContact(Request $request, $companyId)
     /**
      * Update contact
      */
-    public function updateContact(Request $request, $companyId, $contactId)
-    {
-        \Log::info('=== UPDATE CONTACT REQUEST ===');
-        \Log::info('Contact ID:', ['contact_id' => $contactId]);
-        \Log::info('Request data:', $request->all());
-        
-        DB::beginTransaction();
-        try {
-            $validator = Validator::make($request->all(), [
-                'name' => 'required|string|max:255',
-                'email' => 'required|email|max:255',
-                'phone' => 'required|string|max:20',
-                'position' => 'nullable|string|max:100',
-                'is_primary' => 'boolean',
-                'is_active' => 'boolean'
-            ]);
+public function updateContact(Request $request, $companyId, $contactId)
+{
+    \Log::info('=== UPDATE CONTACT REQUEST ===');
+    \Log::info('Contact ID:', ['contact_id' => $contactId]);
+    \Log::info('Request data:', $request->all());
+    
+    DB::beginTransaction();
+    try {
+        $validator = Validator::make($request->all(), [
+            'name' => 'required|string|max:255',
+            'email' => 'required|email|max:255',
+            'phone' => 'required|string|max:20',
+            'position' => 'nullable|string|max:100',
+            'is_primary' => 'boolean',
+            'is_active' => 'boolean'
+        ]);
 
-            if ($validator->fails()) {
-                return response()->json([
-                    'success' => false,
-                    'errors' => $validator->errors()
-                ], 422);
-            }
-
-            $contact = CompanyContactPerson::where('id', $contactId)
-                ->where('company_id', $companyId)
-                ->where('deleted', 0)
-                ->first();
-
-            if (!$contact) {
-                \Log::error('Contact not found:', ['contact_id' => $contactId]);
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Contact not found'
-                ], 404);
-            }
-
-            // If setting as primary, update existing primary contacts
-            if ($request->boolean('is_primary')) {
-                CompanyContactPerson::where('company_id', $companyId)
-                    ->where('id', '!=', $contactId)
-                    ->where('is_primary', true)
-                    ->where('deleted', 0)
-                    ->update(['is_primary' => false]);
-            }
-
-            // Update lead data
-            if ($contact->lead) {
-                $contact->lead->update([
-                    'contact_person' => $request->name,
-                    'email' => $request->email,
-                    'phone' => $request->phone,
-                    'updated_at' => now()
-                ]);
-                \Log::info('Lead updated:', ['lead_id' => $contact->lead_id]);
-            }
-
-            // Update contact
-            $contact->update([
-                'position' => $request->position,
-                'is_primary' => $request->boolean('is_primary'),
-                'is_active' => $request->boolean('is_active', true),
-                'updated_at' => now()
-            ]);
-
-            \Log::info('Contact updated:', ['contact_id' => $contactId]);
-
-            DB::commit();
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Contact updated successfully',
-                'data' => [
-                    'id' => $contact->id,
-                    'name' => $request->name,
-                    'email' => $request->email,
-                    'phone' => $request->phone,
-                    'position' => $contact->position,
-                    'is_primary' => $contact->is_primary,
-                    'is_active' => $contact->is_active
-                ]
-            ]);
-
-        } catch (\Exception $e) {
-            DB::rollBack();
-            \Log::error('Error updating contact: ' . $e->getMessage());
+        if ($validator->fails()) {
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to update contact'
-            ], 500);
+                'errors' => $validator->errors()
+            ], 422);
         }
+
+        $contact = CompanyContactPerson::where('id', $contactId)
+            ->where('company_id', $companyId)
+            ->where('deleted', 0)
+            ->first();
+
+        if (!$contact) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Contact not found'
+            ], 404);
+        }
+
+        // Update lead data
+        if ($contact->lead) {
+            $contact->lead->update([
+                'contact_person' => $request->name,
+                'email' => $request->email,
+                'phone' => $request->phone,
+                'updated_at' => now()
+            ]);
+        }
+
+        // **PERBAIKAN: Cek apakah kolom name ada**
+        $updateData = [
+            'position' => $request->position,
+            'is_primary' => $request->boolean('is_primary'),
+            'is_active' => $request->boolean('is_active', true),
+            'updated_at' => now()
+        ];
+
+        // Hanya update name jika kolomnya ada
+        if (Schema::hasColumn('company_contact_persons', 'name')) {
+            $updateData['name'] = $request->name;
+        }
+
+        // Update contact
+        $contact->update($updateData);
+
+        DB::commit();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Contact updated successfully',
+            'data' => [
+                'id' => $contact->id,
+                'name' => $request->name,
+                'email' => $request->email,
+                'phone' => $request->phone,
+                'position' => $contact->position,
+                'is_primary' => $contact->is_primary,
+                'is_active' => $contact->is_active
+            ]
+        ]);
+
+    } catch (\Exception $e) {
+        DB::rollBack();
+        \Log::error('Error updating contact: ' . $e->getMessage());
+        return response()->json([
+            'success' => false,
+            'message' => 'Failed to update contact'
+        ], 500);
     }
+}
 
     /**
      * Delete contact
