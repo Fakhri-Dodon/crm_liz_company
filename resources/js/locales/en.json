@@ -833,6 +833,11 @@
         "no_unpaid_invoice": "No unpaid invoices available",
         "close": "Close",
         "submit": "Submit",
+        "delete_title": "Delete Payment",
+        "delete_confirm": "Are you sure you want to delete this payment?",
+        "delete_warning": "This action cannot be undone.",
+        "yes": "Yes",
+        "no": "No",
         "stats": {
             "draft": "DRAFT",
             "sent": "SENT",
@@ -874,15 +879,25 @@
         },
         "table": {
             "no": "NO",
+            "no_data": "No Payments Found",
             "date": "DATE",
             "company_name": "COMPANY NAME",
             "invoice": "INVOICE",
+            "invoice_amount": "Invoice Amount",
+            "payment_amount": "Payment Amount",
             "amount": "AMOUNT",
             "method": "METHOD",
             "bank": "BANK",
             "note": "NOTE",
             "status": "STATUS",
             "actions": "ACTIONS"
+        },
+        "messages": {
+            "added": "Payment added successfully",
+            "updated": "Payment updated successfully",
+            "deleted": "Payment deleted successfully",
+            "add_error": "Failed to add payment",
+            "delete_error": "Failed to delete payment"
         }
     },
     "invoices": {
