@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, User, Mail, Phone, Briefcase, Star } from 'lucide-react';
 import axios from 'axios';
+import { useTranslation } from 'react-i18next'; // Import useTranslation
 
 const ContactModal = ({ 
     isOpen, 
@@ -11,6 +12,7 @@ const ContactModal = ({
     mode = 'add', // 'add' or 'edit'
     onSuccess 
 }) => {
+    const { t } = useTranslation(); // Initialize translation hook
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [errors, setErrors] = useState({});
     
@@ -96,17 +98,17 @@ const ContactModal = ({
         const newErrors = {};
         
         if (!formData.name.trim()) {
-            newErrors.name = 'Name is required';
+            newErrors.name = t('contact_modal.validation_name_required');
         }
         
         if (!formData.email.trim()) {
-            newErrors.email = 'Email is required';
+            newErrors.email = t('contact_modal.validation_email_required');
         } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-            newErrors.email = 'Email format is invalid';
+            newErrors.email = t('contact_modal.validation_email_invalid');
         }
         
         if (!formData.phone.trim()) {
-            newErrors.phone = 'Phone is required';
+            newErrors.phone = t('contact_modal.validation_phone_required');
         }
         
         console.log('Validation errors:', newErrors);
@@ -193,18 +195,18 @@ const ContactModal = ({
                     console.error('Validation errors:', error.response.data.errors);
                     setErrors(error.response.data.errors || {});
                 } else if (error.response.status === 404) {
-                    setErrors({ submit: 'Route not found. Please check if the route exists.' });
+                    setErrors({ submit: t('contact_modal.error_route_not_found') });
                 } else if (error.response.status === 500) {
-                    setErrors({ submit: 'Server error: ' + (error.response.data.message || 'Internal server error') });
+                    setErrors({ submit: t('contact_modal.error_server_error', { message: error.response.data.message || 'Internal server error' }) });
                 } else {
-                    setErrors({ submit: error.response.data?.message || 'Failed to save contact' });
+                    setErrors({ submit: error.response.data?.message || t('contact_modal.error_save_failed') });
                 }
             } else if (error.request) {
                 console.error('No response received:', error.request);
-                setErrors({ submit: 'No response from server. Please check your network connection.' });
+                setErrors({ submit: t('contact_modal.error_no_response') });
             } else {
                 console.error('Error setting up request:', error.message);
-                setErrors({ submit: 'Request setup error: ' + error.message });
+                setErrors({ submit: t('contact_modal.error_request_setup', { message: error.message }) });
             }
             
             // Log additional info for debugging
@@ -227,13 +229,13 @@ const ContactModal = ({
                     <div className="flex justify-between items-center p-6">
                         <div>
                             <h2 className="text-xl font-bold text-gray-900">
-                                {mode === 'edit' ? 'Edit Contact' : 'Add New Contact'}
+                                {mode === 'edit' ? t('contact_modal.edit_title') : t('contact_modal.add_title')}
                             </h2>
                             <p className="text-gray-600 mt-1 text-sm">
-                                {mode === 'edit' ? 'Update contact information' : 'Add a new contact person'}
+                                {mode === 'edit' ? t('contact_modal.edit_subtitle') : t('contact_modal.add_subtitle')}
                                 {companyId && (
                                     <span className="block text-xs text-teal-600 mt-1">
-                                        Company ID: {companyId}
+                                        {t('contact_modal.company_id')}: {companyId}
                                     </span>
                                 )}
                             </p>
@@ -254,7 +256,7 @@ const ContactModal = ({
                         {/* Name */}
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-2">
-                                Full Name *
+                                {t('contact_modal.full_name')} *
                             </label>
                             <div className="relative">
                                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -268,7 +270,7 @@ const ContactModal = ({
                                     className={`w-full pl-10 pr-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-colors ${
                                         errors.name ? 'border-red-300 bg-red-50' : 'border-gray-300 hover:border-gray-400'
                                     }`}
-                                    placeholder="John Doe"
+                                    placeholder={t('contact_modal.name_placeholder')}
                                     disabled={isSubmitting}
                                     autoFocus
                                 />
@@ -284,7 +286,7 @@ const ContactModal = ({
                         {/* Email */}
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-2">
-                                Email Address *
+                                {t('contact_modal.email_address')} *
                             </label>
                             <div className="relative">
                                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -298,7 +300,7 @@ const ContactModal = ({
                                     className={`w-full pl-10 pr-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-colors ${
                                         errors.email ? 'border-red-300 bg-red-50' : 'border-gray-300 hover:border-gray-400'
                                     }`}
-                                    placeholder="john@example.com"
+                                    placeholder={t('contact_modal.email_placeholder')}
                                     disabled={isSubmitting}
                                 />
                             </div>
@@ -313,7 +315,7 @@ const ContactModal = ({
                         {/* Phone */}
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-2">
-                                Phone Number *
+                                {t('contact_modal.phone_number')} *
                             </label>
                             <div className="relative">
                                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -327,7 +329,7 @@ const ContactModal = ({
                                     className={`w-full pl-10 pr-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-colors ${
                                         errors.phone ? 'border-red-300 bg-red-50' : 'border-gray-300 hover:border-gray-400'
                                     }`}
-                                    placeholder="+62 812 3456 7890"
+                                    placeholder={t('contact_modal.phone_placeholder')}
                                     disabled={isSubmitting}
                                 />
                             </div>
@@ -342,7 +344,7 @@ const ContactModal = ({
                         {/* Position */}
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-2">
-                                Position / Role
+                                {t('contact_modal.position_role')}
                             </label>
                             <div className="relative">
                                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -354,12 +356,12 @@ const ContactModal = ({
                                     value={formData.position}
                                     onChange={handleInputChange}
                                     className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-colors hover:border-gray-400"
-                                    placeholder="Marketing Manager, Sales Director, etc."
+                                    placeholder={t('contact_modal.position_placeholder')}
                                     disabled={isSubmitting}
                                 />
                             </div>
                             <p className="mt-1 text-xs text-gray-500">
-                                Optional - leave empty if not applicable
+                                {t('contact_modal.position_optional')}
                             </p>
                         </div>
 
@@ -378,9 +380,11 @@ const ContactModal = ({
                                 <label htmlFor="is_primary" className="ml-3 flex items-center text-sm text-gray-700">
                                     <Star className="w-4 h-4 text-yellow-500 mr-2" />
                                     <div>
-                                        <span className="font-medium">Set as primary contact</span>
+                                        <span className="font-medium">
+                                            {t('contact_modal.set_as_primary')}
+                                        </span>
                                         <p className="text-xs text-gray-500 mt-0.5">
-                                            Only one contact can be primary
+                                            {t('contact_modal.primary_warning')}
                                         </p>
                                     </div>
                                 </label>
@@ -401,9 +405,11 @@ const ContactModal = ({
                                         <div className={`w-3 h-3 rounded-full ${formData.is_active ? 'bg-green-500' : 'bg-gray-300'}`}></div>
                                     </div>
                                     <div>
-                                        <span className="font-medium">Active contact</span>
+                                        <span className="font-medium">
+                                            {t('contact_modal.active_contact')}
+                                        </span>
                                         <p className="text-xs text-gray-500 mt-0.5">
-                                            Inactive contacts won't appear in dropdowns
+                                            {t('contact_modal.active_description')}
                                         </p>
                                     </div>
                                 </label>
@@ -413,13 +419,15 @@ const ContactModal = ({
                         {/* Debug Info (only in development) */}
                         {process.env.NODE_ENV === 'development' && (
                             <div className="p-3 bg-gray-50 rounded-lg border border-gray-200">
-                                <p className="text-xs font-medium text-gray-700 mb-1">Debug Info:</p>
+                                <p className="text-xs font-medium text-gray-700 mb-1">
+                                    {t('contact_modal.debug_info')}:
+                                </p>
                                 <div className="text-xs text-gray-500 space-y-1">
-                                    <p>Mode: {mode}</p>
-                                    <p>Company ID: {companyId}</p>
-                                    <p>Contact ID: {contact?.id || 'N/A'}</p>
-                                    <p>Is Primary: {formData.is_primary.toString()}</p>
-                                    <p>Is Active: {formData.is_active.toString()}</p>
+                                    <p>{t('contact_modal.mode')}: {mode}</p>
+                                    <p>{t('contact_modal.company_id')}: {companyId}</p>
+                                    <p>{t('contact_modal.contact_id')}: {contact?.id || 'N/A'}</p>
+                                    <p>{t('contact_modal.is_primary')}: {formData.is_primary.toString()}</p>
+                                    <p>{t('contact_modal.is_active')}: {formData.is_active.toString()}</p>
                                 </div>
                             </div>
                         )}
@@ -434,7 +442,9 @@ const ContactModal = ({
                                         </svg>
                                     </div>
                                     <div className="ml-3">
-                                        <h3 className="text-sm font-medium text-red-800">Error</h3>
+                                        <h3 className="text-sm font-medium text-red-800">
+                                            {t('contact_modal.error_title')}
+                                        </h3>
                                         <div className="mt-2 text-sm text-red-700">
                                             <p>{errors.submit}</p>
                                         </div>
@@ -453,12 +463,14 @@ const ContactModal = ({
                                         </svg>
                                     </div>
                                     <div className="ml-3">
-                                        <h3 className="text-sm font-medium text-yellow-800">Please check the following fields:</h3>
+                                        <h3 className="text-sm font-medium text-yellow-800">
+                                            {t('contact_modal.check_fields')}
+                                        </h3>
                                         <div className="mt-2 text-sm text-yellow-700">
                                             <ul className="list-disc pl-5 space-y-1">
-                                                {errors.name && <li>Name is required</li>}
+                                                {errors.name && <li>{t('contact_modal.validation_name_required')}</li>}
                                                 {errors.email && <li>{errors.email}</li>}
-                                                {errors.phone && <li>Phone is required</li>}
+                                                {errors.phone && <li>{t('contact_modal.validation_phone_required')}</li>}
                                             </ul>
                                         </div>
                                     </div>
@@ -475,7 +487,7 @@ const ContactModal = ({
                             disabled={isSubmitting}
                             className="px-5 py-2.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                         >
-                            Cancel
+                            {t('contact_modal.cancel')}
                         </button>
                         <button
                             type="submit"
@@ -489,7 +501,7 @@ const ContactModal = ({
                             {isSubmitting ? (
                                 <>
                                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                                    {mode === 'edit' ? 'Updating...' : 'Adding...'}
+                                    {mode === 'edit' ? t('contact_modal.updating') : t('contact_modal.adding')}
                                 </>
                             ) : (
                                 <>
@@ -498,14 +510,14 @@ const ContactModal = ({
                                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
                                             </svg>
-                                            Update Contact
+                                            {t('contact_modal.update_contact')}
                                         </>
                                     ) : (
                                         <>
                                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4"></path>
                                             </svg>
-                                            Add Contact
+                                            {t('contact_modal.add_contact')}
                                         </>
                                     )}
                                 </>

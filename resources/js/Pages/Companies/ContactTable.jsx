@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import axios from 'axios';
 import ContactModal from './ContactModal';
+import { useTranslation } from 'react-i18next'; // Import useTranslation
 
 const ContactTable = ({ 
     contacts = [], 
@@ -14,6 +15,7 @@ const ContactTable = ({
     onUpdate,
     isLoading: propsLoading = false
 }) => {
+    const { t } = useTranslation(); // Initialize translation hook
     const [expandedContact, setExpandedContact] = useState(null);
     const [viewMode, setViewMode] = useState('grid'); // 'grid' or 'list'
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -46,7 +48,7 @@ const ContactTable = ({
 
     // Delete contact
     const handleDelete = async (contactId) => {
-        if (!confirm('Are you sure you want to delete this contact? This action cannot be undone.')) {
+        if (!confirm(t('contact_table.confirm_delete'))) {
             return;
         }
 
@@ -61,13 +63,13 @@ const ContactTable = ({
                 if (onUpdate) {
                     onUpdate();
                 }
-                showSuccessMessage('Contact deleted successfully!');
+                showSuccessMessage(t('contact_table.contact_deleted_success'));
             } else {
-                throw new Error(response.data.message || 'Failed to delete contact');
+                throw new Error(response.data.message || t('contact_table.delete_failed'));
             }
         } catch (error) {
             console.error('Error deleting contact:', error);
-            alert(error.response?.data?.message || 'Failed to delete contact');
+            alert(error.response?.data?.message || t('contact_table.delete_error'));
         } finally {
             setInternalLoading(false);
         }
@@ -86,13 +88,13 @@ const ContactTable = ({
                 if (onUpdate) {
                     onUpdate();
                 }
-                showSuccessMessage('Primary contact updated successfully!');
+                showSuccessMessage(t('contact_table.primary_contact_updated'));
             } else {
-                throw new Error(response.data.message || 'Failed to update primary contact');
+                throw new Error(response.data.message || t('contact_table.toggle_primary_failed'));
             }
         } catch (error) {
             console.error('Error toggling primary:', error);
-            alert(error.response?.data?.message || 'Failed to update primary contact');
+            alert(error.response?.data?.message || t('contact_table.toggle_primary_error'));
         } finally {
             setInternalLoading(false);
         }
@@ -105,7 +107,7 @@ const ContactTable = ({
         if (onUpdate) {
             onUpdate();
         }
-        showSuccessMessage(`Contact ${mode === 'edit' ? 'updated' : 'added'} successfully!`);
+        showSuccessMessage(t(mode === 'edit' ? 'contact_table.contact_updated_success' : 'contact_table.contact_added_success'));
     };
 
     // Mobile List View
@@ -114,15 +116,19 @@ const ContactTable = ({
             {contacts.length === 0 ? (
                 <div className="bg-white border border-gray-200 rounded-lg p-8 text-center">
                     <User className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-                    <h3 className="text-lg font-medium text-gray-900 mb-2">No Contacts Found</h3>
-                    <p className="text-gray-600 mb-4">Add your first contact person for this company</p>
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">
+                        {t('contact_table.no_contacts_found')}
+                    </h3>
+                    <p className="text-gray-600 mb-4">
+                        {t('contact_table.add_first_contact')}
+                    </p>
                     <button
                         onClick={() => setIsAddModalOpen(true)}
                         className="inline-flex items-center px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors"
                         disabled={isLoading}
                     >
                         <Plus className="w-4 h-4 mr-2" />
-                        Add First Contact
+                        {t('contact_table.add_first_contact_button')}
                     </button>
                 </div>
             ) : (
@@ -144,7 +150,9 @@ const ContactTable = ({
                                             <Star className="w-3 h-3 text-yellow-500 inline-block ml-1" />
                                         )}
                                     </h3>
-                                    <p className="text-xs text-gray-600">{contact.position || 'No position'}</p>
+                                    <p className="text-xs text-gray-600">
+                                        {contact.position || t('contact_table.no_position')}
+                                    </p>
                                 </div>
                             </div>
                             <div className="flex items-center space-x-1">
@@ -153,7 +161,7 @@ const ContactTable = ({
                                     className={`p-1.5 rounded-lg ${contact.is_primary 
                                         ? 'bg-yellow-100 text-yellow-600 hover:bg-yellow-200' 
                                         : 'bg-gray-100 text-gray-400 hover:bg-gray-200'}`}
-                                    title={contact.is_primary ? 'Primary Contact' : 'Set as Primary'}
+                                    title={contact.is_primary ? t('contact_table.primary_contact') : t('contact_table.set_as_primary')}
                                     disabled={isLoading}
                                 >
                                     <Star className="w-4 h-4" />
@@ -161,7 +169,7 @@ const ContactTable = ({
                                 <button 
                                     onClick={() => handleEdit(contact)}
                                     className="p-1.5 bg-blue-100 text-blue-600 rounded-lg hover:bg-blue-200"
-                                    title="Edit Contact"
+                                    title={t('contact_table.edit_contact')}
                                     disabled={isLoading}
                                 >
                                     <Edit2 className="w-4 h-4" />
@@ -169,7 +177,7 @@ const ContactTable = ({
                                 <button 
                                     onClick={() => handleDelete(contact.id)}
                                     className="p-1.5 bg-red-100 text-red-600 rounded-lg hover:bg-red-200"
-                                    title="Delete Contact"
+                                    title={t('contact_table.delete_contact')}
                                     disabled={isLoading}
                                 >
                                     <Trash2 className="w-4 h-4" />
@@ -181,13 +189,13 @@ const ContactTable = ({
                             <div className="flex items-center">
                                 <Mail className="w-4 h-4 text-gray-400 mr-2" />
                                 <span className="text-xs text-gray-900 truncate">
-                                    {contact.email || 'No email'}
+                                    {contact.email || t('contact_table.no_email')}
                                 </span>
                             </div>
                             <div className="flex items-center">
                                 <Phone className="w-4 h-4 text-gray-400 mr-2" />
                                 <span className="text-xs text-gray-900">
-                                    {contact.phone || 'No phone'}
+                                    {contact.phone || t('contact_table.no_phone')}
                                 </span>
                             </div>
                         </div>
@@ -197,13 +205,13 @@ const ContactTable = ({
                                 {contact.is_primary && (
                                     <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
                                         <Check className="w-3 h-3 mr-1" />
-                                        Primary
+                                        {t('contact_table.primary')}
                                     </span>
                                 )}
                                 {contact.is_active === false && (
                                     <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
                                         <X className="w-3 h-3 mr-1" />
-                                        Inactive
+                                        {t('contact_table.inactive')}
                                     </span>
                                 )}
                             </div>
@@ -223,15 +231,15 @@ const ContactTable = ({
                                 <div className="flex justify-around">
                                     <button className="flex flex-col items-center text-blue-600 hover:text-blue-800">
                                         <MessageSquare className="w-4 h-4 mb-1" />
-                                        <span className="text-xs">Message</span>
+                                        <span className="text-xs">{t('contact_table.message')}</span>
                                     </button>
                                     <button className="flex flex-col items-center text-gray-600 hover:text-gray-800">
                                         <Phone className="w-4 h-4 mb-1" />
-                                        <span className="text-xs">Call</span>
+                                        <span className="text-xs">{t('contact_table.call')}</span>
                                     </button>
                                     <button className="flex flex-col items-center text-green-600 hover:text-green-800">
                                         <Mail className="w-4 h-4 mb-1" />
-                                        <span className="text-xs">Email</span>
+                                        <span className="text-xs">{t('contact_table.email')}</span>
                                     </button>
                                 </div>
                             </div>
@@ -250,9 +258,11 @@ const ContactTable = ({
                     <div className="w-20 h-20 bg-gradient-to-br from-teal-100 to-teal-200 rounded-full flex items-center justify-center mx-auto mb-6">
                         <User className="w-10 h-10 text-teal-600" />
                     </div>
-                    <h3 className="text-2xl font-bold text-gray-900 mb-3">No Contacts Yet</h3>
+                    <h3 className="text-2xl font-bold text-gray-900 mb-3">
+                        {t('contact_table.no_contacts_yet')}
+                    </h3>
                     <p className="text-gray-600 mb-8 max-w-md mx-auto">
-                        Start by adding contact persons to manage communications with this company.
+                        {t('contact_table.add_contacts_description')}
                     </p>
                     <button
                         onClick={() => setIsAddModalOpen(true)}
@@ -260,7 +270,7 @@ const ContactTable = ({
                         disabled={isLoading}
                     >
                         <Plus className="w-5 h-5 mr-2" />
-                        Add Your First Contact
+                        {t('contact_table.add_first_contact_button_long')}
                     </button>
                 </div>
             ) : (
@@ -283,7 +293,7 @@ const ContactTable = ({
                                         )}
                                     </h3>
                                     <p className="text-sm text-gray-600 truncate max-w-[150px]">
-                                        {contact.position || 'No position specified'}
+                                        {contact.position || t('contact_table.no_position_specified')}
                                     </p>
                                 </div>
                             </div>
@@ -293,7 +303,7 @@ const ContactTable = ({
                                     className={`p-1.5 rounded-lg ${contact.is_primary 
                                         ? 'bg-yellow-100 text-yellow-600 hover:bg-yellow-200' 
                                         : 'bg-gray-100 text-gray-400 hover:bg-gray-200'}`}
-                                    title={contact.is_primary ? 'Primary Contact' : 'Set as Primary'}
+                                    title={contact.is_primary ? t('contact_table.primary_contact') : t('contact_table.set_as_primary')}
                                     disabled={isLoading}
                                 >
                                     <Star className="w-4 h-4" />
@@ -301,7 +311,7 @@ const ContactTable = ({
                                 <button 
                                     onClick={() => handleEdit(contact)}
                                     className="p-1.5 bg-blue-100 text-blue-600 rounded-lg hover:bg-blue-200"
-                                    title="Edit Contact"
+                                    title={t('contact_table.edit_contact')}
                                     disabled={isLoading}
                                 >
                                     <Edit2 className="w-4 h-4" />
@@ -309,7 +319,7 @@ const ContactTable = ({
                                 <button 
                                     onClick={() => handleDelete(contact.id)}
                                     className="p-1.5 bg-red-100 text-red-600 rounded-lg hover:bg-red-200"
-                                    title="Delete Contact"
+                                    title={t('contact_table.delete_contact')}
                                     disabled={isLoading}
                                 >
                                     <Trash2 className="w-4 h-4" />
@@ -323,9 +333,11 @@ const ContactTable = ({
                                     <Mail className="w-5 h-5 text-blue-600" />
                                 </div>
                                 <div className="min-w-0 flex-1">
-                                    <p className="text-xs text-gray-500 mb-1">Email</p>
+                                    <p className="text-xs text-gray-500 mb-1">
+                                        {t('contact_table.email_label')}
+                                    </p>
                                     <p className="text-sm font-medium text-gray-900 truncate">
-                                        {contact.email || 'No email provided'}
+                                        {contact.email || t('contact_table.no_email_provided')}
                                     </p>
                                 </div>
                             </div>
@@ -335,9 +347,11 @@ const ContactTable = ({
                                     <Phone className="w-5 h-5 text-green-600" />
                                 </div>
                                 <div className="flex-1">
-                                    <p className="text-xs text-gray-500 mb-1">Phone</p>
+                                    <p className="text-xs text-gray-500 mb-1">
+                                        {t('contact_table.phone_label')}
+                                    </p>
                                     <p className="text-sm font-medium text-gray-900">
-                                        {contact.phone || 'No phone provided'}
+                                        {contact.phone || t('contact_table.no_phone_provided')}
                                     </p>
                                 </div>
                             </div>
@@ -348,13 +362,13 @@ const ContactTable = ({
                                 {contact.is_primary && (
                                     <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
                                         <Check className="w-3 h-3 mr-1" />
-                                        Primary Contact
+                                        {t('contact_table.primary_contact_label')}
                                     </span>
                                 )}
                                 {contact.is_active === false && (
                                     <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
                                         <X className="w-3 h-3 mr-1" />
-                                        Inactive
+                                        {t('contact_table.inactive_label')}
                                     </span>
                                 )}
                             </div>
@@ -367,18 +381,18 @@ const ContactTable = ({
                                     onClick={() => window.location.href = `mailto:${contact.email}`}
                                 >
                                     <Mail className="w-4 h-4" />
-                                    <span>Email</span>
+                                    <span>{t('contact_table.email_action')}</span>
                                 </button>
                                 <button 
                                     className="flex items-center space-x-2 text-green-600 hover:text-green-800 text-sm px-3 py-2 hover:bg-green-50 rounded-lg transition-colors"
                                     onClick={() => window.location.href = `tel:${contact.phone}`}
                                 >
                                     <Phone className="w-4 h-4" />
-                                    <span>Call</span>
+                                    <span>{t('contact_table.call_action')}</span>
                                 </button>
                                 <button className="flex items-center space-x-2 text-purple-600 hover:text-purple-800 text-sm px-3 py-2 hover:bg-purple-50 rounded-lg transition-colors">
                                     <MessageSquare className="w-4 h-4" />
-                                    <span>Message</span>
+                                    <span>{t('contact_table.message_action')}</span>
                                 </button>
                             </div>
                         </div>
@@ -396,9 +410,11 @@ const ContactTable = ({
                     <div className="w-20 h-20 bg-gradient-to-br from-teal-100 to-teal-200 rounded-full flex items-center justify-center mx-auto mb-6">
                         <User className="w-10 h-10 text-teal-600" />
                     </div>
-                    <h3 className="text-2xl font-bold text-gray-900 mb-3">No Contacts Available</h3>
+                    <h3 className="text-2xl font-bold text-gray-900 mb-3">
+                        {t('contact_table.no_contacts_available')}
+                    </h3>
                     <p className="text-gray-600 mb-8 max-w-md mx-auto">
-                        Add contact persons to manage communications with this company.
+                        {t('contact_table.add_contacts_description_short')}
                     </p>
                     <button
                         onClick={() => setIsAddModalOpen(true)}
@@ -406,7 +422,7 @@ const ContactTable = ({
                         disabled={isLoading}
                     >
                         <Plus className="w-5 h-5 mr-2" />
-                        Add First Contact
+                        {t('contact_table.add_first_contact_button')}
                     </button>
                 </div>
             ) : (
@@ -416,22 +432,22 @@ const ContactTable = ({
                             <thead className="bg-gray-50">
                                 <tr>
                                     <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                                        Contact
+                                        {t('contact_table.contact')}
                                     </th>
                                     <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                                        Position
+                                        {t('contact_table.position')}
                                     </th>
                                     <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                                        Email
+                                        {t('contact_table.email')}
                                     </th>
                                     <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                                        Phone
+                                        {t('contact_table.phone')}
                                     </th>
                                     <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                                        Status
+                                        {t('contact_table.status')}
                                     </th>
                                     <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                                        Actions
+                                        {t('contact_table.actions')}
                                     </th>
                                 </tr>
                             </thead>
@@ -458,32 +474,36 @@ const ContactTable = ({
                                             </div>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
-                                            <div className="text-sm text-gray-900">{contact.position || '-'}</div>
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap">
-                                            <div className="text-sm text-gray-900 truncate max-w-xs">
-                                                {contact.email || 'No email'}
+                                            <div className="text-sm text-gray-900">
+                                                {contact.position || '-'}
                                             </div>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
-                                            <div className="text-sm text-gray-900">{contact.phone || 'No phone'}</div>
+                                            <div className="text-sm text-gray-900 truncate max-w-xs">
+                                                {contact.email || t('contact_table.no_email')}
+                                            </div>
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap">
+                                            <div className="text-sm text-gray-900">
+                                                {contact.phone || t('contact_table.no_phone')}
+                                            </div>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
                                             <div className="flex flex-wrap gap-2">
                                                 {contact.is_primary ? (
                                                     <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
                                                         <Check className="w-3 h-3 mr-1" />
-                                                        Primary
+                                                        {t('contact_table.primary')}
                                                     </span>
                                                 ) : (
                                                     <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-                                                        Secondary
+                                                        {t('contact_table.secondary')}
                                                     </span>
                                                 )}
                                                 {contact.is_active === false && (
                                                     <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
                                                         <X className="w-3 h-3 mr-1" />
-                                                        Inactive
+                                                        {t('contact_table.inactive')}
                                                     </span>
                                                 )}
                                             </div>
@@ -495,7 +515,7 @@ const ContactTable = ({
                                                     className={`p-1.5 rounded-lg ${contact.is_primary 
                                                         ? 'bg-yellow-100 text-yellow-600 hover:bg-yellow-200' 
                                                         : 'bg-gray-100 text-gray-400 hover:bg-gray-200'}`}
-                                                    title={contact.is_primary ? 'Primary Contact' : 'Set as Primary'}
+                                                    title={contact.is_primary ? t('contact_table.primary_contact') : t('contact_table.set_as_primary')}
                                                     disabled={isLoading}
                                                 >
                                                     <Star className="w-4 h-4" />
@@ -503,7 +523,7 @@ const ContactTable = ({
                                                 <button 
                                                     onClick={() => handleEdit(contact)}
                                                     className="p-1.5 bg-blue-100 text-blue-600 rounded-lg hover:bg-blue-200"
-                                                    title="Edit Contact"
+                                                    title={t('contact_table.edit_contact')}
                                                     disabled={isLoading}
                                                 >
                                                     <Edit2 className="w-4 h-4" />
@@ -511,7 +531,7 @@ const ContactTable = ({
                                                 <button 
                                                     onClick={() => handleDelete(contact.id)}
                                                     className="p-1.5 bg-red-100 text-red-600 rounded-lg hover:bg-red-200"
-                                                    title="Delete Contact"
+                                                    title={t('contact_table.delete_contact')}
                                                     disabled={isLoading}
                                                 >
                                                     <Trash2 className="w-4 h-4" />
@@ -519,14 +539,14 @@ const ContactTable = ({
                                                 <div className="flex space-x-1">
                                                     <button 
                                                         className="p-1.5 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-lg transition-colors"
-                                                        title="Send Email"
+                                                        title={t('contact_table.send_email')}
                                                         onClick={() => window.location.href = `mailto:${contact.email}`}
                                                     >
                                                         <Mail className="w-4 h-4" />
                                                     </button>
                                                     <button 
                                                         className="p-1.5 text-green-600 hover:text-green-800 hover:bg-green-50 rounded-lg transition-colors"
-                                                        title="Make Call"
+                                                        title={t('contact_table.make_call')}
                                                         onClick={() => window.location.href = `tel:${contact.phone}`}
                                                     >
                                                         <Phone className="w-4 h-4" />
@@ -573,8 +593,12 @@ const ContactTable = ({
             {/* Header */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-8 gap-4">
                 <div>
-                    <h2 className="text-2xl font-bold text-gray-900">Contact Persons</h2>
-                    <p className="text-gray-600 mt-1">Manage contact persons for this company</p>
+                    <h2 className="text-2xl font-bold text-gray-900">
+                        {t('contact_table.contact_persons')}
+                    </h2>
+                    <p className="text-gray-600 mt-1">
+                        {t('contact_table.manage_contacts_description')}
+                    </p>
                 </div>
                 
                 {/* Controls */}
@@ -582,7 +606,9 @@ const ContactTable = ({
                     {/* View Toggle */}
                     {contacts.length > 0 && (
                         <div className="flex items-center space-x-2">
-                            <span className="text-sm text-gray-600 hidden sm:block">View:</span>
+                            <span className="text-sm text-gray-600 hidden sm:block">
+                                {t('contact_table.view')}:
+                            </span>
                             <div className="flex bg-gray-100 p-1 rounded-lg">
                                 <button 
                                     onClick={() => setViewMode('grid')}
@@ -591,7 +617,7 @@ const ContactTable = ({
                                         : 'text-gray-600 hover:text-gray-900'}`}
                                     disabled={isLoading}
                                 >
-                                    Grid
+                                    {t('contact_table.grid_view')}
                                 </button>
                                 <button 
                                     onClick={() => setViewMode('list')}
@@ -600,7 +626,7 @@ const ContactTable = ({
                                         : 'text-gray-600 hover:text-gray-900'}`}
                                     disabled={isLoading}
                                 >
-                                    List
+                                    {t('contact_table.list_view')}
                                 </button>
                             </div>
                         </div>
@@ -615,12 +641,12 @@ const ContactTable = ({
                         {isLoading ? (
                             <>
                                 <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                                <span>Adding...</span>
+                                <span>{t('contact_table.adding')}</span>
                             </>
                         ) : (
                             <>
                                 <Plus className="w-5 h-5" />
-                                <span>Add Contact</span>
+                                <span>{t('contact_table.add_contact')}</span>
                             </>
                         )}
                     </button>
@@ -631,7 +657,9 @@ const ContactTable = ({
             {propsLoading && contacts.length === 0 ? (
                 <div className="flex flex-col justify-center items-center py-16">
                     <div className="animate-spin rounded-full h-14 w-14 border-b-2 border-teal-600 mb-4"></div>
-                    <span className="text-gray-600">Loading contacts...</span>
+                    <span className="text-gray-600">
+                        {t('contact_table.loading_contacts')}
+                    </span>
                 </div>
             ) : (
                 <>
@@ -650,17 +678,23 @@ const ContactTable = ({
                         <div className="mt-8 pt-8 border-t border-gray-200">
                             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                                 <div className="bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200 p-5 rounded-xl">
-                                    <p className="text-sm font-medium text-blue-700 mb-2">Total Contacts</p>
+                                    <p className="text-sm font-medium text-blue-700 mb-2">
+                                        {t('contact_table.total_contacts')}
+                                    </p>
                                     <p className="text-3xl font-bold text-blue-900">{contacts.length}</p>
                                 </div>
                                 <div className="bg-gradient-to-br from-green-50 to-green-100 border border-green-200 p-5 rounded-xl">
-                                    <p className="text-sm font-medium text-green-700 mb-2">Primary Contacts</p>
+                                    <p className="text-sm font-medium text-green-700 mb-2">
+                                        {t('contact_table.primary_contacts')}
+                                    </p>
                                     <p className="text-3xl font-bold text-green-900">
                                         {contacts.filter(c => c.is_primary).length}
                                     </p>
                                 </div>
                                 <div className="bg-gradient-to-br from-purple-50 to-purple-100 border border-purple-200 p-5 rounded-xl">
-                                    <p className="text-sm font-medium text-purple-700 mb-2">Active Contacts</p>
+                                    <p className="text-sm font-medium text-purple-700 mb-2">
+                                        {t('contact_table.active_contacts')}
+                                    </p>
                                     <p className="text-3xl font-bold text-purple-900">
                                         {contacts.filter(c => c.is_active !== false).length}
                                     </p>

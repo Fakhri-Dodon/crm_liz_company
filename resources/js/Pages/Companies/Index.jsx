@@ -1,6 +1,7 @@
 // resources/js/Pages/Companies/Index.jsx
 import React, { useState, useEffect, useCallback } from 'react';
 import { Head, Link, usePage, router } from '@inertiajs/react';
+import { useTranslation } from 'react-i18next';
 import HeaderLayout from '@/Layouts/HeaderLayout';
 import CompaniesTable from '@/Components/Companies/CompaniesTable';
 import Create from '@/Components/Companies/Create';
@@ -29,6 +30,7 @@ import {
 
 const CompaniesIndex = () => {
     const { companies, statistics, types, filters, fromQuotation, quotationId } = usePage().props;
+    const { t } = useTranslation();
     
     const [search, setSearch] = useState(filters.search || '');
     const [selectedType, setSelectedType] = useState(filters.client_type_id || '');
@@ -149,10 +151,10 @@ const CompaniesIndex = () => {
             const data = await response.json();
 
             if (!response.ok) {
-                throw new Error(data.message || 'Failed to delete');
+                throw new Error(data.message || t('companies.delete_failed'));
             }
 
-            alert(data.message || 'Client deleted successfully!');
+            alert(data.message || t('companies.client_deleted_successfully'));
             setIsDeleteModalOpen(false);
             setSelectedCompany(null);
             
@@ -162,7 +164,7 @@ const CompaniesIndex = () => {
             });
         } catch (error) {
             console.error('Delete error:', error);
-            alert('Failed to delete client. Please try again.');
+            alert(t('companies.delete_failed_try_again'));
         }
     };
 
@@ -223,17 +225,20 @@ const CompaniesIndex = () => {
 
     // Function to export data
     const handleExport = () => {
-        alert('Export feature will be implemented soon!');
+        alert(t('companies.export_feature_coming_soon'));
     };
 
     // Function to handle bulk actions
     const handleBulkAction = (action) => {
         if (selectedCompanies.length === 0) {
-            alert('Please select companies first');
+            alert(t('companies.please_select_companies_first'));
             return;
         }
         
-        alert(`Bulk ${action} for ${selectedCompanies.length} companies will be implemented soon!`);
+        alert(t('companies.bulk_action_coming_soon', { 
+            action: action, 
+            count: selectedCompanies.length 
+        }));
     };
 
     // Handle company selection for bulk actions
@@ -263,8 +268,7 @@ const CompaniesIndex = () => {
             ...companies,
             data: companies.data.map(company => ({
                 ...company,
-                client_type_name: company.client_type?.name || 'Unknown',
-                // Pastikan properti yang diperlukan ada
+                client_type_name: company.client_type?.name || t('companies.unknown'),
                 name: company.name || '',
                 client_code: company.client_code || '',
                 contact_person: company.contact_person || '',
@@ -284,14 +288,18 @@ const CompaniesIndex = () => {
     return (
         <HeaderLayout>
             <div className="px-4 md:px-8 py-4 md:py-6">
-                <Head title="CLIENT MANAGEMENT" />
+                <Head title={t('companies.title')} />
 
                 <div className="space-y-4 md:space-y-6 pb-16 md:pb-0">
                     {/* Header Section */}
                     <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                         <div>
-                            <h1 className="text-2xl md:text-3xl font-bold text-gray-900">CLIENT MANAGEMENT</h1>
-                            <p className="text-sm md:text-base text-gray-600 mt-1">Manage your client portfolio</p>
+                            <h1 className="text-2xl md:text-3xl font-bold text-gray-900">
+                                {t('companies.title')}
+                            </h1>
+                            <p className="text-sm md:text-base text-gray-600 mt-1">
+                                {t('companies.manage_your_client_portfolio')}
+                            </p>
                         </div>
                         
                         {/* Quotation Notification Banner */}
@@ -301,14 +309,14 @@ const CompaniesIndex = () => {
                                     <div className="flex items-center gap-2">
                                         <FileText className="w-5 h-5 text-blue-600" />
                                         <span className="text-sm font-medium text-blue-900">
-                                            Creating client from accepted quotation
+                                            {t('companies.creating_client_from_accepted_quotation')}
                                         </span>
                                     </div>
                                     <button
                                         onClick={() => router.get('/companies')}
                                         className="text-blue-600 hover:text-blue-800 text-sm font-medium"
                                     >
-                                        Skip
+                                        {t('companies.skip')}
                                     </button>
                                 </div>
                             </div>
@@ -320,7 +328,9 @@ const CompaniesIndex = () => {
                                 className="w-full sm:w-auto flex items-center justify-center gap-2 bg-teal-700 hover:bg-teal-800 text-white px-4 md:px-6 py-2.5 md:py-3 rounded-lg font-medium transition-colors shadow-md"
                             >
                                 <Plus className="w-4 h-4 md:w-5 md:h-5" />
-                                <span className="text-sm md:text-base">Add New Client</span>
+                                <span className="text-sm md:text-base">
+                                    {t('companies.add_new_client')}
+                                </span>
                             </button>
                             
                             <button 
@@ -328,7 +338,9 @@ const CompaniesIndex = () => {
                                 className="w-full sm:w-auto flex items-center justify-center gap-2 bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 px-4 md:px-6 py-2.5 md:py-3 rounded-lg font-medium transition-colors"
                             >
                                 <Download className="w-4 h-4 md:w-5 md:h-5" />
-                                <span className="text-sm md:text-base">Export</span>
+                                <span className="text-sm md:text-base">
+                                    {t('companies.export')}
+                                </span>
                             </button>
                         </div>
                     </div>
@@ -375,10 +387,10 @@ const CompaniesIndex = () => {
                             <div className="flex justify-between items-start">
                                 <div>
                                     <h3 className="text-base md:text-lg font-semibold text-gray-900">
-                                        Total Clients
+                                        {t('companies.total_clients')}
                                     </h3>
                                     <p className="text-xs md:text-sm text-gray-500 mt-1">
-                                        All registered companies
+                                        {t('companies.all_registered_companies')}
                                     </p>
                                 </div>
                                 <Users className="w-8 h-8 md:w-10 md:h-10 text-teal-600" />
@@ -390,12 +402,12 @@ const CompaniesIndex = () => {
                                 <div className="flex items-center gap-2 mt-1">
                                     <span className="text-xs md:text-sm text-green-600 flex items-center gap-1">
                                         <CheckCircle className="w-3 h-3 md:w-4 md:h-4" />
-                                        {statistics.active || 0} active
+                                        {statistics.active || 0} {t('companies.active')}
                                     </span>
                                     <span className="text-xs md:text-sm text-gray-600">•</span>
                                     <span className="text-xs md:text-sm text-red-600 flex items-center gap-1">
                                         <XCircle className="w-3 h-3 md:w-4 md:h-4" />
-                                        {statistics.inactive || 0} inactive
+                                        {statistics.inactive || 0} {t('companies.inactive')}
                                     </span>
                                 </div>
                             </div>
@@ -415,7 +427,7 @@ const CompaniesIndex = () => {
                                                 {typeData.name}
                                             </h3>
                                             <p className="text-xs md:text-sm text-gray-500 mt-1 line-clamp-1">
-                                                {typeData.label || `${typeData.name} Companies`}
+                                                {typeData.label || t('companies.type_companies', { type: typeData.name })}
                                             </p>
                                         </div>
                                         <span className={`text-xl md:text-2xl font-bold ${colors.color}`}>
@@ -431,7 +443,10 @@ const CompaniesIndex = () => {
                                                     : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100 px-3 py-1 rounded-full'
                                             } transition w-full text-center`}
                                         >
-                                            {selectedType === typeData.id ? '✓ Filter Applied' : 'View Clients'}
+                                            {selectedType === typeData.id 
+                                                ? t('companies.filter_applied') 
+                                                : t('companies.view_clients')
+                                            }
                                         </button>
                                     </div>
                                 </div>
@@ -447,7 +462,7 @@ const CompaniesIndex = () => {
                                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4 md:w-5 md:h-5" />
                                 <input
                                     type="text"
-                                    placeholder="Search clients by name, email, phone, or company..."
+                                    placeholder={t('companies.search_clients_placeholder')}
                                     value={search}
                                     onChange={(e) => setSearch(e.target.value)}
                                     className="w-full pl-10 pr-4 py-2 md:py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-sm md:text-base"
@@ -462,7 +477,7 @@ const CompaniesIndex = () => {
                                         onChange={(e) => handleTypeFilter(e.target.value)}
                                         className="px-3 md:px-4 py-2 md:py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-sm md:text-base min-w-[200px]"
                                     >
-                                        <option value="">All Client Types</option>
+                                        <option value="">{t('companies.all_client_types')}</option>
                                         {types.map(type => (
                                             <option key={type.id} value={type.id}>{type.name}</option>
                                         ))}
@@ -474,7 +489,7 @@ const CompaniesIndex = () => {
                                             className="px-3 md:px-4 py-2 md:py-2.5 text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-lg border border-gray-300 text-sm md:text-base flex items-center gap-2"
                                         >
                                             <X className="w-4 h-4" />
-                                            Clear Filters
+                                            {t('companies.clear_filters')}
                                         </button>
                                     )}
                                 </div>
@@ -483,23 +498,23 @@ const CompaniesIndex = () => {
                                 {selectedCompanies.length > 0 && (
                                     <div className="flex items-center gap-2">
                                         <span className="text-sm text-gray-600">
-                                            {selectedCompanies.length} selected
+                                            {selectedCompanies.length} {t('companies.selected')}
                                         </span>
                                         <select
                                             onChange={(e) => handleBulkAction(e.target.value)}
                                             className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-sm"
                                         >
-                                            <option value="">Bulk Actions</option>
-                                            <option value="export">Export Selected</option>
-                                            <option value="activate">Mark as Active</option>
-                                            <option value="deactivate">Mark as Inactive</option>
-                                            <option value="delete">Delete Selected</option>
+                                            <option value="">{t('companies.bulk_actions')}</option>
+                                            <option value="export">{t('companies.export_selected')}</option>
+                                            <option value="activate">{t('companies.mark_as_active')}</option>
+                                            <option value="deactivate">{t('companies.mark_as_inactive')}</option>
+                                            <option value="delete">{t('companies.delete_selected')}</option>
                                         </select>
                                         <button
                                             onClick={() => setSelectedCompanies([])}
                                             className="px-3 py-2 text-sm text-gray-600 hover:text-gray-900"
                                         >
-                                            Clear
+                                            {t('companies.clear')}
                                         </button>
                                     </div>
                                 )}
@@ -511,10 +526,13 @@ const CompaniesIndex = () => {
                                 className="md:hidden flex items-center justify-center gap-2 px-4 py-2.5 border border-gray-300 rounded-lg hover:bg-gray-50 text-sm font-medium"
                             >
                                 <Filter className="w-4 h-4" />
-                                Filters
+                                {t('companies.filters')}
                                 {(search || selectedType || selectedCompanies.length > 0) && (
                                     <span className="bg-teal-100 text-teal-800 text-xs px-2 py-0.5 rounded-full">
-                                        {selectedCompanies.length > 0 ? selectedCompanies.length + ' selected' : 'Active'}
+                                        {selectedCompanies.length > 0 
+                                            ? `${selectedCompanies.length} ${t('companies.selected_lower')}`
+                                            : t('companies.active_lower')
+                                        }
                                     </span>
                                 )}
                             </button>
@@ -523,7 +541,7 @@ const CompaniesIndex = () => {
                             {showMobileFilters && (
                                 <div className="md:hidden bg-gray-50 border border-gray-200 rounded-lg p-4 space-y-3">
                                     <div className="flex justify-between items-center">
-                                        <h3 className="font-medium text-gray-900">Filters & Actions</h3>
+                                        <h3 className="font-medium text-gray-900">{t('companies.filters_actions')}</h3>
                                         <button
                                             onClick={() => setShowMobileFilters(false)}
                                             className="p-1 hover:bg-gray-200 rounded"
@@ -535,7 +553,7 @@ const CompaniesIndex = () => {
                                     <div className="space-y-3">
                                         <div>
                                             <label className="block text-sm font-medium text-gray-700 mb-1">
-                                                Client Type
+                                                {t('companies.client_type')}
                                             </label>
                                             <div className="grid grid-cols-2 gap-2">
                                                 <button
@@ -546,7 +564,7 @@ const CompaniesIndex = () => {
                                                             : 'border-gray-300 hover:bg-gray-50'
                                                     }`}
                                                 >
-                                                    All Types
+                                                    {t('companies.all_types')}
                                                 </button>
                                                 {types.map(type => (
                                                     <button
@@ -568,23 +586,23 @@ const CompaniesIndex = () => {
                                         {selectedCompanies.length > 0 && (
                                             <div className="border-t pt-3">
                                                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                                                    Bulk Actions ({selectedCompanies.length} selected)
+                                                    {t('companies.bulk_actions_with_count', { count: selectedCompanies.length })}
                                                 </label>
                                                 <select
                                                     onChange={(e) => handleBulkAction(e.target.value)}
                                                     className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm mb-2"
                                                 >
-                                                    <option value="">Select Action</option>
-                                                    <option value="export">Export Selected</option>
-                                                    <option value="activate">Mark as Active</option>
-                                                    <option value="deactivate">Mark as Inactive</option>
-                                                    <option value="delete">Delete Selected</option>
+                                                    <option value="">{t('companies.select_action')}</option>
+                                                    <option value="export">{t('companies.export_selected')}</option>
+                                                    <option value="activate">{t('companies.mark_as_active')}</option>
+                                                    <option value="deactivate">{t('companies.mark_as_inactive')}</option>
+                                                    <option value="delete">{t('companies.delete_selected')}</option>
                                                 </select>
                                                 <button
                                                     onClick={() => setSelectedCompanies([])}
                                                     className="w-full px-3 py-2 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg border"
                                                 >
-                                                    Clear Selection
+                                                    {t('companies.clear_selection')}
                                                 </button>
                                             </div>
                                         )}
@@ -595,7 +613,7 @@ const CompaniesIndex = () => {
                                                 className="w-full px-4 py-2.5 bg-red-50 text-red-700 rounded-lg border border-red-200 text-sm font-medium hover:bg-red-100 flex items-center justify-center gap-2"
                                             >
                                                 <X className="w-4 h-4" />
-                                                Clear All Filters
+                                                {t('companies.clear_all_filters')}
                                             </button>
                                         )}
                                     </div>
@@ -609,14 +627,20 @@ const CompaniesIndex = () => {
                         <div className="p-4 border-b border-gray-200">
                             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                                 <div>
-                                    <h2 className="text-lg font-semibold text-gray-900">Client List</h2>
+                                    <h2 className="text-lg font-semibold text-gray-900">
+                                        {t('companies.client_list')}
+                                    </h2>
                                     <p className="text-sm text-gray-600 mt-1">
-                                        {companies.total} total clients • {statistics.active} active • {statistics.inactive} inactive
+                                        {companies.total} {t('companies.total_clients_lower')} • {statistics.active} {t('companies.active_lower')} • {statistics.inactive} {t('companies.inactive_lower')}
                                     </p>
                                 </div>
                                 <div className="flex items-center gap-3">
                                     <div className="text-sm text-gray-600">
-                                        Showing {companies.from || 0} to {companies.to || 0} of {companies.total || 0} results
+                                        {t('companies.showing_results', { 
+                                            from: companies.from || 0, 
+                                            to: companies.to || 0, 
+                                            total: companies.total || 0 
+                                        })}
                                     </div>
                                 </div>
                             </div>
@@ -645,29 +669,33 @@ const CompaniesIndex = () => {
 
                     {/* Quick Summary */}
                     <div className="bg-white rounded-lg shadow-sm p-3 md:p-6">
-                        <h3 className="text-base md:text-lg font-semibold text-gray-900 mb-3 md:mb-4">Quick Summary</h3>
+                        <h3 className="text-base md:text-lg font-semibold text-gray-900 mb-3 md:mb-4">
+                            {t('companies.quick_summary')}
+                        </h3>
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-4">
                             <div className="text-center p-2 md:p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
                                 <div className="text-lg md:text-2xl font-bold text-gray-900">{statistics.total || 0}</div>
-                                <div className="text-xs md:text-sm text-gray-600">Total Clients</div>
+                                <div className="text-xs md:text-sm text-gray-600">{t('companies.total_clients')}</div>
                             </div>
                             <div className="text-center p-2 md:p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
                                 <div className="text-lg md:text-2xl font-bold text-green-600">{statistics.active || 0}</div>
-                                <div className="text-xs md:text-sm text-gray-600">Active</div>
+                                <div className="text-xs md:text-sm text-gray-600">{t('companies.active')}</div>
                             </div>
                             <div className="text-center p-2 md:p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
                                 <div className="text-lg md:text-2xl font-bold text-red-600">{statistics.inactive || 0}</div>
-                                <div className="text-xs md:text-sm text-gray-600">Inactive</div>
+                                <div className="text-xs md:text-sm text-gray-600">{t('companies.inactive')}</div>
                             </div>
                             <div className="text-center p-2 md:p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
                                 <div className="text-lg md:text-2xl font-bold text-teal-600">{companies.data?.length || 0}</div>
-                                <div className="text-xs md:text-sm text-gray-600">Currently Displayed</div>
+                                <div className="text-xs md:text-sm text-gray-600">{t('companies.currently_displayed')}</div>
                             </div>
                         </div>
                         
                         {/* Additional Stats */}
                         <div className="mt-4 md:mt-6 pt-4 md:pt-6 border-t border-gray-200">
-                            <h4 className="text-sm md:text-base font-medium text-gray-900 mb-2 md:mb-3">Client Distribution</h4>
+                            <h4 className="text-sm md:text-base font-medium text-gray-900 mb-2 md:mb-3">
+                                {t('companies.client_distribution')}
+                            </h4>
                             <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-4">
                                 {statistics.client_types?.map((type) => {
                                     const colors = getTypeColor(type.name);
@@ -701,17 +729,17 @@ const CompaniesIndex = () => {
                     <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 md:p-6">
                         <h3 className="text-base md:text-lg font-semibold text-blue-900 mb-2 flex items-center gap-2">
                             <FileText className="w-5 h-5" />
-                            Need Help?
+                            {t('companies.need_help')}
                         </h3>
                         <p className="text-sm text-blue-800 mb-3">
-                            Tips for managing your clients effectively:
+                            {t('companies.tips_for_managing_clients')}
                         </p>
                         <ul className="text-sm text-blue-700 space-y-1 list-disc pl-5">
-                            <li>Use the search bar to quickly find specific clients</li>
-                            <li>Filter by client type to organize your portfolio</li>
-                            <li>Click on any client to view detailed information</li>
-                            <li>Use the "Add New Client" button to expand your client base</li>
-                            <li>Select multiple clients for bulk actions</li>
+                            <li>{t('companies.tip_use_search_bar')}</li>
+                            <li>{t('companies.tip_filter_by_type')}</li>
+                            <li>{t('companies.tip_click_client_details')}</li>
+                            <li>{t('companies.tip_add_new_client')}</li>
+                            <li>{t('companies.tip_select_multiple_clients')}</li>
                         </ul>
                     </div>
                 </div>
@@ -721,15 +749,15 @@ const CompaniesIndex = () => {
                     <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-lg p-3 z-40 md:hidden">
                         <div className="flex items-center justify-between">
                             <div className="text-xs text-gray-600">
-                                <div className="font-medium">{companies.total || 0} clients</div>
+                                <div className="font-medium">{companies.total || 0} {t('companies.clients_lower')}</div>
                                 <div className="flex items-center gap-2 mt-1">
                                     <span className="flex items-center gap-1">
                                         <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                                        <span>{statistics.active || 0} active</span>
+                                        <span>{statistics.active || 0} {t('companies.active_lower')}</span>
                                     </span>
                                     <span className="flex items-center gap-1">
                                         <div className="w-2 h-2 bg-red-500 rounded-full"></div>
-                                        <span>{statistics.inactive || 0} inactive</span>
+                                        <span>{statistics.inactive || 0} {t('companies.inactive_lower')}</span>
                                     </span>
                                 </div>
                             </div>
@@ -738,7 +766,7 @@ const CompaniesIndex = () => {
                                 className="flex items-center justify-center gap-2 bg-teal-700 hover:bg-teal-800 text-white px-4 py-3 rounded-lg font-medium transition-colors shadow-md"
                             >
                                 <Plus className="w-5 h-5" />
-                                Add Client
+                                {t('companies.add_client')}
                             </button>
                         </div>
                     </div>

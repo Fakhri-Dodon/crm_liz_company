@@ -1,3 +1,4 @@
+// resources/js/Components/Companies/EditModal.jsx
 import React, { useState, useEffect } from 'react';
 import { 
     X, Upload, Building, User, Mail, Phone, MapPin, 
@@ -6,9 +7,12 @@ import {
 } from 'lucide-react';
 import { router } from '@inertiajs/react';
 import axios from 'axios';
+import { useTranslation } from 'react-i18next'; // Import useTranslation
 
 const EditModal = ({ isOpen, onClose, company, clientTypes, onUpdate }) => {
-    // **UPDATE**: Tambahkan field untuk contact person
+    const { t } = useTranslation(); // Initialize translation hook
+    
+    // State untuk menyimpan data form
     const [formData, setFormData] = useState({
         // Company fields
         company_name: '', // Akan disimpan sebagai client_code
@@ -25,7 +29,7 @@ const EditModal = ({ isOpen, onClose, company, clientTypes, onUpdate }) => {
         logo_preview: '',
         delete_logo: false,
         
-        // Contact Person fields - **BARU**
+        // Contact Person fields
         contact_person: '',
         contact_email: '',
         contact_phone: '',
@@ -59,7 +63,7 @@ const EditModal = ({ isOpen, onClose, company, clientTypes, onUpdate }) => {
             // Cari client type yang sesuai dengan company
             const matchingClientType = clientTypes.find(type => type.id === company.client_type_id);
             
-            // **PERBAIKAN**: Load contact person data
+            // Load contact person data
             loadContactPersonData(company.id);
             
             // Data initial untuk company
@@ -197,142 +201,142 @@ const EditModal = ({ isOpen, onClose, company, clientTypes, onUpdate }) => {
         setLogoFile(null);
     };
 
-const handleSubmit = async (e) => {
-    e.preventDefault();
-    setIsSubmitting(true);
-    setErrors({});
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        setIsSubmitting(true);
+        setErrors({});
 
-    try {
-        // Prepare data untuk update
-        const requestData = {
-            // Company data
-            company_name: formData.company_name || '',
-            client_type_id: formData.client_type_id || '',
-            status: formData.status || 'active',
-            city: formData.city || '',
-            province: formData.province || '',
-            country: formData.country || '',
-            postal_code: formData.postal_code ? parseInt(formData.postal_code) || null : null,
-            vat_number: formData.vat_number ? parseInt(formData.vat_number) || null : null,
-            nib: formData.nib || '',
-            website: formData.website || '',
+        try {
+            // Prepare data untuk update
+            const requestData = {
+                // Company data
+                company_name: formData.company_name || '',
+                client_type_id: formData.client_type_id || '',
+                status: formData.status || 'active',
+                city: formData.city || '',
+                province: formData.province || '',
+                country: formData.country || '',
+                postal_code: formData.postal_code ? parseInt(formData.postal_code) || null : null,
+                vat_number: formData.vat_number ? parseInt(formData.vat_number) || null : null,
+                nib: formData.nib || '',
+                website: formData.website || '',
+                
+                // Contact person data
+                contact_person: formData.contact_person || '',
+                contact_email: formData.contact_email || '',
+                contact_phone: formData.contact_phone || '',
+                contact_position: formData.contact_position || '',
+                
+                // Konversi delete_logo ke boolean
+                delete_logo: formData.delete_logo ? '1' : '0'
+            };
+
+            console.log('=== SENDING UPDATE DATA ===');
+            console.log('Request data:', requestData);
+            console.log('Company ID:', company.id);
+            console.log('URL:', `/companies/${company.id}`);
+
+            // Create FormData untuk handle file upload
+            const formDataToSend = new FormData();
             
-            // Contact person data
-            contact_person: formData.contact_person || '',
-            contact_email: formData.contact_email || '',
-            contact_phone: formData.contact_phone || '',
-            contact_position: formData.contact_position || '',
-            
-            // **PERBAIKAN: Konversi delete_logo ke boolean**
-            delete_logo: formData.delete_logo ? '1' : '0' // Kirim sebagai string '1' atau '0'
-        };
-
-        console.log('=== SENDING UPDATE DATA ===');
-        console.log('Request data:', requestData);
-        console.log('Company ID:', company.id);
-        console.log('URL:', `/companies/${company.id}`);
-
-        // Create FormData untuk handle file upload
-        const formDataToSend = new FormData();
-        
-        // Append semua field
-        Object.keys(requestData).forEach(key => {
-            if (requestData[key] !== null && requestData[key] !== undefined) {
-                // **PERBAIKAN: Untuk boolean, konversi ke string '1' atau '0'**
-                if (key === 'delete_logo') {
-                    formDataToSend.append(key, requestData[key]); // '1' atau '0'
-                } else {
-                    formDataToSend.append(key, requestData[key]);
+            // Append semua field
+            Object.keys(requestData).forEach(key => {
+                if (requestData[key] !== null && requestData[key] !== undefined) {
+                    // Untuk boolean, konversi ke string '1' atau '0'
+                    if (key === 'delete_logo') {
+                        formDataToSend.append(key, requestData[key]); // '1' atau '0'
+                    } else {
+                        formDataToSend.append(key, requestData[key]);
+                    }
                 }
-            }
-        });
-        
-        // Append logo file jika ada
-        if (formData.logo) {
-            formDataToSend.append('logo', formData.logo);
-            console.log('Logo file appended:', formData.logo.name);
-        }
-
-        console.log('FormData entries:');
-        for (let pair of formDataToSend.entries()) {
-            console.log(pair[0] + ': ' + pair[1]);
-        }
-
-        // Kirim request
-        const response = await axios.post(`/companies/${company.id}`, formDataToSend, {
-            headers: {
-                'Content-Type': 'multipart/form-data',
-                'Accept': 'application/json',
-            },
-            params: {
-                '_method': 'PUT' // Untuk Laravel PUT method via POST
-            }
-        });
-
-        console.log('Server response:', response.data);
-
-        if (response.data.success) {
-            alert(response.data.message || 'Client updated successfully!');
-            
-            // Clean up blob URL jika ada
-            if (formData.logo_preview && formData.logo_preview.startsWith('blob:')) {
-                URL.revokeObjectURL(formData.logo_preview);
-            }
-            
-            // Call onUpdate callback
-            if (onUpdate) {
-                onUpdate(response.data.data || company.id);
-            }
-            
-            // Refresh data
-            router.reload({
-                only: ['companies', 'statistics'],
-                preserveScroll: true,
             });
             
-            onClose();
-        } else {
-            console.error('Update failed:', response.data);
-            setErrors(response.data.errors || {});
-            alert(response.data.message || 'Failed to update client');
-        }
-    } catch (error) {
-        console.error('Error updating client:', error);
-        console.error('Error details:', {
-            status: error.response?.status,
-            data: error.response?.data,
-            message: error.message
-        });
-        
-        if (error.response?.status === 422) {
-            const validationErrors = error.response.data.errors || {};
-            setErrors(validationErrors);
-            
-            console.log('Validation errors:', validationErrors);
-            
-            // Format validation errors untuk alert
-            const errorMessages = Object.entries(validationErrors)
-                .map(([field, messages]) => {
-                    if (Array.isArray(messages)) {
-                        return `${field}: ${messages.join(', ')}`;
-                    }
-                    return `${field}: ${messages}`;
-                });
-            
-            if (errorMessages.length > 0) {
-                alert(`Validation errors:\n${errorMessages.join('\n')}`);
-            } else {
-                alert('Please check the form for errors.');
+            // Append logo file jika ada
+            if (formData.logo) {
+                formDataToSend.append('logo', formData.logo);
+                console.log('Logo file appended:', formData.logo.name);
             }
-        } else {
-            const errorMsg = error.response?.data?.message || error.message || 'An error occurred';
-            setErrors(prev => ({ ...prev, submit: errorMsg }));
-            alert(`Error updating client: ${errorMsg}`);
+
+            console.log('FormData entries:');
+            for (let pair of formDataToSend.entries()) {
+                console.log(pair[0] + ': ' + pair[1]);
+            }
+
+            // Kirim request
+            const response = await axios.post(`/companies/${company.id}`, formDataToSend, {
+                headers: {
+                    'Content-Type': 'multipart/form-data',
+                    'Accept': 'application/json',
+                },
+                params: {
+                    '_method': 'PUT' // Untuk Laravel PUT method via POST
+                }
+            });
+
+            console.log('Server response:', response.data);
+
+            if (response.data.success) {
+                alert(response.data.message || t('companies_edit.client_updated_successfully'));
+                
+                // Clean up blob URL jika ada
+                if (formData.logo_preview && formData.logo_preview.startsWith('blob:')) {
+                    URL.revokeObjectURL(formData.logo_preview);
+                }
+                
+                // Call onUpdate callback
+                if (onUpdate) {
+                    onUpdate(response.data.data || company.id);
+                }
+                
+                // Refresh data
+                router.reload({
+                    only: ['companies', 'statistics'],
+                    preserveScroll: true,
+                });
+                
+                onClose();
+            } else {
+                console.error('Update failed:', response.data);
+                setErrors(response.data.errors || {});
+                alert(response.data.message || t('companies_edit.failed_to_update_client'));
+            }
+        } catch (error) {
+            console.error('Error updating client:', error);
+            console.error('Error details:', {
+                status: error.response?.status,
+                data: error.response?.data,
+                message: error.message
+            });
+            
+            if (error.response?.status === 422) {
+                const validationErrors = error.response.data.errors || {};
+                setErrors(validationErrors);
+                
+                console.log('Validation errors:', validationErrors);
+                
+                // Format validation errors untuk alert
+                const errorMessages = Object.entries(validationErrors)
+                    .map(([field, messages]) => {
+                        if (Array.isArray(messages)) {
+                            return `${field}: ${messages.join(', ')}`;
+                        }
+                        return `${field}: ${messages}`;
+                    });
+                
+                if (errorMessages.length > 0) {
+                    alert(`${t('companies_edit.validation_errors')}:\n${errorMessages.join('\n')}`);
+                } else {
+                    alert(t('companies_edit.check_form_errors'));
+                }
+            } else {
+                const errorMsg = error.response?.data?.message || error.message || t('companies_edit.error_occurred');
+                setErrors(prev => ({ ...prev, submit: errorMsg }));
+                alert(`${t('companies_edit.error_updating_client')}: ${errorMsg}`);
+            }
+        } finally {
+            setIsSubmitting(false);
         }
-    } finally {
-        setIsSubmitting(false);
-    }
-};
+    };
 
     const handleCancel = () => {
         // Clean up blob URL if exists
@@ -350,10 +354,12 @@ const handleSubmit = async (e) => {
                 {/* Header */}
                 <div className="flex justify-between items-center p-6 border-b">
                     <div>
-                        <h2 className="text-2xl font-bold text-gray-900">Edit Client</h2>
+                        <h2 className="text-2xl font-bold text-gray-900">
+                            {t('companies_edit.title')}
+                        </h2>
                         <div className="flex items-center gap-2 mt-1">
                             <p className="text-gray-600">
-                                Editing: <span className="font-medium">{company.client_code}</span>
+                                {t('companies_edit.editing')}: <span className="font-medium">{company.client_code}</span>
                             </p>
                             {company.id && (
                                 <span className="text-xs bg-gray-100 px-2 py-1 rounded text-gray-500">
@@ -364,17 +370,17 @@ const handleSubmit = async (e) => {
                         {contactLoading ? (
                             <p className="text-sm text-blue-600 mt-1 flex items-center gap-1">
                                 <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-blue-600"></div>
-                                Loading contact data...
+                                {t('companies_edit.loading_contact_data')}
                             </p>
                         ) : hasContactData ? (
                             <p className="text-sm text-green-600 mt-1 flex items-center gap-1">
                                 <Check className="w-3 h-3" />
-                                Contact data loaded
+                                {t('companies_edit.contact_data_loaded')}
                             </p>
                         ) : (
                             <p className="text-sm text-yellow-600 mt-1 flex items-center gap-1">
                                 <AlertCircle className="w-3 h-3" />
-                                No contact data found
+                                {t('companies_edit.no_contact_data')}
                             </p>
                         )}
                     </div>
@@ -397,7 +403,9 @@ const handleSubmit = async (e) => {
                                     <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
                                     <div>
                                         <p className="text-sm font-medium text-red-800">{errors.submit}</p>
-                                        <p className="text-sm text-red-600 mt-1">Please check your inputs and try again.</p>
+                                        <p className="text-sm text-red-600 mt-1">
+                                            {t('companies_edit.check_inputs_try_again')}
+                                        </p>
                                     </div>
                                 </div>
                             </div>
@@ -409,7 +417,7 @@ const handleSubmit = async (e) => {
                                 <div className="p-2 bg-blue-100 rounded-lg">
                                     <User className="w-6 h-6 text-blue-600" />
                                 </div>
-                                Contact Person Information
+                                {t('companies_edit.contact_person_information')}
                             </h3>
                             
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -417,7 +425,7 @@ const handleSubmit = async (e) => {
                                 <div>
                                     <label className="block text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
                                         <User className="w-4 h-4 text-blue-500" />
-                                        Contact Person Name *
+                                        {t('companies_edit.contact_person_name')} *
                                     </label>
                                     <input
                                         type="text"
@@ -427,7 +435,7 @@ const handleSubmit = async (e) => {
                                         className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition ${
                                             errors.contact_person ? 'border-red-300 bg-red-50' : 'border-blue-200'
                                         }`}
-                                        placeholder="Enter contact person name"
+                                        placeholder={t('companies_edit.contact_person_placeholder')}
                                         required
                                     />
                                     {errors.contact_person && (
@@ -442,7 +450,7 @@ const handleSubmit = async (e) => {
                                 <div>
                                     <label className="block text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
                                         <Briefcase className="w-4 h-4 text-blue-500" />
-                                        Position
+                                        {t('companies_edit.position')}
                                     </label>
                                     <input
                                         type="text"
@@ -450,7 +458,7 @@ const handleSubmit = async (e) => {
                                         value={formData.contact_position}
                                         onChange={handleInputChange}
                                         className="w-full px-4 py-3 border border-blue-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
-                                        placeholder="e.g., Project Manager, Director"
+                                        placeholder={t('companies_edit.position_placeholder')}
                                     />
                                 </div>
 
@@ -458,7 +466,7 @@ const handleSubmit = async (e) => {
                                 <div>
                                     <label className="block text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
                                         <Mail className="w-4 h-4 text-blue-500" />
-                                        Email Address *
+                                        {t('companies_edit.email_address')} *
                                     </label>
                                     <input
                                         type="email"
@@ -468,7 +476,7 @@ const handleSubmit = async (e) => {
                                         className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition ${
                                             errors.contact_email ? 'border-red-300 bg-red-50' : 'border-blue-200'
                                         }`}
-                                        placeholder="contact@company.com"
+                                        placeholder={t('companies_edit.email_placeholder')}
                                         required
                                     />
                                     {errors.contact_email && (
@@ -483,7 +491,7 @@ const handleSubmit = async (e) => {
                                 <div>
                                     <label className="block text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
                                         <Phone className="w-4 h-4 text-blue-500" />
-                                        Phone Number *
+                                        {t('companies_edit.phone_number')} *
                                     </label>
                                     <input
                                         type="tel"
@@ -493,7 +501,7 @@ const handleSubmit = async (e) => {
                                         className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition ${
                                             errors.contact_phone ? 'border-red-300 bg-red-50' : 'border-blue-200'
                                         }`}
-                                        placeholder="+62 812-3456-7890"
+                                        placeholder={t('companies_edit.phone_placeholder')}
                                         required
                                     />
                                     {errors.contact_phone && (
@@ -504,7 +512,7 @@ const handleSubmit = async (e) => {
                                     )}
                                     <p className="mt-2 text-xs text-gray-500 flex items-center gap-1">
                                         <Smartphone className="w-3 h-3" />
-                                        Format: +62 812-3456-7890 or 081234567890
+                                        {t('companies_edit.phone_format')}
                                     </p>
                                 </div>
                             </div>
@@ -516,14 +524,14 @@ const handleSubmit = async (e) => {
                                 <div className="p-2 bg-teal-100 rounded-lg">
                                     <Building className="w-6 h-6 text-teal-600" />
                                 </div>
-                                Company Information
+                                {t('companies_edit.company_information')}
                             </h3>
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 {/* Company Name */}
                                 <div>
                                     <label className="block text-sm font-semibold text-gray-700 mb-2">
-                                        Company Name *
+                                        {t('companies_edit.company_name')} *
                                     </label>
                                     <input
                                         type="text"
@@ -536,14 +544,14 @@ const handleSubmit = async (e) => {
                                         required
                                     />
                                     <p className="mt-2 text-xs text-gray-500">
-                                        This will be stored as the client code
+                                        {t('companies_edit.client_code_note')}
                                     </p>
                                 </div>
 
                                 {/* Client Type */}
                                 <div>
                                     <label className="block text-sm font-semibold text-gray-700 mb-2">
-                                        Client Type *
+                                        {t('companies_edit.client_type')} *
                                     </label>
                                     <select
                                         name="client_type_id"
@@ -554,7 +562,7 @@ const handleSubmit = async (e) => {
                                         }`}
                                         required
                                     >
-                                        <option value="">Select Client Type</option>
+                                        <option value="">{t('companies_edit.select_client_type')}</option>
                                         {clientTypes.map(type => (
                                             <option key={type.id} value={type.id}>
                                                 {type.name} {type.information ? `- ${type.information}` : ''}
@@ -570,12 +578,12 @@ const handleSubmit = async (e) => {
                                 <div className="md:col-span-2">
                                     <h4 className="text-lg font-semibold text-gray-800 mb-3 flex items-center gap-2">
                                         <MapPin className="w-5 h-5 text-teal-600" />
-                                        Location Information
+                                        {t('companies_edit.location_information')}
                                     </h4>
                                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                         <div>
                                             <label className="block text-sm font-medium text-gray-700 mb-1">
-                                                City
+                                                {t('companies_edit.city')}
                                             </label>
                                             <input
                                                 type="text"
@@ -583,11 +591,12 @@ const handleSubmit = async (e) => {
                                                 value={formData.city}
                                                 onChange={handleInputChange}
                                                 className="w-full px-3 py-2 border border-teal-200 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                                                placeholder={t('companies_edit.city_placeholder')}
                                             />
                                         </div>
                                         <div>
                                             <label className="block text-sm font-medium text-gray-700 mb-1">
-                                                Province
+                                                {t('companies_edit.province')}
                                             </label>
                                             <input
                                                 type="text"
@@ -595,11 +604,12 @@ const handleSubmit = async (e) => {
                                                 value={formData.province}
                                                 onChange={handleInputChange}
                                                 className="w-full px-3 py-2 border border-teal-200 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                                                placeholder={t('companies_edit.province_placeholder')}
                                             />
                                         </div>
                                         <div>
                                             <label className="block text-sm font-medium text-gray-700 mb-1">
-                                                Country
+                                                {t('companies_edit.country')}
                                             </label>
                                             <input
                                                 type="text"
@@ -607,6 +617,7 @@ const handleSubmit = async (e) => {
                                                 value={formData.country}
                                                 onChange={handleInputChange}
                                                 className="w-full px-3 py-2 border border-teal-200 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                                                placeholder={t('companies_edit.country_placeholder')}
                                             />
                                         </div>
                                     </div>
@@ -616,12 +627,12 @@ const handleSubmit = async (e) => {
                                 <div className="md:col-span-2">
                                     <h4 className="text-lg font-semibold text-gray-800 mb-3 flex items-center gap-2">
                                         <FileText className="w-5 h-5 text-teal-600" />
-                                        Business Details
+                                        {t('companies_edit.business_details')}
                                     </h4>
                                     <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                                         <div>
                                             <label className="block text-sm font-medium text-gray-700 mb-1">
-                                                Postal Code
+                                                {t('companies_edit.postal_code')}
                                             </label>
                                             <input
                                                 type="text"
@@ -629,11 +640,12 @@ const handleSubmit = async (e) => {
                                                 value={formData.postal_code}
                                                 onChange={handleInputChange}
                                                 className="w-full px-3 py-2 border border-teal-200 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                                                placeholder={t('companies_edit.postal_code_placeholder')}
                                             />
                                         </div>
                                         <div>
                                             <label className="block text-sm font-medium text-gray-700 mb-1">
-                                                VAT Number
+                                                {t('companies_edit.vat_number')}
                                             </label>
                                             <input
                                                 type="text"
@@ -641,11 +653,12 @@ const handleSubmit = async (e) => {
                                                 value={formData.vat_number}
                                                 onChange={handleInputChange}
                                                 className="w-full px-3 py-2 border border-teal-200 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                                                placeholder={t('companies_edit.vat_number_placeholder')}
                                             />
                                         </div>
                                         <div>
                                             <label className="block text-sm font-medium text-gray-700 mb-1">
-                                                NIB Number
+                                                {t('companies_edit.nib_number')}
                                             </label>
                                             <input
                                                 type="text"
@@ -653,11 +666,12 @@ const handleSubmit = async (e) => {
                                                 value={formData.nib}
                                                 onChange={handleInputChange}
                                                 className="w-full px-3 py-2 border border-teal-200 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                                                placeholder={t('companies_edit.nib_placeholder')}
                                             />
                                         </div>
                                         <div>
                                             <label className="block text-sm font-medium text-gray-700 mb-1">
-                                                Website
+                                                {t('companies_edit.website')}
                                             </label>
                                             <input
                                                 type="url"
@@ -665,7 +679,7 @@ const handleSubmit = async (e) => {
                                                 value={formData.website}
                                                 onChange={handleInputChange}
                                                 className="w-full px-3 py-2 border border-teal-200 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
-                                                placeholder="https://example.com"
+                                                placeholder={t('companies_edit.website_placeholder')}
                                             />
                                         </div>
                                     </div>
@@ -677,7 +691,9 @@ const handleSubmit = async (e) => {
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                             {/* Status */}
                             <div className="bg-white border border-gray-200 rounded-xl p-6">
-                                <h3 className="text-lg font-semibold text-gray-900 mb-4">Status</h3>
+                                <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                                    {t('companies_edit.status')}
+                                </h3>
                                 <div className="flex flex-col sm:flex-row gap-4">
                                     <label className={`flex items-center p-4 border rounded-lg cursor-pointer transition ${
                                         formData.status === 'active' 
@@ -693,8 +709,12 @@ const handleSubmit = async (e) => {
                                             className="w-5 h-5 text-green-600 focus:ring-green-500"
                                         />
                                         <div className="ml-3">
-                                            <span className="font-medium text-gray-900">Active</span>
-                                            <p className="text-sm text-gray-600 mt-1">Client is active and receiving services</p>
+                                            <span className="font-medium text-gray-900">
+                                                {t('companies_edit.active')}
+                                            </span>
+                                            <p className="text-sm text-gray-600 mt-1">
+                                                {t('companies_edit.active_description')}
+                                            </p>
                                         </div>
                                     </label>
                                     <label className={`flex items-center p-4 border rounded-lg cursor-pointer transition ${
@@ -711,8 +731,12 @@ const handleSubmit = async (e) => {
                                             className="w-5 h-5 text-gray-600 focus:ring-gray-500"
                                         />
                                         <div className="ml-3">
-                                            <span className="font-medium text-gray-900">Inactive</span>
-                                            <p className="text-sm text-gray-600 mt-1">Client is not currently active</p>
+                                            <span className="font-medium text-gray-900">
+                                                {t('companies_edit.inactive')}
+                                            </span>
+                                            <p className="text-sm text-gray-600 mt-1">
+                                                {t('companies_edit.inactive_description')}
+                                            </p>
                                         </div>
                                     </label>
                                 </div>
@@ -720,7 +744,9 @@ const handleSubmit = async (e) => {
 
                             {/* Logo */}
                             <div className="bg-white border border-gray-200 rounded-xl p-6">
-                                <h3 className="text-lg font-semibold text-gray-900 mb-4">Company Logo</h3>
+                                <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                                    {t('companies_edit.company_logo')}
+                                </h3>
                                 
                                 {formData.logo_preview ? (
                                     <div className="relative">
@@ -729,20 +755,20 @@ const handleSubmit = async (e) => {
                                                 <div className="relative mb-4">
                                                     <img 
                                                         src={formData.logo_preview} 
-                                                        alt="Logo preview" 
+                                                        alt={t('companies_edit.logo_preview')}
                                                         className="w-40 h-40 object-contain rounded-xl shadow-md"
                                                     />
                                                     <button
                                                         type="button"
                                                         onClick={handleRemoveLogo}
                                                         className="absolute -top-2 -right-2 bg-red-500 text-white p-2 rounded-full hover:bg-red-600 transition shadow-lg"
-                                                        title="Remove logo"
+                                                        title={t('companies_edit.remove_logo')}
                                                     >
                                                         <Trash2 className="w-4 h-4" />
                                                     </button>
                                                 </div>
                                                 <p className="text-sm text-gray-500 text-center">
-                                                    Current company logo
+                                                    {t('companies_edit.current_logo')}
                                                 </p>
                                             </div>
                                         </div>
@@ -760,10 +786,14 @@ const handleSubmit = async (e) => {
                                         <label htmlFor="logo-upload" className="cursor-pointer">
                                             <Upload className="w-12 h-12 text-teal-400 mx-auto mb-3" />
                                             <div className="font-medium text-teal-700 hover:text-teal-800">
-                                                Upload New Logo
+                                                {t('companies_edit.upload_new_logo')}
                                             </div>
-                                            <p className="text-sm text-gray-500 mt-2">PNG, JPG, GIF up to 2MB</p>
-                                            <p className="text-xs text-gray-400 mt-1">Recommended: 400x400px transparent PNG</p>
+                                            <p className="text-sm text-gray-500 mt-2">
+                                                {t('companies_edit.file_requirements')}
+                                            </p>
+                                            <p className="text-xs text-gray-400 mt-1">
+                                                {t('companies_edit.recommended_size')}
+                                            </p>
                                         </label>
                                     </div>
                                 )}
@@ -775,11 +805,11 @@ const handleSubmit = async (e) => {
                     <div className="bg-gradient-to-r from-gray-50 to-gray-100 px-6 py-4 border-t flex justify-between items-center">
                         <div>
                             <p className="text-sm text-gray-600">
-                                Editing client: <span className="font-semibold">{company.client_code}</span>
+                                {t('companies_edit.editing_client')}: <span className="font-semibold">{company.client_code}</span>
                             </p>
                             {contactLoading && (
                                 <p className="text-xs text-blue-600 mt-1">
-                                    Loading contact information...
+                                    {t('companies_edit.loading_contact_information')}
                                 </p>
                             )}
                         </div>
@@ -790,7 +820,7 @@ const handleSubmit = async (e) => {
                                 disabled={isSubmitting}
                                 className="px-5 py-2.5 text-gray-700 hover:text-gray-900 font-medium disabled:opacity-50 hover:bg-gray-200 rounded-lg transition"
                             >
-                                Cancel
+                                {t('companies_edit.cancel')}
                             </button>
                             <button
                                 type="submit"
@@ -800,10 +830,10 @@ const handleSubmit = async (e) => {
                                 {isSubmitting ? (
                                     <>
                                         <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                                        Updating...
+                                        {t('companies_edit.updating')}
                                     </>
                                 ) : (
-                                    'Update Client & Contact'
+                                    t('companies_edit.update_client_contact')
                                 )}
                             </button>
                         </div>

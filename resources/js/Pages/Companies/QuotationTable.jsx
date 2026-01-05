@@ -1,12 +1,15 @@
+// resources/js/Pages/Companies/QuotationTable.jsx
 import React, { useState } from 'react';
 import { 
     FileText, Calendar, DollarSign, CheckCircle, Clock, XCircle, 
     Download, Eye, Users, ChevronDown, ChevronUp, ExternalLink,
     FileSignature, AlertCircle, Send, RefreshCw, Filter, Edit, Trash2
 } from 'lucide-react';
-import { Link } from '@inertiajs/react';
+import { Link, router } from '@inertiajs/react';
+import { useTranslation } from 'react-i18next'; // Import useTranslation
 
 const QuotationTable = ({ data, groupedData = [], companyId }) => {
+    const { t } = useTranslation(); // Initialize translation hook
     const [viewMode, setViewMode] = useState('table');
     const [expandedLead, setExpandedLead] = useState(null);
     const [tooltip, setTooltip] = useState(null);
@@ -14,22 +17,22 @@ const QuotationTable = ({ data, groupedData = [], companyId }) => {
     
     // Format currency untuk mobile friendly
     const formatCurrency = (amount) => {
-        if (!amount && amount !== 0) return 'Rp0';
+        if (!amount && amount !== 0) return t('quotation_table.currency_format', { amount: 0 });
         
         if (amount >= 1000000000) {
-            return `Rp${(amount / 1000000000).toFixed(1)}M`;
+            return t('quotation_table.currency_m', { amount: (amount / 1000000000).toFixed(1) });
         }
         if (amount >= 1000000) {
-            return `Rp${(amount / 1000000).toFixed(1)}Jt`;
+            return t('quotation_table.currency_jt', { amount: (amount / 1000000).toFixed(1) });
         }
         if (amount >= 1000) {
-            return `Rp${(amount / 1000).toFixed(0)}Rb`;
+            return t('quotation_table.currency_rb', { amount: (amount / 1000).toFixed(0) });
         }
-        return `Rp${amount.toLocaleString('id-ID')}`;
+        return t('quotation_table.currency_format', { amount: amount.toLocaleString('id-ID') });
     };
 
     const formatFullCurrency = (amount) => {
-        if (!amount && amount !== 0) return 'Rp0';
+        if (!amount && amount !== 0) return t('quotation_table.currency_format', { amount: 0 });
         
         return new Intl.NumberFormat('id-ID', {
             style: 'currency',
@@ -39,7 +42,7 @@ const QuotationTable = ({ data, groupedData = [], companyId }) => {
     };
 
     const formatDate = (dateString) => {
-        if (!dateString) return 'N/A';
+        if (!dateString) return t('quotation_table.not_available');
         
         const date = new Date(dateString);
         return date.toLocaleDateString('id-ID', {
@@ -58,14 +61,14 @@ const QuotationTable = ({ data, groupedData = [], companyId }) => {
                 return (
                     <span className={`${baseClasses} bg-green-100 text-green-800`}>
                         <CheckCircle className="w-3 h-3 mr-1" />
-                        Accepted
+                        {t('quotation_table.status_accepted')}
                     </span>
                 );
             case 'sent':
                 return (
                     <span className={`${baseClasses} bg-blue-100 text-blue-800`}>
                         <Send className="w-3 h-3 mr-1" />
-                        Sent
+                        {t('quotation_table.status_sent')}
                     </span>
                 );
             case 'pending':
@@ -73,7 +76,7 @@ const QuotationTable = ({ data, groupedData = [], companyId }) => {
                 return (
                     <span className={`${baseClasses} bg-yellow-100 text-yellow-800`}>
                         <Clock className="w-3 h-3 mr-1" />
-                        {status === 'draft' ? 'Draft' : 'Pending'}
+                        {status === 'draft' ? t('quotation_table.status_draft') : t('quotation_table.status_pending')}
                     </span>
                 );
             case 'rejected':
@@ -81,34 +84,34 @@ const QuotationTable = ({ data, groupedData = [], companyId }) => {
                 return (
                     <span className={`${baseClasses} bg-red-100 text-red-800`}>
                         <XCircle className="w-3 h-3 mr-1" />
-                        {status === 'rejected' ? 'Rejected' : 'Cancelled'}
+                        {status === 'rejected' ? t('quotation_table.status_rejected') : t('quotation_table.status_cancelled')}
                     </span>
                 );
             case 'expired':
                 return (
                     <span className={`${baseClasses} bg-gray-100 text-gray-800`}>
                         <AlertCircle className="w-3 h-3 mr-1" />
-                        Expired
+                        {t('quotation_table.status_expired')}
                     </span>
                 );
             case 'revised':
                 return (
                     <span className={`${baseClasses} bg-orange-100 text-orange-800`}>
                         <RefreshCw className="w-3 h-3 mr-1" />
-                        Revised
+                        {t('quotation_table.status_revised')}
                     </span>
                 );
             default:
                 return (
                     <span className={`${baseClasses} bg-gray-100 text-gray-800`}>
-                        {status || 'Unknown'}
+                        {status || t('quotation_table.status_unknown')}
                     </span>
                 );
         }
     };
 
     const TruncatedText = ({ text, maxLength = 30, className = "" }) => {
-        if (!text) return <span className={className}>N/A</span>;
+        if (!text) return <span className={className}>{t('quotation_table.not_available')}</span>;
         
         if (text.length <= maxLength) {
             return <span className={className}>{text}</span>;
@@ -131,10 +134,8 @@ const QuotationTable = ({ data, groupedData = [], companyId }) => {
     };
 
     // Handle delete quotation
-    // Di QuotationTable.jsx, perbaiki handleDelete function:
-
     const handleDelete = async (id, quotationNumber) => {
-        if (!window.confirm(`Are you sure you want to delete quotation ${quotationNumber}?`)) {
+        if (!window.confirm(t('quotation_table.confirm_delete', { number: quotationNumber }))) {
             return;
         }
         
@@ -147,11 +148,11 @@ const QuotationTable = ({ data, groupedData = [], companyId }) => {
                 // Refresh data setelah delete berhasil
                 window.location.reload();
             } else {
-                throw new Error('Failed to delete quotation');
+                throw new Error(t('quotation_table.delete_failed'));
             }
         } catch (error) {
             console.error('Error deleting quotation:', error);
-            alert('Failed to delete quotation. Please try again.');
+            alert(t('quotation_table.delete_error'));
             setDeletingId(null);
         }
     };
@@ -170,7 +171,7 @@ const QuotationTable = ({ data, groupedData = [], companyId }) => {
                                 </h3>
                                 {quotation.lead?.company_name && (
                                     <p className="text-xs text-gray-500">
-                                        Lead: {quotation.lead.company_name}
+                                        {t('quotation_table.lead')}: {quotation.lead.company_name}
                                     </p>
                                 )}
                             </div>
@@ -184,13 +185,13 @@ const QuotationTable = ({ data, groupedData = [], companyId }) => {
                 
                 <div className="grid grid-cols-2 gap-3 mb-4">
                     <div>
-                        <p className="text-xs text-gray-500">Date</p>
+                        <p className="text-xs text-gray-500">{t('quotation_table.date')}</p>
                         <p className="text-sm font-medium text-gray-900">
                             {formatDate(quotation.date)}
                         </p>
                     </div>
                     <div>
-                        <p className="text-xs text-gray-500">Amount</p>
+                        <p className="text-xs text-gray-500">{t('quotation_table.amount')}</p>
                         <p 
                             className="text-sm font-bold text-gray-900 cursor-help"
                             onMouseEnter={() => setTooltip(formatFullCurrency(quotation.total))}
@@ -202,13 +203,12 @@ const QuotationTable = ({ data, groupedData = [], companyId }) => {
                 </div>
                 
                 <div className="flex space-x-2">
-                    {/* HAPUS LINK VIEW */}
                     <Link 
                         href={route('quotation.edit', quotation.id)}
                         className="flex-1 flex items-center justify-center space-x-1 px-3 py-2 bg-yellow-50 text-yellow-700 rounded-lg hover:bg-yellow-100 transition-colors text-sm"
                     >
                         <Edit className="w-4 h-4" />
-                        <span>Edit</span>
+                        <span>{t('quotation_table.edit')}</span>
                     </Link>
                     <button 
                         onClick={() => handleDelete(quotation.id, quotation.quotation_number)}
@@ -216,7 +216,7 @@ const QuotationTable = ({ data, groupedData = [], companyId }) => {
                         className="flex-1 flex items-center justify-center space-x-1 px-3 py-2 bg-red-50 text-red-700 rounded-lg hover:bg-red-100 transition-colors text-sm disabled:opacity-50"
                     >
                         <Trash2 className="w-4 h-4" />
-                        <span>{deletingId === quotation.id ? 'Deleting...' : 'Delete'}</span>
+                        <span>{deletingId === quotation.id ? t('quotation_table.deleting') : t('quotation_table.delete')}</span>
                     </button>
                 </div>
             </div>
@@ -227,9 +227,11 @@ const QuotationTable = ({ data, groupedData = [], companyId }) => {
     const EmptyState = () => (
         <div className="text-center py-12">
             <FileText className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">No Quotations Found</h3>
+            <h3 className="text-lg font-medium text-gray-900 mb-2">
+                {t('quotation_table.no_quotations_found')}
+            </h3>
             <p className="text-gray-600 max-w-md mx-auto">
-                This company doesn't have any quotations yet.
+                {t('quotation_table.no_quotations_message')}
             </p>
         </div>
     );
@@ -244,31 +246,39 @@ const QuotationTable = ({ data, groupedData = [], companyId }) => {
 
             <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4">
                 <div>
-                    <h2 className="text-lg md:text-xl font-bold text-gray-900">Quotation List</h2>
+                    <h2 className="text-lg md:text-xl font-bold text-gray-900">
+                        {t('quotation_table.quotation_list')}
+                    </h2>
                     <p className="text-sm md:text-base text-gray-600">
-                        {data.length} quotation{data.length !== 1 ? 's' : ''} found
-                        {groupedData.length > 0 && ` across ${groupedData.length} lead${groupedData.length > 1 ? 's' : ''}`}
+                        {t('quotation_table.quotation_count', { 
+                            count: data.length,
+                            leadCount: groupedData.length,
+                            pluralQuotation: data.length !== 1 ? 's' : '',
+                            pluralLead: groupedData.length > 1 ? 's' : ''
+                        })}
                     </p>
                 </div>
                 
                 {/* Hanya View Toggle, TANPA Create Button */}
                 {groupedData.length > 0 && data.length > 0 && (
                     <div className="flex items-center space-x-2">
-                        <span className="text-sm text-gray-600 hidden sm:block">View:</span>
+                        <span className="text-sm text-gray-600 hidden sm:block">
+                            {t('quotation_table.view')}:
+                        </span>
                         <div className="flex border border-gray-300 rounded-lg overflow-hidden">
                             <button 
                                 onClick={() => setViewMode('table')}
                                 className={`px-3 py-1 text-sm flex items-center space-x-1 ${viewMode === 'table' ? 'bg-gray-200' : 'bg-white hover:bg-gray-50'}`}
                             >
                                 <FileText className="w-3 h-3" />
-                                <span>All</span>
+                                <span>{t('quotation_table.view_all')}</span>
                             </button>
                             <button 
                                 onClick={() => setViewMode('grouped')}
                                 className={`px-3 py-1 text-sm flex items-center space-x-1 ${viewMode === 'grouped' ? 'bg-gray-200' : 'bg-white hover:bg-gray-50'}`}
                             >
                                 <Users className="w-3 h-3" />
-                                <span>By Lead</span>
+                                <span>{t('quotation_table.view_by_lead')}</span>
                             </button>
                         </div>
                     </div>
@@ -300,7 +310,10 @@ const QuotationTable = ({ data, groupedData = [], companyId }) => {
                                                             {group.lead_name}
                                                         </h3>
                                                         <p className="text-sm text-gray-600">
-                                                            {group.count} quotation{group.count > 1 ? 's' : ''}
+                                                            {t('quotation_table.quotation_count_simple', { 
+                                                                count: group.count,
+                                                                plural: group.count > 1 ? 's' : ''
+                                                            })}
                                                         </p>
                                                     </div>
                                                 </div>
@@ -340,13 +353,13 @@ const QuotationTable = ({ data, groupedData = [], companyId }) => {
                                                         
                                                         <div className="flex justify-between items-center mt-3">
                                                             <div>
-                                                                <p className="text-xs text-gray-500">Subject</p>
+                                                                <p className="text-xs text-gray-500">{t('quotation_table.subject')}</p>
                                                                 <p className="text-sm text-gray-900">
                                                                     <TruncatedText text={quotation.subject} maxLength={30} />
                                                                 </p>
                                                             </div>
                                                             <div className="text-right">
-                                                                <p className="text-xs text-gray-500">Total</p>
+                                                                <p className="text-xs text-gray-500">{t('quotation_table.total')}</p>
                                                                 <p className="text-sm font-bold text-gray-900">
                                                                     {formatCurrency(quotation.total)}
                                                                 </p>
@@ -354,18 +367,17 @@ const QuotationTable = ({ data, groupedData = [], companyId }) => {
                                                         </div>
                                                         
                                                         <div className="flex space-x-2 mt-3">
-                                                            {/* HAPUS LINK VIEW */}
                                                             <Link 
                                                                 href={route('quotation.edit', quotation.id)}
                                                                 className="flex-1 text-center px-3 py-1 bg-yellow-50 text-yellow-700 rounded text-xs hover:bg-yellow-100"
                                                             >
-                                                                Edit
+                                                                {t('quotation_table.edit')}
                                                             </Link>
                                                             <button 
                                                                 onClick={() => handleDelete(quotation.id, quotation.quotation_number)}
                                                                 className="flex-1 text-center px-3 py-1 bg-red-50 text-red-700 rounded text-xs hover:bg-red-100"
                                                             >
-                                                                Delete
+                                                                {t('quotation_table.delete')}
                                                             </button>
                                                         </div>
                                                     </div>
@@ -407,7 +419,10 @@ const QuotationTable = ({ data, groupedData = [], companyId }) => {
                                                         </h3>
                                                         <div className="flex items-center space-x-4 mt-1">
                                                             <span className="text-sm text-gray-600">
-                                                                {group.count} quotation{group.count > 1 ? 's' : ''}
+                                                                {t('quotation_table.quotation_count_simple', { 
+                                                                    count: group.count,
+                                                                    plural: group.count > 1 ? 's' : ''
+                                                                })}
                                                             </span>
                                                             <span className="text-sm text-gray-600">•</span>
                                                             <span 
@@ -443,22 +458,22 @@ const QuotationTable = ({ data, groupedData = [], companyId }) => {
                                                     <thead className="bg-gray-50">
                                                         <tr>
                                                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
-                                                                Quotation #
+                                                                {t('quotation_table.quotation_number')}
                                                             </th>
                                                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
-                                                                Date
+                                                                {t('quotation_table.date')}
                                                             </th>
                                                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
-                                                                Subject
+                                                                {t('quotation_table.subject')}
                                                             </th>
                                                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
-                                                                Amount
+                                                                {t('quotation_table.amount')}
                                                             </th>
                                                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
-                                                                Status
+                                                                {t('quotation_table.status')}
                                                             </th>
                                                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
-                                                                Actions
+                                                                {t('quotation_table.actions')}
                                                             </th>
                                                         </tr>
                                                     </thead>
@@ -496,19 +511,18 @@ const QuotationTable = ({ data, groupedData = [], companyId }) => {
                                                                 </td>
                                                                 <td className="px-6 py-4 whitespace-nowrap">
                                                                     <div className="flex space-x-3">
-                                                                        {/* HAPUS LINK VIEW */}
                                                                         <Link 
                                                                             href={route('quotation.edit', quotation.id)}
                                                                             className="text-yellow-600 hover:text-yellow-900"
                                                                         >
-                                                                            Edit
+                                                                            {t('quotation_table.edit')}
                                                                         </Link>
                                                                         <button 
                                                                             onClick={() => handleDelete(quotation.id, quotation.quotation_number)}
                                                                             className="text-red-600 hover:text-red-900"
                                                                             disabled={deletingId === quotation.id}
                                                                         >
-                                                                            {deletingId === quotation.id ? 'Deleting...' : 'Delete'}
+                                                                            {deletingId === quotation.id ? t('quotation_table.deleting') : t('quotation_table.delete')}
                                                                         </button>
                                                                     </div>
                                                                 </td>
@@ -530,32 +544,32 @@ const QuotationTable = ({ data, groupedData = [], companyId }) => {
                                             <th scope="col" className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
                                                 <div className="flex items-center">
                                                     <FileText className="w-4 h-4 mr-2" />
-                                                    Quotation #
+                                                    {t('quotation_table.quotation_number')}
                                                 </div>
                                             </th>
                                             <th scope="col" className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
                                                 <div className="flex items-center">
                                                     <Calendar className="w-4 h-4 mr-2" />
-                                                    Date
+                                                    {t('quotation_table.date')}
                                                 </div>
                                             </th>
                                             <th scope="col" className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
-                                                Subject
+                                                {t('quotation_table.subject')}
                                             </th>
                                             <th scope="col" className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
-                                                Lead
+                                                {t('quotation_table.lead')}
                                             </th>
                                             <th scope="col" className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
                                                 <div className="flex items-center">
                                                     <DollarSign className="w-4 h-4 mr-2" />
-                                                    Amount
+                                                    {t('quotation_table.amount')}
                                                 </div>
                                             </th>
                                             <th scope="col" className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
-                                                Status
+                                                {t('quotation_table.status')}
                                             </th>
                                             <th scope="col" className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
-                                                Actions
+                                                {t('quotation_table.actions')}
                                             </th>
                                         </tr>
                                     </thead>
@@ -584,7 +598,7 @@ const QuotationTable = ({ data, groupedData = [], companyId }) => {
                                                 <td className="px-4 md:px-6 py-4">
                                                     <div className="max-w-[150px]">
                                                         <TruncatedText 
-                                                            text={quotation.lead?.company_name || 'N/A'} 
+                                                            text={quotation.lead?.company_name || t('quotation_table.not_available')} 
                                                             maxLength={25}
                                                             className="text-sm md:text-base text-gray-900"
                                                         />
@@ -604,19 +618,18 @@ const QuotationTable = ({ data, groupedData = [], companyId }) => {
                                                 </td>
                                                 <td className="px-4 md:px-6 py-4 whitespace-nowrap">
                                                     <div className="flex space-x-3">
-                                                        {/* HAPUS LINK VIEW (LINE 608) */}
                                                         <Link 
                                                             href={route('quotation.edit', quotation.id)}
                                                             className="text-yellow-600 hover:text-yellow-900 text-sm md:text-base"
                                                         >
-                                                            Edit
+                                                            {t('quotation_table.edit')}
                                                         </Link>
                                                         <button 
                                                             onClick={() => handleDelete(quotation.id, quotation.quotation_number)}
                                                             className="text-red-600 hover:text-red-900 text-sm md:text-base"
                                                             disabled={deletingId === quotation.id}
                                                         >
-                                                            {deletingId === quotation.id ? 'Deleting...' : 'Delete'}
+                                                            {deletingId === quotation.id ? t('quotation_table.deleting') : t('quotation_table.delete')}
                                                         </button>
                                                     </div>
                                                 </td>
@@ -635,17 +648,23 @@ const QuotationTable = ({ data, groupedData = [], companyId }) => {
                 <div className="mt-6 pt-6 border-t border-gray-200">
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
                         <div className="bg-blue-50 p-3 md:p-4 rounded-lg">
-                            <p className="text-xs md:text-sm text-gray-600">Total Quotations</p>
+                            <p className="text-xs md:text-sm text-gray-600">
+                                {t('quotation_table.total_quotations')}
+                            </p>
                             <p className="text-lg md:text-2xl font-bold text-gray-900">{data.length}</p>
                         </div>
                         <div className="bg-green-50 p-3 md:p-4 rounded-lg">
-                            <p className="text-xs md:text-sm text-gray-600">Total Leads</p>
+                            <p className="text-xs md:text-sm text-gray-600">
+                                {t('quotation_table.total_leads')}
+                            </p>
                             <p className="text-lg md:text-2xl font-bold text-gray-900">
-                                {groupedData.length || 'N/A'}
+                                {groupedData.length || t('quotation_table.not_available')}
                             </p>
                         </div>
                         <div className="bg-purple-50 p-3 md:p-4 rounded-lg">
-                            <p className="text-xs md:text-sm text-gray-600">Total Value</p>
+                            <p className="text-xs md:text-sm text-gray-600">
+                                {t('quotation_table.total_value')}
+                            </p>
                             <p 
                                 className="text-lg md:text-2xl font-bold text-gray-900 cursor-help"
                                 onMouseEnter={() => setTooltip(formatFullCurrency(data.reduce((sum, q) => sum + (q.total || 0), 0)))}
@@ -655,7 +674,9 @@ const QuotationTable = ({ data, groupedData = [], companyId }) => {
                             </p>
                         </div>
                         <div className="bg-yellow-50 p-3 md:p-4 rounded-lg">
-                            <p className="text-xs md:text-sm text-gray-600">Accepted</p>
+                            <p className="text-xs md:text-sm text-gray-600">
+                                {t('quotation_table.accepted')}
+                            </p>
                             <p className="text-lg md:text-2xl font-bold text-gray-900">
                                 {data.filter(q => q.status === 'accepted' || q.status === 'approved').length}
                             </p>
@@ -664,7 +685,9 @@ const QuotationTable = ({ data, groupedData = [], companyId }) => {
                     
                     {/* Status Breakdown */}
                     <div className="mt-4">
-                        <h4 className="text-sm font-medium text-gray-700 mb-2">Status Breakdown</h4>
+                        <h4 className="text-sm font-medium text-gray-700 mb-2">
+                            {t('quotation_table.status_breakdown')}
+                        </h4>
                         <div className="flex flex-wrap gap-2">
                             {['accepted', 'sent', 'pending', 'draft', 'rejected', 'expired'].map(status => {
                                 const count = data.filter(q => q.status === status).length;
