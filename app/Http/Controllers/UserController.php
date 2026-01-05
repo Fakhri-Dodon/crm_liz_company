@@ -14,6 +14,7 @@ use Illuminate\Support\Facades\Mail;
 use App\Models\EmailLogs;
 use App\Models\EmailTemplates;
 use App\Mail\SystemMail;
+use App\Models\ActivityLogs;
 
 class UserController extends Controller
 {
@@ -59,6 +60,13 @@ class UserController extends Controller
         ]); 
 
         User::create($validated);
+
+        ActivityLogs::create([
+            'user_id' => auth()->id(),
+            'module' => 'User',
+            'action' => 'Created',
+            'description' => 'Create New User',
+        ]);
 
         return redirect()->back()->with('message', 'Add New User Successfully');
     }
@@ -111,6 +119,13 @@ class UserController extends Controller
 
         $user->update($validated);
 
+        ActivityLogs::create([
+            'user_id' => auth()->id(),
+            'module' => 'User',
+            'action' => 'Update',
+            'description' => 'Update User',
+        ]);
+
         return redirect()->back()->with('message', 'User updated successfully');
     }
 
@@ -132,6 +147,13 @@ class UserController extends Controller
         $userTarget->deleted = 1;
         $userTarget->deleted_at = now();
         $userTarget->save();
+
+        ActivityLogs::create([
+            'user_id' => auth()->id(),
+            'module' => 'User',
+            'action' => 'Deleted',
+            'description' => 'Deleted User',
+        ]);
 
         return redirect()->route('user.index')
             ->with('success', 'User deleted successfully!');
@@ -160,6 +182,13 @@ class UserController extends Controller
                 'subject' => $template->subject,
                 'body' => $body,
                 'status' => 'success'
+            ]);
+
+            ActivityLogs::create([
+                'user_id' => auth()->id(),
+                'module' => 'User',
+                'action' => 'Send Email',
+                'description' => 'Send Email to User',
             ]);
 
             return back()->with('success', 'Email terkirim.');

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Quotation;
 
 use App\Http\Controllers\Controller;
+use App\Models\EmailTemplates;
 use App\Models\Quotation;
 use App\Models\QuotationItem;
 use App\Models\Lead;
@@ -15,6 +16,8 @@ use Inertia\Inertia;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Auth;
+use App\Mail\SystemMail;
+use Illuminate\Support\Facades\Mail;
 
 class QuotationController extends Controller {
     public function index(Request $request) {
@@ -205,6 +208,8 @@ class QuotationController extends Controller {
                         'status'           => 'draft',
                         'url'              => "/storage/quotations/{$quotation->id}",
                         'message'          => "Quotation baru #{$quotation->quotation_number} menunggu persetujuan.",
+                        'contact_person'   => $quotation->lead->contact_person ?? 'No Name',
+                        'email'            => $quotation->lead->email ?? null,
                     ]));
                 }
 
@@ -393,6 +398,8 @@ class QuotationController extends Controller {
                     'status'           => 'draft',
                     'url'              => "/storage/{$quotation->pdf_path}",
                     'message'          => "Quotation #{$quotation->quotation_number} telah diperbarui dan siap di-review ulang.",
+                    'contact_person'   => $quotation->lead->contact_person ?? 'No Name',
+                    'email'            => $quotation->lead->email ?? null,
                 ]));
             }
 
@@ -499,6 +506,10 @@ class QuotationController extends Controller {
                 $msg .= ": " . $request->revision_note;
 
             }
+
+            $contactPerson = $quotation->lead->contact_person ?? 'No Name';
+            $contactEmail = $quotation->lead->email ?? null;
+
             $creator->notify(new DocumentNotification([
                 'id'     => $quotation->id,
                 'message' => $msg,
@@ -506,6 +517,8 @@ class QuotationController extends Controller {
                 'type' => 'quotation',
                 'revision_note' => $request->revision_note,
                 'status'  => $request->status,
+                'contact_person' => $contactPerson,
+                'email'          => $contactEmail,
             ]));
         }
 
@@ -518,16 +531,88 @@ class QuotationController extends Controller {
         return back();
     }
 
-    public function markAsSent($id)
+    // public function markAsSent($id)
+    // {
+    //     $quotation = Quotation::findOrFail($id);
+    //     $quotation->update(['status' => 'sent']);
+
+    //     auth()->user()->notifications()
+    //         ->where('data->id', (string)$id)
+    //         ->where('data->type', 'quotation')
+    //         ->delete();
+
+    //     return back()->with('success', 'Quotation marked as sent and notification cleared.');
+    // }
+
+    public function markAsSent(Request $request, $id)
     {
-        $quotation = Quotation::findOrFail($id);
-        $quotation->update(['status' => 'sent']);
+        // 1. Validasi input: template_id dan type dokumen (quotation, invoice, proposal)
+        $request->validate([
+            'template_id' => 'required|exists:email_templates,id',
+            'type'        => 'required|in:quotation,invoice,proposal' 
+        ]);
 
-        auth()->user()->notifications()
-            ->where('data->id', (string)$id)
-            ->where('data->type', 'quotation')
-            ->delete();
+        try {
+            // 2. Mapping Model secara dinamis
+            $docType = $request->type;
+            $modelMap = [
+                'quotation' => \App\Models\Quotation::class,
+                'invoice'   => \App\Models\Invoice::class,   // Ganti sesuai nama model invoice lo
+                'proposal'  => \App\Models\Proposal::class, 
+            ];
 
-        return back()->with('success', 'Quotation marked as sent and notification cleared.');
+            $model = $modelMap[$docType];
+            
+            // Load data beserta relasi lead
+            $document = $model::with(['lead'])->findOrFail($id);
+            $template = EmailTemplates::findOrFail($request->template_id);
+
+            // 3. Tentukan Link & Attachment secara dinamis
+            $filePath = null;
+            $link = '#';
+
+            if ($docType === 'proposal') {
+                $link = url("/proposals/view/" . $document->slug); // Sesuaikan route
+            } else {
+                $filePath = $document->pdf_path;
+                $link = asset('storage/' . $filePath);
+            }
+
+            // 4. Mapping Placeholder Dinamis
+            $placeholders = [
+                '{name}'    => $document->lead->contact_person ?? '-',
+                '{company}' => $document->lead->company_name ?? '-',
+                '{id}'      => $document->quotation_number ?? $document->invoice_number ?? $document->number ?? '-',
+                '{total}'   => number_format($document->total ?? 0, 0, ',', '.'),
+                '{link}'    => '<a href="'.$link.'" style="color: #3182ce; font-weight: bold;">Klik di Sini</a>',
+            ];
+
+            $finalSubject = str_replace(array_keys($placeholders), array_values($placeholders), $template->subject);
+            $finalContent = str_replace(array_keys($placeholders), array_values($placeholders), $template->content);
+
+            // 5. Validasi Email Penerima
+            $recipientEmail = $document->lead->email ?? null;
+            if (!$recipientEmail) {
+                return back()->with('error', 'Gagal: Email tujuan tidak ditemukan.');
+            }
+
+            // 6. Kirim Email (Gunakan constructor ke-3 untuk file)
+            \Illuminate\Support\Facades\Mail::to($recipientEmail)
+                ->send(new \App\Mail\SystemMail($finalSubject, $finalContent, $filePath));
+
+            // 7. Update Status & Hapus Notifikasi
+            $document->update(['status' => 'sent']);
+
+            auth()->user()->notifications()
+                ->where('data->id', (string)$id)
+                ->where('data->type', $docType)
+                ->delete();
+
+            return back()->with('success', ucfirst($docType) . ' berhasil dikirim!');
+
+        } catch (\Exception $e) {
+            \Log::error("Gagal kirim {$request->type}: " . $e->getMessage());
+            return back()->with('error', 'Gagal mengirim email: ' . $e->getMessage());
+        }
     }
 }

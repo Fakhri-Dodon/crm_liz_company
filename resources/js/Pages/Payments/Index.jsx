@@ -90,17 +90,44 @@ export default function PaymentIndex({ payments = [], stats = {}, filters = {} }
         }
     };
 
-    const handleEditPayment = (payment) => {
+    const handleEditPayment = async (payment) => {
         setEditingPayment(payment);
-        setFormData({
-            invoice_id: payment.invoice_id || "",
-            company_name: payment.company_name,
-            amount: payment.amount,
-            method: payment.methode.toLowerCase(),
-            date: payment.payment_date.split('-').reverse().join('-'), // Convert from dd-mm-yyyy to yyyy-mm-dd
-            bank: payment.bank || "",
-            note: payment.note || ""
-        });
+        // Helper to sync invoice and company_name
+        const syncInvoiceData = (invoicesList) => {
+            const invoice = invoicesList.find(inv => inv.id === payment.invoice_id);
+            setSelectedInvoice(invoice || null);
+            setFormData({
+                invoice_id: payment.invoice_id || "",
+                company_name: invoice ? invoice.company_name : payment.company_name,
+                amount: payment.amount,
+                method: payment.methode.toLowerCase(),
+                date: payment.payment_date.split('-').reverse().join('-'), // Convert from dd-mm-yyyy to yyyy-mm-dd
+                bank: payment.bank || "",
+                note: payment.note || ""
+            });
+        };
+
+        if (invoices.length > 0) {
+            syncInvoiceData(invoices);
+        } else {
+            // Load invoices first if not loaded
+            try {
+                const response = await axios.get(route('payment.get-invoices'));
+                setInvoices(response.data);
+                syncInvoiceData(response.data);
+            } catch (error) {
+                // fallback: use payment data only
+                setFormData({
+                    invoice_id: payment.invoice_id || "",
+                    company_name: payment.company_name,
+                    amount: payment.amount,
+                    method: payment.methode.toLowerCase(),
+                    date: payment.payment_date.split('-').reverse().join('-'),
+                    bank: payment.bank || "",
+                    note: payment.note || ""
+                });
+            }
+        }
         setShowAddModal(true);
     };
 
@@ -335,10 +362,10 @@ export default function PaymentIndex({ payments = [], stats = {}, filters = {} }
                                                     href={route('companies.show', payment.company_id)}
                                                     className="text-blue-600 cursor-pointer hover:underline"
                                                 >
-                                                    {payment.company_name}
+                                                    {(payment.invoice_number ? payment.invoice_number + ' - ' : '') + (payment.company_name || 'N/A')}
                                                 </a>
                                             ) : (
-                                                <span>{payment.company_name}</span>
+                                                <span>{(payment.invoice_number ? payment.invoice_number + ' - ' : '') + (payment.company_name || 'N/A')}</span>
                                             )}
                                         </td>
                                         <td className="px-4 py-3 text-sm">
@@ -385,13 +412,13 @@ export default function PaymentIndex({ payments = [], stats = {}, filters = {} }
 
                 {/* Add/Edit Payment Modal */}
                 {showAddModal && (
-                    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-                        <div className="bg-white rounded-lg w-full max-w-xl">
-                            <div className="bg-teal-700 text-white px-6 py-4 rounded-t-lg">
-                                <h2 className="text-xl font-semibold">{editingPayment ? 'Edit Payment' : 'Add Payment'}</h2>
+                    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-2 sm:p-4">
+                        <div className="bg-white rounded-lg w-full max-w-xl sm:max-w-xl md:max-w-xl lg:max-w-xl xl:max-w-xl mx-auto overflow-y-auto max-h-[95vh]">
+                            <div className="bg-teal-700 text-white px-4 py-3 sm:px-6 sm:py-4 rounded-t-lg">
+                                <h2 className="text-lg sm:text-xl font-semibold">{editingPayment ? 'Edit Payment' : 'Add Payment'}</h2>
                             </div>
-                            <form onSubmit={handleSubmit} className="p-6">
-                                <div className="space-y-4">
+                            <form onSubmit={handleSubmit} className="p-3 sm:p-6">
+                                <div className="space-y-3 sm:space-y-4">
                                     <div>
                                         <label className="block text-sm font-semibold text-gray-700 mb-2">
                                             Invoice<span className="text-red-500">*</span>
@@ -399,15 +426,18 @@ export default function PaymentIndex({ payments = [], stats = {}, filters = {} }
                                         {editingPayment ? (
                                             <input
                                                 type="text"
-                                                value={formData.company_name}
+                                                value={
+                                                    (selectedInvoice && selectedInvoice.invoice_number ? selectedInvoice.invoice_number + ' - ' : (editingPayment.invoice_number ? editingPayment.invoice_number + ' - ' : '')) +
+                                                    (selectedInvoice && selectedInvoice.company_name ? selectedInvoice.company_name : (editingPayment.company_name || 'No Company'))
+                                                }
                                                 disabled
-                                                className="w-full px-4 py-2 border border-gray-300 rounded-md bg-gray-100"
+                                                className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100 text-xs sm:text-sm"
                                             />
                                         ) : (
                                             <select
                                                 value={formData.invoice_id}
                                                 onChange={(e) => handleInvoiceChange(e.target.value)}
-                                                className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500"
+                                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500 text-xs sm:text-sm"
                                                 required
                                             >
                                                 <option value="">Select Invoice</option>
@@ -433,7 +463,7 @@ export default function PaymentIndex({ payments = [], stats = {}, filters = {} }
                                             value={formData.company_name}
                                             disabled
                                             placeholder="Appears when selecting invoice"
-                                            className="w-full px-4 py-2 border border-gray-300 rounded-md bg-gray-100"
+                                            className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100 text-xs sm:text-sm"
                                         />
                                     </div>
 
@@ -447,7 +477,7 @@ export default function PaymentIndex({ payments = [], stats = {}, filters = {} }
                                             value={formData.amount}
                                             onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
                                             placeholder="Rp."
-                                            className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500"
+                                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500 text-xs sm:text-sm"
                                             required
                                         />
                                     </div>
@@ -459,7 +489,7 @@ export default function PaymentIndex({ payments = [], stats = {}, filters = {} }
                                         <select
                                             value={formData.method}
                                             onChange={(e) => setFormData({ ...formData, method: e.target.value })}
-                                            className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500"
+                                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500 text-xs sm:text-sm"
                                             required
                                         >
                                             <option value="transfer">Transfer</option>
@@ -476,7 +506,7 @@ export default function PaymentIndex({ payments = [], stats = {}, filters = {} }
                                             type="date"
                                             value={formData.date}
                                             onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-                                            className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500"
+                                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500 text-xs sm:text-sm"
                                             required
                                         />
                                     </div>
@@ -490,7 +520,7 @@ export default function PaymentIndex({ payments = [], stats = {}, filters = {} }
                                             value={formData.bank}
                                             onChange={(e) => setFormData({ ...formData, bank: e.target.value })}
                                             placeholder="Bank name and branch"
-                                            className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500"
+                                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500 text-xs sm:text-sm"
                                         />
                                     </div>
 
@@ -502,24 +532,24 @@ export default function PaymentIndex({ payments = [], stats = {}, filters = {} }
                                             value={formData.note}
                                             onChange={(e) => setFormData({ ...formData, note: e.target.value })}
                                             rows="3"
-                                            className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500"
+                                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500 text-xs sm:text-sm"
                                         />
                                     </div>
                                 </div>
 
-                                <div className="flex justify-end gap-3 mt-6">
+                                <div className="flex flex-col sm:flex-row justify-end gap-2 sm:gap-3 mt-4 sm:mt-6">
                                     <button
                                         type="button"
                                         onClick={() => setShowAddModal(false)}
                                         disabled={processing}
-                                        className="px-6 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors disabled:opacity-50"
+                                        className="px-4 py-2 sm:px-6 sm:py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors disabled:opacity-50 text-xs sm:text-sm"
                                     >
                                         CLOSE
                                     </button>
                                     <button
                                         type="submit"
                                         disabled={processing}
-                                        className="px-6 py-2 bg-teal-700 text-white rounded-md hover:bg-teal-800 transition-colors disabled:opacity-50"
+                                        className="px-4 py-2 sm:px-6 sm:py-2 bg-teal-700 text-white rounded-md hover:bg-teal-800 transition-colors disabled:opacity-50 text-xs sm:text-sm"
                                     >
                                         {processing ? 'PROCESSING...' : 'SUBMIT'}
                                     </button>

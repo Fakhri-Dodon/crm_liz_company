@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\EmailTemplates;
+use App\Models\ActivityLogs;
 
 class EmailController extends Controller
 {
@@ -29,6 +30,13 @@ class EmailController extends Controller
             'id' => \Illuminate\Support\Str::uuid()
         ]));
 
+        ActivityLogs::create([
+            'user_id' => auth()->id(),
+            'module' => 'Email',
+            'action' => 'Created',
+            'description' => 'Create New Email Template',
+        ]);
+
         return back();
     }
 
@@ -43,6 +51,13 @@ class EmailController extends Controller
         ]);
 
         $template->update($attr);
+        
+        ActivityLogs::create([
+            'user_id' => auth()->id(),
+            'module' => 'Email',
+            'action' => 'Update',
+            'description' => 'Update Email Template',
+        ]);
 
         return back();
     }
@@ -51,6 +66,13 @@ class EmailController extends Controller
     {
         $template = EmailTemplates::findOrFail($id);
         $template->delete();
+
+        ActivityLogs::create([
+            'user_id' => auth()->id(),
+            'module' => 'Email',
+            'action' => 'Deleted',
+            'description' => 'Delete Email Template',
+        ]);
 
         return back();
     }

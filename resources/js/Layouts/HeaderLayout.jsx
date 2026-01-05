@@ -20,6 +20,7 @@ import { FiEdit2 } from "react-icons/fi";
 export default function HeaderLayout({ header, children, }) {
     const { url, props } = usePage();
     const user = props.auth.user;
+    const templates = props.templates_email_notif || [];
     const { t, i18n } = useTranslation();
     const [isLangOpen, setIsLangOpen] = useState(false);
     const [showReviseModal, setShowReviseModal] = useState(false);
@@ -39,6 +40,7 @@ export default function HeaderLayout({ header, children, }) {
     const [emailModalOpen, setEmailModalOpen] = useState(false);
     const [selectedUser, setSelectedUser] = useState(null);
     const [selectedQuotationId, setSelectedQuotationId] = useState(null);
+    const [selectedDocType, setSelectedDocType] = useState("");
     const [selectedTemplateId, setSelectedTemplateId] = useState("");
     const [processing, setProcessing] = useState(false);
 
@@ -284,14 +286,18 @@ export default function HeaderLayout({ header, children, }) {
             return;
         }
 
-        router.post(route("quotation.markAsSent", selectedQuotationId), {
+        setProcessing(true);
+
+        router.post(route("markAsSent", selectedQuotationId), {
             template_id: selectedTemplateId,
+            type: selectedDocType,
         }, {
             onBefore: () => setProcessing(true),
             onFinish: () => setProcessing(false),
             onSuccess: () => {
                 setEmailModalOpen(false);
                 setSelectedTemplateId("");
+                setSelectedDocType("");
                 toast.success("Email sent successfully!");
             },
             onError: (errors) => {
@@ -499,8 +505,6 @@ export default function HeaderLayout({ header, children, }) {
                                         const clientName = n.data.contact_person;
                                         const clientEmail = n.data.email;
 
-                                        console.log("test: ", n);
-
                                         return (
                                             <div
                                                 key={n.id}
@@ -575,27 +579,26 @@ export default function HeaderLayout({ header, children, }) {
                                                     {user.role_name !==
                                                         "Manager" && (
                                                         <>
-                                                            {status ===
-                                                                "approved" && (
-                                                                <Link
-                                                                    href={route(
-                                                                        "markAsSent",
-                                                                        docId
-                                                                    )}
-                                                                    method="post"
-                                                                    as="button"
+                                                            {status === "approved" && (
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => {
+                                                                        console.log("Data Notif:", n.data);
+                                                                        const userData = {
+                                                                            name: n.data.contact_person || "No Name", 
+                                                                            email: n.data.email || "No Email"
+                                                                        };
+
+                                                                        setSelectedUser(userData); 
+                                                                        setSelectedQuotationId(n.data.id); 
+                                                                        setSelectedDocType(docType);
+                                                                        setEmailModalOpen(true);
+                                                                    }}
                                                                     className="inline-flex items-center gap-2 px-3 py-1.5 bg-orange-500 text-white text-[10px] font-bold rounded-md hover:bg-orange-600 transition"
                                                                 >
-                                                                    <Send
-                                                                        size={
-                                                                            10
-                                                                        }
-                                                                    />{" "}
-                                                                    {t(
-                                                                        "header.notification_dropdown.btn_send"
-                                                                    ) ||
-                                                                        "SEND TO CLIENT"}
-                                                                </Link>
+                                                                    <Send size={10} />
+                                                                    {t("header.notification_dropdown.btn_send") || "SEND TO CLIENT"}
+                                                                </button>
                                                             )}
 
                                                             {status ===

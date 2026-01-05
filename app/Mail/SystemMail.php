@@ -1,32 +1,33 @@
 <?php
+
 namespace App\Mail;
 
 use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
+use Illuminate\Mail\Mailables\Attachment;
 use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Facades\Storage;
 
 class SystemMail extends Mailable
 {
     use Queueable, SerializesModels;
 
-    // Tambahkan properti publik agar bisa diakses di view email
     public $subjectText;
     public $messageBody;
+    public $filePath; // Tambahkan properti untuk path file
 
     /**
-     * Terima data dari Controller lewat Constructor
+     * Tambahkan parameter $filePath dengan default null
      */
-    public function __construct($subject, $body)
+    public function __construct($subject, $body, $filePath = null)
     {
         $this->subjectText = $subject;
         $this->messageBody = $body;
+        $this->filePath = $filePath; 
     }
 
-    /**
-     * Masukkan subjek dinamis ke Envelope
-     */
     public function envelope(): Envelope
     {
         return new Envelope(
@@ -34,9 +35,6 @@ class SystemMail extends Mailable
         );
     }
 
-    /**
-     * Hubungkan ke file view blade
-     */
     public function content(): Content
     {
         return new Content(
@@ -44,8 +42,17 @@ class SystemMail extends Mailable
         );
     }
 
+    /**
+     * Logic Lampiran Otomatis
+     */
     public function attachments(): array
     {
-        return [];
+        $attachments = [];
+
+        if ($this->filePath && Storage::disk('public')->exists($this->filePath)) {
+            $attachments[] = Attachment::fromPath(storage_path('app/public/' . $this->filePath));
+        }
+
+        return $attachments;
     }
 }
