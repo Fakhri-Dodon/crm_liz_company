@@ -1,26 +1,29 @@
+// resources/js/Pages/Companies/PaymentTable.jsx
 import React, { useState } from 'react';
 import { 
     CreditCard, Calendar, DollarSign, Building, 
     FileText, Landmark, MessageSquare, Receipt, Edit,
     Download, Eye, Trash2, CheckCircle
 } from 'lucide-react';
+import { useTranslation } from 'react-i18next'; // Import useTranslation
 
 const PaymentTable = ({ data }) => {
+    const { t } = useTranslation(); // Initialize translation hook
     const [expandedNote, setExpandedNote] = useState(null);
     const [tooltip, setTooltip] = useState(null);
     
     // Format currency untuk mobile
     const formatCurrency = (amount) => {
-        if (!amount && amount !== 0) return 'Rp0';
+        if (!amount && amount !== 0) return t('payment_table.currency_format', { amount: 0 });
         
-        if (amount >= 1000000) return `Rp${(amount / 1000000000).toFixed(1)}M`;
-        if (amount >= 1000000) return `Rp${(amount / 1000000).toFixed(1)}Jt`;
-        if (amount >= 1000) return `Rp${(amount / 1000).toFixed(0)}Rb`;
-        return `Rp${amount}`;
+        if (amount >= 1000000000) return t('payment_table.currency_m', { amount: (amount / 1000000000).toFixed(1) });
+        if (amount >= 1000000) return t('payment_table.currency_jt', { amount: (amount / 1000000).toFixed(1) });
+        if (amount >= 1000) return t('payment_table.currency_rb', { amount: (amount / 1000).toFixed(0) });
+        return t('payment_table.currency_format', { amount: amount });
     };
 
     const formatFullCurrency = (amount) => {
-        if (!amount && amount !== 0) return 'Rp0';
+        if (!amount && amount !== 0) return t('payment_table.currency_format', { amount: 0 });
         
         return new Intl.NumberFormat('id-ID', {
             style: 'currency',
@@ -30,7 +33,7 @@ const PaymentTable = ({ data }) => {
     };
 
     const formatDate = (dateString) => {
-        if (!dateString) return 'N/A';
+        if (!dateString) return t('payment_table.not_available');
         
         const date = new Date(dateString);
         return date.toLocaleDateString('id-ID', {
@@ -49,27 +52,27 @@ const PaymentTable = ({ data }) => {
                 return (
                     <span className={`${baseClasses} bg-blue-100 text-blue-800`}>
                         <Landmark className="w-3 h-3 mr-1" />
-                        <span className="hidden sm:inline">Transfer</span>
+                        <span className="hidden sm:inline">{t('payment_table.method_transfer')}</span>
                     </span>
                 );
             case 'cash':
                 return (
                     <span className={`${baseClasses} bg-green-100 text-green-800`}>
                         <DollarSign className="w-3 h-3 mr-1" />
-                        <span className="hidden sm:inline">Cash</span>
+                        <span className="hidden sm:inline">{t('payment_table.method_cash')}</span>
                     </span>
                 );
             case 'check':
                 return (
                     <span className={`${baseClasses} bg-purple-100 text-purple-800`}>
                         <CreditCard className="w-3 h-3 mr-1" />
-                        <span className="hidden sm:inline">Check</span>
+                        <span className="hidden sm:inline">{t('payment_table.method_check')}</span>
                     </span>
                 );
             default:
                 return (
                     <span className={`${baseClasses} bg-gray-100 text-gray-800`}>
-                        {method}
+                        {method || t('payment_table.not_available')}
                     </span>
                 );
         }
@@ -85,12 +88,14 @@ const PaymentTable = ({ data }) => {
         return (
             <div className="text-center py-12">
                 <CreditCard className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 mb-2">No Payments Found</h3>
+                <h3 className="text-lg font-medium text-gray-900 mb-2">
+                    {t('payment_table.no_payments_found')}
+                </h3>
                 <p className="text-gray-500 max-w-md mx-auto mb-6">
-                    No payment records found for this company. Payments will appear here once recorded.
+                    {t('payment_table.no_payments_message')}
                 </p>
                 <button className="px-4 py-2 bg-[#054748] text-white rounded-lg hover:bg-[#0a5d5e] transition-colors">
-                    Record First Payment
+                    {t('payment_table.record_first_payment')}
                 </button>
             </div>
         );
@@ -119,7 +124,7 @@ const PaymentTable = ({ data }) => {
             <div className="mb-3">
                 <div className="flex items-center justify-between mb-2">
                     <div>
-                        <p className="text-xs text-gray-500">Invoice Amount</p>
+                        <p className="text-xs text-gray-500">{t('payment_table.invoice_amount')}</p>
                         <p 
                             className="text-xs font-medium text-gray-700 cursor-help"
                             onMouseEnter={() => setTooltip(formatFullCurrency(payment.invoice_amount))}
@@ -129,7 +134,7 @@ const PaymentTable = ({ data }) => {
                         </p>
                     </div>
                     <div>
-                        <p className="text-xs text-gray-500 text-right">Payment Amount</p>
+                        <p className="text-xs text-gray-500 text-right">{t('payment_table.payment_amount')}</p>
                         <p 
                             className="text-sm font-bold text-green-900 cursor-help"
                             onMouseEnter={() => setTooltip(formatFullCurrency(payment.amount))}
@@ -142,10 +147,10 @@ const PaymentTable = ({ data }) => {
             </div>
             
             <div className="mb-3">
-                <p className="text-xs text-gray-500">Bank / Method</p>
+                <p className="text-xs text-gray-500">{t('payment_table.bank_method')}</p>
                 <div className="flex items-center justify-between">
                     <span className="text-sm font-medium text-gray-900">
-                        {payment.bank || 'N/A'}
+                        {payment.bank || t('payment_table.not_available')}
                     </span>
                     <span className="text-xs text-gray-500 capitalize">
                         {payment.method_display || payment.method}
@@ -156,7 +161,7 @@ const PaymentTable = ({ data }) => {
             {/* Notes with expand/collapse */}
             {payment.note && (
                 <div className="mb-3 p-2 bg-gray-50 rounded">
-                    <p className="text-xs text-gray-500 mb-1">Notes</p>
+                    <p className="text-xs text-gray-500 mb-1">{t('payment_table.notes')}</p>
                     <div className="text-xs text-gray-700">
                         {expandedNote === payment.id || (payment.note && payment.note.length < 60) ? (
                             <>{payment.note}</>
@@ -167,7 +172,7 @@ const PaymentTable = ({ data }) => {
                                     onClick={() => toggleNote(payment.id)}
                                     className="text-blue-600 hover:text-blue-800 ml-1 font-medium"
                                 >
-                                    Read more
+                                    {t('payment_table.read_more')}
                                 </button>
                             </>
                         )}
@@ -176,7 +181,7 @@ const PaymentTable = ({ data }) => {
                                 onClick={() => toggleNote(payment.id)}
                                 className="text-blue-600 hover:text-blue-800 ml-2 font-medium text-xs"
                             >
-                                Show less
+                                {t('payment_table.show_less')}
                             </button>
                         )}
                     </div>
@@ -186,15 +191,15 @@ const PaymentTable = ({ data }) => {
             <div className="flex space-x-2 pt-2 border-t border-gray-100">
                 <button className="flex-1 flex items-center justify-center space-x-1 px-2 py-2 bg-blue-50 text-blue-700 rounded-lg text-xs hover:bg-blue-100 transition-colors">
                     <Receipt className="w-3 h-3" />
-                    <span>Receipt</span>
+                    <span>{t('payment_table.receipt')}</span>
                 </button>
                 <button className="flex-1 flex items-center justify-center space-x-1 px-2 py-2 bg-green-50 text-green-700 rounded-lg text-xs hover:bg-green-100 transition-colors">
                     <Download className="w-3 h-3" />
-                    <span>Export</span>
+                    <span>{t('payment_table.export')}</span>
                 </button>
                 <button className="flex-1 flex items-center justify-center space-x-1 px-2 py-2 bg-gray-50 text-gray-700 rounded-lg text-xs hover:bg-gray-100 transition-colors">
                     <Edit className="w-3 h-3" />
-                    <span>Edit</span>
+                    <span>{t('payment_table.edit')}</span>
                 </button>
             </div>
             
@@ -203,11 +208,11 @@ const PaymentTable = ({ data }) => {
                 <div className="mt-3 pt-3 border-t border-gray-100">
                     <div className="flex justify-between">
                         <div className="text-xs text-gray-500">
-                            Created: {payment.created_by?.name || 'System'}
+                            {t('payment_table.created_by')}: {payment.created_by?.name || 'System'}
                         </div>
                         {payment.updated_by && (
                             <div className="text-xs text-gray-500">
-                                Updated: {payment.updated_by?.name}
+                                {t('payment_table.updated_by')}: {payment.updated_by?.name}
                             </div>
                         )}
                     </div>
@@ -226,9 +231,14 @@ const PaymentTable = ({ data }) => {
             )}
 
             <div className="mb-6">
-                <h2 className="text-lg md:text-xl font-bold text-gray-900">Payment History</h2>
+                <h2 className="text-lg md:text-xl font-bold text-gray-900">
+                    {t('payment_table.payment_history')}
+                </h2>
                 <p className="text-sm md:text-base text-gray-600">
-                    {data.length} payment{data.length !== 1 ? 's' : ''} received from this company
+                    {t('payment_table.payment_count', { 
+                        count: data.length,
+                        plural: data.length !== 1 ? 's' : ''
+                    })}
                 </p>
             </div>
 
@@ -246,28 +256,28 @@ const PaymentTable = ({ data }) => {
                         <thead className="bg-[#e2e8f0]">
                             <tr>
                                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
-                                    Invoice #
+                                    {t('payment_table.invoice_number')}
                                 </th>
                                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
-                                    Date
+                                    {t('payment_table.date')}
                                 </th>
                                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
-                                    Amount
+                                    {t('payment_table.amount')}
                                 </th>
                                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
-                                    Method
+                                    {t('payment_table.method')}
                                 </th>
                                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
-                                    Bank
+                                    {t('payment_table.bank')}
                                 </th>
                                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
-                                    Notes
+                                    {t('payment_table.notes')}
                                 </th>
                                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
-                                    Created By
+                                    {t('payment_table.created_by')}
                                 </th>
                                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
-                                    Actions
+                                    {t('payment_table.actions')}
                                 </th>
                             </tr>
                         </thead>
@@ -279,7 +289,7 @@ const PaymentTable = ({ data }) => {
                                             {payment.invoice_number}
                                         </div>
                                         <div className="text-xs text-gray-500">
-                                            Inv. Amount: {formatCurrency(payment.invoice_amount)}
+                                            {t('payment_table.invoice_amount_short')}: {formatCurrency(payment.invoice_amount)}
                                         </div>
                                     </td>
                                     <td className="px-4 py-3">
@@ -288,7 +298,7 @@ const PaymentTable = ({ data }) => {
                                         </div>
                                         {payment.invoice_date && (
                                             <div className="text-xs text-gray-500">
-                                                Inv: {formatDate(payment.invoice_date)}
+                                                {t('payment_table.invoice')}: {formatDate(payment.invoice_date)}
                                             </div>
                                         )}
                                     </td>
@@ -316,13 +326,13 @@ const PaymentTable = ({ data }) => {
                                         <div 
                                             className={`text-gray-900 ${payment.note && payment.note.length > 50 ? 'cursor-pointer' : ''}`}
                                             onClick={() => payment.note && payment.note.length > 50 && toggleNote(payment.id)}
-                                            title={payment.note && payment.note.length > 50 ? "Click to expand" : ""}
+                                            title={payment.note && payment.note.length > 50 ? t('payment_table.click_to_expand') : ""}
                                         >
                                             {expandedNote === payment.id ? 
-                                                payment.note || 'No notes' : 
+                                                payment.note || t('payment_table.no_notes') : 
                                                 (payment.note && payment.note.length > 50 ? 
                                                     `${payment.note.substring(0, 50)}...` : 
-                                                    payment.note || 'No notes'
+                                                    payment.note || t('payment_table.no_notes')
                                                 )
                                             }
                                             {payment.note && payment.note.length > 50 && expandedNote !== payment.id && (
@@ -348,25 +358,25 @@ const PaymentTable = ({ data }) => {
                                         <div className="flex space-x-2">
                                             <button 
                                                 className="p-1 text-blue-600 hover:text-blue-900 hover:bg-blue-50 rounded transition-colors"
-                                                title="View Receipt"
+                                                title={t('payment_table.view_receipt')}
                                             >
                                                 <Receipt className="w-4 h-4" />
                                             </button>
                                             <button 
                                                 className="p-1 text-green-600 hover:text-green-900 hover:bg-green-50 rounded transition-colors"
-                                                title="Export"
+                                                title={t('payment_table.export')}
                                             >
                                                 <Download className="w-4 h-4" />
                                             </button>
                                             <button 
                                                 className="p-1 text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded transition-colors"
-                                                title="Edit"
+                                                title={t('payment_table.edit')}
                                             >
                                                 <Edit className="w-4 h-4" />
                                             </button>
                                             <button 
                                                 className="p-1 text-red-600 hover:text-red-900 hover:bg-red-50 rounded transition-colors"
-                                                title="Delete"
+                                                title={t('payment_table.delete')}
                                             >
                                                 <Trash2 className="w-4 h-4" />
                                             </button>
@@ -383,11 +393,15 @@ const PaymentTable = ({ data }) => {
             <div className="mt-6 pt-6 border-t border-gray-200">
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                     <div className="bg-blue-50 p-3 md:p-4 rounded-lg">
-                        <p className="text-xs md:text-sm text-gray-600">Total Payments</p>
+                        <p className="text-xs md:text-sm text-gray-600">
+                            {t('payment_table.total_payments')}
+                        </p>
                         <p className="text-lg md:text-2xl font-bold text-gray-900">{data.length}</p>
                     </div>
                     <div className="bg-green-50 p-3 md:p-4 rounded-lg">
-                        <p className="text-xs md:text-sm text-gray-600">Total Received</p>
+                        <p className="text-xs md:text-sm text-gray-600">
+                            {t('payment_table.total_received')}
+                        </p>
                         <p 
                             className="text-lg md:text-2xl font-bold text-gray-900 cursor-help"
                             onMouseEnter={() => setTooltip(formatFullCurrency(data.reduce((sum, p) => sum + (p.amount || 0), 0)))}
@@ -397,13 +411,17 @@ const PaymentTable = ({ data }) => {
                         </p>
                     </div>
                     <div className="bg-purple-50 p-3 md:p-4 rounded-lg">
-                        <p className="text-xs md:text-sm text-gray-600">Bank Transfers</p>
+                        <p className="text-xs md:text-sm text-gray-600">
+                            {t('payment_table.bank_transfers')}
+                        </p>
                         <p className="text-lg md:text-2xl font-bold text-gray-900">
                             {data.filter(p => p.method === 'bank_transfer' || p.method === 'transfer').length}
                         </p>
                     </div>
                     <div className="bg-yellow-50 p-3 md:p-4 rounded-lg">
-                        <p className="text-xs md:text-sm text-gray-600">Average Payment</p>
+                        <p className="text-xs md:text-sm text-gray-600">
+                            {t('payment_table.average_payment')}
+                        </p>
                         <p 
                             className="text-lg md:text-2xl font-bold text-gray-900 cursor-help"
                             onMouseEnter={() => setTooltip(formatFullCurrency(
@@ -423,19 +441,25 @@ const PaymentTable = ({ data }) => {
                 {/* Additional Statistics Row */}
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-3">
                     <div className="bg-red-50 p-3 md:p-4 rounded-lg">
-                        <p className="text-xs md:text-sm text-gray-600">Cash Payments</p>
+                        <p className="text-xs md:text-sm text-gray-600">
+                            {t('payment_table.cash_payments')}
+                        </p>
                         <p className="text-lg md:text-2xl font-bold text-gray-900">
                             {data.filter(p => p.method === 'cash').length}
                         </p>
                     </div>
                     <div className="bg-indigo-50 p-3 md:p-4 rounded-lg">
-                        <p className="text-xs md:text-sm text-gray-600">Check Payments</p>
+                        <p className="text-xs md:text-sm text-gray-600">
+                            {t('payment_table.check_payments')}
+                        </p>
                         <p className="text-lg md:text-2xl font-bold text-gray-900">
                             {data.filter(p => p.method === 'check').length}
                         </p>
                     </div>
                     <div className="bg-pink-50 p-3 md:p-4 rounded-lg">
-                        <p className="text-xs md:text-sm text-gray-600">Total Invoice Value</p>
+                        <p className="text-xs md:text-sm text-gray-600">
+                            {t('payment_table.total_invoice_value')}
+                        </p>
                         <p 
                             className="text-lg md:text-2xl font-bold text-gray-900 cursor-help"
                             onMouseEnter={() => setTooltip(formatFullCurrency(data.reduce((sum, p) => sum + (p.invoice_amount || 0), 0)))}
@@ -445,7 +469,9 @@ const PaymentTable = ({ data }) => {
                         </p>
                     </div>
                     <div className="bg-cyan-50 p-3 md:p-4 rounded-lg">
-                        <p className="text-xs md:text-sm text-gray-600">Payment Ratio</p>
+                        <p className="text-xs md:text-sm text-gray-600">
+                            {t('payment_table.payment_ratio')}
+                        </p>
                         <p className="text-lg md:text-2xl font-bold text-gray-900">
                             {data.length > 0 ? 
                                 Math.round((data.reduce((sum, p) => sum + (p.amount || 0), 0) / 

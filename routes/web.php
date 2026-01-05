@@ -230,6 +230,15 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('/invoices', [InvoiceController::class, 'storeForCompany'])
             ->name('companies.invoices.store');
     });
+
+    // Company Contact Routes
+    Route::prefix('companies/{company}')->group(function () {
+        Route::get('/contacts', [CompanyController::class, 'getContacts'])->name('companies.contacts.index');
+        Route::post('/contacts', [CompanyController::class, 'addContact'])->name('companies.contacts.store');
+        Route::put('/contacts/{contact}', [CompanyController::class, 'updateContact'])->name('companies.contacts.update');
+        Route::delete('/contacts/{contact}', [CompanyController::class, 'deleteContact'])->name('companies.contacts.destroy');
+        Route::post('/contacts/{contact}/toggle-primary', [CompanyController::class, 'togglePrimary'])->name('companies.contacts.toggle-primary');
+    });
     
     // ====================== TRASH/ARCHIVE ROUTES ======================
     Route::prefix('companies')->group(function () {

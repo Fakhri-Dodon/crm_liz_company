@@ -1,5 +1,7 @@
+// resources/js/Pages/Companies/Show.jsx
 import { useState, useEffect } from 'react';
 import { Head, usePage, router } from '@inertiajs/react';
+import { useTranslation } from 'react-i18next'; // Import useTranslation
 import Sidebar from './Sidebar';
 import CompanyHeader from './CompanyHeader';
 import ProfileTable from './ProfileTable';
@@ -11,9 +13,11 @@ import ContactTable from './ContactTable';
 import ProjectModal from '@/Components/Project/ProjectModal';
 import HeaderLayout from '@/Layouts/HeaderLayout';
 import { Trash2 } from 'lucide-react';
+import axios from 'axios';
 
 const Show = ({ company, quotations, invoices, payments, projects, contacts, statistics, grouped_quotations }) => {
     const { props } = usePage();
+    const { t } = useTranslation(); // Initialize translation hook
     const [activeTab, setActiveTab] = useState('profile');
     const [loading, setLoading] = useState(false);
     const [showProjectModal, setShowProjectModal] = useState(false);
@@ -21,10 +25,26 @@ const Show = ({ company, quotations, invoices, payments, projects, contacts, sta
     const [selectedProject, setSelectedProject] = useState(null);
     const [modalMode, setModalMode] = useState('create'); // 'create' atau 'edit'
     
+    // State untuk contacts yang bisa diupdate
+    const [contactData, setContactData] = useState(contacts || []);
+    const [isLoadingContacts, setIsLoadingContacts] = useState(false);
+    
     console.log('========== SHOW PAGE DATA ==========');
     console.log('Company:', company);
+    console.log('Contacts data received:', contacts);
     console.log('Projects data:', projects);
     console.log('===================================');
+
+    // Setup axios defaults
+    useEffect(() => {
+        axios.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest';
+        axios.defaults.withCredentials = true;
+        
+        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+        if (csrfToken) {
+            axios.defaults.headers.common['X-CSRF-TOKEN'] = csrfToken;
+        }
+    }, []);
 
     // Debug log untuk memastikan data diterima
     useEffect(() => {
@@ -34,15 +54,55 @@ const Show = ({ company, quotations, invoices, payments, projects, contacts, sta
             console.log('SUCCESS: Company data received:', {
                 id: company.id,
                 name: company.client_code,
-                contact_person: company.contact_person
+                contact_person: company.contact_person,
+                contacts_count: contacts?.length || 0
             });
         }
-    }, [company]);
+        
+        // Update contactData ketika contacts berubah
+        if (contacts) {
+            setContactData(contacts);
+        }
+    }, [company, contacts]);
+
+    // Function untuk fetch contacts dari API
+    const fetchContacts = async () => {
+        if (!company?.id) return;
+        
+        setIsLoadingContacts(true);
+        try {
+            const response = await axios.get(`/companies/${company.id}/contacts`);
+            console.log('Fetched contacts:', response.data);
+            
+            if (response.data.success) {
+                setContactData(response.data.data);
+            } else {
+                console.error('Failed to fetch contacts:', response.data.message);
+            }
+        } catch (error) {
+            console.error('Error fetching contacts:', error);
+            // Fallback ke data dari props jika API gagal
+            setContactData(contacts || []);
+        } finally {
+            setIsLoadingContacts(false);
+        }
+    };
+
+    // Load contacts saat tab contact aktif
+    useEffect(() => {
+        if (activeTab === 'contact' && company?.id) {
+            fetchContacts();
+        }
+    }, [activeTab, company?.id]);
 
     // Toast notification function
     const showToast = (message, type = 'success') => {
+        // Hapus toast yang ada sebelumnya
+        const existingToasts = document.querySelectorAll('.custom-toast');
+        existingToasts.forEach(toast => toast.remove());
+        
         const toast = document.createElement('div');
-        toast.className = `fixed top-4 right-4 z-50 px-6 py-4 rounded-lg shadow-lg transform transition-all duration-300 ${
+        toast.className = `custom-toast fixed top-4 right-4 z-50 px-6 py-4 rounded-lg shadow-lg transform transition-all duration-300 ${
             type === 'success' ? 'bg-green-500 text-white' : 'bg-red-500 text-white'
         }`;
         toast.innerHTML = `
@@ -85,39 +145,57 @@ const Show = ({ company, quotations, invoices, payments, projects, contacts, sta
                 onSuccess: () => {
                     setShowDeleteModal(false);
                     setSelectedProject(null);
-                    showToast('Project deleted successfully!', 'success');
+                    showToast(t('companies_show.project_deleted_successfully'), 'success');
                 },
                 onError: () => {
-                    showToast('Failed to delete project!', 'error');
+                    showToast(t('companies_show.failed_to_delete_project'), 'error');
                 }
             });
         }
+    };
+
+    // Function untuk menangani update contacts
+    const handleContactsUpdate = () => {
+        console.log('Refreshing contacts data...');
+        fetchContacts();
+        showToast(t('companies_show.contacts_updated_successfully'), 'success');
+    };
+
+    // Function untuk menambah project baru
+    const handleAddProject = () => {
+        setSelectedProject(null);
+        setModalMode('create');
+        setShowProjectModal(true);
     };
 
     // Jika company tidak ada, tampilkan error message
     if (!company || !company.id) {
         return (
             <HeaderLayout>
-                <Head title="Error - Company Not Found" />
+                <Head title={t('companies_show.error_title')} />
                 <div className="flex justify-center items-center h-screen">
                     <div className="text-center p-8 bg-white rounded-lg shadow-lg max-w-md">
                         <div className="text-red-500 text-6xl mb-4">⚠️</div>
-                        <h1 className="text-2xl font-bold text-gray-900 mb-2">Company Not Found</h1>
+                        <h1 className="text-2xl font-bold text-gray-900 mb-2">
+                            {t('companies_show.company_not_found')}
+                        </h1>
                         <p className="text-gray-600 mb-6">
-                            The company you're looking for doesn't exist or you don't have permission to access it.
+                            {t('companies_show.company_not_found_message')}
                         </p>
                         <button
                             onClick={() => router.visit(route('companies.index'))}
                             className="px-6 py-3 bg-[#054748] text-white rounded-lg hover:bg-[#0a5d5e] transition-colors font-medium"
                         >
-                            Back to Companies List
+                            {t('companies_show.back_to_companies_list')}
                         </button>
                         <div className="mt-6 p-4 bg-gray-50 rounded-lg">
-                            <p className="text-sm text-gray-500">Debug Info:</p>
+                            <p className="text-sm text-gray-500">
+                                {t('companies_show.debug_info')}
+                            </p>
                             <p className="text-xs text-gray-400 mt-1">
-                                URL: {window.location.href}<br/>
-                                Route: companies.show<br/>
-                                Received Props: {Object.keys(props).join(', ')}
+                                {t('companies_show.url')}: {window.location.href}<br/>
+                                {t('companies_show.route')}: companies.show<br/>
+                                {t('companies_show.received_props')}: {Object.keys(props).join(', ')}
                             </p>
                         </div>
                     </div>
@@ -131,29 +209,17 @@ const Show = ({ company, quotations, invoices, payments, projects, contacts, sta
         company: {
             ...company,
             // Pastikan ada data contact person
-            contact_person: company.contact_person || company.primary_contact?.name || 'N/A',
-            contact_email: company.contact_email || company.primary_contact?.email || 'N/A',
-            contact_phone: company.contact_phone || company.primary_contact?.phone || 'N/A',
-            contact_position: company.contact_position || company.primary_contact?.position || 'N/A'
+            contact_person: company.contact_person || company.primary_contact?.name || t('companies_show.not_available'),
+            contact_email: company.contact_email || company.primary_contact?.email || t('companies_show.not_available'),
+            contact_phone: company.contact_phone || company.primary_contact?.phone || t('companies_show.not_available'),
+            contact_position: company.contact_position || company.primary_contact?.position || t('companies_show.not_available')
         },
         statistics: statistics || {},
         quotations: quotations || [],
         invoices: invoices || [],
         payments: payments || [],
         projects: projects || [],
-        contacts: contacts?.length > 0 ? contacts : [
-            // Fallback jika tidak ada contacts
-            {
-                id: 1,
-                name: company.contact_person || company.client_code,
-                email: company.contact_email || 'email@example.com',
-                phone: company.contact_phone || '081234567890',
-                position: company.contact_position || 'Contact Person',
-                is_primary: true,
-                is_active: true,
-                company_id: company.id
-            }
-        ],
+        contacts: contactData, // Gunakan state contactData yang bisa diupdate
         grouped_quotations: grouped_quotations || []
     };
 
@@ -163,7 +229,9 @@ const Show = ({ company, quotations, invoices, payments, projects, contacts, sta
             return (
                 <div className="flex justify-center items-center py-12">
                     <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#054748]"></div>
-                    <span className="ml-3 text-gray-600">Memuat data...</span>
+                    <span className="ml-3 text-gray-600">
+                        {t('companies_show.loading_data')}
+                    </span>
                 </div>
             );
         }
@@ -189,10 +257,18 @@ const Show = ({ company, quotations, invoices, payments, projects, contacts, sta
                         data={displayData.projects} 
                         onEdit={handleProjectEdit}
                         onDelete={handleProjectDelete}
+                        onAdd={handleAddProject}
                     />
                 );
             case 'contact':
-                return <ContactTable data={displayData.contacts} />;
+                return (
+                    <ContactTable 
+                        contacts={displayData.contacts}
+                        companyId={displayData.company.id}
+                        onUpdate={handleContactsUpdate}
+                        isLoading={isLoadingContacts}
+                    />
+                );
             default:
                 return <ProfileTable data={displayData.company} />;
         }
@@ -218,9 +294,52 @@ const Show = ({ company, quotations, invoices, payments, projects, contacts, sta
         }
     };
 
+    // Fungsi untuk mendapatkan label tab
+    const getTabLabel = () => {
+        switch (activeTab) {
+            case 'profile':
+                return t('companies_show.tab_profile');
+            case 'quotation':
+                return t('companies_show.tab_quotation');
+            case 'invoice':
+                return t('companies_show.tab_invoice');
+            case 'payment':
+                return t('companies_show.tab_payment');
+            case 'project':
+                return t('companies_show.tab_project');
+            case 'contact':
+                return t('companies_show.tab_contact');
+            default:
+                return t('companies_show.tab_profile');
+        }
+    };
+
+    // Fungsi untuk mendapatkan tombol tambah berdasarkan tab
+    const renderAddButton = () => {
+        switch (activeTab) {
+            case 'project':
+                return (
+                    <button
+                        onClick={handleAddProject}
+                        className="px-4 py-2 bg-[#054748] text-white rounded-lg hover:bg-[#0a5d5e] transition-colors font-medium flex items-center gap-2"
+                    >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4"></path>
+                        </svg>
+                        {t('companies_show.add_project_button')}
+                    </button>
+                );
+            case 'contact':
+                // Tombol Add sudah ada di dalam ContactTable component
+                return null;
+            default:
+                return null;
+        }
+    };
+
     return (
         <HeaderLayout>
-            <Head title={`${displayData.company.client_code} - Detail Perusahaan`} />
+            <Head title={`${displayData.company.client_code} - ${t('companies_show.detail_company')}`} />
             
             <div className="flex min-h-screen bg-gray-50">
                 {/* Sidebar */}
@@ -232,23 +351,29 @@ const Show = ({ company, quotations, invoices, payments, projects, contacts, sta
                 <div className="flex-1 min-w-0">
                     <div className="p-0">
                         {/* Success Message */}
-                        <div className="mb-4 p-4 bg-green-50 border border-green-200 rounded-lg mx-6 mt-6">
-                            <div className="flex items-center">
-                                <div className="flex-shrink-0">
-                                    <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
-                                        <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
-                                        </svg>
+                        {company && (
+                            <div className="mb-4 p-4 bg-green-50 border border-green-200 rounded-lg mx-6 mt-6">
+                                <div className="flex items-center">
+                                    <div className="flex-shrink-0">
+                                        <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
+                                            <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
+                                            </svg>
+                                        </div>
+                                    </div>
+                                    <div className="ml-3">
+                                        <h3 className="text-sm font-medium text-green-800">
+                                            {t('companies_show.success_loaded_company_data')}
+                                        </h3>
+                                        <p className="text-sm text-green-600 mt-1">
+                                            {t('companies_show.viewing')}: <span className="font-bold">{displayData.company.client_code}</span> | 
+                                            {t('companies_show.contacts')}: <span className="font-bold">{displayData.contacts?.length || 0}</span> | 
+                                            {t('companies_show.projects')}: <span className="font-bold">{displayData.projects?.length || 0}</span>
+                                        </p>
                                     </div>
                                 </div>
-                                <div className="ml-3">
-                                    <h3 className="text-sm font-medium text-green-800">Successfully loaded company data</h3>
-                                    <p className="text-sm text-green-600 mt-1">
-                                        Viewing: <span className="font-bold">{displayData.company.client_code}</span>
-                                    </p>
-                                </div>
                             </div>
-                        </div>
+                        )}
 
                         {/* Company Header */}
                         <div className="px-6">
@@ -265,17 +390,14 @@ const Show = ({ company, quotations, invoices, payments, projects, contacts, sta
                             <div className="mb-6 flex justify-between items-center">
                                 <div>
                                     <h2 className="text-xl font-bold text-gray-900 capitalize">
-                                        {activeTab === 'profile' ? 'Profil Perusahaan' :
-                                         activeTab === 'quotation' ? 'Daftar Quotation' :
-                                         activeTab === 'invoice' ? 'Daftar Invoice' :
-                                         activeTab === 'payment' ? 'Riwayat Pembayaran' :
-                                         activeTab === 'project' ? 'Proyek' : 'Kontak Perusahaan'}
+                                        {getTabLabel()}
                                     </h2>
                                     <p className="text-gray-600 mt-1">
-                                        {getItemCount()} item{getItemCount() !== 1 ? 's' : ''}
+                                        {getItemCount()} {t('companies_show.item', { count: getItemCount() })}
                                     </p>
                                 </div>
-                                {/* TIDAK ADA TOMBOL TAMBAH BARU */}
+                                {/* Tombol Tambah berdasarkan tab */}
+                                {renderAddButton()}
                             </div>
                             
                             {renderContent()}
@@ -298,16 +420,16 @@ const Show = ({ company, quotations, invoices, payments, projects, contacts, sta
                         name: company.client_code,
                         client_code: company.client_code,
                         city: company.city || ''
-                    }]} // Kirim company saat ini saja untuk project modal
-                    quotations={[]} // Anda bisa menambahkan quotations jika diperlukan
+                    }]}
+                    quotations={quotations || []}
                     statusOptions={[
-                        { value: 'in_progress', label: 'In Progress' },
-                        { value: 'completed', label: 'Completed' },
-                        { value: 'pending', label: 'Pending' },
-                        { value: 'cancelled', label: 'Cancelled' }
+                        { value: 'in_progress', label: t('companies_show.status_in_progress') },
+                        { value: 'completed', label: t('companies_show.status_completed') },
+                        { value: 'pending', label: t('companies_show.status_pending') },
+                        { value: 'cancelled', label: t('companies_show.status_cancelled') }
                     ]}
                     isEdit={modalMode === 'edit'}
-                    title={modalMode === 'edit' ? 'Edit Project' : 'Add Project'}
+                    title={modalMode === 'edit' ? t('companies_show.edit_project') : t('companies_show.add_project')}
                 />
             )}
 
@@ -321,13 +443,19 @@ const Show = ({ company, quotations, invoices, payments, projects, contacts, sta
                                     <Trash2 className="w-6 h-6 text-red-600" />
                                 </div>
                                 <div>
-                                    <h3 className="text-lg font-bold text-gray-900">Delete Project</h3>
-                                    <p className="text-sm text-gray-600 mt-1">This action cannot be undone</p>
+                                    <h3 className="text-lg font-bold text-gray-900">
+                                        {t('companies_show.delete_project')}
+                                    </h3>
+                                    <p className="text-sm text-gray-600 mt-1">
+                                        {t('companies_show.action_cannot_undone')}
+                                    </p>
                                 </div>
                             </div>
                             
                             <p className="text-gray-700 mb-6">
-                                Are you sure you want to delete project "{selectedProject.project_description}"?
+                                {t('companies_show.confirm_delete_project', { 
+                                    name: selectedProject.project_description 
+                                })}
                             </p>
                             
                             <div className="flex gap-3">
@@ -338,13 +466,13 @@ const Show = ({ company, quotations, invoices, payments, projects, contacts, sta
                                     }}
                                     className="px-4 py-2.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors flex-1"
                                 >
-                                    Cancel
+                                    {t('companies_show.cancel')}
                                 </button>
                                 <button
                                     onClick={confirmProjectDelete}
                                     className="px-4 py-2.5 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors flex-1"
                                 >
-                                    Delete
+                                    {t('companies_show.delete')}
                                 </button>
                             </div>
                         </div>

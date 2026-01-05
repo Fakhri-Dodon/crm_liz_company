@@ -1,3 +1,4 @@
+// resources/js/Pages/Companies/Sidebar.jsx
 import React from 'react';
 import { 
     Building2, 
@@ -10,19 +11,45 @@ import {
     ChevronRight
 } from 'lucide-react';
 import { Link } from '@inertiajs/react';
+import { useTranslation } from 'react-i18next'; // Import useTranslation
 
 const Sidebar = ({ activeTab, setActiveTab }) => {
+    const { t } = useTranslation(); // Initialize translation hook
+    
     const menuItems = [
-        { id: 'profile', label: 'Company Profile', icon: Building2 },
-        { id: 'quotation', label: 'Quotations', icon: FileText },
-        { id: 'invoice', label: 'Invoices', icon: Receipt },
-        { id: 'payment', label: 'Payments', icon: CreditCard },
-        { id: 'project', label: 'Projects', icon: FolderKanban },
-        { id: 'contact', label: 'Contacts', icon: Users },
+        { 
+            id: 'profile', 
+            label: t('companies_sidebar.company_profile'), 
+            icon: Building2 
+        },
+        { 
+            id: 'quotation', 
+            label: t('companies_sidebar.quotations'), 
+            icon: FileText 
+        },
+        { 
+            id: 'invoice', 
+            label: t('companies_sidebar.invoices'), 
+            icon: Receipt 
+        },
+        { 
+            id: 'payment', 
+            label: t('companies_sidebar.payments'), 
+            icon: CreditCard 
+        },
+        { 
+            id: 'project', 
+            label: t('companies_sidebar.projects'), 
+            icon: FolderKanban 
+        },
+        { 
+            id: 'contact', 
+            label: t('companies_sidebar.contacts'), 
+            icon: Users 
+        },
     ];
 
     return (
-        // Hapus top-20 dan h-[calc(100vh-5rem)] agar pas dengan header
         <div className="w-64 bg-[#054748] text-white flex flex-col shadow-lg h-screen sticky top-0">
             {/* Logo/Header Sidebar */}
             <div className="p-6 border-b border-[#0a5d5e]">
@@ -31,8 +58,12 @@ const Sidebar = ({ activeTab, setActiveTab }) => {
                         <Building2 className="w-6 h-6 text-[#054748]" />
                     </div>
                     <div>
-                        <h2 className="text-lg font-semibold">Company</h2>
-                        <p className="text-sm text-[#9ec8c9]">Dashboard</p>
+                        <h2 className="text-lg font-semibold">
+                            {t('companies_sidebar.company')}
+                        </h2>
+                        <p className="text-sm text-[#9ec8c9]">
+                            {t('companies_sidebar.dashboard')}
+                        </p>
                     </div>
                 </div>
             </div>
@@ -70,7 +101,7 @@ const Sidebar = ({ activeTab, setActiveTab }) => {
                     className="flex items-center justify-center space-x-2 px-4 py-2 bg-[#0a5d5e] rounded-lg hover:bg-[#0c6e6f] transition-colors"
                 >
                     <ChevronLeft className="w-4 h-4" />
-                    <span>Back to Companies</span>
+                    <span>{t('companies_sidebar.back_to_companies')}</span>
                 </Link>
             </div>
         </div>

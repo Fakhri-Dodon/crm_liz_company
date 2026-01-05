@@ -3,9 +3,11 @@ import React, { useState, useEffect } from 'react';
 import { X, Upload, Building, User, Mail, Phone, MapPin, Globe, FileText, AlertCircle, Check, ChevronDown, Search } from 'lucide-react';
 import { router, usePage } from '@inertiajs/react';
 import axios from 'axios';
+import { useTranslation } from 'react-i18next'; // Import useTranslation
 
 const Create = ({ isOpen, onClose, clientTypes, quotationId, onSuccess }) => {
     const { flash } = usePage().props;
+    const { t } = useTranslation(); // Initialize translation hook
     
     // State untuk menyimpan data form - SESUAI DENGAN VALIDASI CONTROLLER
     const [formData, setFormData] = useState({
@@ -127,7 +129,7 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId, onSuccess }) => {
             contact_person: quotation.lead?.contact_person || prev.contact_person,
             contact_email: quotation.lead?.email || prev.contact_email,
             contact_phone: quotation.lead?.phone || prev.contact_phone,
-            contact_position: quotation.lead?.position || 'Contact Person'
+            contact_position: quotation.lead?.position || t('companies_create.contact_person')
         }));
         
         // Set lead data
@@ -157,7 +159,7 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId, onSuccess }) => {
                     contact_person: leadData.contact_person || prev.contact_person,
                     contact_email: leadData.email || prev.contact_email,
                     contact_phone: leadData.phone || prev.contact_phone,
-                    contact_position: leadData.position || 'Contact Person',
+                    contact_position: leadData.position || t('companies_create.contact_person'),
                     city: leadData.city || prev.city,
                     province: leadData.province || prev.province,
                     country: leadData.country || prev.country,
@@ -262,7 +264,7 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId, onSuccess }) => {
             if (!formData[field]) {
                 setErrors(prev => ({
                     ...prev,
-                    [field]: `${field.replace('_', ' ')} wajib diisi`
+                    [field]: t('companies_create.field_required', { field: field.replace('_', ' ') })
                 }));
             }
         });
@@ -302,7 +304,7 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId, onSuccess }) => {
 
             if (response && response.data && response.data.success) {
                 // Success message
-                alert(response.data.message || 'Client created successfully!');
+                alert(response.data.message || t('companies_create.client_created_successfully'));
                 
                 // Tutup modal
                 onClose();
@@ -343,7 +345,7 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId, onSuccess }) => {
                 });
             } else {
                 setErrors(response?.data?.errors || {});
-                alert(response?.data?.message || 'Failed to create client');
+                alert(response?.data?.message || t('companies_create.failed_to_create_client'));
             }
 
         } catch (error) {
@@ -360,10 +362,10 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId, onSuccess }) => {
                     .join('\n');
                 
                 if (errorMessages) {
-                    alert('Validation errors:\n' + errorMessages);
+                    alert(t('companies_create.validation_errors') + '\n' + errorMessages);
                 }
             } else {
-                alert(`Error creating client: ${error.response?.data?.message || error.message}`);
+                alert(`${t('companies_create.error_creating_client')}: ${error.response?.data?.message || error.message}`);
             }
         } finally {
             setIsSubmitting(false);
@@ -378,11 +380,15 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId, onSuccess }) => {
                 {/* Header */}
                 <div className="flex justify-between items-center p-6 border-b">
                     <div>
-                        <h2 className="text-2xl font-bold text-gray-900">Create New Client</h2>
-                        <p className="text-gray-600 mt-1">Add a new client to your portfolio</p>
+                        <h2 className="text-2xl font-bold text-gray-900">
+                            {t('companies_create.title')}
+                        </h2>
+                        <p className="text-gray-600 mt-1">
+                            {t('companies_create.subtitle')}
+                        </p>
                         {quotationId && (
                             <div className="mt-1 text-sm text-blue-600">
-                                Creating from quotation: <strong>{quotationId}</strong>
+                                {t('companies_create.creating_from_quotation')}: <strong>{quotationId}</strong>
                             </div>
                         )}
                     </div>
@@ -402,13 +408,15 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId, onSuccess }) => {
                             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                                 <h3 className="font-medium text-blue-900 mb-3 flex items-center gap-2">
                                     <FileText className="w-5 h-5" />
-                                    Select from Accepted Quotation (Optional)
+                                    {t('companies_create.select_from_quotation')}
                                 </h3>
                                 
                                 {loadingQuotations ? (
                                     <div className="text-center py-4">
                                         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-                                        <p className="text-sm text-gray-600 mt-2">Loading quotations...</p>
+                                        <p className="text-sm text-gray-600 mt-2">
+                                            {t('companies_create.loading_quotations')}
+                                        </p>
                                     </div>
                                 ) : (
                                     <div className="space-y-3">
@@ -421,7 +429,7 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId, onSuccess }) => {
                                                                 {selectedQuotation.quotation_number}
                                                             </span>
                                                             <span className="px-2 py-1 text-xs bg-green-100 text-green-800 rounded">
-                                                                Accepted
+                                                                {t('companies_create.accepted')}
                                                             </span>
                                                         </div>
                                                         <div className="text-sm text-gray-600 mt-1">
@@ -450,7 +458,7 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId, onSuccess }) => {
                                                     <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
                                                     <input
                                                         type="text"
-                                                        placeholder="Search quotations..."
+                                                        placeholder={t('companies_create.search_quotations')}
                                                         value={quotationSearch}
                                                         onChange={(e) => setQuotationSearch(e.target.value)}
                                                         className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
@@ -486,7 +494,7 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId, onSuccess }) => {
                                                     ) : (
                                                         <div className="text-center py-8">
                                                             <p className="text-sm text-gray-600 font-medium">
-                                                                No quotations found
+                                                                {t('companies_create.no_quotations_found')}
                                                             </p>
                                                         </div>
                                                     )}
@@ -502,14 +510,14 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId, onSuccess }) => {
                         <div className="space-y-6">
                             <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
                                 <Building className="w-5 h-5" />
-                                Company Information
+                                {t('companies_create.company_information')}
                             </h3>
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 {/* Company Name - Wajib */}
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        Company Name *
+                                        {t('companies_create.company_name')} *
                                     </label>
                                     <input
                                         type="text"
@@ -520,7 +528,7 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId, onSuccess }) => {
                                             errors.company_name ? 'border-red-300' : 'border-gray-300'
                                         }`}
                                         required
-                                        placeholder="Enter company name"
+                                        placeholder={t('companies_create.company_name_placeholder')}
                                     />
                                     {errors.company_name && (
                                         <p className="text-xs text-red-600 mt-1">{errors.company_name}</p>
@@ -530,7 +538,7 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId, onSuccess }) => {
                                 {/* Client Type - Wajib */}
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        Client Type *
+                                        {t('companies_create.client_type')} *
                                     </label>
                                     <select
                                         name="client_type_id"
@@ -541,7 +549,7 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId, onSuccess }) => {
                                         }`}
                                         required
                                     >
-                                        <option value="">Select Client Type</option>
+                                        <option value="">{t('companies_create.select_client_type')}</option>
                                         {clientTypes && clientTypes.map(type => (
                                             <option key={type.id} value={type.id}>
                                                 {type.name}
@@ -558,7 +566,7 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId, onSuccess }) => {
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        City
+                                        {t('companies_create.city')}
                                     </label>
                                     <input
                                         type="text"
@@ -566,12 +574,13 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId, onSuccess }) => {
                                         value={formData.city}
                                         onChange={handleInputChange}
                                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                                        placeholder={t('companies_create.city_placeholder')}
                                     />
                                 </div>
 
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        Province
+                                        {t('companies_create.province')}
                                     </label>
                                     <input
                                         type="text"
@@ -579,12 +588,13 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId, onSuccess }) => {
                                         value={formData.province}
                                         onChange={handleInputChange}
                                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                                        placeholder={t('companies_create.province_placeholder')}
                                     />
                                 </div>
 
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        Country
+                                        {t('companies_create.country')}
                                     </label>
                                     <input
                                         type="text"
@@ -592,12 +602,13 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId, onSuccess }) => {
                                         value={formData.country}
                                         onChange={handleInputChange}
                                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                                        placeholder={t('companies_create.country_placeholder')}
                                     />
                                 </div>
 
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        Postal Code
+                                        {t('companies_create.postal_code')}
                                     </label>
                                     <input
                                         type="number"
@@ -605,6 +616,7 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId, onSuccess }) => {
                                         value={formData.postal_code}
                                         onChange={handleInputChange}
                                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                                        placeholder={t('companies_create.postal_code_placeholder')}
                                     />
                                 </div>
                             </div>
@@ -613,7 +625,7 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId, onSuccess }) => {
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        VAT Number
+                                        {t('companies_create.vat_number')}
                                     </label>
                                     <input
                                         type="number"
@@ -621,12 +633,13 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId, onSuccess }) => {
                                         value={formData.vat_number}
                                         onChange={handleInputChange}
                                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                                        placeholder={t('companies_create.vat_number_placeholder')}
                                     />
                                 </div>
 
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        NIB
+                                        {t('companies_create.nib')}
                                     </label>
                                     <input
                                         type="text"
@@ -634,12 +647,13 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId, onSuccess }) => {
                                         value={formData.nib}
                                         onChange={handleInputChange}
                                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                                        placeholder={t('companies_create.nib_placeholder')}
                                     />
                                 </div>
 
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        Website
+                                        {t('companies_create.website')}
                                     </label>
                                     <input
                                         type="url"
@@ -647,7 +661,7 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId, onSuccess }) => {
                                         value={formData.website}
                                         onChange={handleInputChange}
                                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
-                                        placeholder="https://example.com"
+                                        placeholder={t('companies_create.website_placeholder')}
                                     />
                                 </div>
                             </div>
@@ -657,13 +671,13 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId, onSuccess }) => {
                         <div className="border-t pt-6">
                             <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2 mb-4">
                                 <User className="w-5 h-5" />
-                                Contact Information *
+                                {t('companies_create.contact_information')} *
                             </h3>
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        Contact Person *
+                                        {t('companies_create.contact_person')} *
                                     </label>
                                     <input
                                         type="text"
@@ -674,6 +688,7 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId, onSuccess }) => {
                                             errors.contact_person ? 'border-red-300' : 'border-gray-300'
                                         }`}
                                         required
+                                        placeholder={t('companies_create.contact_person_placeholder')}
                                     />
                                     {errors.contact_person && (
                                         <p className="text-xs text-red-600 mt-1">{errors.contact_person}</p>
@@ -682,7 +697,7 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId, onSuccess }) => {
 
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        Position
+                                        {t('companies_create.position')}
                                     </label>
                                     <input
                                         type="text"
@@ -690,12 +705,13 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId, onSuccess }) => {
                                         value={formData.contact_position}
                                         onChange={handleInputChange}
                                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                                        placeholder={t('companies_create.position_placeholder')}
                                     />
                                 </div>
 
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        Email *
+                                        {t('companies_create.email')} *
                                     </label>
                                     <input
                                         type="email"
@@ -706,6 +722,7 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId, onSuccess }) => {
                                             errors.contact_email ? 'border-red-300' : 'border-gray-300'
                                         }`}
                                         required
+                                        placeholder={t('companies_create.email_placeholder')}
                                     />
                                     {errors.contact_email && (
                                         <p className="text-xs text-red-600 mt-1">{errors.contact_email}</p>
@@ -714,7 +731,7 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId, onSuccess }) => {
 
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        Phone *
+                                        {t('companies_create.phone')} *
                                     </label>
                                     <input
                                         type="tel"
@@ -725,6 +742,7 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId, onSuccess }) => {
                                             errors.contact_phone ? 'border-red-300' : 'border-gray-300'
                                         }`}
                                         required
+                                        placeholder={t('companies_create.phone_placeholder')}
                                     />
                                     {errors.contact_phone && (
                                         <p className="text-xs text-red-600 mt-1">{errors.contact_phone}</p>
@@ -736,7 +754,9 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId, onSuccess }) => {
                         {/* Status & Logo Upload */}
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-6 border-t">
                             <div>
-                                <h3 className="text-lg font-semibold text-gray-900 mb-3">Status *</h3>
+                                <h3 className="text-lg font-semibold text-gray-900 mb-3">
+                                    {t('companies_create.status')} *
+                                </h3>
                                 <div className="flex gap-4">
                                     <label className="flex items-center">
                                         <input
@@ -748,7 +768,9 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId, onSuccess }) => {
                                             className="w-4 h-4 text-teal-600 focus:ring-teal-500"
                                             required
                                         />
-                                        <span className="ml-2 text-gray-700">Active</span>
+                                        <span className="ml-2 text-gray-700">
+                                            {t('companies_create.active')}
+                                        </span>
                                     </label>
                                     <label className="flex items-center">
                                         <input
@@ -759,7 +781,9 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId, onSuccess }) => {
                                             onChange={handleInputChange}
                                             className="w-4 h-4 text-teal-600 focus:ring-teal-500"
                                         />
-                                        <span className="ml-2 text-gray-700">Inactive</span>
+                                        <span className="ml-2 text-gray-700">
+                                            {t('companies_create.inactive')}
+                                        </span>
                                     </label>
                                 </div>
                                 {errors.status && (
@@ -768,7 +792,9 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId, onSuccess }) => {
                             </div>
 
                             <div>
-                                <h3 className="text-lg font-semibold text-gray-900 mb-3">Company Logo</h3>
+                                <h3 className="text-lg font-semibold text-gray-900 mb-3">
+                                    {t('companies_create.company_logo')}
+                                </h3>
                                 <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 hover:border-teal-500 transition">
                                     <div className="flex items-center space-x-4">
                                         <div className="flex-1">
@@ -780,14 +806,14 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId, onSuccess }) => {
                                                 className="w-full border border-gray-300 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                                             />
                                             <p className="text-xs text-gray-500 mt-1">
-                                                JPEG, PNG, JPG, GIF (Max 2MB)
+                                                {t('companies_create.file_requirements')}
                                             </p>
                                         </div>
                                         {logoPreview && (
                                             <div className="w-16 h-16">
                                                 <img 
                                                     src={logoPreview} 
-                                                    alt="Logo preview" 
+                                                    alt={t('companies_create.logo_preview')}
                                                     className="w-full h-full object-cover rounded-lg border border-gray-300"
                                                 />
                                             </div>
@@ -806,7 +832,7 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId, onSuccess }) => {
                             disabled={isSubmitting}
                             className="px-4 py-2 text-gray-700 hover:text-gray-900 font-medium"
                         >
-                            Cancel
+                            {t('companies_create.cancel')}
                         </button>
                         <button
                             type="submit"
@@ -820,10 +846,10 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId, onSuccess }) => {
                             {isSubmitting ? (
                                 <>
                                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                                    Creating...
+                                    {t('companies_create.creating')}
                                 </>
                             ) : (
-                                'Create Client'
+                                t('companies_create.create_client')
                             )}
                         </button>
                     </div>

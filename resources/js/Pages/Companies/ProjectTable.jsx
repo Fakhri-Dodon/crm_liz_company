@@ -1,3 +1,4 @@
+// resources/js/Pages/Companies/ProjectTable.jsx
 import React, { useState } from 'react';
 import { 
     FolderKanban, 
@@ -12,12 +13,14 @@ import {
     PauseCircle,
     AlertTriangle
 } from 'lucide-react';
+import { useTranslation } from 'react-i18next'; // Import useTranslation
 
 const ProjectTable = ({ data, onEdit, onDelete }) => {
+    const { t } = useTranslation(); // Initialize translation hook
     const [actionMenu, setActionMenu] = useState(null);
 
     const formatDate = (dateString) => {
-        if (!dateString) return '-';
+        if (!dateString) return t('project_table.not_available');
         try {
             const date = new Date(dateString);
             return date.toLocaleDateString('id-ID', {
@@ -53,7 +56,7 @@ const ProjectTable = ({ data, onEdit, onDelete }) => {
                 return (
                     <span className={`${baseClasses} bg-blue-100 text-blue-800`}>
                         <PlayCircle className="w-3 h-3 mr-1" />
-                        In Progress
+                        {t('project_table.status_in_progress')}
                     </span>
                 );
             case 'completed':
@@ -62,7 +65,7 @@ const ProjectTable = ({ data, onEdit, onDelete }) => {
                 return (
                     <span className={`${baseClasses} bg-green-100 text-green-800`}>
                         <CheckCircle className="w-3 h-3 mr-1" />
-                        Completed
+                        {t('project_table.status_completed')}
                     </span>
                 );
             case 'pending':
@@ -71,7 +74,7 @@ const ProjectTable = ({ data, onEdit, onDelete }) => {
                 return (
                     <span className={`${baseClasses} bg-yellow-100 text-yellow-800`}>
                         <PauseCircle className="w-3 h-3 mr-1" />
-                        Pending
+                        {t('project_table.status_pending')}
                     </span>
                 );
             case 'cancelled':
@@ -80,7 +83,7 @@ const ProjectTable = ({ data, onEdit, onDelete }) => {
                 return (
                     <span className={`${baseClasses} bg-red-100 text-red-800`}>
                         <XCircle className="w-3 h-3 mr-1" />
-                        Cancelled
+                        {t('project_table.status_cancelled')}
                     </span>
                 );
             case 'delayed':
@@ -88,13 +91,13 @@ const ProjectTable = ({ data, onEdit, onDelete }) => {
                 return (
                     <span className={`${baseClasses} bg-orange-100 text-orange-800`}>
                         <AlertTriangle className="w-3 h-3 mr-1" />
-                        Delayed
+                        {t('project_table.status_delayed')}
                     </span>
                 );
             default:
                 return (
                     <span className={`${baseClasses} bg-gray-100 text-gray-800`}>
-                        {status}
+                        {status || t('project_table.status_unknown')}
                     </span>
                 );
         }
@@ -103,29 +106,29 @@ const ProjectTable = ({ data, onEdit, onDelete }) => {
     const getDaysLeftText = (daysLeft, status) => {
         // Jika status sudah completed atau cancelled, tampilkan status saja
         if (status === 'completed' || status === 'done' || status === 'finished') {
-            return 'Completed';
+            return t('project_table.completed');
         }
         if (status === 'cancelled' || status === 'canceled' || status === 'rejected') {
-            return 'Cancelled';
+            return t('project_table.cancelled');
         }
         if (status === 'delayed' || status === 'overdue') {
-            return 'Overdue';
+            return t('project_table.overdue');
         }
         
         // Jika ada daysLeft dari backend, gunakan itu
         if (daysLeft !== null && daysLeft !== undefined) {
-            if (daysLeft < 0) return `${Math.abs(daysLeft)}d late`;
-            if (daysLeft === 0) return 'Today';
-            if (daysLeft === 1) return 'Tomorrow';
-            return `${daysLeft}d left`;
+            if (daysLeft < 0) return t('project_table.days_late', { days: Math.abs(daysLeft) });
+            if (daysLeft === 0) return t('project_table.today');
+            if (daysLeft === 1) return t('project_table.tomorrow');
+            return t('project_table.days_left', { days: daysLeft });
         }
         
         // Jika tidak ada daysLeft dari backend, hitung manual
         if (!daysLeft && typeof daysLeft !== 'number') {
-            return 'N/A';
+            return t('project_table.not_available');
         }
         
-        return 'N/A';
+        return t('project_table.not_available');
     };
 
     const getDaysLeftColor = (daysLeft, status) => {
@@ -169,17 +172,17 @@ const ProjectTable = ({ data, onEdit, onDelete }) => {
                             <div className="flex justify-between items-start">
                                 <div>
                                     <h3 className="font-semibold text-gray-900 text-sm leading-tight mb-1">
-                                        {index + 1}. {project.project_description?.substring(0, 60) || 'No Description'}
+                                        {index + 1}. {project.project_description?.substring(0, 60) || t('project_table.no_description')}
                                         {project.project_description?.length > 60 && '...'}
                                     </h3>
                                     <div className="flex flex-wrap gap-2 mt-2">
                                         <span className="text-xs text-gray-500 flex items-center">
                                             <Calendar className="w-3 h-3 mr-1" />
-                                            Start: {formatDate(project.start_date)}
+                                            {t('project_table.start')}: {formatDate(project.start_date)}
                                         </span>
                                         <span className="text-xs text-gray-500 flex items-center">
                                             <Clock className="w-3 h-3 mr-1" />
-                                            Deadline: {formatDate(project.deadline)}
+                                            {t('project_table.deadline')}: {formatDate(project.deadline)}
                                         </span>
                                     </div>
                                 </div>
@@ -200,7 +203,7 @@ const ProjectTable = ({ data, onEdit, onDelete }) => {
                                                 className="w-full px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center"
                                             >
                                                 <Edit className="w-3 h-3 mr-2" />
-                                                Edit
+                                                {t('project_table.edit')}
                                             </button>
                                             <button
                                                 onClick={() => {
@@ -210,7 +213,7 @@ const ProjectTable = ({ data, onEdit, onDelete }) => {
                                                 className="w-full px-3 py-2 text-left text-sm text-red-600 hover:bg-gray-50 flex items-center"
                                             >
                                                 <Trash2 className="w-3 h-3 mr-2" />
-                                                Delete
+                                                {t('project_table.delete')}
                                             </button>
                                         </div>
                                     )}
@@ -226,7 +229,7 @@ const ProjectTable = ({ data, onEdit, onDelete }) => {
                             
                             {project.note && (
                                 <div className="mt-3 p-2 bg-gray-50 rounded text-xs text-gray-600">
-                                    <span className="font-medium">Note:</span> {project.note}
+                                    <span className="font-medium">{t('project_table.note_label')}:</span> {project.note}
                                 </div>
                             )}
                         </div>
@@ -252,28 +255,28 @@ const ProjectTable = ({ data, onEdit, onDelete }) => {
                         <thead className="bg-gray-50">
                             <tr>
                                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
-                                    No
+                                    {t('project_table.no')}
                                 </th>
                                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
-                                    Project Description
+                                    {t('project_table.project_description')}
                                 </th>
                                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
-                                    Start Date
+                                    {t('project_table.start_date')}
                                 </th>
                                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
-                                    Deadline
+                                    {t('project_table.deadline')}
                                 </th>
                                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
-                                    Time Left
+                                    {t('project_table.time_left')}
                                 </th>
                                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
-                                    Status
+                                    {t('project_table.status')}
                                 </th>
                                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
-                                    Note
+                                    {t('project_table.note')}
                                 </th>
                                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
-                                    Actions
+                                    {t('project_table.actions')}
                                 </th>
                             </tr>
                         </thead>
@@ -288,7 +291,7 @@ const ProjectTable = ({ data, onEdit, onDelete }) => {
                                         </td>
                                         <td className="px-4 py-3 max-w-[300px]">
                                             <div className="text-sm text-gray-900 font-medium">
-                                                {project.project_description || '-'}
+                                                {project.project_description || t('project_table.not_available')}
                                             </div>
                                         </td>
                                         <td className="px-4 py-3 whitespace-nowrap">
@@ -311,7 +314,7 @@ const ProjectTable = ({ data, onEdit, onDelete }) => {
                                         </td>
                                         <td className="px-4 py-3 max-w-[200px]">
                                             <div className="text-sm text-gray-600 truncate" title={project.note}>
-                                                {project.note || '-'}
+                                                {project.note || t('project_table.not_available')}
                                             </div>
                                         </td>
                                         <td className="px-4 py-3 whitespace-nowrap">
@@ -319,14 +322,14 @@ const ProjectTable = ({ data, onEdit, onDelete }) => {
                                                 <button
                                                     onClick={() => onEdit(project)}
                                                     className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                                                    title="Edit project"
+                                                    title={t('project_table.edit_project')}
                                                 >
                                                     <Edit className="w-4 h-4" />
                                                 </button>
                                                 <button
                                                     onClick={() => onDelete(project)}
                                                     className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                                                    title="Delete project"
+                                                    title={t('project_table.delete_project')}
                                                 >
                                                     <Trash2 className="w-4 h-4" />
                                                 </button>
@@ -344,8 +347,12 @@ const ProjectTable = ({ data, onEdit, onDelete }) => {
             {data.length === 0 && (
                 <div className="text-center py-12">
                     <FolderKanban className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                    <h3 className="text-lg font-medium text-gray-900 mb-2">No projects found</h3>
-                    <p className="text-gray-600">This company doesn't have any projects yet.</p>
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">
+                        {t('project_table.no_projects_found')}
+                    </h3>
+                    <p className="text-gray-600">
+                        {t('project_table.no_projects_message')}
+                    </p>
                 </div>
             )}
 
@@ -354,11 +361,15 @@ const ProjectTable = ({ data, onEdit, onDelete }) => {
                 <div className="mt-6 pt-6 border-t border-gray-200">
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                         <div className="bg-blue-50 p-4 rounded-lg">
-                            <p className="text-sm text-gray-600">Total Projects</p>
+                            <p className="text-sm text-gray-600">
+                                {t('project_table.total_projects')}
+                            </p>
                             <p className="text-2xl font-bold text-gray-900">{data.length}</p>
                         </div>
                         <div className="bg-green-50 p-4 rounded-lg">
-                            <p className="text-sm text-gray-600">Completed</p>
+                            <p className="text-sm text-gray-600">
+                                {t('project_table.completed')}
+                            </p>
                             <p className="text-2xl font-bold text-gray-900">
                                 {data.filter(p => 
                                     p.status === 'completed' || 
@@ -368,7 +379,9 @@ const ProjectTable = ({ data, onEdit, onDelete }) => {
                             </p>
                         </div>
                         <div className="bg-yellow-50 p-4 rounded-lg">
-                            <p className="text-sm text-gray-600">Pending</p>
+                            <p className="text-sm text-gray-600">
+                                {t('project_table.pending')}
+                            </p>
                             <p className="text-2xl font-bold text-gray-900">
                                 {data.filter(p => 
                                     p.status === 'pending' || 
@@ -378,7 +391,9 @@ const ProjectTable = ({ data, onEdit, onDelete }) => {
                             </p>
                         </div>
                         <div className="bg-red-50 p-4 rounded-lg">
-                            <p className="text-sm text-gray-600">Cancelled</p>
+                            <p className="text-sm text-gray-600">
+                                {t('project_table.cancelled')}
+                            </p>
                             <p className="text-2xl font-bold text-gray-900">
                                 {data.filter(p => 
                                     p.status === 'cancelled' || 

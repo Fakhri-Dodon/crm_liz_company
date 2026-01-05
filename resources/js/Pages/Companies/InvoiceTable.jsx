@@ -1,11 +1,14 @@
+// resources/js/Pages/Companies/InvoiceTable.jsx
 import React, { useState } from 'react';
 import { 
     FileText, Calendar, DollarSign, CheckCircle, Clock, 
     AlertCircle, TrendingUp, Percent, Eye, Check, User,
     Download, Printer, Mail, Search, Filter, ChevronDown
 } from 'lucide-react';
+import { useTranslation } from 'react-i18next'; // Import useTranslation
 
 const InvoiceTable = ({ data }) => {
+    const { t } = useTranslation(); // Initialize translation hook
     const [tooltip, setTooltip] = useState(null);
     const [searchTerm, setSearchTerm] = useState('');
     const [statusFilter, setStatusFilter] = useState('all');
@@ -50,16 +53,16 @@ const InvoiceTable = ({ data }) => {
     
     // Format currency
     const formatCurrency = (amount) => {
-        if (!amount && amount !== 0) return 'Rp0';
+        if (!amount && amount !== 0) return t('invoice_table.currency_format', { amount: 0 });
         
-        if (amount >= 1000000000) return `Rp${(amount / 1000000000).toFixed(1)}M`;
-        if (amount >= 1000000) return `Rp${(amount / 1000000).toFixed(1)}Jt`;
-        if (amount >= 1000) return `Rp${(amount / 1000).toFixed(0)}Rb`;
-        return `Rp${amount}`;
+        if (amount >= 1000000000) return t('invoice_table.currency_m', { amount: (amount / 1000000000).toFixed(1) });
+        if (amount >= 1000000) return t('invoice_table.currency_jt', { amount: (amount / 1000000).toFixed(1) });
+        if (amount >= 1000) return t('invoice_table.currency_rb', { amount: (amount / 1000).toFixed(0) });
+        return t('invoice_table.currency_format', { amount: amount });
     };
 
     const formatFullCurrency = (amount) => {
-        if (!amount && amount !== 0) return 'Rp0';
+        if (!amount && amount !== 0) return t('invoice_table.currency_format', { amount: 0 });
         
         return new Intl.NumberFormat('id-ID', {
             style: 'currency',
@@ -69,11 +72,11 @@ const InvoiceTable = ({ data }) => {
     };
 
     const formatDate = (dateString) => {
-        if (!dateString) return 'N/A';
+        if (!dateString) return t('invoice_table.not_available');
         
         try {
             const date = new Date(dateString);
-            if (isNaN(date.getTime())) return 'Invalid Date';
+            if (isNaN(date.getTime())) return t('invoice_table.invalid_date');
             
             return date.toLocaleDateString('id-ID', {
                 day: 'numeric',
@@ -81,16 +84,16 @@ const InvoiceTable = ({ data }) => {
                 year: 'numeric'
             });
         } catch (e) {
-            return 'Invalid Date';
+            return t('invoice_table.invalid_date');
         }
     };
 
     const formatDateWithTooltip = (dateString) => {
-        if (!dateString) return { display: 'N/A', tooltip: '' };
+        if (!dateString) return { display: t('invoice_table.not_available'), tooltip: '' };
         
         try {
             const date = new Date(dateString);
-            if (isNaN(date.getTime())) return { display: 'Invalid', tooltip: '' };
+            if (isNaN(date.getTime())) return { display: t('invoice_table.invalid_date'), tooltip: '' };
             
             const display = formatDate(dateString);
             const tooltip = date.toLocaleDateString('id-ID', {
@@ -102,7 +105,7 @@ const InvoiceTable = ({ data }) => {
             
             return { display, tooltip };
         } catch (e) {
-            return { display: 'Invalid', tooltip: '' };
+            return { display: t('invoice_table.invalid_date'), tooltip: '' };
         }
     };
 
@@ -114,41 +117,41 @@ const InvoiceTable = ({ data }) => {
                 return (
                     <span className={`${baseClasses} bg-green-100 text-green-800`}>
                         <CheckCircle className="w-3 h-3 mr-1" />
-                        <span>Paid</span>
+                        <span>{t('invoice_table.status_paid')}</span>
                     </span>
                 );
             case 'unpaid':
                 return (
                     <span className={`${baseClasses} bg-yellow-100 text-yellow-800`}>
                         <Clock className="w-3 h-3 mr-1" />
-                        <span>Unpaid</span>
+                        <span>{t('invoice_table.status_unpaid')}</span>
                     </span>
                 );
             case 'invoice':
                 return (
                     <span className={`${baseClasses} bg-blue-100 text-blue-800`}>
                         <FileText className="w-3 h-3 mr-1" />
-                        <span>Invoice Sent</span>
+                        <span>{t('invoice_table.status_invoice_sent')}</span>
                     </span>
                 );
             case 'cancelled':
                 return (
                     <span className={`${baseClasses} bg-red-100 text-red-800`}>
                         <AlertCircle className="w-3 h-3 mr-1" />
-                        <span>Cancelled</span>
+                        <span>{t('invoice_table.status_cancelled')}</span>
                     </span>
                 );
             case 'draft':
                 return (
                     <span className={`${baseClasses} bg-gray-100 text-gray-800`}>
                         <FileText className="w-3 h-3 mr-1" />
-                        <span>Draft</span>
+                        <span>{t('invoice_table.status_draft')}</span>
                     </span>
                 );
             default:
                 return (
                     <span className={`${baseClasses} bg-gray-100 text-gray-800`}>
-                        {status || 'Unknown'}
+                        {status || t('invoice_table.status_unknown')}
                     </span>
                 );
         }
@@ -201,7 +204,7 @@ const InvoiceTable = ({ data }) => {
                         <FileText className="w-5 h-5 text-blue-600" />
                         <div>
                             <h3 className="font-semibold text-gray-900 text-sm">
-                                {invoice.invoice_number || 'No Number'}
+                                {invoice.invoice_number || t('invoice_table.no_number')}
                             </h3>
                             <p 
                                 className="text-xs text-gray-500 cursor-help"
@@ -219,20 +222,20 @@ const InvoiceTable = ({ data }) => {
                     <div className="flex items-center space-x-2 mb-2">
                         <User className="w-4 h-4 text-gray-400" />
                         <span className="text-xs text-gray-600">
-                            {invoice.contact_person?.name || 'No Contact Person'}
+                            {invoice.contact_person?.name || t('invoice_table.no_contact_person')}
                         </span>
                     </div>
                     
                     {invoice.quotation && (
                         <div className="text-xs text-gray-500">
-                            Quotation: {invoice.quotation.quotation_number}
+                            {t('invoice_table.quotation_label')}: {invoice.quotation.quotation_number}
                         </div>
                     )}
                 </div>
                 
                 <div className="grid grid-cols-2 gap-3 mb-3">
                     <div>
-                        <p className="text-xs text-gray-500">Amount</p>
+                        <p className="text-xs text-gray-500">{t('invoice_table.amount')}</p>
                         <p 
                             className="text-sm font-bold text-gray-900 cursor-help"
                             onMouseEnter={() => setTooltip(formatFullCurrency(invoice.invoice_amount))}
@@ -242,7 +245,7 @@ const InvoiceTable = ({ data }) => {
                         </p>
                     </div>
                     <div>
-                        <p className="text-xs text-gray-500">Due</p>
+                        <p className="text-xs text-gray-500">{t('invoice_table.due')}</p>
                         <p 
                             className="text-sm font-bold text-red-600 cursor-help"
                             onMouseEnter={() => setTooltip(formatFullCurrency(invoice.amount_due))}
@@ -256,11 +259,11 @@ const InvoiceTable = ({ data }) => {
                 <div className="flex justify-between">
                     <button className="flex items-center space-x-1 px-3 py-1 bg-blue-50 text-blue-700 rounded text-xs hover:bg-blue-100">
                         <Eye className="w-3 h-3" />
-                        <span>View</span>
+                        <span>{t('invoice_table.view')}</span>
                     </button>
                     <button className="flex items-center space-x-1 px-3 py-1 bg-gray-50 text-gray-700 rounded text-xs hover:bg-gray-100">
                         <Download className="w-3 h-3" />
-                        <span>Download</span>
+                        <span>{t('invoice_table.download')}</span>
                     </button>
                     <button className={`flex items-center space-x-1 px-3 py-1 rounded text-xs ${
                         invoice.status !== 'paid' 
@@ -268,7 +271,7 @@ const InvoiceTable = ({ data }) => {
                             : 'bg-gray-100 text-gray-500'
                     }`}>
                         <Check className="w-3 h-3" />
-                        <span>{invoice.status !== 'paid' ? 'Mark Paid' : 'Paid'}</span>
+                        <span>{invoice.status !== 'paid' ? t('invoice_table.mark_paid') : t('invoice_table.paid')}</span>
                     </button>
                 </div>
             </div>
@@ -280,12 +283,14 @@ const InvoiceTable = ({ data }) => {
         return (
             <div className="text-center py-12">
                 <FileText className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 mb-2">No Invoices Found</h3>
+                <h3 className="text-lg font-medium text-gray-900 mb-2">
+                    {t('invoice_table.no_invoices_found')}
+                </h3>
                 <p className="text-gray-500 max-w-md mx-auto mb-6">
-                    This company doesn't have any invoices yet. Invoices will appear here once created.
+                    {t('invoice_table.no_invoices_message')}
                 </p>
                 <button className="px-4 py-2 bg-[#054748] text-white rounded-lg hover:bg-[#0a5d5e] transition-colors">
-                    Create First Invoice
+                    {t('invoice_table.create_first_invoice')}
                 </button>
             </div>
         );
@@ -302,10 +307,16 @@ const InvoiceTable = ({ data }) => {
 
             {/* Header with Stats */}
             <div className="mb-6">
-                <h2 className="text-lg md:text-xl font-bold text-gray-900">Invoice List</h2>
+                <h2 className="text-lg md:text-xl font-bold text-gray-900">
+                    {t('invoice_table.invoice_list')}
+                </h2>
                 <p className="text-sm md:text-base text-gray-600">
-                    {data.length} invoice{data.length !== 1 ? 's' : ''} found • 
-                    {filteredData.length} match{filteredData.length !== 1 ? 'es' : ''} filter
+                    {t('invoice_table.invoice_count', {
+                        count: data.length,
+                        plural: data.length !== 1 ? 's' : '',
+                        filteredCount: filteredData.length,
+                        pluralFiltered: filteredData.length !== 1 ? 'es' : ''
+                    })}
                 </p>
             </div>
 
@@ -318,7 +329,7 @@ const InvoiceTable = ({ data }) => {
                             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                             <input
                                 type="text"
-                                placeholder="Search invoices..."
+                                placeholder={t('invoice_table.search_placeholder')}
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
                                 className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
@@ -334,12 +345,12 @@ const InvoiceTable = ({ data }) => {
                                 onChange={(e) => setStatusFilter(e.target.value)}
                                 className="w-full pl-3 pr-10 py-2 border border-gray-300 rounded-lg appearance-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                             >
-                                <option value="all">All Status</option>
-                                <option value="paid">Paid</option>
-                                <option value="unpaid">Unpaid</option>
-                                <option value="invoice">Invoice Sent</option>
-                                <option value="draft">Draft</option>
-                                <option value="cancelled">Cancelled</option>
+                                <option value="all">{t('invoice_table.all_status')}</option>
+                                <option value="paid">{t('invoice_table.status_paid')}</option>
+                                <option value="unpaid">{t('invoice_table.status_unpaid')}</option>
+                                <option value="invoice">{t('invoice_table.status_invoice_sent')}</option>
+                                <option value="draft">{t('invoice_table.status_draft')}</option>
+                                <option value="cancelled">{t('invoice_table.status_cancelled')}</option>
                             </select>
                             <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5 pointer-events-none" />
                         </div>
@@ -353,20 +364,23 @@ const InvoiceTable = ({ data }) => {
                             <div className="flex items-center">
                                 <CheckCircle className="w-5 h-5 text-blue-600 mr-2" />
                                 <span className="font-medium text-blue-800">
-                                    {selectedInvoices.length} invoice{selectedInvoices.length !== 1 ? 's' : ''} selected
+                                    {t('invoice_table.selected_count', {
+                                        count: selectedInvoices.length,
+                                        plural: selectedInvoices.length !== 1 ? 's' : ''
+                                    })}
                                 </span>
                             </div>
                             <div className="flex space-x-2">
                                 <button className="px-3 py-1 bg-white border border-blue-300 text-blue-700 rounded text-sm hover:bg-blue-50">
                                     <Mail className="w-4 h-4 inline mr-1" />
-                                    Send Email
+                                    {t('invoice_table.send_email')}
                                 </button>
                                 <button className="px-3 py-1 bg-white border border-blue-300 text-blue-700 rounded text-sm hover:bg-blue-50">
                                     <Download className="w-4 h-4 inline mr-1" />
-                                    Download Selected
+                                    {t('invoice_table.download_selected')}
                                 </button>
                                 <button className="px-3 py-1 bg-blue-600 text-white rounded text-sm hover:bg-blue-700">
-                                    Mark as Paid
+                                    {t('invoice_table.mark_as_paid')}
                                 </button>
                             </div>
                         </div>
@@ -401,14 +415,14 @@ const InvoiceTable = ({ data }) => {
                                 >
                                     <div className="flex items-center">
                                         <Calendar className="w-4 h-4 mr-2" />
-                                        Date {getSortIcon('date')}
+                                        {t('invoice_table.date')} {getSortIcon('date')}
                                     </div>
                                 </th>
                                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase">
-                                    Invoice #
+                                    {t('invoice_table.invoice_number')}
                                 </th>
                                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase">
-                                    Contact Person
+                                    {t('invoice_table.contact_person')}
                                 </th>
                                 <th 
                                     className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase cursor-pointer hover:bg-gray-100"
@@ -416,7 +430,7 @@ const InvoiceTable = ({ data }) => {
                                 >
                                     <div className="flex items-center">
                                         <DollarSign className="w-4 h-4 mr-2" />
-                                        Amount {getSortIcon('amount')}
+                                        {t('invoice_table.amount')} {getSortIcon('amount')}
                                     </div>
                                 </th>
                                 <th 
@@ -425,14 +439,14 @@ const InvoiceTable = ({ data }) => {
                                 >
                                     <div className="flex items-center">
                                         <Clock className="w-4 h-4 mr-2" />
-                                        Due {getSortIcon('due')}
+                                        {t('invoice_table.due')} {getSortIcon('due')}
                                     </div>
                                 </th>
                                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase">
-                                    Status
+                                    {t('invoice_table.status')}
                                 </th>
                                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase">
-                                    Actions
+                                    {t('invoice_table.actions')}
                                 </th>
                             </tr>
                         </thead>
@@ -464,11 +478,11 @@ const InvoiceTable = ({ data }) => {
                                         </td>
                                         <td className="px-4 py-3">
                                             <div className="font-medium text-gray-900">
-                                                {invoice.invoice_number || 'N/A'}
+                                                {invoice.invoice_number || t('invoice_table.not_available')}
                                             </div>
                                             {invoice.quotation && (
                                                 <div className="text-xs text-gray-500 mt-1">
-                                                    Q: {invoice.quotation.quotation_number}
+                                                    {t('invoice_table.quotation_short')}: {invoice.quotation.quotation_number}
                                                 </div>
                                             )}
                                         </td>
@@ -477,7 +491,7 @@ const InvoiceTable = ({ data }) => {
                                                 <User className="w-4 h-4 text-gray-400 mr-2" />
                                                 <div>
                                                     <div className="font-medium text-gray-900">
-                                                        {invoice.contact_person?.name || 'N/A'}
+                                                        {invoice.contact_person?.name || t('invoice_table.not_available')}
                                                     </div>
                                                     <div className="text-xs text-gray-500">
                                                         {invoice.contact_person?.position || ''}
@@ -509,25 +523,25 @@ const InvoiceTable = ({ data }) => {
                                         <td className="px-4 py-3">
                                             <div className="flex space-x-2">
                                                 <button 
-                                                    title="View Invoice"
+                                                    title={t('invoice_table.view_invoice')}
                                                     className="p-1 text-blue-600 hover:text-blue-900 hover:bg-blue-50 rounded"
                                                 >
                                                     <Eye className="w-4 h-4" />
                                                 </button>
                                                 <button 
-                                                    title="Download PDF"
+                                                    title={t('invoice_table.download_pdf')}
                                                     className="p-1 text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded"
                                                 >
                                                     <Download className="w-4 h-4" />
                                                 </button>
                                                 <button 
-                                                    title="Print"
+                                                    title={t('invoice_table.print')}
                                                     className="p-1 text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded"
                                                 >
                                                     <Printer className="w-4 h-4" />
                                                 </button>
                                                 <button 
-                                                    title="Send Email"
+                                                    title={t('invoice_table.send_email')}
                                                     className="p-1 text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded"
                                                 >
                                                     <Mail className="w-4 h-4" />
@@ -544,20 +558,24 @@ const InvoiceTable = ({ data }) => {
 
             {/* Summary */}
             <div className="mt-6 pt-6 border-t border-gray-200">
-                <h3 className="text-lg font-bold text-gray-900 mb-4">Invoice Summary</h3>
+                <h3 className="text-lg font-bold text-gray-900 mb-4">
+                    {t('invoice_table.invoice_summary')}
+                </h3>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                     <div className="bg-blue-50 p-4 rounded-lg">
                         <div className="flex items-center">
                             <FileText className="w-5 h-5 text-blue-600 mr-2" />
-                            <p className="text-sm text-gray-600">Total Invoices</p>
+                            <p className="text-sm text-gray-600">{t('invoice_table.total_invoices')}</p>
                         </div>
                         <p className="text-2xl font-bold text-gray-900 mt-2">{data.length}</p>
-                        <p className="text-xs text-gray-500 mt-1">{filteredData.length} match filter</p>
+                        <p className="text-xs text-gray-500 mt-1">
+                            {t('invoice_table.match_filter', { count: filteredData.length })}
+                        </p>
                     </div>
                     <div className="bg-green-50 p-4 rounded-lg">
                         <div className="flex items-center">
                             <DollarSign className="w-5 h-5 text-green-600 mr-2" />
-                            <p className="text-sm text-gray-600">Total Amount</p>
+                            <p className="text-sm text-gray-600">{t('invoice_table.total_amount')}</p>
                         </div>
                         <p 
                             className="text-2xl font-bold text-gray-900 mt-2 cursor-help"
@@ -566,12 +584,12 @@ const InvoiceTable = ({ data }) => {
                         >
                             {formatCurrency(data.reduce((sum, i) => sum + (i.invoice_amount || 0), 0))}
                         </p>
-                        <p className="text-xs text-gray-500 mt-1">All invoices</p>
+                        <p className="text-xs text-gray-500 mt-1">{t('invoice_table.all_invoices')}</p>
                     </div>
                     <div className="bg-red-50 p-4 rounded-lg">
                         <div className="flex items-center">
                             <AlertCircle className="w-5 h-5 text-red-600 mr-2" />
-                            <p className="text-sm text-gray-600">Total Due</p>
+                            <p className="text-sm text-gray-600">{t('invoice_table.total_due')}</p>
                         </div>
                         <p 
                             className="text-2xl font-bold text-red-600 mt-2 cursor-help"
@@ -580,44 +598,44 @@ const InvoiceTable = ({ data }) => {
                         >
                             {formatCurrency(data.reduce((sum, i) => sum + (i.amount_due || 0), 0))}
                         </p>
-                        <p className="text-xs text-gray-500 mt-1">Unpaid balance</p>
+                        <p className="text-xs text-gray-500 mt-1">{t('invoice_table.unpaid_balance')}</p>
                     </div>
                     <div className="bg-purple-50 p-4 rounded-lg">
                         <div className="flex items-center">
                             <Percent className="w-5 h-5 text-purple-600 mr-2" />
-                            <p className="text-sm text-gray-600">Tax Summary</p>
+                            <p className="text-sm text-gray-600">{t('invoice_table.tax_summary')}</p>
                         </div>
                         <p 
                             className="text-2xl font-bold text-gray-900 mt-2 cursor-help"
                             onMouseEnter={() => {
                                 const totalPpn = data.reduce((sum, i) => sum + (i.ppn || 0), 0);
                                 const totalPph = data.reduce((sum, i) => sum + (i.pph || 0), 0);
-                                setTooltip(`PPN: ${formatFullCurrency(totalPpn)}\nPPH: ${formatFullCurrency(totalPph)}`);
+                                setTooltip(`${t('invoice_table.ppn')}: ${formatFullCurrency(totalPpn)}\n${t('invoice_table.pph')}: ${formatFullCurrency(totalPph)}`);
                             }}
                             onMouseLeave={() => setTooltip(null)}
                         >
                             {formatCurrency(data.reduce((sum, i) => sum + (i.ppn || 0), 0))}
                         </p>
-                        <p className="text-xs text-gray-500 mt-1">Total PPN</p>
+                        <p className="text-xs text-gray-500 mt-1">{t('invoice_table.total_ppn')}</p>
                     </div>
                 </div>
                 
                 {/* Additional Stats */}
                 <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div className="p-3 bg-gray-50 rounded-lg">
-                        <p className="text-sm text-gray-600">Paid Invoices</p>
+                        <p className="text-sm text-gray-600">{t('invoice_table.paid_invoices')}</p>
                         <p className="text-xl font-bold text-green-600">
                             {data.filter(i => i.status === 'paid').length}
                         </p>
                     </div>
                     <div className="p-3 bg-gray-50 rounded-lg">
-                        <p className="text-sm text-gray-600">Unpaid Invoices</p>
+                        <p className="text-sm text-gray-600">{t('invoice_table.unpaid_invoices')}</p>
                         <p className="text-xl font-bold text-yellow-600">
                             {data.filter(i => i.status === 'unpaid').length}
                         </p>
                     </div>
                     <div className="p-3 bg-gray-50 rounded-lg">
-                        <p className="text-sm text-gray-600">Average Invoice</p>
+                        <p className="text-sm text-gray-600">{t('invoice_table.average_invoice')}</p>
                         <p 
                             className="text-xl font-bold text-blue-600 cursor-help"
                             onMouseEnter={() => {
@@ -641,12 +659,12 @@ const InvoiceTable = ({ data }) => {
                 <div className="mt-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
                     <details>
                         <summary className="text-sm font-medium text-gray-700 cursor-pointer">
-                            Debug Info (Click to expand)
+                            {t('invoice_table.debug_info')}
                         </summary>
                         <div className="mt-2 text-xs text-gray-600 space-y-2">
-                            <div>Total invoices from API: {data.length}</div>
-                            <div>Filtered invoices: {filteredData.length}</div>
-                            <div>Sample invoice data:</div>
+                            <div>{t('invoice_table.total_from_api', { count: data.length })}</div>
+                            <div>{t('invoice_table.filtered_invoices', { count: filteredData.length })}</div>
+                            <div>{t('invoice_table.sample_data')}</div>
                             <pre className="bg-white p-2 rounded border overflow-auto max-h-40">
                                 {JSON.stringify(data[0] || {}, null, 2)}
                             </pre>
