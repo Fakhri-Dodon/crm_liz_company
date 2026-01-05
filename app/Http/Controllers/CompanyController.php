@@ -16,6 +16,7 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
 use Carbon\Carbon;
 use Inertia\Inertia;
@@ -488,639 +489,642 @@ class CompanyController extends Controller
         }
     }
 
-public function show($id)
-{
-    try {
-        Log::info('=== SHOW COMPANY REQUEST ===');
-        Log::info('Company ID: ' . $id);
-        
-        // Cari company berdasarkan ID (UUID) - TANPA contacts di with()
-        $company = Company::with([
-            'clientType',
-            'lead',
-            'quotation',
-            'creator',
-            'updater'
-        ])->find($id);
-
-        if (!$company) {
-            Log::error('Company not found: ' . $id);
-            return Inertia::render('Companies/Show', [
-                'company' => null,
-                'quotations' => [],
-                'grouped_quotations' => [],
-                'invoices' => [],
-                'payments' => [],
-                'projects' => [],
-                'contacts' => [],
-                'statistics' => [],
-                'error' => 'Company not found'
-            ]);
-        }
-
-        Log::info('Company found:', [
-            'id' => $company->id,
-            'client_code' => $company->client_code,
-            'quotation_id' => $company->quotation_id,
-            'lead_id' => $company->lead_id
-        ]);
-
-        // ==================== QUOTATIONS LOGIC ====================
-        Log::info('=== START QUOTATIONS FETCHING ===');
-        
-        $allQuotations = collect();
-        
-        if ($company->quotation_id) {
-            Log::info('Company has quotation_id: ' . $company->quotation_id);
+    public function show($id)
+    {
+        try {
+            Log::info('=== SHOW COMPANY REQUEST ===');
+            Log::info('Company ID: ' . $id);
             
-            $primaryQuotation = Quotation::with(['lead', 'acceptor'])
-                ->where('id', $company->quotation_id)
-                ->where('deleted', 0)
-                ->first();
-            
-            if ($primaryQuotation) {
-                Log::info('Primary quotation found:', [
-                    'id' => $primaryQuotation->id,
-                    'quotation_number' => $primaryQuotation->quotation_number,
-                    'lead_id' => $primaryQuotation->lead_id
+            // Cari company berdasarkan ID (UUID) - TANPA contacts di with()
+            $company = Company::with([
+                'clientType',
+                'lead',
+                'quotation',
+                'creator',
+                'updater'
+            ])->find($id);
+
+            if (!$company) {
+                Log::error('Company not found: ' . $id);
+                return Inertia::render('Companies/Show', [
+                    'company' => null,
+                    'quotations' => [],
+                    'grouped_quotations' => [],
+                    'invoices' => [],
+                    'payments' => [],
+                    'projects' => [],
+                    'contacts' => [],
+                    'statistics' => [],
+                    'error' => 'Company not found'
                 ]);
-                
-                $allQuotations->push($primaryQuotation);
-                
-                if ($primaryQuotation->lead_id) {
-                    Log::info('Looking for other quotations with same lead_id: ' . $primaryQuotation->lead_id);
-                    
-                    $relatedQuotations = Quotation::with(['lead', 'acceptor'])
-                        ->where('lead_id', $primaryQuotation->lead_id)
-                        ->where('id', '!=', $primaryQuotation->id)
-                        ->where('deleted', 0)
-                        ->orderBy('created_at', 'desc')
-                        ->get();
-                    
-                    Log::info('Found ' . $relatedQuotations->count() . ' related quotations');
-                    $allQuotations = $allQuotations->merge($relatedQuotations);
-                }
             }
-        } elseif ($company->lead_id) {
-            Log::info('Looking for quotations using company lead_id: ' . $company->lead_id);
+
+            Log::info('Company found:', [
+                'id' => $company->id,
+                'client_code' => $company->client_code,
+                'quotation_id' => $company->quotation_id,
+                'lead_id' => $company->lead_id
+            ]);
+
+            // ==================== QUOTATIONS LOGIC ====================
+            Log::info('=== START QUOTATIONS FETCHING ===');
             
-            $quotationsByLead = Quotation::with(['lead', 'acceptor'])
-                ->where('lead_id', $company->lead_id)
+            $allQuotations = collect();
+            
+            if ($company->quotation_id) {
+                Log::info('Company has quotation_id: ' . $company->quotation_id);
+                
+                $primaryQuotation = Quotation::with(['lead', 'acceptor'])
+                    ->where('id', $company->quotation_id)
+                    ->where('deleted', 0)
+                    ->first();
+                
+                if ($primaryQuotation) {
+                    Log::info('Primary quotation found:', [
+                        'id' => $primaryQuotation->id,
+                        'quotation_number' => $primaryQuotation->quotation_number,
+                        'lead_id' => $primaryQuotation->lead_id
+                    ]);
+                    
+                    $allQuotations->push($primaryQuotation);
+                    
+                    if ($primaryQuotation->lead_id) {
+                        Log::info('Looking for other quotations with same lead_id: ' . $primaryQuotation->lead_id);
+                        
+                        $relatedQuotations = Quotation::with(['lead', 'acceptor'])
+                            ->where('lead_id', $primaryQuotation->lead_id)
+                            ->where('id', '!=', $primaryQuotation->id)
+                            ->where('deleted', 0)
+                            ->orderBy('created_at', 'desc')
+                            ->get();
+                        
+                        Log::info('Found ' . $relatedQuotations->count() . ' related quotations');
+                        $allQuotations = $allQuotations->merge($relatedQuotations);
+                    }
+                }
+            } elseif ($company->lead_id) {
+                Log::info('Looking for quotations using company lead_id: ' . $company->lead_id);
+                
+                $quotationsByLead = Quotation::with(['lead', 'acceptor'])
+                    ->where('lead_id', $company->lead_id)
+                    ->where('deleted', 0)
+                    ->orderBy('created_at', 'desc')
+                    ->get();
+                
+                Log::info('Found ' . $quotationsByLead->count() . ' quotations by lead_id');
+                $allQuotations = $quotationsByLead;
+            }
+            
+            Log::info('Total quotations to display: ' . $allQuotations->count());
+            
+            // Format quotations
+            $formattedQuotations = $allQuotations->map(function($quotation) {
+                $formatDate = function($dateValue) {
+                    if (!$dateValue) return null;
+                    
+                    if (is_string($dateValue)) {
+                        try {
+                            $parsedDate = Carbon::parse($dateValue);
+                            return $parsedDate->format('Y-m-d');
+                        } catch (\Exception $e) {
+                            return $dateValue;
+                        }
+                    }
+                    
+                    if ($dateValue instanceof \Carbon\Carbon) {
+                        return $dateValue->format('Y-m-d');
+                    }
+                    
+                    if ($dateValue instanceof \DateTime) {
+                        return $dateValue->format('Y-m-d');
+                    }
+                    
+                    return null;
+                };
+                
+                return [
+                    'id' => $quotation->id,
+                    'quotation_number' => $quotation->quotation_number,
+                    'date' => $formatDate($quotation->date),
+                    'valid_until' => $formatDate($quotation->valid_until),
+                    'status' => $quotation->status,
+                    'subject' => $quotation->subject,
+                    'payment_terms' => $quotation->payment_terms,
+                    'note' => $quotation->note,
+                    'revision_note' => $quotation->revision_note,
+                    'subtotal' => (float) $quotation->subtotal,
+                    'discount' => (float) $quotation->discount,
+                    'tax' => (float) $quotation->tax,
+                    'total' => (float) $quotation->total,
+                    'lead' => $quotation->lead ? [
+                        'id' => $quotation->lead->id,
+                        'company_name' => $quotation->lead->company_name,
+                        'address' => $quotation->lead->address
+                    ] : null,
+                    'lead_id' => $quotation->lead_id,
+                    'accepted_at' => $quotation->accepted_at ? 
+                        (is_string($quotation->accepted_at) ? 
+                            $quotation->accepted_at : 
+                            $quotation->accepted_at->format('Y-m-d H:i:s')) : null,
+                    'accepted_by' => $quotation->acceptor ? [
+                        'id' => $quotation->acceptor->id,
+                        'name' => $quotation->acceptor->name
+                    ] : null,
+                    'pdf_path' => $quotation->pdf_path ? Storage::url($quotation->pdf_path) : null,
+                    'created_at' => $quotation->created_at ? 
+                        (is_string($quotation->created_at) ? 
+                            $quotation->created_at : 
+                            $quotation->created_at->format('Y-m-d H:i:s')) : null,
+                    'updated_at' => $quotation->updated_at ? 
+                        (is_string($quotation->updated_at) ? 
+                            $quotation->updated_at : 
+                            $quotation->updated_at->format('Y-m-d H:i:s')) : null
+                ];
+            })->values();
+            
+            Log::info('=== END QUOTATIONS FETCHING ===');
+            // ==================== END QUOTATIONS LOGIC ====================
+
+            // ==================== INVOICES LOGIC ====================
+            Log::info('=== START INVOICES FETCHING ===');
+
+            // QUERY SINGKAT DAN PASTI BEKERJA
+            $invoices = DB::table('invoices as i')
+                ->select([
+                    'i.id',
+                    'i.invoice_number',
+                    'i.date',
+                    'i.invoice_amout as invoice_amount',
+                    'i.amount_due',
+                    'i.status',
+                    'i.payment_terms',
+                    'i.payment_type',
+                    'i.note',
+                    'i.ppn',
+                    'i.pph',
+                    'i.total',
+                    'i.deleted',
+                    'i.deleted_by',
+                    'i.created_at',
+                    'i.updated_at',
+                    'l.contact_person',
+                    'l.email',
+                    'l.phone',
+                    'ccp.position',
+                    'q.quotation_number',
+                    'q.subject'
+                ])
+                ->join('company_contact_persons as ccp', 'i.company_contact_persons_id', '=', 'ccp.id')
+                ->leftJoin('leads as l', 'ccp.lead_id', '=', 'l.id')
+                ->leftJoin('quotations as q', 'i.quotation_id', '=', 'q.id')
+                ->where('ccp.company_id', $company->id)
+                ->where('i.deleted', 0)
+                ->orderBy('i.date', 'desc')
+                ->get();
+
+            Log::info('Invoices found: ' . $invoices->count());
+
+            // Format data sederhana
+            $formattedInvoices = $invoices->map(function($invoice) {
+                return [
+                    'id' => $invoice->id,
+                    'invoice_number' => $invoice->invoice_number,
+                    'date' => $invoice->date,
+                    'invoice_amount' => (float) $invoice->invoice_amount,
+                    'amount_due' => (float) $invoice->amount_due,
+                    'status' => $invoice->status,
+                    'payment_terms' => $invoice->payment_terms,
+                    'payment_type' => $invoice->payment_type,
+                    'note' => $invoice->note,
+                    'ppn' => $invoice->ppn ? (float) $invoice->ppn : null,
+                    'pph' => $invoice->pph ? (float) $invoice->pph : null,
+                    'total' => $invoice->total ? (float) $invoice->total : null,
+                    'created_at' => $invoice->created_at,
+                    'updated_at' => $invoice->updated_at,
+                    'contact_person' => $invoice->contact_person ? [
+                        'name' => $invoice->contact_person,
+                        'email' => $invoice->email,
+                        'phone' => $invoice->phone,
+                        'position' => $invoice->position
+                    ] : null,
+                    'quotation' => $invoice->quotation_number ? [
+                        'quotation_number' => $invoice->quotation_number,
+                        'subject' => $invoice->subject
+                    ] : null
+                ];
+            });
+
+            Log::info('=== END INVOICES FETCHING ===');
+            // ==================== END INVOICES LOGIC ====================
+
+            // ==================== PAYMENTS LOGIC ====================
+            Log::info('=== START PAYMENTS FETCHING ===');
+            
+            // Ambil data payments dari database dengan informasi invoice
+            $payments = DB::table('payments as p')
+                ->select([
+                    'p.id',
+                    'p.invoice_id',
+                    'p.amount',
+                    'p.method',
+                    'p.date',
+                    'p.note',
+                    'p.bank',
+                    'p.created_by',
+                    'p.updated_by',
+                    'p.created_at',
+                    'p.updated_at',
+                    'i.invoice_number',
+                    'i.invoice_amout as invoice_amount',
+                    'i.amount_due',
+                    'i.total as invoice_total',
+                    'i.status as invoice_status',
+                    'q.quotation_number',
+                    'q.subject as quotation_subject',
+                    'l.company_name',
+                    'u.name as created_by_name',
+                    'u2.name as updated_by_name'
+                ])
+                ->join('invoices as i', 'p.invoice_id', '=', 'i.id')
+                ->leftJoin('company_contact_persons as ccp', 'i.company_contact_persons_id', '=', 'ccp.id')
+                ->leftJoin('leads as l', 'ccp.lead_id', '=', 'l.id')
+                ->leftJoin('quotations as q', 'i.quotation_id', '=', 'q.id')
+                ->leftJoin('users as u', 'p.created_by', '=', 'u.id')
+                ->leftJoin('users as u2', 'p.updated_by', '=', 'u2.id')
+                ->where('ccp.company_id', $company->id)
+                ->where('p.deleted', 0)
+                ->orderBy('p.date', 'desc')
+                ->orderBy('p.created_at', 'desc')
+                ->get();
+            
+            // Format payments data
+            $formattedPayments = $payments->map(function($payment) {
+                return [
+                    'id' => $payment->id,
+                    'invoice_id' => $payment->invoice_id,
+                    'invoice_number' => $payment->invoice_number,
+                    'amount' => (float) $payment->amount,
+                    'method' => $payment->method,
+                    'method_display' => $this->getPaymentMethodDisplay($payment->method),
+                    'date' => $payment->date,
+                    'note' => $payment->note,
+                    'bank' => $payment->bank,
+                    'created_by' => $payment->created_by_name ? [
+                        'id' => $payment->created_by,
+                        'name' => $payment->created_by_name
+                    ] : null,
+                    'updated_by' => $payment->updated_by_name ? [
+                        'id' => $payment->updated_by,
+                        'name' => $payment->updated_by_name
+                    ] : null,
+                    'created_at' => $payment->created_at,
+                    'updated_at' => $payment->updated_at,
+                    'invoice_amount' => (float) $payment->invoice_amount,
+                    'amount_due' => (float) $payment->amount_due,
+                    'invoice_total' => (float) $payment->invoice_total,
+                    'invoice_status' => $payment->invoice_status,
+                    'quotation' => $payment->quotation_number ? [
+                        'quotation_number' => $payment->quotation_number,
+                        'subject' => $payment->quotation_subject
+                    ] : null,
+                    'company_name' => $payment->company_name
+                ];
+            })->values();
+            
+            Log::info('Total payments found: ' . $formattedPayments->count());
+            Log::info('=== END PAYMENTS FETCHING ===');
+            // ==================== END PAYMENTS LOGIC ====================
+
+            // ==================== PROJECTS LOGIC ====================
+            Log::info('=== START PROJECTS FETCHING ===');
+            
+            // AMBIL DATA PROJECTS DENGAN QUERY YANG BENAR
+            Log::info('Fetching projects for company ID: ' . $company->id);
+            
+            // Load dengan model untuk mendapatkan relationships
+            $projects = Project::with(['assignedUser', 'quotation'])
+                ->where('client_id', $company->id)
                 ->where('deleted', 0)
                 ->orderBy('created_at', 'desc')
                 ->get();
             
-            Log::info('Found ' . $quotationsByLead->count() . ' quotations by lead_id');
-            $allQuotations = $quotationsByLead;
-        }
-        
-        Log::info('Total quotations to display: ' . $allQuotations->count());
-        
-        // Format quotations
-        $formattedQuotations = $allQuotations->map(function($quotation) {
-            $formatDate = function($dateValue) {
-                if (!$dateValue) return null;
-                
-                if (is_string($dateValue)) {
+            Log::info('Model query found: ' . $projects->count() . ' projects');
+            
+            // FORMAT DATA PROJECTS UNTUK RESPONSE
+            $formattedProjects = $projects->map(function($project) {
+                // Hitung days left
+                $daysLeft = null;
+                if ($project->deadline) {
                     try {
-                        $parsedDate = Carbon::parse($dateValue);
-                        return $parsedDate->format('Y-m-d');
+                        $deadline = Carbon::parse($project->deadline);
+                        $today = Carbon::today();
+                        $daysLeft = $today->diffInDays($deadline, false);
+                        
+                        // Jika deadline sudah lewat, buat negatif
+                        if ($today > $deadline) {
+                            $daysLeft = -abs($daysLeft);
+                        }
                     } catch (\Exception $e) {
-                        return $dateValue;
+                        Log::error('Error parsing deadline for project ' . $project->id . ': ' . $e->getMessage());
                     }
                 }
                 
-                if ($dateValue instanceof \Carbon\Carbon) {
-                    return $dateValue->format('Y-m-d');
+                // Hitung progress
+                $progress = 0;
+                $status = strtolower($project->status ?? 'pending');
+                
+                switch ($status) {
+                    case 'completed':
+                    case 'done':
+                        $progress = 100;
+                        break;
+                    case 'in_progress':
+                    case 'progress':
+                    case 'active':
+                        if ($daysLeft !== null && $daysLeft > 0) {
+                            // Contoh: jika deadline masih 30 hari, progress = 30%
+                            $progress = min(95, max(10, 100 - ($daysLeft * 2)));
+                        } else if ($daysLeft !== null && $daysLeft <= 0) {
+                            // Sudah lewat deadline tapi masih in progress
+                            $progress = 95;
+                        } else {
+                            $progress = 50;
+                        }
+                        break;
+                    case 'delayed':
+                    case 'overdue':
+                        $progress = 100;
+                        break;
+                    case 'pending':
+                    case 'draft':
+                    case 'new':
+                        $progress = 10;
+                        break;
+                    case 'on_hold':
+                    case 'hold':
+                        $progress = 30;
+                        break;
+                    default:
+                        $progress = 30;
                 }
                 
-                if ($dateValue instanceof \DateTime) {
-                    return $dateValue->format('Y-m-d');
-                }
-                
-                return null;
-            };
-            
-            return [
-                'id' => $quotation->id,
-                'quotation_number' => $quotation->quotation_number,
-                'date' => $formatDate($quotation->date),
-                'valid_until' => $formatDate($quotation->valid_until),
-                'status' => $quotation->status,
-                'subject' => $quotation->subject,
-                'payment_terms' => $quotation->payment_terms,
-                'note' => $quotation->note,
-                'revision_note' => $quotation->revision_note,
-                'subtotal' => (float) $quotation->subtotal,
-                'discount' => (float) $quotation->discount,
-                'tax' => (float) $quotation->tax,
-                'total' => (float) $quotation->total,
-                'lead' => $quotation->lead ? [
-                    'id' => $quotation->lead->id,
-                    'company_name' => $quotation->lead->company_name,
-                    'address' => $quotation->lead->address
-                ] : null,
-                'lead_id' => $quotation->lead_id,
-                'accepted_at' => $quotation->accepted_at ? 
-                    (is_string($quotation->accepted_at) ? 
-                        $quotation->accepted_at : 
-                        $quotation->accepted_at->format('Y-m-d H:i:s')) : null,
-                'accepted_by' => $quotation->acceptor ? [
-                    'id' => $quotation->acceptor->id,
-                    'name' => $quotation->acceptor->name
-                ] : null,
-                'pdf_path' => $quotation->pdf_path ? Storage::url($quotation->pdf_path) : null,
-                'created_at' => $quotation->created_at ? 
-                    (is_string($quotation->created_at) ? 
-                        $quotation->created_at : 
-                        $quotation->created_at->format('Y-m-d H:i:s')) : null,
-                'updated_at' => $quotation->updated_at ? 
-                    (is_string($quotation->updated_at) ? 
-                        $quotation->updated_at : 
-                        $quotation->updated_at->format('Y-m-d H:i:s')) : null
-            ];
-        })->values();
-        
-        Log::info('=== END QUOTATIONS FETCHING ===');
-        // ==================== END QUOTATIONS LOGIC ====================
-
-        // ==================== INVOICES LOGIC ====================
-        Log::info('=== START INVOICES FETCHING ===');
-
-        // QUERY SINGKAT DAN PASTI BEKERJA
-        $invoices = DB::table('invoices as i')
-            ->select([
-                'i.id',
-                'i.invoice_number',
-                'i.date',
-                'i.invoice_amout as invoice_amount',
-                'i.amount_due',
-                'i.status',
-                'i.payment_terms',
-                'i.payment_type',
-                'i.note',
-                'i.ppn',
-                'i.pph',
-                'i.total',
-                'i.created_at',
-                'i.updated_at',
-                'l.contact_person',
-                'l.email',
-                'l.phone',
-                'ccp.position',
-                'q.quotation_number',
-                'q.subject'
-            ])
-            ->join('company_contact_persons as ccp', 'i.company_contact_persons_id', '=', 'ccp.id')
-            ->leftJoin('leads as l', 'ccp.lead_id', '=', 'l.id')
-            ->leftJoin('quotations as q', 'i.quotation_id', '=', 'q.id')
-            ->where('ccp.company_id', $company->id)
-            ->orderBy('i.date', 'desc')
-            ->get();
-
-        Log::info('Invoices found: ' . $invoices->count());
-
-        // Format data sederhana
-        $formattedInvoices = $invoices->map(function($invoice) {
-            return [
-                'id' => $invoice->id,
-                'invoice_number' => $invoice->invoice_number,
-                'date' => $invoice->date,
-                'invoice_amount' => (float) $invoice->invoice_amount,
-                'amount_due' => (float) $invoice->amount_due,
-                'status' => $invoice->status,
-                'payment_terms' => $invoice->payment_terms,
-                'payment_type' => $invoice->payment_type,
-                'note' => $invoice->note,
-                'ppn' => $invoice->ppn ? (float) $invoice->ppn : null,
-                'pph' => $invoice->pph ? (float) $invoice->pph : null,
-                'total' => $invoice->total ? (float) $invoice->total : null,
-                'created_at' => $invoice->created_at,
-                'updated_at' => $invoice->updated_at,
-                'contact_person' => $invoice->contact_person ? [
-                    'name' => $invoice->contact_person,
-                    'email' => $invoice->email,
-                    'phone' => $invoice->phone,
-                    'position' => $invoice->position
-                ] : null,
-                'quotation' => $invoice->quotation_number ? [
-                    'quotation_number' => $invoice->quotation_number,
-                    'subject' => $invoice->subject
-                ] : null
-            ];
-        });
-
-        Log::info('=== END INVOICES FETCHING ===');
-        // ==================== END INVOICES LOGIC ====================
-
-        // ==================== PAYMENTS LOGIC ====================
-        Log::info('=== START PAYMENTS FETCHING ===');
-        
-        // Ambil data payments dari database dengan informasi invoice
-        $payments = DB::table('payments as p')
-            ->select([
-                'p.id',
-                'p.invoice_id',
-                'p.amount',
-                'p.method',
-                'p.date',
-                'p.note',
-                'p.bank',
-                'p.created_by',
-                'p.updated_by',
-                'p.created_at',
-                'p.updated_at',
-                'i.invoice_number',
-                'i.invoice_amout as invoice_amount',
-                'i.amount_due',
-                'i.total as invoice_total',
-                'i.status as invoice_status',
-                'q.quotation_number',
-                'q.subject as quotation_subject',
-                'l.company_name',
-                'u.name as created_by_name',
-                'u2.name as updated_by_name'
-            ])
-            ->join('invoices as i', 'p.invoice_id', '=', 'i.id')
-            ->leftJoin('company_contact_persons as ccp', 'i.company_contact_persons_id', '=', 'ccp.id')
-            ->leftJoin('leads as l', 'ccp.lead_id', '=', 'l.id')
-            ->leftJoin('quotations as q', 'i.quotation_id', '=', 'q.id')
-            ->leftJoin('users as u', 'p.created_by', '=', 'u.id')
-            ->leftJoin('users as u2', 'p.updated_by', '=', 'u2.id')
-            ->where('ccp.company_id', $company->id)
-            ->where('p.deleted', 0)
-            ->orderBy('p.date', 'desc')
-            ->orderBy('p.created_at', 'desc')
-            ->get();
-        
-        // Format payments data
-        $formattedPayments = $payments->map(function($payment) {
-            return [
-                'id' => $payment->id,
-                'invoice_id' => $payment->invoice_id,
-                'invoice_number' => $payment->invoice_number,
-                'amount' => (float) $payment->amount,
-                'method' => $payment->method,
-                'method_display' => $this->getPaymentMethodDisplay($payment->method),
-                'date' => $payment->date,
-                'note' => $payment->note,
-                'bank' => $payment->bank,
-                'created_by' => $payment->created_by_name ? [
-                    'id' => $payment->created_by,
-                    'name' => $payment->created_by_name
-                ] : null,
-                'updated_by' => $payment->updated_by_name ? [
-                    'id' => $payment->updated_by,
-                    'name' => $payment->updated_by_name
-                ] : null,
-                'created_at' => $payment->created_at,
-                'updated_at' => $payment->updated_at,
-                'invoice_amount' => (float) $payment->invoice_amount,
-                'amount_due' => (float) $payment->amount_due,
-                'invoice_total' => (float) $payment->invoice_total,
-                'invoice_status' => $payment->invoice_status,
-                'quotation' => $payment->quotation_number ? [
-                    'quotation_number' => $payment->quotation_number,
-                    'subject' => $payment->quotation_subject
-                ] : null,
-                'company_name' => $payment->company_name
-            ];
-        })->values();
-        
-        Log::info('Total payments found: ' . $formattedPayments->count());
-        Log::info('=== END PAYMENTS FETCHING ===');
-        // ==================== END PAYMENTS LOGIC ====================
-
-        // ==================== PROJECTS LOGIC ====================
-        Log::info('=== START PROJECTS FETCHING ===');
-        
-        // AMBIL DATA PROJECTS DENGAN QUERY YANG BENAR
-        Log::info('Fetching projects for company ID: ' . $company->id);
-        
-        // Load dengan model untuk mendapatkan relationships
-        $projects = Project::with(['assignedUser', 'quotation'])
-            ->where('client_id', $company->id)
-            ->where('deleted', 0)
-            ->orderBy('created_at', 'desc')
-            ->get();
-        
-        Log::info('Model query found: ' . $projects->count() . ' projects');
-        
-        // FORMAT DATA PROJECTS UNTUK RESPONSE
-        $formattedProjects = $projects->map(function($project) {
-            // Hitung days left
-            $daysLeft = null;
-            if ($project->deadline) {
-                try {
-                    $deadline = Carbon::parse($project->deadline);
-                    $today = Carbon::today();
-                    $daysLeft = $today->diffInDays($deadline, false);
+                // Helper function untuk format tanggal
+                $formatDate = function($dateValue) {
+                    if (!$dateValue) return null;
                     
-                    // Jika deadline sudah lewat, buat negatif
-                    if ($today > $deadline) {
-                        $daysLeft = -abs($daysLeft);
+                    if (is_string($dateValue)) {
+                        try {
+                            return Carbon::parse($dateValue)->format('Y-m-d');
+                        } catch (\Exception $e) {
+                            return $dateValue;
+                        }
                     }
-                } catch (\Exception $e) {
-                    Log::error('Error parsing deadline for project ' . $project->id . ': ' . $e->getMessage());
-                }
-            }
-            
-            // Hitung progress
-            $progress = 0;
-            $status = strtolower($project->status ?? 'pending');
-            
-            switch ($status) {
-                case 'completed':
-                case 'done':
-                    $progress = 100;
-                    break;
-                case 'in_progress':
-                case 'progress':
-                case 'active':
-                    if ($daysLeft !== null && $daysLeft > 0) {
-                        // Contoh: jika deadline masih 30 hari, progress = 30%
-                        $progress = min(95, max(10, 100 - ($daysLeft * 2)));
-                    } else if ($daysLeft !== null && $daysLeft <= 0) {
-                        // Sudah lewat deadline tapi masih in progress
-                        $progress = 95;
-                    } else {
-                        $progress = 50;
+                    
+                    if ($dateValue instanceof \DateTime || $dateValue instanceof \Carbon\Carbon) {
+                        return $dateValue->format('Y-m-d');
                     }
-                    break;
-                case 'delayed':
-                case 'overdue':
-                    $progress = 100;
-                    break;
-                case 'pending':
-                case 'draft':
-                case 'new':
-                    $progress = 10;
-                    break;
-                case 'on_hold':
-                case 'hold':
-                    $progress = 30;
-                    break;
-                default:
-                    $progress = 30;
-            }
-            
-            // Helper function untuk format tanggal
-            $formatDate = function($dateValue) {
-                if (!$dateValue) return null;
+                    
+                    return null;
+                };
                 
-                if (is_string($dateValue)) {
-                    try {
-                        return Carbon::parse($dateValue)->format('Y-m-d');
-                    } catch (\Exception $e) {
-                        return $dateValue;
-                    }
-                }
-                
-                if ($dateValue instanceof \DateTime || $dateValue instanceof \Carbon\Carbon) {
-                    return $dateValue->format('Y-m-d');
-                }
-                
-                return null;
-            };
-            
-            return [
-                'id' => $project->id,
-                'project_description' => $project->project_description ?? 'No Description',
-                'start_date' => $formatDate($project->start_date),
-                'deadline' => $formatDate($project->deadline),
-                'status' => $project->status ?? 'pending',
-                'note' => $project->note,
-                'days_left' => $daysLeft,
-                'progress' => $progress,
-                'assigned_user' => $project->assignedUser ? [
-                    'id' => $project->assignedUser->id,
-                    'name' => $project->assignedUser->name,
-                    'email' => $project->assignedUser->email
-                ] : null,
-                'quotation' => $project->quotation ? [
-                    'id' => $project->quotation->id,
-                    'quotation_number' => $project->quotation->quotation_number,
-                    'subject' => $project->quotation->subject
-                ] : null,
-                'created_at' => $project->created_at ? 
-                    (is_string($project->created_at) ? 
-                        $project->created_at : 
-                        $project->created_at->format('Y-m-d H:i:s')) : null,
-                'updated_at' => $project->updated_at ? 
-                    (is_string($project->updated_at) ? 
-                        $project->updated_at : 
-                        $project->updated_at->format('Y-m-d H:i:s')) : null
-            ];
-        })->values();
-        
-        Log::info('Formatted projects count: ' . $formattedProjects->count());
-        Log::info('=== END PROJECTS FETCHING ===');
-        // ==================== END PROJECTS LOGIC ====================
-
-        // ==================== CONTACTS LOGIC - SIMPLE VERSION ====================
-        Log::info('=== START SIMPLE CONTACTS PROCESSING ===');
-
-        try {
-            // JOIN dengan tabel leads untuk mendapatkan name, email, phone
-            $contactsQuery = DB::table('company_contact_persons as ccp')
-                ->join('leads as l', 'ccp.lead_id', '=', 'l.id')
-                ->where('ccp.company_id', $company->id)
-                ->where('ccp.deleted', 0)
-                ->where('ccp.is_active', 1)
-                ->orderBy('ccp.is_primary', 'desc')
-                ->orderBy('l.contact_person', 'asc')
-                ->select([
-                    'ccp.id',
-                    'ccp.position',
-                    'ccp.is_primary',
-                    'ccp.is_active',
-                    'ccp.created_at',
-                    'ccp.updated_at',
-                    'l.contact_person as name',  // Ambil dari leads
-                    'l.email',                    // Ambil dari leads
-                    'l.phone'                     // Ambil dari leads
-                ])
-                ->get();
-            
-            $formattedContacts = $contactsQuery->map(function($contact) {
                 return [
-                    'id' => $contact->id,
-                    'name' => $contact->name ?? 'No Name',
-                    'email' => $contact->email ?? 'No Email',
-                    'phone' => $contact->phone ?? 'No Phone',
-                    'position' => $contact->position ?? 'No Position',
-                    'is_primary' => (bool) ($contact->is_primary ?? false),
-                    'is_active' => (bool) ($contact->is_active ?? true),
-                    'created_at' => $contact->created_at ? 
-                        (is_string($contact->created_at) ? 
-                            $contact->created_at : 
-                            Carbon::parse($contact->created_at)->format('Y-m-d H:i:s')) : null,
-                    'updated_at' => $contact->updated_at ? 
-                        (is_string($contact->updated_at) ? 
-                            $contact->updated_at : 
-                            Carbon::parse($contact->updated_at)->format('Y-m-d H:i:s')) : null
+                    'id' => $project->id,
+                    'project_description' => $project->project_description ?? 'No Description',
+                    'start_date' => $formatDate($project->start_date),
+                    'deadline' => $formatDate($project->deadline),
+                    'status' => $project->status ?? 'pending',
+                    'note' => $project->note,
+                    'days_left' => $daysLeft,
+                    'progress' => $progress,
+                    'assigned_user' => $project->assignedUser ? [
+                        'id' => $project->assignedUser->id,
+                        'name' => $project->assignedUser->name,
+                        'email' => $project->assignedUser->email
+                    ] : null,
+                    'quotation' => $project->quotation ? [
+                        'id' => $project->quotation->id,
+                        'quotation_number' => $project->quotation->quotation_number,
+                        'subject' => $project->quotation->subject
+                    ] : null,
+                    'created_at' => $project->created_at ? 
+                        (is_string($project->created_at) ? 
+                            $project->created_at : 
+                            $project->created_at->format('Y-m-d H:i:s')) : null,
+                    'updated_at' => $project->updated_at ? 
+                        (is_string($project->updated_at) ? 
+                            $project->updated_at : 
+                            $project->updated_at->format('Y-m-d H:i:s')) : null
                 ];
             })->values();
             
-            Log::info('Simple contacts query found: ' . $formattedContacts->count());
-            Log::info('Sample contact:', $formattedContacts->first() ?: 'No contacts');
-            
+            Log::info('Formatted projects count: ' . $formattedProjects->count());
+            Log::info('=== END PROJECTS FETCHING ===');
+            // ==================== END PROJECTS LOGIC ====================
+
+            // ==================== CONTACTS LOGIC - SIMPLE VERSION ====================
+            Log::info('=== START SIMPLE CONTACTS PROCESSING ===');
+
+            try {
+                // JOIN dengan tabel leads untuk mendapatkan name, email, phone
+                $contactsQuery = DB::table('company_contact_persons as ccp')
+                    ->join('leads as l', 'ccp.lead_id', '=', 'l.id')
+                    ->where('ccp.company_id', $company->id)
+                    ->where('ccp.deleted', 0)
+                    ->where('ccp.is_active', 1)
+                    ->orderBy('ccp.is_primary', 'desc')
+                    ->orderBy('l.contact_person', 'asc')
+                    ->select([
+                        'ccp.id',
+                        'ccp.position',
+                        'ccp.is_primary',
+                        'ccp.is_active',
+                        'ccp.created_at',
+                        'ccp.updated_at',
+                        'l.contact_person as name',  // Ambil dari leads
+                        'l.email',                    // Ambil dari leads
+                        'l.phone'                     // Ambil dari leads
+                    ])
+                    ->get();
+                
+                $formattedContacts = $contactsQuery->map(function($contact) {
+                    return [
+                        'id' => $contact->id,
+                        'name' => $contact->name ?? 'No Name',
+                        'email' => $contact->email ?? 'No Email',
+                        'phone' => $contact->phone ?? 'No Phone',
+                        'position' => $contact->position ?? 'No Position',
+                        'is_primary' => (bool) ($contact->is_primary ?? false),
+                        'is_active' => (bool) ($contact->is_active ?? true),
+                        'created_at' => $contact->created_at ? 
+                            (is_string($contact->created_at) ? 
+                                $contact->created_at : 
+                                Carbon::parse($contact->created_at)->format('Y-m-d H:i:s')) : null,
+                        'updated_at' => $contact->updated_at ? 
+                            (is_string($contact->updated_at) ? 
+                                $contact->updated_at : 
+                                Carbon::parse($contact->updated_at)->format('Y-m-d H:i:s')) : null
+                    ];
+                })->values();
+                
+                Log::info('Simple contacts query found: ' . $formattedContacts->count());
+                Log::info('Sample contact:', $formattedContacts->first() ?: 'No contacts');
+                
+            } catch (\Exception $e) {
+                Log::error('Error in simple contacts processing: ' . $e->getMessage());
+                Log::error('Stack trace: ' . $e->getTraceAsString());
+                $formattedContacts = collect([]);
+            }
+
+            // Get primary contact from formatted contacts
+            $primaryContact = $formattedContacts->firstWhere('is_primary', true);
+
+            Log::info('=== END SIMPLE CONTACTS PROCESSING ===');
+            // ==================== END CONTACTS LOGIC ====================
+
+            // Data company untuk response
+            $companyData = [
+                'id' => $company->id,
+                'name' => $company->client_code,
+                'client_code' => $company->client_code,
+                'client_type' => $company->clientType ? [
+                    'id' => $company->clientType->id,
+                    'name' => $company->clientType->name
+                ] : null,
+                'city' => $company->city,
+                'province' => $company->province,
+                'country' => $company->country,
+                'postal_code' => $company->postal_code,
+                'vat_number' => $company->vat_number,
+                'nib' => $company->nib,
+                'website' => $company->website,
+                'logo_path' => $company->logo_path,
+                'logo_url' => $company->logo_path ? Storage::url($company->logo_path) : null,
+                'client_since' => $company->client_since ? 
+                    (is_string($company->client_since) ? 
+                        $company->client_since : 
+                        $company->client_since->format('Y-m-d')) : null,
+                'is_active' => (bool) $company->is_active,
+                'lead' => $company->lead ? [
+                    'id' => $company->lead->id,
+                    'company_name' => $company->lead->company_name,
+                    'address' => $company->lead->address
+                ] : null,
+                'quotation' => $company->quotation ? [
+                    'id' => $company->quotation->id,
+                    'quotation_number' => $company->quotation->quotation_number
+                ] : null,
+                'quotation_id' => $company->quotation_id,
+                'lead_id' => $company->lead_id,
+                'contact_person' => $primaryContact ? $primaryContact['name'] : null,
+                'contact_email' => $primaryContact ? $primaryContact['email'] : null,
+                'contact_phone' => $primaryContact ? $primaryContact['phone'] : null,
+                'contact_position' => $primaryContact ? $primaryContact['position'] : null,
+                'primary_contact' => $primaryContact ? [
+                    'name' => $primaryContact['name'],
+                    'email' => $primaryContact['email'],
+                    'phone' => $primaryContact['phone'],
+                    'position' => $primaryContact['position']
+                ] : null,
+                'contacts' => $formattedContacts,
+                'created_at' => $company->created_at ? 
+                    (is_string($company->created_at) ? 
+                        $company->created_at : 
+                        $company->created_at->format('Y-m-d H:i:s')) : null,
+                'updated_at' => $company->updated_at ? 
+                    (is_string($company->updated_at) ? 
+                        $company->updated_at : 
+                        $company->updated_at->format('Y-m-d H:i:s')) : null
+            ];
+
+            Log::info('Company data prepared successfully');
+            Log::info('Quotations count: ' . $formattedQuotations->count());
+            Log::info('Invoices count: ' . $formattedInvoices->count());
+            Log::info('Payments count: ' . $formattedPayments->count());
+            Log::info('Projects count: ' . $formattedProjects->count());
+            Log::info('Contacts count: ' . $formattedContacts->count());
+
+            // ==================== STATISTICS ====================
+            $statistics = [
+                // Quotation statistics
+                'total_quotations' => $formattedQuotations->count(),
+                'accepted_quotations' => $formattedQuotations->where('status', 'accepted')->count(),
+                'expired_quotations' => $formattedQuotations->where('status', 'expired')->count(),
+                'cancelled_quotations' => $formattedQuotations->where('status', 'rejected')->count(),
+                'draft_quotations' => $formattedQuotations->where('status', 'draft')->count(),
+                'sent_quotations' => $formattedQuotations->where('status', 'sent')->count(),
+                
+                // Invoice statistics
+                'total_invoices' => $formattedInvoices->count(),
+                'paid_invoices' => $formattedInvoices->where('status', 'Paid')->count(),
+                'unpaid_invoices' => $formattedInvoices->where('status', 'Unpaid')->count(),
+                'draft_invoices' => $formattedInvoices->where('status', 'Draft')->count(),
+                'cancelled_invoices' => $formattedInvoices->where('status', 'Cancelled')->count(),
+                'partial_invoices' => $formattedInvoices->where('status', 'Partial')->count(),
+                'total_invoice_amount' => $formattedInvoices->sum('invoice_amount'),
+                'total_amount_due' => $formattedInvoices->sum('amount_due'),
+                
+                // Payment statistics
+                'total_payments' => $formattedPayments->count(),
+                'total_payment_amount' => $formattedPayments->sum('amount'),
+                'transfer_payments' => $formattedPayments->where('method', 'transfer')->count(),
+                'cash_payments' => $formattedPayments->where('method', 'cash')->count(),
+                'check_payments' => $formattedPayments->where('method', 'check')->count(),
+                'average_payment_amount' => $formattedPayments->count() > 0 ? 
+                    $formattedPayments->sum('amount') / $formattedPayments->count() : 0,
+                'payment_ratio' => $formattedInvoices->sum('invoice_amount') > 0 ? 
+                    ($formattedPayments->sum('amount') / $formattedInvoices->sum('invoice_amount')) * 100 : 0,
+                
+                // Project statistics
+                'total_projects' => $formattedProjects->count(),
+                'active_projects' => $formattedProjects->whereIn('status', ['in_progress', 'progress', 'active'])->count(),
+                'completed_projects' => $formattedProjects->where('status', 'completed')->count(),
+                'pending_projects' => $formattedProjects->whereIn('status', ['pending', 'draft', 'new'])->count(),
+                'delayed_projects' => $formattedProjects->where('status', 'delayed')->count(),
+                'overdue_projects' => $formattedProjects->where('days_left', '<', 0)->count(),
+                'projects_with_assignee' => $formattedProjects->where('assigned_user', '!=', null)->count(),
+                
+                // Contact statistics
+                'active_contacts' => $formattedContacts->count(),
+                'primary_contacts' => $formattedContacts->where('is_primary', true)->count(),
+                
+                // Additional analytics
+                'unique_leads' => $formattedQuotations->pluck('lead_id')->unique()->count(),
+                'total_quotation_value' => $formattedQuotations->sum('total'),
+                'average_quotation_value' => $formattedQuotations->count() > 0 
+                    ? $formattedQuotations->sum('total') / $formattedQuotations->count() 
+                    : 0,
+            ];
+
+            // Group quotations by lead
+            $groupedQuotations = $this->groupQuotationsByLead($formattedQuotations);
+
+            Log::info('Rendering Inertia page...');
+            Log::info('Final data counts:', [
+                'quotations' => $formattedQuotations->count(),
+                'invoices' => $formattedInvoices->count(),
+                'payments' => $formattedPayments->count(),
+                'projects' => $formattedProjects->count(),
+                'contacts' => $formattedContacts->count()
+            ]);
+
+            return Inertia::render('Companies/Show', [
+                'company' => $companyData,
+                'quotations' => $formattedQuotations,
+                'grouped_quotations' => $groupedQuotations,
+                'invoices' => $formattedInvoices,
+                'payments' => $formattedPayments,
+                'projects' => $formattedProjects,
+                'contacts' => $formattedContacts,
+                'statistics' => $statistics
+            ]);
+
         } catch (\Exception $e) {
-            Log::error('Error in simple contacts processing: ' . $e->getMessage());
+            Log::error('Error in company show: ' . $e->getMessage());
             Log::error('Stack trace: ' . $e->getTraceAsString());
-            $formattedContacts = collect([]);
+            
+            return redirect()->route('companies.index')->with('error', 'Error loading company data: ' . $e->getMessage());
         }
-
-        // Get primary contact from formatted contacts
-        $primaryContact = $formattedContacts->firstWhere('is_primary', true);
-
-        Log::info('=== END SIMPLE CONTACTS PROCESSING ===');
-        // ==================== END CONTACTS LOGIC ====================
-
-        // Data company untuk response
-        $companyData = [
-            'id' => $company->id,
-            'name' => $company->client_code,
-            'client_code' => $company->client_code,
-            'client_type' => $company->clientType ? [
-                'id' => $company->clientType->id,
-                'name' => $company->clientType->name
-            ] : null,
-            'city' => $company->city,
-            'province' => $company->province,
-            'country' => $company->country,
-            'postal_code' => $company->postal_code,
-            'vat_number' => $company->vat_number,
-            'nib' => $company->nib,
-            'website' => $company->website,
-            'logo_path' => $company->logo_path,
-            'logo_url' => $company->logo_path ? Storage::url($company->logo_path) : null,
-            'client_since' => $company->client_since ? 
-                (is_string($company->client_since) ? 
-                    $company->client_since : 
-                    $company->client_since->format('Y-m-d')) : null,
-            'is_active' => (bool) $company->is_active,
-            'lead' => $company->lead ? [
-                'id' => $company->lead->id,
-                'company_name' => $company->lead->company_name,
-                'address' => $company->lead->address
-            ] : null,
-            'quotation' => $company->quotation ? [
-                'id' => $company->quotation->id,
-                'quotation_number' => $company->quotation->quotation_number
-            ] : null,
-            'quotation_id' => $company->quotation_id,
-            'lead_id' => $company->lead_id,
-            'contact_person' => $primaryContact ? $primaryContact['name'] : null,
-            'contact_email' => $primaryContact ? $primaryContact['email'] : null,
-            'contact_phone' => $primaryContact ? $primaryContact['phone'] : null,
-            'contact_position' => $primaryContact ? $primaryContact['position'] : null,
-            'primary_contact' => $primaryContact ? [
-                'name' => $primaryContact['name'],
-                'email' => $primaryContact['email'],
-                'phone' => $primaryContact['phone'],
-                'position' => $primaryContact['position']
-            ] : null,
-            'contacts' => $formattedContacts,
-            'created_at' => $company->created_at ? 
-                (is_string($company->created_at) ? 
-                    $company->created_at : 
-                    $company->created_at->format('Y-m-d H:i:s')) : null,
-            'updated_at' => $company->updated_at ? 
-                (is_string($company->updated_at) ? 
-                    $company->updated_at : 
-                    $company->updated_at->format('Y-m-d H:i:s')) : null
-        ];
-
-        Log::info('Company data prepared successfully');
-        Log::info('Quotations count: ' . $formattedQuotations->count());
-        Log::info('Invoices count: ' . $formattedInvoices->count());
-        Log::info('Payments count: ' . $formattedPayments->count());
-        Log::info('Projects count: ' . $formattedProjects->count());
-        Log::info('Contacts count: ' . $formattedContacts->count());
-
-        // ==================== STATISTICS ====================
-        $statistics = [
-            // Quotation statistics
-            'total_quotations' => $formattedQuotations->count(),
-            'accepted_quotations' => $formattedQuotations->where('status', 'accepted')->count(),
-            'expired_quotations' => $formattedQuotations->where('status', 'expired')->count(),
-            'cancelled_quotations' => $formattedQuotations->where('status', 'rejected')->count(),
-            'draft_quotations' => $formattedQuotations->where('status', 'draft')->count(),
-            'sent_quotations' => $formattedQuotations->where('status', 'sent')->count(),
-            
-            // Invoice statistics
-            'total_invoices' => $formattedInvoices->count(),
-            'paid_invoices' => $formattedInvoices->where('status', 'Paid')->count(),
-            'unpaid_invoices' => $formattedInvoices->where('status', 'Unpaid')->count(),
-            'draft_invoices' => $formattedInvoices->where('status', 'Draft')->count(),
-            'cancelled_invoices' => $formattedInvoices->where('status', 'Cancelled')->count(),
-            'partial_invoices' => $formattedInvoices->where('status', 'Partial')->count(),
-            'total_invoice_amount' => $formattedInvoices->sum('invoice_amount'),
-            'total_amount_due' => $formattedInvoices->sum('amount_due'),
-            
-            // Payment statistics
-            'total_payments' => $formattedPayments->count(),
-            'total_payment_amount' => $formattedPayments->sum('amount'),
-            'transfer_payments' => $formattedPayments->where('method', 'transfer')->count(),
-            'cash_payments' => $formattedPayments->where('method', 'cash')->count(),
-            'check_payments' => $formattedPayments->where('method', 'check')->count(),
-            'average_payment_amount' => $formattedPayments->count() > 0 ? 
-                $formattedPayments->sum('amount') / $formattedPayments->count() : 0,
-            'payment_ratio' => $formattedInvoices->sum('invoice_amount') > 0 ? 
-                ($formattedPayments->sum('amount') / $formattedInvoices->sum('invoice_amount')) * 100 : 0,
-            
-            // Project statistics
-            'total_projects' => $formattedProjects->count(),
-            'active_projects' => $formattedProjects->whereIn('status', ['in_progress', 'progress', 'active'])->count(),
-            'completed_projects' => $formattedProjects->where('status', 'completed')->count(),
-            'pending_projects' => $formattedProjects->whereIn('status', ['pending', 'draft', 'new'])->count(),
-            'delayed_projects' => $formattedProjects->where('status', 'delayed')->count(),
-            'overdue_projects' => $formattedProjects->where('days_left', '<', 0)->count(),
-            'projects_with_assignee' => $formattedProjects->where('assigned_user', '!=', null)->count(),
-            
-            // Contact statistics
-            'active_contacts' => $formattedContacts->count(),
-            'primary_contacts' => $formattedContacts->where('is_primary', true)->count(),
-            
-            // Additional analytics
-            'unique_leads' => $formattedQuotations->pluck('lead_id')->unique()->count(),
-            'total_quotation_value' => $formattedQuotations->sum('total'),
-            'average_quotation_value' => $formattedQuotations->count() > 0 
-                ? $formattedQuotations->sum('total') / $formattedQuotations->count() 
-                : 0,
-        ];
-
-        // Group quotations by lead
-        $groupedQuotations = $this->groupQuotationsByLead($formattedQuotations);
-
-        Log::info('Rendering Inertia page...');
-        Log::info('Final data counts:', [
-            'quotations' => $formattedQuotations->count(),
-            'invoices' => $formattedInvoices->count(),
-            'payments' => $formattedPayments->count(),
-            'projects' => $formattedProjects->count(),
-            'contacts' => $formattedContacts->count()
-        ]);
-
-        return Inertia::render('Companies/Show', [
-            'company' => $companyData,
-            'quotations' => $formattedQuotations,
-            'grouped_quotations' => $groupedQuotations,
-            'invoices' => $formattedInvoices,
-            'payments' => $formattedPayments,
-            'projects' => $formattedProjects,
-            'contacts' => $formattedContacts,
-            'statistics' => $statistics
-        ]);
-
-    } catch (\Exception $e) {
-        Log::error('Error in company show: ' . $e->getMessage());
-        Log::error('Stack trace: ' . $e->getTraceAsString());
-        
-        return redirect()->route('companies.index')->with('error', 'Error loading company data: ' . $e->getMessage());
     }
-}
 
 /**
  * Helper function to get payment method display text
@@ -1318,128 +1322,74 @@ public function destroyPayment($companyId, $paymentId)
     }
 }
 
-/**
- * Generate receipt for a payment
- */
-public function generateReceipt($companyId, $paymentId)
+
+// CompanyController.php
+public function getInvoice($companyId, $invoiceId)
 {
     try {
-        Log::info('Generating receipt for payment', [
-            'company_id' => $companyId,
-            'payment_id' => $paymentId
-        ]);
+        Log::info('=== GET INVOICE REQUEST ===');
+        Log::info('Company ID: ' . $companyId);
+        Log::info('Invoice ID: ' . $invoiceId);
 
-        // Validasi bahwa payment dan company valid
-        $company = Company::findOrFail($companyId);
-        $payment = Payment::with(['invoice', 'creator', 'updater'])->findOrFail($paymentId);
+        // Cari invoice
+        $invoice = Invoice::find($invoiceId);
         
-        // Cek payment belongs to company
-        $isValidPayment = DB::table('payments as p')
-            ->join('invoices as i', 'p.invoice_id', '=', 'i.id')
-            ->join('company_contact_persons as ccp', 'i.company_contact_persons_id', '=', 'ccp.id')
-            ->where('p.id', $paymentId)
-            ->where('ccp.company_id', $companyId)
-            ->where('p.deleted', 0)
-            ->exists();
-        
-        if (!$isValidPayment) {
-            abort(404, 'Payment not found or does not belong to this company');
+        if (!$invoice) {
+            Log::error('Invoice not found: ' . $invoiceId);
+            return response()->json([
+                'success' => false,
+                'message' => 'Invoice not found'
+            ], 404);
         }
 
-        // Get related data for receipt
-        $invoice = Invoice::with(['quotation.lead', 'contactPerson.lead'])->find($payment->invoice_id);
-        
-        $receiptData = [
-            'payment' => $payment,
-            'invoice' => $invoice,
-            'company' => $company,
-            'quotation' => $invoice->quotation ?? null,
-            'lead' => $invoice->quotation->lead ?? null,
-            'contact' => $invoice->contactPerson->lead ?? null,
-            'date' => now()->format('d F Y'),
-            'receipt_number' => 'REC-' . strtoupper(substr($payment->id, 0, 8)),
-        ];
+        // Verifikasi invoice milik company tersebut
+        $companyContactPerson = DB::table('company_contact_persons')
+            ->where('id', $invoice->company_contact_persons_id)
+            ->where('company_id', $companyId)
+            ->first();
 
-        // Generate PDF receipt
-        $pdf = \PDF::loadView('payments.receipt', $receiptData);
-        
-        return $pdf->download('receipt-' . $payment->id . '.pdf');
-
-    } catch (\Exception $e) {
-        Log::error('Error generating receipt: ' . $e->getMessage());
-        
-        return redirect()->back()
-            ->with('error', 'Failed to generate receipt: ' . $e->getMessage());
-    }
-}
-
-/**
- * Export payment data
- */
-public function exportPayment($companyId, $paymentId)
-{
-    try {
-        Log::info('Exporting payment data', [
-            'company_id' => $companyId,
-            'payment_id' => $paymentId
-        ]);
-
-        // Validasi bahwa payment dan company valid
-        $company = Company::findOrFail($companyId);
-        $payment = Payment::with(['invoice', 'creator', 'updater'])->findOrFail($paymentId);
-        
-        // Cek payment belongs to company
-        $isValidPayment = DB::table('payments as p')
-            ->join('invoices as i', 'p.invoice_id', '=', 'i.id')
-            ->join('company_contact_persons as ccp', 'i.company_contact_persons_id', '=', 'ccp.id')
-            ->where('p.id', $paymentId)
-            ->where('ccp.company_id', $companyId)
-            ->where('p.deleted', 0)
-            ->exists();
-        
-        if (!$isValidPayment) {
-            abort(404, 'Payment not found or does not belong to this company');
+        if (!$companyContactPerson) {
+            Log::error('Invoice does not belong to company: ' . $companyId);
+            return response()->json([
+                'success' => false,
+                'message' => 'Invoice does not belong to this company'
+            ], 403);
         }
 
-        // Prepare data for export
-        $invoice = Invoice::with(['quotation.lead', 'contactPerson.lead'])->find($payment->invoice_id);
-        
-        $exportData = [
-            'Payment ID' => $payment->id,
-            'Receipt Number' => 'REC-' . strtoupper(substr($payment->id, 0, 8)),
-            'Invoice Number' => $invoice->invoice_number ?? 'N/A',
-            'Payment Date' => $payment->date,
-            'Amount' => 'Rp ' . number_format($payment->amount, 0, ',', '.'),
-            'Method' => $this->getPaymentMethodDisplay($payment->method),
-            'Bank' => $payment->bank ?? 'N/A',
-            'Notes' => $payment->note ?? 'N/A',
-            'Company Name' => $invoice->quotation->lead->company_name ?? 'N/A',
-            'Contact Person' => $invoice->contactPerson->lead->contact_person ?? 'N/A',
-            'Invoice Total' => 'Rp ' . number_format($invoice->total ?? 0, 0, ',', '.'),
-            'Amount Due' => 'Rp ' . number_format($invoice->amount_due ?? 0, 0, ',', '.'),
-            'Created By' => $payment->creator->name ?? 'System',
-            'Created At' => $payment->created_at,
-            'Updated By' => $payment->updater->name ?? 'N/A',
-            'Updated At' => $payment->updated_at,
+        // Format response
+        $formattedInvoice = [
+            'id' => $invoice->id,
+            'invoice_number' => $invoice->invoice_number,
+            'date' => $invoice->date,
+            'invoice_amount' => (float) $invoice->invoice_amout,
+            'amount_due' => (float) $invoice->amount_due,
+            'status' => $invoice->status,
+            'payment_terms' => $invoice->payment_terms,
+            'payment_type' => $invoice->payment_type,
+            'note' => $invoice->note,
+            'ppn' => $invoice->ppn ? (float) $invoice->ppn : null,
+            'pph' => $invoice->pph ? (float) $invoice->pph : null,
+            'total' => $invoice->total ? (float) $invoice->total : null,
+            'created_at' => $invoice->created_at,
+            'updated_at' => $invoice->updated_at
         ];
 
-        // Export as JSON (default)
-        $filename = 'payment-export-' . $payment->id . '.json';
-        $headers = [
-            'Content-Type' => 'application/json',
-            'Content-Disposition' => 'attachment; filename="' . $filename . '"',
-        ];
-
-        return response()->json($exportData, 200, $headers);
+        return response()->json([
+            'success' => true,
+            'message' => 'Invoice retrieved successfully',
+            'data' => $formattedInvoice
+        ]);
 
     } catch (\Exception $e) {
-        Log::error('Error exporting payment: ' . $e->getMessage());
+        Log::error('Error getting invoice: ' . $e->getMessage());
+        Log::error('Stack trace: ' . $e->getTraceAsString());
         
-        return redirect()->back()
-            ->with('error', 'Failed to export payment data: ' . $e->getMessage());
+        return response()->json([
+            'success' => false,
+            'message' => 'Error getting invoice: ' . $e->getMessage()
+        ], 500);
     }
 }
-
 /**
  * Get invoices related to a company via contact persons (WORKING VERSION)
  */
@@ -1512,6 +1462,453 @@ private function getCompanyInvoices(Company $company)
         Log::error('Error in getCompanyInvoices: ' . $e->getMessage());
         Log::error('Stack trace: ' . $e->getTraceAsString());
         return collect();
+    }
+}
+
+public function updateInvoice($companyId, $invoiceId, Request $request)
+{
+    try {
+        Log::info('=== UPDATE INVOICE REQUEST ===');
+        Log::info('Company ID: ' . $companyId);
+        Log::info('Invoice ID: ' . $invoiceId);
+        Log::info('Request data:', $request->all());
+
+        // Validasi data
+        $validator = Validator::make($request->all(), [
+            'invoice_number' => 'required|string|max:100',
+            'date' => 'required|date',
+            'invoice_amount' => 'required|numeric|min:0|max:999999999999', // Tambah max value
+            'amount_due' => 'required|numeric|min:0|max:999999999999', // Tambah max value
+            'status' => 'required|string|in:draft,unpaid,paid,cancelled,partial',
+            'payment_terms' => 'nullable|string|max:255',
+            'payment_type' => 'nullable|string|max:50|in:cash,transfer,check,credit_card', // Validasi pilihan
+            'note' => 'nullable|string',
+            'ppn' => 'nullable|numeric|min:0|max:999999999999',
+            'pph' => 'nullable|numeric|min:0|max:999999999999',
+            'total' => 'nullable|numeric|min:0|max:999999999999'
+        ]);
+
+        if ($validator->fails()) {
+            Log::error('Validation failed:', $validator->errors()->toArray());
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        // Cari invoice
+        $invoice = Invoice::find($invoiceId);
+        
+        if (!$invoice) {
+            Log::error('Invoice not found: ' . $invoiceId);
+            return response()->json([
+                'success' => false,
+                'message' => 'Invoice not found'
+            ], 404);
+        }
+
+        // Verifikasi invoice milik company tersebut
+        $companyContactPerson = DB::table('company_contact_persons')
+            ->where('id', $invoice->company_contact_persons_id)
+            ->where('company_id', $companyId)
+            ->first();
+
+        if (!$companyContactPerson) {
+            Log::error('Invoice does not belong to company: ' . $companyId);
+            return response()->json([
+                'success' => false,
+                'message' => 'Invoice does not belong to this company'
+            ], 403);
+        }
+
+        // Cek tipe data kolom di database
+        Log::info('Database column types for invoice:');
+        $columns = DB::select("DESCRIBE invoices");
+        foreach ($columns as $column) {
+            if (in_array($column->Field, ['invoice_amout', 'amount_due', 'ppn', 'pph', 'total'])) {
+                Log::info("Column {$column->Field}: Type={$column->Type}, Null={$column->Null}");
+            }
+        }
+
+        // Parse data numerik untuk memastikan format benar
+        $updateData = [
+            'invoice_number' => $request->invoice_number,
+            'date' => $request->date,
+            'invoice_amout' => (float) $request->invoice_amount,
+            'amount_due' => (float) $request->amount_due,
+            'status' => $request->status,
+            'payment_terms' => $request->payment_terms,
+            'payment_type' => $request->payment_type,
+            'note' => $request->note,
+            'ppn' => $request->ppn ? (float) $request->ppn : null,
+            'pph' => $request->pph ? (float) $request->pph : null,
+            'total' => $request->total ? (float) $request->total : null,
+            'updated_by' => auth()->id() ?? null
+        ];
+
+        Log::info('Update data prepared:', $updateData);
+
+        // Update data invoice
+        $updated = $invoice->update($updateData);
+
+        Log::info('Invoice update result:', [
+            'success' => $updated,
+            'invoice_id' => $invoice->id,
+            'invoice_number' => $invoice->invoice_number
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Invoice updated successfully',
+            'data' => $invoice->fresh()
+        ]);
+
+    } catch (\Exception $e) {
+        Log::error('Error updating invoice: ' . $e->getMessage());
+        Log::error('Stack trace: ' . $e->getTraceAsString());
+        
+        // Debug lebih detail untuk SQL error
+        if (strpos($e->getMessage(), 'SQLSTATE') !== false) {
+            Log::error('SQL Error details:', [
+                'error_code' => $e->getCode(),
+                'sql_state' => $e->errorInfo[0] ?? null,
+                'driver_code' => $e->errorInfo[1] ?? null,
+                'error_message' => $e->errorInfo[2] ?? null
+            ]);
+        }
+        
+        return response()->json([
+            'success' => false,
+            'message' => 'Error updating invoice: ' . $e->getMessage()
+        ], 500);
+    }
+}
+
+/**
+ * Mark invoice as paid
+ */
+public function markInvoiceAsPaid($companyId, $invoiceId)
+{
+    try {
+        Log::info('=== MARK INVOICE AS PAID REQUEST ===');
+        Log::info('Company ID: ' . $companyId);
+        Log::info('Invoice ID: ' . $invoiceId);
+
+        // Cari invoice
+        $invoice = Invoice::find($invoiceId);
+        
+        if (!$invoice) {
+            Log::error('Invoice not found: ' . $invoiceId);
+            return response()->json([
+                'success' => false,
+                'message' => 'Invoice not found'
+            ], 404);
+        }
+
+        // Verifikasi invoice milik company tersebut
+        $companyContactPerson = DB::table('company_contact_persons')
+            ->where('id', $invoice->company_contact_persons_id)
+            ->where('company_id', $companyId)
+            ->first();
+
+        if (!$companyContactPerson) {
+            Log::error('Invoice does not belong to company: ' . $companyId);
+            return response()->json([
+                'success' => false,
+                'message' => 'Invoice does not belong to this company'
+            ], 403);
+        }
+
+        // Update status menjadi paid dan set amount_due menjadi 0
+        $invoice->update([
+            'status' => 'paid',
+            'amount_due' => 0,
+            'updated_by' => Auth::id() // PERBAIKAN INI
+        ]);
+
+        Log::info('Invoice marked as paid:', [
+            'invoice_id' => $invoice->id,
+            'invoice_number' => $invoice->invoice_number
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Invoice marked as paid successfully',
+            'data' => $invoice
+        ]);
+
+    } catch (\Exception $e) {
+        Log::error('Error marking invoice as paid: ' . $e->getMessage());
+        Log::error('Stack trace: ' . $e->getTraceAsString());
+        
+        return response()->json([
+            'success' => false,
+            'message' => 'Error marking invoice as paid: ' . $e->getMessage()
+        ], 500);
+    }
+}
+
+public function deleteInvoice($companyId, $invoiceId)
+{
+    try {
+        Log::info('=== DELETE INVOICE REQUEST ===');
+        Log::info('Company ID: ' . $companyId);
+        Log::info('Invoice ID: ' . $invoiceId);
+        
+        // Cari invoice dengan query builder untuk debug
+        $invoice = DB::table('invoices')->where('id', $invoiceId)->first();
+        
+        if (!$invoice) {
+            Log::error('Invoice not found: ' . $invoiceId);
+            return response()->json([
+                'success' => false,
+                'message' => 'Invoice not found'
+            ], 404);
+        }
+        
+        Log::info('Invoice found:', [
+            'id' => $invoice->id,
+            'invoice_number' => $invoice->invoice_number,
+            'current_deleted' => $invoice->deleted,
+            'company_contact_persons_id' => $invoice->company_contact_persons_id
+        ]);
+
+        // Verifikasi invoice milik company tersebut
+        $companyContactPerson = DB::table('company_contact_persons')
+            ->where('id', $invoice->company_contact_persons_id)
+            ->where('company_id', $companyId)
+            ->first();
+
+        if (!$companyContactPerson) {
+            Log::error('Invoice does not belong to company. Company ID: ' . $companyId);
+            Log::error('Invoice CCP ID: ' . $invoice->company_contact_persons_id);
+            
+            // Debug: cek semua company_contact_persons untuk company ini
+            $allCCP = DB::table('company_contact_persons')
+                ->where('company_id', $companyId)
+                ->get();
+            Log::info('All CCP for company:', $allCCP->toArray());
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Invoice does not belong to this company'
+            ], 403);
+        }
+        
+        Log::info('Company contact person verified:', [
+            'contact_person_id' => $companyContactPerson->id,
+            'company_id' => $companyContactPerson->company_id
+        ]);
+
+        $userId = auth()->check() ? auth()->id() : 1; // Default ke user 1 jika tidak ada auth
+        Log::info('User ID for deletion:', ['user_id' => $userId]);
+
+        // Update dengan query builder untuk memastikan
+        $updateData = [
+            'deleted' => 1,
+            'deleted_by' => $userId,
+            'deleted_at' => now(),
+            'updated_at' => now()
+        ];
+        
+        Log::info('Attempting to update invoice with data:', $updateData);
+        
+        $updated = DB::table('invoices')
+            ->where('id', $invoiceId)
+            ->update($updateData);
+        
+        Log::info('Update result from DB:', [
+            'rows_affected' => $updated,
+            'success' => $updated > 0
+        ]);
+        
+        // Cek hasil update
+        $updatedInvoice = DB::table('invoices')->where('id', $invoiceId)->first();
+        Log::info('After update - Invoice status:', [
+            'deleted' => $updatedInvoice->deleted,
+            'deleted_by' => $updatedInvoice->deleted_by,
+            'deleted_at' => $updatedInvoice->deleted_at
+        ]);
+
+        if ($updated === 0) {
+            Log::error('Failed to update invoice - no rows affected');
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to delete invoice - no rows affected'
+            ], 500);
+        }
+
+        Log::info('Invoice soft deleted successfully:', [
+            'invoice_id' => $invoiceId,
+            'company_id' => $companyId,
+            'rows_affected' => $updated
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Invoice deleted successfully',
+            'data' => [
+                'id' => $invoiceId,
+                'deleted' => $updatedInvoice->deleted,
+                'deleted_by' => $updatedInvoice->deleted_by,
+                'rows_affected' => $updated
+            ]
+        ]);
+
+    } catch (\Exception $e) {
+        Log::error('Error deleting invoice: ' . $e->getMessage());
+        Log::error('Stack trace: ' . $e->getTraceAsString());
+        
+        return response()->json([
+            'success' => false,
+            'message' => 'Error deleting invoice: ' . $e->getMessage(),
+            'error' => $e->getMessage()
+        ], 500);
+    }
+}
+
+/**
+ * Bulk delete invoices (soft delete)
+ */
+public function bulkDeleteInvoices($companyId, Request $request)
+{
+    try {
+        Log::info('=== BULK DELETE INVOICES REQUEST ===');
+        Log::info('Company ID: ' . $companyId);
+        Log::info('Invoice IDs:', $request->all());
+
+        $validator = Validator::make($request->all(), [
+            'invoice_ids' => 'required|array',
+            'invoice_ids.*' => 'required|exists:invoices,id'
+        ]);
+
+        if ($validator->fails()) {
+            Log::error('Validation failed:', $validator->errors()->toArray());
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        $invoiceIds = $request->invoice_ids;
+        $deletedCount = 0;
+        $currentUserId = auth()->id();
+
+        // Loop melalui setiap invoice ID
+        foreach ($invoiceIds as $invoiceId) {
+            $invoice = Invoice::find($invoiceId);
+            
+            if ($invoice) {
+                // Verifikasi invoice milik company tersebut
+                $companyContactPerson = DB::table('company_contact_persons')
+                    ->where('id', $invoice->company_contact_persons_id)
+                    ->where('company_id', $companyId)
+                    ->first();
+
+                if ($companyContactPerson) {
+                    // Soft delete
+                    $invoice->update([
+                        'deleted' => 1,
+                        'deleted_by' => $currentUserId,
+                        'deleted_at' => now()
+                    ]);
+                    $deletedCount++;
+                }
+            }
+        }
+
+        Log::info('Bulk delete completed:', [
+            'requested' => count($invoiceIds),
+            'deleted' => $deletedCount
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Successfully deleted ' . $deletedCount . ' invoice(s)',
+            'deleted_count' => $deletedCount
+        ]);
+
+    } catch (\Exception $e) {
+        Log::error('Error bulk deleting invoices: ' . $e->getMessage());
+        Log::error('Stack trace: ' . $e->getTraceAsString());
+        
+        return response()->json([
+            'success' => false,
+            'message' => 'Error bulk deleting invoices: ' . $e->getMessage()
+        ], 500);
+    }
+}
+
+/**
+ * Bulk mark invoices as paid
+ */
+public function bulkMarkInvoicesAsPaid($companyId, Request $request)
+{
+    try {
+        Log::info('=== BULK MARK INVOICES AS PAID REQUEST ===');
+        Log::info('Company ID: ' . $companyId);
+        Log::info('Invoice IDs:', $request->all());
+
+        $validator = Validator::make($request->all(), [
+            'invoice_ids' => 'required|array',
+            'invoice_ids.*' => 'required|exists:invoices,id'
+        ]);
+
+        if ($validator->fails()) {
+            Log::error('Validation failed:', $validator->errors()->toArray());
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        $invoiceIds = $request->invoice_ids;
+        $updatedCount = 0;
+
+        // Loop melalui setiap invoice ID
+        foreach ($invoiceIds as $invoiceId) {
+            $invoice = Invoice::find($invoiceId);
+            
+            if ($invoice && $invoice->status !== 'paid') {
+                // Verifikasi invoice milik company tersebut
+                $companyContactPerson = DB::table('company_contact_persons')
+                    ->where('id', $invoice->company_contact_persons_id)
+                    ->where('company_id', $companyId)
+                    ->first();
+
+                if ($companyContactPerson) {
+                    $invoice->update([
+                        'status' => 'paid',
+                        'amount_due' => 0,
+                        'updated_by' => Auth::id()
+                    ]);
+                    $updatedCount++;
+                }
+            }
+        }
+
+        Log::info('Bulk mark as paid completed:', [
+            'requested' => count($invoiceIds),
+            'updated' => $updatedCount
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Successfully marked ' . $updatedCount . ' invoice(s) as paid',
+            'updated_count' => $updatedCount
+        ]);
+
+    } catch (\Exception $e) {
+        Log::error('Error bulk marking invoices as paid: ' . $e->getMessage());
+        Log::error('Stack trace: ' . $e->getTraceAsString());
+        
+        return response()->json([
+            'success' => false,
+            'message' => 'Error bulk marking invoices as paid: ' . $e->getMessage()
+        ], 500);
     }
 }
 

@@ -224,11 +224,13 @@ Route::middleware(['auth', 'verified'])->group(function () {
     });
     
     // ====================== INVOICE routes (dengan company context) ======================
-    Route::prefix('companies/{company}')->group(function () {
-        Route::get('/invoices/create', [InvoiceController::class, 'createForCompany'])
-            ->name('companies.invoices.create');
-        Route::post('/invoices', [InvoiceController::class, 'storeForCompany'])
-            ->name('companies.invoices.store');
+    Route::prefix('companies/{company}/invoices')->group(function () {
+        Route::get('/{invoice}/get', [CompanyController::class, 'getInvoice'])->name('companies.invoices.get');
+        Route::put('/{invoice}', [CompanyController::class, 'updateInvoice'])->name('companies.invoices.update');
+        Route::put('/{invoice}/mark-paid', [CompanyController::class, 'markInvoiceAsPaid'])->name('companies.invoices.mark-paid');
+        Route::delete('/{invoice}', [CompanyController::class, 'deleteInvoice'])->name('companies.invoices.delete');
+        Route::post('/bulk-delete', [CompanyController::class, 'bulkDeleteInvoices'])->name('companies.invoices.bulk-delete');
+        Route::post('/bulk-mark-paid', [CompanyController::class, 'bulkMarkInvoicesAsPaid'])->name('companies.invoices.bulk-mark-paid');
     });
 
     // Company payment routes
