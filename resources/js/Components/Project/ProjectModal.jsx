@@ -101,6 +101,7 @@ const ProjectModal = ({
                 preserveScroll: true,
                 preserveState: true,
                 onSuccess: () => {
+                    reset();
                     resetForm();
                     onClose();
                     router.reload({ 
@@ -118,6 +119,7 @@ const ProjectModal = ({
                 preserveState: true,
                 onSuccess: () => {
                     resetForm();
+                    reset();
                     onClose();
                     router.reload({ 
                         only: ['projects', 'summary', 'filters'],
@@ -133,6 +135,7 @@ const ProjectModal = ({
 
     const handleClose = () => {
         resetForm();
+        reset();
         onClose();
     };
 
