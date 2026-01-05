@@ -4,10 +4,8 @@ import DocumentBuilder from "@/Components/PDF_Builder/Builder";
 import { Edit, Trash2, Loader2, Plus } from "lucide-react";
 import html2pdf from 'html2pdf.js';
 import { Toaster, toast } from 'react-hot-toast';
-import { useTranslation } from "react-i18next";
 
 export default function Create({ nextNumber, leads = [], companies = [], quotations = [] }) {
-    const { t } = useTranslation();
     const [showModal, setShowModal] = useState(false);
     const [newItem, setNewItem] = useState({
         name: "",
@@ -233,12 +231,12 @@ export default function Create({ nextNumber, leads = [], companies = [], quotati
                 <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[9999]">
                     <div className="bg-white p-6 rounded-xl shadow-2xl w-[400px] border border-gray-200">
                         <h3 className="font-black text-gray-800 mb-4 uppercase tracking-tight text-sm">
-                            {t("invoices.add_service") || "Add New Service"}
+                            Add New Service
                         </h3>
                         <div className="space-y-4">
                             <div>
                                 <label className="text-[10px] font-bold uppercase text-gray-400">
-                                    {t("invoices.service_name") || "Service Name"}
+                                    Service Name
                                 </label>
                                 <input
                                     className="w-full border-gray-300 rounded-lg p-2 text-sm"
@@ -255,7 +253,7 @@ export default function Create({ nextNumber, leads = [], companies = [], quotati
                             <div className="grid grid-cols-2 gap-3">
                                 <div>
                                     <label className="text-[10px] font-bold uppercase text-gray-400">
-                                        {t("invoices.qualification") || "Qualification"}
+                                        Qualification
                                     </label>
                                     <input
                                         className="w-full border-gray-300 rounded-lg p-2 text-sm"
@@ -271,7 +269,7 @@ export default function Create({ nextNumber, leads = [], companies = [], quotati
                                 </div>
                                 <div>
                                     <label className="text-[10px] font-bold uppercase text-gray-400">
-                                        {t("invoices.price") || "Price"}
+                                        Price
                                     </label>
                                     <input
                                         type="number"
@@ -293,7 +291,7 @@ export default function Create({ nextNumber, leads = [], companies = [], quotati
                                 onClick={() => setShowModal(false)}
                                 className="px-4 py-2 text-sm font-bold text-gray-400"
                             >
-                                {t("invoices.cancel") || "CANCEL"}
+                                CANCEL
                             </button>
                             <button
                                 onClick={() => {
@@ -308,7 +306,7 @@ export default function Create({ nextNumber, leads = [], companies = [], quotati
                                 }}
                                 className="bg-[#2d6a4f] text-white px-6 py-2 rounded-lg font-bold text-sm shadow-lg"
                             >
-                                {t("invoices.add_item") || "ADD ITEM"}
+                                ADD ITEM
                             </button>
                         </div>
                     </div>
@@ -319,7 +317,7 @@ export default function Create({ nextNumber, leads = [], companies = [], quotati
 
             {/* --- DOCUMENT BUILDER --- */}
             <DocumentBuilder
-                title={t("invoices.builder_title") || "Invoice Builder"}
+                title="Invoice Builder"
                 data={data}
                 setData={setData}
                 onSave={handleSave}

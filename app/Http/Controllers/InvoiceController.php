@@ -9,9 +9,15 @@ use App\Models\CompanyContactPerson;
 use App\Models\Company;
 use App\Models\Lead;
 use App\Models\Quotation;
+use App\Models\EmailTemplates;
+use App\Models\User;
+use App\Models\ActivityLogs;
+use App\Notifications\DocumentNotification;
+use App\Mail\SystemMail;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
+use Illuminate\Support\Facades\Mail;
 
 class InvoiceController extends Controller
 {
@@ -41,6 +47,8 @@ class InvoiceController extends Controller
                 'company' => $companyName,
                 'company_id' => $inv->company_contact_persons_id,
                 'amount' => (int) $inv->invoice_amout,
+                // Total includes taxes and represents the full invoice amount
+                'total' => (int) $inv->total,
                 'paid_amount' => (int) ($inv->total - $inv->amount_due),
                 'tax' => [
                     'ppn' => (int) $inv->ppn,
@@ -155,12 +163,17 @@ class InvoiceController extends Controller
                 if ($validated['client_type'] === 'Lead') {
                     // For Lead, find or create contact person with lead_id
                     $leadId = $validated['company_id'];
+                    // Get lead to populate name/email/phone if available
+                    $lead = Lead::find($leadId);
                     
                     $contactPerson = CompanyContactPerson::firstOrCreate(
                         ['lead_id' => $leadId, 'deleted' => 0],
                         [
                             'id' => (string) \Str::uuid(),
                             'lead_id' => $leadId,
+                            'name' => $lead ? ($lead->contact_person ?? $lead->company_name) : '',
+                            'email' => $lead ? ($lead->email ?? '') : '',
+                            'phone' => $lead ? ($lead->phone ?? '') : '',
                             'is_primary' => 1,
                             'is_active' => 1,
                             'created_by' => auth()->id(),
@@ -208,6 +221,35 @@ class InvoiceController extends Controller
                         'created_by'    => auth()->id(),
                     ]);
                 }
+
+                // Notify managers about new invoice (like quotations)
+                $managers = User::whereHas('role', function($q) {
+                    $q->where('name', 'manager');
+                })->get();
+
+                foreach ($managers as $manager) {
+                    $manager->notifications()
+                            ->where('data->id', (string)$invoice->id)
+                            ->where('data->type', 'invoice')
+                            ->delete();
+
+                    $manager->notify(new DocumentNotification([
+                        'id'               => $invoice->id,
+                        'type'             => 'invoice',
+                        'status'           => 'Draft',
+                        'url'              => "/storage/{$invoice->pdf_path}",
+                        'message'          => "Invoice baru #{$invoice->invoice_number} menunggu persetujuan.",
+                        'contact_person'   => $invoice->contactPerson && ($invoice->contactPerson->name ?? null) ? ($invoice->contactPerson->name ?? ($invoice->contactPerson->lead->contact_person ?? 'No Name')) : ($invoice->contactPerson && $invoice->contactPerson->lead ? $invoice->contactPerson->lead->contact_person : 'No Name'),
+                        'email'            => $invoice->contactPerson && ($invoice->contactPerson->email ?? null) ? ($invoice->contactPerson->email ?? ($invoice->contactPerson->lead->email ?? null)) : ($invoice->contactPerson && $invoice->contactPerson->lead ? $invoice->contactPerson->lead->email : null),
+                    ]));
+                }
+
+                ActivityLogs::create([
+                    'user_id' => auth()->id(),
+                    'module' => 'Invoices',
+                    'action' => 'Created',
+                    'description' => 'Create New Invoice: ' . $invoice->invoice_number,
+                ]);
 
                 return redirect()->route('invoice.index')->with('success', 'Invoice created successfully');
             });
@@ -408,12 +450,17 @@ class InvoiceController extends Controller
                 if ($validated['client_type'] === 'Lead') {
                     // For Lead, find or create contact person with lead_id
                     $leadId = $validated['company_id'];
+                    // Get lead to populate name/email/phone if available
+                    $lead = Lead::find($leadId);
                     
                     $contactPerson = CompanyContactPerson::firstOrCreate(
                         ['lead_id' => $leadId, 'deleted' => 0],
                         [
                             'id' => (string) \Str::uuid(),
                             'lead_id' => $leadId,
+                            'name' => $lead ? ($lead->contact_person ?? $lead->company_name) : '',
+                            'email' => $lead ? ($lead->email ?? '') : '',
+                            'phone' => $lead ? ($lead->phone ?? '') : '',
                             'is_primary' => 1,
                             'is_active' => 1,
                             'created_by' => auth()->id(),
@@ -461,6 +508,38 @@ class InvoiceController extends Controller
                     ]);
                 }
 
+                auth()->user()->notifications()
+                    ->where('data->id', $invoice->id)
+                    ->delete();
+
+                $managers = User::whereHas('role', function($q) {
+                    $q->where('name', 'manager');
+                })->get();
+
+                foreach ($managers as $manager) {
+                    $manager->notifications()
+                            ->where('data->id', (string)$invoice->id)
+                            ->where('data->type', 'invoice')
+                            ->delete();
+
+                    $manager->notify(new DocumentNotification([
+                        'id'               => $invoice->id,
+                        'type'             => 'invoice',
+                        'status'           => $invoice->status,
+                        'url'              => "/storage/{$invoice->pdf_path}",
+                        'message'          => "Invoice #{$invoice->invoice_number} telah diperbarui dan siap di-review ulang.",
+                        'contact_person'   => $invoice->contactPerson && ($invoice->contactPerson->name ?? null) ? ($invoice->contactPerson->name ?? ($invoice->contactPerson->lead->contact_person ?? 'No Name')) : ($invoice->contactPerson && $invoice->contactPerson->lead ? $invoice->contactPerson->lead->contact_person : 'No Name'),
+                        'email'            => $invoice->contactPerson && ($invoice->contactPerson->email ?? null) ? ($invoice->contactPerson->email ?? ($invoice->contactPerson->lead->email ?? null)) : ($invoice->contactPerson && $invoice->contactPerson->lead ? $invoice->contactPerson->lead->email : null),
+                    ]));
+                }
+
+                ActivityLogs::create([
+                    'user_id' => auth()->id(),
+                    'module' => 'Invoices',
+                    'action' => 'Updated',
+                    'description' => 'Update Invoice: ' . $invoice->invoice_number,
+                ]);
+
                 return redirect()->route('invoice.index')->with('success', 'Invoice updated successfully');
             });
         } catch (\Exception $e) {
@@ -479,7 +558,36 @@ class InvoiceController extends Controller
     {
         $invoice->status = 'Waiting Approval';
         $invoice->save();
-        // TODO: Notifikasi ke manager (bisa pakai event/notification/email)
+
+        // Notify managers
+        $managers = User::whereHas('role', function($q) {
+            $q->where('name', 'manager');
+        })->get();
+
+        foreach ($managers as $manager) {
+            $manager->notifications()
+                    ->where('data->id', (string)$invoice->id)
+                    ->where('data->type', 'invoice')
+                    ->delete();
+
+            $manager->notify(new DocumentNotification([
+                'id' => $invoice->id,
+                'type' => 'invoice',
+                'status' => $invoice->status,
+                'url' => "/invoices/show/{$invoice->id}",
+                'message' => "Invoice #{$invoice->invoice_number} meminta approval.",
+                'contact_person' => $invoice->contactPerson && ($invoice->contactPerson->name ?? null) ? ($invoice->contactPerson->name ?? ($invoice->contactPerson->lead->contact_person ?? 'No Name')) : ($invoice->contactPerson && $invoice->contactPerson->lead ? $invoice->contactPerson->lead->contact_person : 'No Name'),
+                'email' => $invoice->contactPerson && ($invoice->contactPerson->email ?? null) ? ($invoice->contactPerson->email ?? ($invoice->contactPerson->lead->email ?? null)) : ($invoice->contactPerson && $invoice->contactPerson->lead ? $invoice->contactPerson->lead->email : null),
+            ]));
+        }
+
+        ActivityLogs::create([
+            'user_id' => auth()->id(),
+            'module' => 'Invoices',
+            'action' => 'Requested Approval',
+            'description' => 'Request Approval Invoice: ' . $invoice->invoice_number,
+        ]);
+
         return redirect()->route('invoice.index')->with('success', 'Approval requested. Waiting for manager review.');
     }
 
@@ -487,7 +595,35 @@ class InvoiceController extends Controller
     {
         $invoice->status = 'Approved';
         $invoice->save();
-        // TODO: Notifikasi ke user (bisa pakai event/notification/email)
+
+        // Notify creator
+        $creator = $invoice->creator ?? null;
+        if ($creator) {
+            $creator->notifications()
+                    ->where('data->id', (string)$invoice->id)
+                    ->delete();
+
+            $contactPerson = $invoice->contactPerson && $invoice->contactPerson->lead ? $invoice->contactPerson->lead->contact_person : ($invoice->contactPerson->name ?? 'No Name');
+            $contactEmail = $invoice->contactPerson && $invoice->contactPerson->lead ? $invoice->contactPerson->lead->email : ($invoice->contactPerson->email ?? null);
+
+            $creator->notify(new DocumentNotification([
+                'id' => $invoice->id,
+                'message' => "Invoice #{$invoice->invoice_number} telah di-approved",
+                'url' => "/invoices/show/{$invoice->id}",
+                'type' => 'invoice',
+                'status' => 'Approved',
+                'contact_person' => $contactPerson,
+                'email' => $contactEmail,
+            ]));
+        }
+
+        ActivityLogs::create([
+            'user_id' => auth()->id(),
+            'module' => 'Invoices',
+            'action' => 'Approved',
+            'description' => 'Approve Invoice: ' . $invoice->invoice_number,
+        ]);
+
         return redirect()->route('invoice.index')->with('success', 'Invoice approved.');
     }
 
@@ -495,7 +631,35 @@ class InvoiceController extends Controller
     {
         $invoice->status = 'Revised';
         $invoice->save();
-        // TODO: Notifikasi ke user (bisa pakai event/notification/email)
+
+        // Notify creator
+        $creator = $invoice->creator ?? null;
+        if ($creator) {
+            $creator->notifications()
+                    ->where('data->id', (string)$invoice->id)
+                    ->delete();
+
+            $contactPerson = $invoice->contactPerson && $invoice->contactPerson->lead ? $invoice->contactPerson->lead->contact_person : ($invoice->contactPerson->name ?? 'No Name');
+            $contactEmail = $invoice->contactPerson && $invoice->contactPerson->lead ? $invoice->contactPerson->lead->email : ($invoice->contactPerson->email ?? null);
+
+            $creator->notify(new DocumentNotification([
+                'id' => $invoice->id,
+                'message' => "Invoice #{$invoice->invoice_number} telah di-revised",
+                'url' => "/invoices/edit/{$invoice->id}",
+                'type' => 'invoice',
+                'status' => 'Revised',
+                'contact_person' => $contactPerson,
+                'email' => $contactEmail,
+            ]));
+        }
+
+        ActivityLogs::create([
+            'user_id' => auth()->id(),
+            'module' => 'Invoices',
+            'action' => 'Revised',
+            'description' => 'Revise Invoice: ' . $invoice->invoice_number,
+        ]);
+
         return redirect()->route('invoice.index')->with('success', 'Invoice marked as revised.');
     }
 
@@ -509,5 +673,68 @@ class InvoiceController extends Controller
         $invoice->save();
 
         return redirect()->back()->with('success', 'Invoice status updated successfully.');
+    }
+
+    public function markAsSent(Request $request, $id)
+    {
+        $request->validate([
+            'template_id' => 'required|exists:email_templates,id',
+            'type'        => 'required|in:quotation,invoice,proposal'
+        ]);
+
+        try {
+            $docType = $request->type;
+            $modelMap = [
+                'quotation' => \App\Models\Quotation::class,
+                'invoice'   => \App\Models\Invoice::class,
+                'proposal'  => \App\Models\Proposal::class,
+            ];
+
+            $model = $modelMap[$docType];
+            $document = $model::with(['lead', 'contactPerson.lead'])->findOrFail($id);
+            $template = EmailTemplates::findOrFail($request->template_id);
+
+            $filePath = null;
+            $link = '#';
+
+            if ($docType === 'proposal') {
+                $link = url("/proposals/view/" . $document->slug);
+            } else {
+                $filePath = $document->pdf_path;
+                $link = asset('storage/' . $filePath);
+            }
+
+            $placeholders = [
+                '{name}'    => $document->lead->contact_person ?? ($document->contactPerson->name ?? '-'),
+                '{company}' => $document->lead->company_name ?? ($document->contactPerson && $document->contactPerson->lead ? $document->contactPerson->lead->company_name : '-'),
+                '{id}'      => $document->quotation_number ?? $document->invoice_number ?? $document->number ?? '-',
+                '{total}'   => number_format($document->total ?? 0, 0, ',', '.'),
+                '{link}'    => '<a href="'.$link.'" style="color: #3182ce; font-weight: bold;">Klik di Sini</a>',
+            ];
+
+            $finalSubject = str_replace(array_keys($placeholders), array_values($placeholders), $template->subject);
+            $finalContent = str_replace(array_keys($placeholders), array_values($placeholders), $template->content);
+
+            $recipientEmail = $document->lead->email ?? ($document->contactPerson->email ?? ($document->contactPerson && $document->contactPerson->lead ? $document->contactPerson->lead->email : null));
+            if (!$recipientEmail) {
+                return back()->with('error', 'Gagal: Email tujuan tidak ditemukan.');
+            }
+
+            Mail::to($recipientEmail)
+                ->send(new SystemMail($finalSubject, $finalContent, $filePath));
+
+            $document->update(['status' => 'sent']);
+
+            auth()->user()->notifications()
+                ->where('data->id', (string)$id)
+                ->where('data->type', $docType)
+                ->delete();
+
+            return back()->with('success', ucfirst($docType) . ' berhasil dikirim!');
+
+        } catch (\Exception $e) {
+            \Log::error("Gagal kirim {$request->type}: " . $e->getMessage());
+            return back()->with('error', 'Gagal mengirim email: ' . $e->getMessage());
+        }
     }
 }

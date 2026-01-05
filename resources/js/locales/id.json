@@ -843,11 +843,16 @@
         "title": "PEMBAYARAN",
         "button_add": "TAMBAH PEMBAYARAN",
         "add_title": "TAMBAH PEMBAYARAN BARU",
-        "edit_payment": "EDIT PAYMENT",
+        "edit_payment": "EDIT PEMBAYARAN",
         "select_invoice": "Pilih Invoice",
         "no_unpaid_invoice": "Tidak ada Invoice yang belum dibayarkan",
         "close": "Tutup",
         "submit": "Kirim",
+        "delete_title": "Hapus Pembayaran",
+        "delete_confirm": "Apakah Anda yakin ingin menghapus pembayaran ini?",
+        "delete_warning": "Tindakan ini tidak dapat dibatalkan.",
+        "yes": "Ya",
+        "no": "Tidak",
         "stats": {
             "draft": "RANCANGAN",
             "sent": "DIKIRIM",
@@ -889,15 +894,25 @@
         },
         "table": {
             "no": "NO",
+            "no_data": "Tidak Ada Pembayaran Ditemukan",
             "date": "TANGGAL",
             "company_name": "NAMA PERUSAHAAN",
             "invoice": "INVOICE",
+            "invoice_amount": "Jumlah Tagihan",
+            "payment_amount": "Jumlah Pembayaran",
             "amount": "JUMLAH",
             "method": "METODE",
             "bank": "BANK",
             "note": "CATATAN",
             "status": "STATUS",
             "actions": "AKSI"
+        },
+        "messages": {
+            "added": "Pembayaran berhasil ditambahkan",
+            "updated": "Pembayaran berhasil diperbarui",
+            "deleted": "Pembayaran berhasil dihapus",
+            "add_error": "Gagal menambahkan pembayaran",
+            "delete_error": "Gagal menghapus pembayaran"
         }
     },
     "invoices": {
