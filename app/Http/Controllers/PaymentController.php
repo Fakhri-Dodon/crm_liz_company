@@ -56,17 +56,22 @@ class PaymentController extends Controller
         $payments = $query->orderBy('date', 'desc')->get()->map(function ($payment) {
             $company = $payment->invoice->quotation->company ?? $payment->invoice->contactPerson->company ?? null;
             $companyName = 'N/A';
-            
+            $companyId = $company->id ?? null;
+
             if ($company && $company->lead) {
                 $companyName = $company->lead->company_name ?? 'N/A';
+            } elseif ($payment->invoice->contactPerson && $payment->invoice->contactPerson->lead) {
+                // Fallback: jika tidak ada company, ambil dari lead pada contactPerson
+                $companyName = $payment->invoice->contactPerson->lead->company_name ?? 'N/A';
+                $companyId = null;
             }
-            
+
             return [
                 'id' => $payment->id,
                 'invoice_number' => $payment->invoice->invoice_number ?? 'N/A',
                 'payment_date' => $payment->date->format('d-m-Y'),
                 'company_name' => $companyName,
-                'company_id' => $company->id ?? null,
+                'company_id' => $companyId,
                 'amount' => (float) $payment->amount,
                 'methode' => ucfirst($payment->method),
                 'bank' => $payment->bank,
@@ -108,7 +113,7 @@ class PaymentController extends Controller
      */
     public function getInvoices()
     {
-        $invoices = Invoice::with(['quotation.company.lead', 'contactPerson.company.lead'])
+        $invoices = Invoice::with(['quotation.company.lead', 'contactPerson.company.lead', 'contactPerson.lead'])
             ->whereIn('status', ['Draft', 'Invoice', 'Unpaid', 'Partial']) // Allow Draft for testing
             ->orderBy('created_at', 'desc')
             ->get()
@@ -116,21 +121,23 @@ class PaymentController extends Controller
                 $paidAmount = Payment::where('invoice_id', $invoice->id)
                     ->where('deleted', 0)
                     ->sum('amount');
-                
-                // Get company from quotation or contact person
+
                 $company = null;
                 $companyName = 'No Company';
-                
-                if ($invoice->quotation && $invoice->quotation->company) {
+
+                // Samakan logika dengan InvoiceController
+                if ($invoice->contactPerson) {
+                    if ($invoice->contactPerson->company_id && $invoice->contactPerson->company) {
+                        $company = $invoice->contactPerson->company;
+                        $companyName = optional($company->lead)->company_name ?? 'N/A';
+                    } elseif ($invoice->contactPerson->lead_id && $invoice->contactPerson->lead) {
+                        $companyName = $invoice->contactPerson->lead->company_name ?? 'N/A';
+                    }
+                } elseif ($invoice->quotation && $invoice->quotation->company) {
                     $company = $invoice->quotation->company;
-                    // Get company name from lead
-                    $companyName = $company->lead->company_name ?? 'Company';
-                } elseif ($invoice->contactPerson && $invoice->contactPerson->company) {
-                    $company = $invoice->contactPerson->company;
-                    // Get company name from lead
-                    $companyName = $company->lead->company_name ?? 'Company';
+                    $companyName = optional($company->lead)->company_name ?? 'N/A';
                 }
-                    
+
                 return [
                     'id' => $invoice->id,
                     'invoice_number' => $invoice->invoice_number,
@@ -178,15 +185,20 @@ class PaymentController extends Controller
                 'created_by' => Auth::id(),
             ]);
 
-            // Update invoice payment status if needed
+            // Update invoice payment info after payment
             $invoice = Invoice::find($validated['invoice_id']);
-            $totalPaid = Payment::where('invoice_id', $invoice->id)->sum('amount');
-            
+            $totalPaid = Payment::where('invoice_id', $invoice->id)->where('deleted', 0)->sum('amount');
+            $amountDue = max(0, $invoice->total - $totalPaid);
+            $status = 'Unpaid';
             if ($totalPaid >= $invoice->total) {
-                $invoice->update(['payment_status' => 'paid']);
+                $status = 'Paid';
             } elseif ($totalPaid > 0) {
-                $invoice->update(['payment_status' => 'partial']);
+                $status = 'Partial';
             }
+            $invoice->update([
+                'amount_due' => $amountDue,
+                'status' => $status
+            ]);
 
             DB::commit();
 
@@ -226,31 +238,37 @@ class PaymentController extends Controller
                 'updated_by' => Auth::id(),
             ]);
 
-            // Update payment status for old invoice
+            // Update payment info for old invoice if invoice changed
             if ($oldInvoiceId != $validated['invoice_id']) {
                 $oldInvoice = Invoice::find($oldInvoiceId);
-                $oldTotalPaid = Payment::where('invoice_id', $oldInvoiceId)->sum('amount');
-                
+                $oldTotalPaid = Payment::where('invoice_id', $oldInvoiceId)->where('deleted', 0)->sum('amount');
+                $oldAmountDue = max(0, $oldInvoice->total - $oldTotalPaid);
+                $oldStatus = 'Unpaid';
                 if ($oldTotalPaid >= $oldInvoice->total) {
-                    $oldInvoice->update(['payment_status' => 'paid']);
+                    $oldStatus = 'Paid';
                 } elseif ($oldTotalPaid > 0) {
-                    $oldInvoice->update(['payment_status' => 'partial']);
-                } else {
-                    $oldInvoice->update(['payment_status' => 'unpaid']);
+                    $oldStatus = 'Partial';
                 }
+                $oldInvoice->update([
+                    'amount_due' => $oldAmountDue,
+                    'status' => $oldStatus
+                ]);
             }
 
-            // Update payment status for new invoice
+            // Update payment info for new invoice
             $newInvoice = Invoice::find($validated['invoice_id']);
-            $newTotalPaid = Payment::where('invoice_id', $validated['invoice_id'])->sum('amount');
-            
+            $newTotalPaid = Payment::where('invoice_id', $validated['invoice_id'])->where('deleted', 0)->sum('amount');
+            $newAmountDue = max(0, $newInvoice->total - $newTotalPaid);
+            $newStatus = 'Unpaid';
             if ($newTotalPaid >= $newInvoice->total) {
-                $newInvoice->update(['payment_status' => 'paid']);
+                $newStatus = 'Paid';
             } elseif ($newTotalPaid > 0) {
-                $newInvoice->update(['payment_status' => 'partial']);
-            } else {
-                $newInvoice->update(['payment_status' => 'unpaid']);
+                $newStatus = 'Partial';
             }
+            $newInvoice->update([
+                'amount_due' => $newAmountDue,
+                'status' => $newStatus
+            ]);
 
             DB::commit();
 
@@ -278,19 +296,22 @@ class PaymentController extends Controller
             ]);
             $payment->delete();
 
-            // Update invoice payment status
+            // Update invoice payment info after payment deleted
             $invoice = Invoice::find($invoiceId);
             $totalPaid = Payment::where('invoice_id', $invoiceId)
                 ->where('deleted', 0)
                 ->sum('amount');
-            
+            $amountDue = max(0, $invoice->total - $totalPaid);
+            $status = 'Unpaid';
             if ($totalPaid >= $invoice->total) {
-                $invoice->update(['payment_status' => 'paid']);
+                $status = 'Paid';
             } elseif ($totalPaid > 0) {
-                $invoice->update(['payment_status' => 'partial']);
-            } else {
-                $invoice->update(['payment_status' => 'unpaid']);
+                $status = 'Partial';
             }
+            $invoice->update([
+                'amount_due' => $amountDue,
+                'status' => $status
+            ]);
 
             DB::commit();
 
