@@ -250,7 +250,13 @@ const Show = ({ company, quotations, invoices, payments, projects, contacts, sta
             case 'invoice':
                 return <InvoiceTable data={displayData.invoices} />;
             case 'payment':
-                return <PaymentTable data={displayData.payments} />;
+                return (
+                    <PaymentTable 
+                        data={displayData.payments} 
+                        companyId={displayData.company.id} 
+                        showInvoiceAmount={true}
+                    />
+                );
             case 'project':
                 return (
                     <ProjectTable 

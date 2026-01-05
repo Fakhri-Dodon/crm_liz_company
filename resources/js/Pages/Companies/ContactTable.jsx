@@ -7,7 +7,7 @@ import {
 } from 'lucide-react';
 import axios from 'axios';
 import ContactModal from './ContactModal';
-import { useTranslation } from 'react-i18next'; // Import useTranslation
+import { useTranslation } from 'react-i18next';
 
 const ContactTable = ({ 
     contacts = [], 
@@ -15,23 +15,21 @@ const ContactTable = ({
     onUpdate,
     isLoading: propsLoading = false
 }) => {
-    const { t } = useTranslation(); // Initialize translation hook
+    const { t } = useTranslation();
     const [expandedContact, setExpandedContact] = useState(null);
-    const [viewMode, setViewMode] = useState('grid'); // 'grid' or 'list'
+    const [viewMode, setViewMode] = useState('grid');
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [selectedContact, setSelectedContact] = useState(null);
     const [internalLoading, setInternalLoading] = useState(false);
     const [successMessage, setSuccessMessage] = useState('');
 
-    // Gabungkan loading dari props dan internal state
     const isLoading = propsLoading || internalLoading;
 
     const toggleContact = (id) => {
         setExpandedContact(expandedContact === id ? null : id);
     };
 
-    // Show success message
     const showSuccessMessage = (message) => {
         setSuccessMessage(message);
         setTimeout(() => {
@@ -39,14 +37,12 @@ const ContactTable = ({
         }, 3000);
     };
 
-    // Open edit modal
     const handleEdit = (contact) => {
         console.log('Editing contact:', contact);
         setSelectedContact(contact);
         setIsEditModalOpen(true);
     };
 
-    // Delete contact
     const handleDelete = async (contactId) => {
         if (!confirm(t('contact_table.confirm_delete'))) {
             return;
@@ -59,7 +55,6 @@ const ContactTable = ({
             console.log('Delete response:', response.data);
             
             if (response.data.success) {
-                // Update parent component
                 if (onUpdate) {
                     onUpdate();
                 }
@@ -75,7 +70,6 @@ const ContactTable = ({
         }
     };
 
-    // Toggle primary contact
     const handleTogglePrimary = async (contactId) => {
         setInternalLoading(true);
         try {
@@ -84,7 +78,6 @@ const ContactTable = ({
             console.log('Toggle primary response:', response.data);
             
             if (response.data.success) {
-                // Update parent component
                 if (onUpdate) {
                     onUpdate();
                 }
@@ -100,17 +93,15 @@ const ContactTable = ({
         }
     };
 
-    // Handle modal success
     const handleModalSuccess = (data, mode) => {
         console.log('Modal success:', mode, data);
-        // Update parent component
         if (onUpdate) {
             onUpdate();
         }
         showSuccessMessage(t(mode === 'edit' ? 'contact_table.contact_updated_success' : 'contact_table.contact_added_success'));
     };
 
-    // Mobile List View
+    // Mobile List View - WITHOUT ACTION BUTTONS
     const MobileListView = () => (
         <div className="space-y-3">
             {contacts.length === 0 ? (
@@ -215,42 +206,15 @@ const ContactTable = ({
                                     </span>
                                 )}
                             </div>
-                            <button 
-                                onClick={() => toggleContact(contact.id)}
-                                className="text-gray-500 hover:text-gray-700"
-                            >
-                                {expandedContact === contact.id ? 
-                                    <ChevronUp className="w-4 h-4" /> : 
-                                    <ChevronDown className="w-4 h-4" />
-                                }
-                            </button>
+                            {/* Hapus tombol expand */}
                         </div>
-                        
-                        {expandedContact === contact.id && (
-                            <div className="mt-3 pt-3 border-t border-gray-100">
-                                <div className="flex justify-around">
-                                    <button className="flex flex-col items-center text-blue-600 hover:text-blue-800">
-                                        <MessageSquare className="w-4 h-4 mb-1" />
-                                        <span className="text-xs">{t('contact_table.message')}</span>
-                                    </button>
-                                    <button className="flex flex-col items-center text-gray-600 hover:text-gray-800">
-                                        <Phone className="w-4 h-4 mb-1" />
-                                        <span className="text-xs">{t('contact_table.call')}</span>
-                                    </button>
-                                    <button className="flex flex-col items-center text-green-600 hover:text-green-800">
-                                        <Mail className="w-4 h-4 mb-1" />
-                                        <span className="text-xs">{t('contact_table.email')}</span>
-                                    </button>
-                                </div>
-                            </div>
-                        )}
                     </div>
                 ))
             )}
         </div>
     );
 
-    // Desktop Grid View
+    // Desktop Grid View - WITHOUT ACTION BUTTONS
     const DesktopGridView = () => (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {contacts.length === 0 ? (
@@ -373,36 +337,14 @@ const ContactTable = ({
                                 )}
                             </div>
                         </div>
-
-                        <div className="mt-6 pt-4 border-t border-gray-100">
-                            <div className="flex justify-between">
-                                <button 
-                                    className="flex items-center space-x-2 text-blue-600 hover:text-blue-800 text-sm px-3 py-2 hover:bg-blue-50 rounded-lg transition-colors"
-                                    onClick={() => window.location.href = `mailto:${contact.email}`}
-                                >
-                                    <Mail className="w-4 h-4" />
-                                    <span>{t('contact_table.email_action')}</span>
-                                </button>
-                                <button 
-                                    className="flex items-center space-x-2 text-green-600 hover:text-green-800 text-sm px-3 py-2 hover:bg-green-50 rounded-lg transition-colors"
-                                    onClick={() => window.location.href = `tel:${contact.phone}`}
-                                >
-                                    <Phone className="w-4 h-4" />
-                                    <span>{t('contact_table.call_action')}</span>
-                                </button>
-                                <button className="flex items-center space-x-2 text-purple-600 hover:text-purple-800 text-sm px-3 py-2 hover:bg-purple-50 rounded-lg transition-colors">
-                                    <MessageSquare className="w-4 h-4" />
-                                    <span>{t('contact_table.message_action')}</span>
-                                </button>
-                            </div>
-                        </div>
+                        {/* Hapus section action buttons (email, call, message) */}
                     </div>
                 ))
             )}
         </div>
     );
 
-    // Desktop Table View
+    // Desktop Table View - WITHOUT ACTION BUTTONS
     const DesktopTableView = () => (
         <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
             {contacts.length === 0 ? (
@@ -536,22 +478,7 @@ const ContactTable = ({
                                                 >
                                                     <Trash2 className="w-4 h-4" />
                                                 </button>
-                                                <div className="flex space-x-1">
-                                                    <button 
-                                                        className="p-1.5 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-lg transition-colors"
-                                                        title={t('contact_table.send_email')}
-                                                        onClick={() => window.location.href = `mailto:${contact.email}`}
-                                                    >
-                                                        <Mail className="w-4 h-4" />
-                                                    </button>
-                                                    <button 
-                                                        className="p-1.5 text-green-600 hover:text-green-800 hover:bg-green-50 rounded-lg transition-colors"
-                                                        title={t('contact_table.make_call')}
-                                                        onClick={() => window.location.href = `tel:${contact.phone}`}
-                                                    >
-                                                        <Phone className="w-4 h-4" />
-                                                    </button>
-                                                </div>
+                                                {/* Hapus tombol email dan call */}
                                             </div>
                                         </td>
                                     </tr>

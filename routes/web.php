@@ -231,6 +231,15 @@ Route::middleware(['auth', 'verified'])->group(function () {
             ->name('companies.invoices.store');
     });
 
+    // Company payment routes
+    Route::prefix('companies/{company}')->group(function () {
+        // Payment actions
+        Route::put('/payments/{payment}', [CompanyController::class, 'updatePayment'])->name('companies.payments.update');
+        Route::delete('/payments/{payment}', [CompanyController::class, 'destroyPayment'])->name('companies.payments.destroy');
+        Route::get('/payments/{payment}/receipt', [CompanyController::class, 'generateReceipt'])->name('companies.payments.receipt');
+        Route::get('/payments/{payment}/export', [CompanyController::class, 'exportPayment'])->name('companies.payments.export');
+    });
+
     // Company Contact Routes
     Route::prefix('companies/{company}')->group(function () {
         Route::get('/contacts', [CompanyController::class, 'getContacts'])->name('companies.contacts.index');

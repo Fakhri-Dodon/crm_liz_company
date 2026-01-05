@@ -716,10 +716,78 @@ public function show($id)
         // ==================== PAYMENTS LOGIC ====================
         Log::info('=== START PAYMENTS FETCHING ===');
         
-        // Ambil data payments dari database
-        $payments = $this->getCompanyPayments($company);
+        // Ambil data payments dari database dengan informasi invoice
+        $payments = DB::table('payments as p')
+            ->select([
+                'p.id',
+                'p.invoice_id',
+                'p.amount',
+                'p.method',
+                'p.date',
+                'p.note',
+                'p.bank',
+                'p.created_by',
+                'p.updated_by',
+                'p.created_at',
+                'p.updated_at',
+                'i.invoice_number',
+                'i.invoice_amout as invoice_amount',
+                'i.amount_due',
+                'i.total as invoice_total',
+                'i.status as invoice_status',
+                'q.quotation_number',
+                'q.subject as quotation_subject',
+                'l.company_name',
+                'u.name as created_by_name',
+                'u2.name as updated_by_name'
+            ])
+            ->join('invoices as i', 'p.invoice_id', '=', 'i.id')
+            ->leftJoin('company_contact_persons as ccp', 'i.company_contact_persons_id', '=', 'ccp.id')
+            ->leftJoin('leads as l', 'ccp.lead_id', '=', 'l.id')
+            ->leftJoin('quotations as q', 'i.quotation_id', '=', 'q.id')
+            ->leftJoin('users as u', 'p.created_by', '=', 'u.id')
+            ->leftJoin('users as u2', 'p.updated_by', '=', 'u2.id')
+            ->where('ccp.company_id', $company->id)
+            ->where('p.deleted', 0)
+            ->orderBy('p.date', 'desc')
+            ->orderBy('p.created_at', 'desc')
+            ->get();
         
-        Log::info('Total payments found: ' . $payments->count());
+        // Format payments data
+        $formattedPayments = $payments->map(function($payment) {
+            return [
+                'id' => $payment->id,
+                'invoice_id' => $payment->invoice_id,
+                'invoice_number' => $payment->invoice_number,
+                'amount' => (float) $payment->amount,
+                'method' => $payment->method,
+                'method_display' => $this->getPaymentMethodDisplay($payment->method),
+                'date' => $payment->date,
+                'note' => $payment->note,
+                'bank' => $payment->bank,
+                'created_by' => $payment->created_by_name ? [
+                    'id' => $payment->created_by,
+                    'name' => $payment->created_by_name
+                ] : null,
+                'updated_by' => $payment->updated_by_name ? [
+                    'id' => $payment->updated_by,
+                    'name' => $payment->updated_by_name
+                ] : null,
+                'created_at' => $payment->created_at,
+                'updated_at' => $payment->updated_at,
+                'invoice_amount' => (float) $payment->invoice_amount,
+                'amount_due' => (float) $payment->amount_due,
+                'invoice_total' => (float) $payment->invoice_total,
+                'invoice_status' => $payment->invoice_status,
+                'quotation' => $payment->quotation_number ? [
+                    'quotation_number' => $payment->quotation_number,
+                    'subject' => $payment->quotation_subject
+                ] : null,
+                'company_name' => $payment->company_name
+            ];
+        })->values();
+        
+        Log::info('Total payments found: ' . $formattedPayments->count());
         Log::info('=== END PAYMENTS FETCHING ===');
         // ==================== END PAYMENTS LOGIC ====================
 
@@ -908,7 +976,6 @@ public function show($id)
 
         Log::info('=== END SIMPLE CONTACTS PROCESSING ===');
         // ==================== END CONTACTS LOGIC ====================
-        // ==================== END CONTACTS LOGIC ====================
 
         // Data company untuk response
         $companyData = [
@@ -968,6 +1035,7 @@ public function show($id)
         Log::info('Company data prepared successfully');
         Log::info('Quotations count: ' . $formattedQuotations->count());
         Log::info('Invoices count: ' . $formattedInvoices->count());
+        Log::info('Payments count: ' . $formattedPayments->count());
         Log::info('Projects count: ' . $formattedProjects->count());
         Log::info('Contacts count: ' . $formattedContacts->count());
 
@@ -983,16 +1051,24 @@ public function show($id)
             
             // Invoice statistics
             'total_invoices' => $formattedInvoices->count(),
-            'paid_invoices' => $formattedInvoices->where('status', 'paid')->count(),
-            'unpaid_invoices' => $formattedInvoices->where('status', 'unpaid')->count(),
-            'draft_invoices' => $formattedInvoices->where('status', 'draft')->count(),
-            'cancelled_invoices' => $formattedInvoices->where('status', 'cancelled')->count(),
+            'paid_invoices' => $formattedInvoices->where('status', 'Paid')->count(),
+            'unpaid_invoices' => $formattedInvoices->where('status', 'Unpaid')->count(),
+            'draft_invoices' => $formattedInvoices->where('status', 'Draft')->count(),
+            'cancelled_invoices' => $formattedInvoices->where('status', 'Cancelled')->count(),
+            'partial_invoices' => $formattedInvoices->where('status', 'Partial')->count(),
             'total_invoice_amount' => $formattedInvoices->sum('invoice_amount'),
             'total_amount_due' => $formattedInvoices->sum('amount_due'),
             
             // Payment statistics
-            'total_payments' => $payments->count(),
-            'total_payment_amount' => $payments->sum('amount'),
+            'total_payments' => $formattedPayments->count(),
+            'total_payment_amount' => $formattedPayments->sum('amount'),
+            'transfer_payments' => $formattedPayments->where('method', 'transfer')->count(),
+            'cash_payments' => $formattedPayments->where('method', 'cash')->count(),
+            'check_payments' => $formattedPayments->where('method', 'check')->count(),
+            'average_payment_amount' => $formattedPayments->count() > 0 ? 
+                $formattedPayments->sum('amount') / $formattedPayments->count() : 0,
+            'payment_ratio' => $formattedInvoices->sum('invoice_amount') > 0 ? 
+                ($formattedPayments->sum('amount') / $formattedInvoices->sum('invoice_amount')) * 100 : 0,
             
             // Project statistics
             'total_projects' => $formattedProjects->count(),
@@ -1022,7 +1098,7 @@ public function show($id)
         Log::info('Final data counts:', [
             'quotations' => $formattedQuotations->count(),
             'invoices' => $formattedInvoices->count(),
-            'payments' => $payments->count(),
+            'payments' => $formattedPayments->count(),
             'projects' => $formattedProjects->count(),
             'contacts' => $formattedContacts->count()
         ]);
@@ -1032,7 +1108,7 @@ public function show($id)
             'quotations' => $formattedQuotations,
             'grouped_quotations' => $groupedQuotations,
             'invoices' => $formattedInvoices,
-            'payments' => $payments,
+            'payments' => $formattedPayments,
             'projects' => $formattedProjects,
             'contacts' => $formattedContacts,
             'statistics' => $statistics
@@ -1043,6 +1119,324 @@ public function show($id)
         Log::error('Stack trace: ' . $e->getTraceAsString());
         
         return redirect()->route('companies.index')->with('error', 'Error loading company data: ' . $e->getMessage());
+    }
+}
+
+/**
+ * Helper function to get payment method display text
+ */
+private function getPaymentMethodDisplay($method)
+{
+    switch ($method) {
+        case 'transfer':
+            return 'Bank Transfer';
+        case 'cash':
+            return 'Cash';
+        case 'check':
+            return 'Check';
+        default:
+            return ucfirst($method);
+    }
+}
+
+/**
+ * Update an existing payment
+ */
+public function updatePayment(Request $request, $companyId, $paymentId)
+{
+    try {
+        Log::info('Updating payment', [
+            'company_id' => $companyId,
+            'payment_id' => $paymentId,
+            'data' => $request->all()
+        ]);
+        
+        $validator = Validator::make($request->all(), [
+            'amount' => 'required|numeric|min:1',
+            'method' => 'required|in:transfer,cash,check',
+            'date' => 'required|date',
+            'bank' => 'nullable|string|max:255',
+            'note' => 'nullable|string|max:255',
+        ]);
+
+        if ($validator->fails()) {
+            return redirect()->back()
+                ->withErrors($validator)
+                ->with('error', 'Validation failed');
+        }
+
+        // Validasi bahwa payment dan company valid
+        $company = Company::findOrFail($companyId);
+        $payment = Payment::findOrFail($paymentId);
+        
+        // Cek payment belongs to company melalui invoice -> company_contact_persons
+        $isValidPayment = DB::table('payments as p')
+            ->join('invoices as i', 'p.invoice_id', '=', 'i.id')
+            ->join('company_contact_persons as ccp', 'i.company_contact_persons_id', '=', 'ccp.id')
+            ->where('p.id', $paymentId)
+            ->where('ccp.company_id', $companyId)
+            ->where('p.deleted', 0)
+            ->exists();
+        
+        if (!$isValidPayment) {
+            return redirect()->back()
+                ->with('error', 'Payment does not belong to this company');
+        }
+
+        DB::beginTransaction();
+
+        // Get invoice
+        $invoice = Invoice::findOrFail($payment->invoice_id);
+
+        // Calculate remaining without this payment
+        $totalPaidWithoutThis = Payment::where('invoice_id', $payment->invoice_id)
+            ->where('id', '!=', $payment->id)
+            ->where('deleted', 0)
+            ->sum('amount');
+        
+        $remainingWithoutThis = $invoice->amount_due - $totalPaidWithoutThis;
+        
+        // Check if new amount exceeds remaining
+        if ($request->amount > $remainingWithoutThis) {
+            DB::rollBack();
+            return redirect()->back()
+                ->with('error', 'New payment amount exceeds available remaining. Available: Rp ' . number_format($remainingWithoutThis, 0, ',', '.'));
+        }
+
+        // Update payment
+        $oldAmount = $payment->amount;
+        $payment->update([
+            'amount' => $request->amount,
+            'method' => $request->method,
+            'date' => $request->date,
+            'bank' => $request->bank,
+            'note' => $request->note,
+            'updated_by' => auth()->id(),
+        ]);
+
+        // Update invoice status
+        $newTotalPaid = $totalPaidWithoutThis + $request->amount;
+        $newRemainingDue = $invoice->amount_due - $newTotalPaid;
+        
+        if ($newRemainingDue <= 0) {
+            $invoice->status = 'Paid';
+        } elseif ($newTotalPaid > 0 && $newTotalPaid < $invoice->amount_due) {
+            $invoice->status = 'Partial';
+        } else {
+            $invoice->status = 'Unpaid';
+        }
+        
+        $invoice->save();
+
+        DB::commit();
+
+        Log::info('Payment updated successfully', ['payment_id' => $payment->id]);
+
+        return redirect()->back()
+            ->with('success', 'Payment updated successfully');
+
+    } catch (\Exception $e) {
+        DB::rollBack();
+        Log::error('Error updating payment: ' . $e->getMessage());
+        
+        return redirect()->back()
+            ->with('error', 'Failed to update payment: ' . $e->getMessage());
+    }
+}
+
+/**
+ * Delete a payment (soft delete)
+ */
+public function destroyPayment($companyId, $paymentId)
+{
+    try {
+        Log::info('Deleting payment', [
+            'company_id' => $companyId,
+            'payment_id' => $paymentId
+        ]);
+        
+        // Validasi bahwa payment dan company valid
+        $company = Company::findOrFail($companyId);
+        $payment = Payment::findOrFail($paymentId);
+        
+        // Cek payment belongs to company melalui invoice -> company_contact_persons
+        $isValidPayment = DB::table('payments as p')
+            ->join('invoices as i', 'p.invoice_id', '=', 'i.id')
+            ->join('company_contact_persons as ccp', 'i.company_contact_persons_id', '=', 'ccp.id')
+            ->where('p.id', $paymentId)
+            ->where('ccp.company_id', $companyId)
+            ->where('p.deleted', 0)
+            ->exists();
+        
+        if (!$isValidPayment) {
+            return redirect()->back()
+                ->with('error', 'Payment does not belong to this company');
+        }
+
+        DB::beginTransaction();
+
+        // Get invoice
+        $invoice = Invoice::findOrFail($payment->invoice_id);
+
+        // Soft delete payment
+        $payment->update([
+            'deleted' => 1,
+            'deleted_by' => auth()->id(),
+            'deleted_at' => now(),
+        ]);
+
+        // Recalculate invoice status
+        $totalPaid = Payment::where('invoice_id', $payment->invoice_id)
+            ->where('deleted', 0)
+            ->sum('amount');
+        
+        $remainingDue = $invoice->amount_due - $totalPaid;
+        
+        if ($remainingDue <= 0) {
+            $invoice->status = 'Paid';
+        } elseif ($totalPaid > 0 && $totalPaid < $invoice->amount_due) {
+            $invoice->status = 'Partial';
+        } else {
+            $invoice->status = 'Unpaid';
+        }
+        
+        $invoice->save();
+
+        DB::commit();
+
+        Log::info('Payment deleted successfully', ['payment_id' => $payment->id]);
+
+        return redirect()->back()
+            ->with('success', 'Payment deleted successfully');
+
+    } catch (\Exception $e) {
+        DB::rollBack();
+        Log::error('Error deleting payment: ' . $e->getMessage());
+        
+        return redirect()->back()
+            ->with('error', 'Failed to delete payment: ' . $e->getMessage());
+    }
+}
+
+/**
+ * Generate receipt for a payment
+ */
+public function generateReceipt($companyId, $paymentId)
+{
+    try {
+        Log::info('Generating receipt for payment', [
+            'company_id' => $companyId,
+            'payment_id' => $paymentId
+        ]);
+
+        // Validasi bahwa payment dan company valid
+        $company = Company::findOrFail($companyId);
+        $payment = Payment::with(['invoice', 'creator', 'updater'])->findOrFail($paymentId);
+        
+        // Cek payment belongs to company
+        $isValidPayment = DB::table('payments as p')
+            ->join('invoices as i', 'p.invoice_id', '=', 'i.id')
+            ->join('company_contact_persons as ccp', 'i.company_contact_persons_id', '=', 'ccp.id')
+            ->where('p.id', $paymentId)
+            ->where('ccp.company_id', $companyId)
+            ->where('p.deleted', 0)
+            ->exists();
+        
+        if (!$isValidPayment) {
+            abort(404, 'Payment not found or does not belong to this company');
+        }
+
+        // Get related data for receipt
+        $invoice = Invoice::with(['quotation.lead', 'contactPerson.lead'])->find($payment->invoice_id);
+        
+        $receiptData = [
+            'payment' => $payment,
+            'invoice' => $invoice,
+            'company' => $company,
+            'quotation' => $invoice->quotation ?? null,
+            'lead' => $invoice->quotation->lead ?? null,
+            'contact' => $invoice->contactPerson->lead ?? null,
+            'date' => now()->format('d F Y'),
+            'receipt_number' => 'REC-' . strtoupper(substr($payment->id, 0, 8)),
+        ];
+
+        // Generate PDF receipt
+        $pdf = \PDF::loadView('payments.receipt', $receiptData);
+        
+        return $pdf->download('receipt-' . $payment->id . '.pdf');
+
+    } catch (\Exception $e) {
+        Log::error('Error generating receipt: ' . $e->getMessage());
+        
+        return redirect()->back()
+            ->with('error', 'Failed to generate receipt: ' . $e->getMessage());
+    }
+}
+
+/**
+ * Export payment data
+ */
+public function exportPayment($companyId, $paymentId)
+{
+    try {
+        Log::info('Exporting payment data', [
+            'company_id' => $companyId,
+            'payment_id' => $paymentId
+        ]);
+
+        // Validasi bahwa payment dan company valid
+        $company = Company::findOrFail($companyId);
+        $payment = Payment::with(['invoice', 'creator', 'updater'])->findOrFail($paymentId);
+        
+        // Cek payment belongs to company
+        $isValidPayment = DB::table('payments as p')
+            ->join('invoices as i', 'p.invoice_id', '=', 'i.id')
+            ->join('company_contact_persons as ccp', 'i.company_contact_persons_id', '=', 'ccp.id')
+            ->where('p.id', $paymentId)
+            ->where('ccp.company_id', $companyId)
+            ->where('p.deleted', 0)
+            ->exists();
+        
+        if (!$isValidPayment) {
+            abort(404, 'Payment not found or does not belong to this company');
+        }
+
+        // Prepare data for export
+        $invoice = Invoice::with(['quotation.lead', 'contactPerson.lead'])->find($payment->invoice_id);
+        
+        $exportData = [
+            'Payment ID' => $payment->id,
+            'Receipt Number' => 'REC-' . strtoupper(substr($payment->id, 0, 8)),
+            'Invoice Number' => $invoice->invoice_number ?? 'N/A',
+            'Payment Date' => $payment->date,
+            'Amount' => 'Rp ' . number_format($payment->amount, 0, ',', '.'),
+            'Method' => $this->getPaymentMethodDisplay($payment->method),
+            'Bank' => $payment->bank ?? 'N/A',
+            'Notes' => $payment->note ?? 'N/A',
+            'Company Name' => $invoice->quotation->lead->company_name ?? 'N/A',
+            'Contact Person' => $invoice->contactPerson->lead->contact_person ?? 'N/A',
+            'Invoice Total' => 'Rp ' . number_format($invoice->total ?? 0, 0, ',', '.'),
+            'Amount Due' => 'Rp ' . number_format($invoice->amount_due ?? 0, 0, ',', '.'),
+            'Created By' => $payment->creator->name ?? 'System',
+            'Created At' => $payment->created_at,
+            'Updated By' => $payment->updater->name ?? 'N/A',
+            'Updated At' => $payment->updated_at,
+        ];
+
+        // Export as JSON (default)
+        $filename = 'payment-export-' . $payment->id . '.json';
+        $headers = [
+            'Content-Type' => 'application/json',
+            'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+        ];
+
+        return response()->json($exportData, 200, $headers);
+
+    } catch (\Exception $e) {
+        Log::error('Error exporting payment: ' . $e->getMessage());
+        
+        return redirect()->back()
+            ->with('error', 'Failed to export payment data: ' . $e->getMessage());
     }
 }
 
