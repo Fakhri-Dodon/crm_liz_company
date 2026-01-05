@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import HeaderLayout from "@/Layouts/HeaderLayout";
 import { Link, usePage, router } from "@inertiajs/react";
 import DevelopmentPage from "../DevelopmentPage";
 
 export default function Index() {
+    const { t } = useTranslation();
     const dev = false; // Ubah ke true untuk menampilkan halaman development
     if (dev) {
         return <DevelopmentPage />;
@@ -124,14 +126,14 @@ export default function Index() {
 
     return (
         <div className="p-6">
-            <h2 className="text-2xl font-bold text-gray-700 mb-6">INVOICE</h2>
+            <h2 className="text-2xl font-bold text-gray-700 mb-6">{t("invoices.title") || "INVOICE"}</h2>
 
             <div className="grid grid-cols-4 gap-6 mb-6">
                 <div className="border border-blue-500 rounded-lg p-4 bg-white">
                     <div className="flex justify-between items-start">
                         <div>
-                            <div className="text-blue-600 font-semibold">Invoice</div>
-                            <div className="text-sm text-gray-500">Total Invoice</div>
+                            <div className="text-blue-600 font-semibold">{t("invoices.title")}</div>
+                            <div className="text-sm text-gray-500">{t("invoices.stats.total_invoice") || "Total Invoice"}</div>
                         </div>
                         <div className="text-2xl font-bold">{invoices.length}</div>
                     </div>
@@ -144,8 +146,8 @@ export default function Index() {
                 <div className="border border-green-500 rounded-lg p-4 bg-white">
                     <div className="flex justify-between items-start">
                         <div>
-                            <div className="text-green-600 font-semibold">Paid</div>
-                            <div className="text-sm text-gray-500">Total Invoice</div>
+                            <div className="text-green-600 font-semibold">{t("invoices.stats.paid") || "Paid"}</div>
+                            <div className="text-sm text-gray-500">{t("invoices.stats.total_invoice") || "Total Invoice"}</div>
                         </div>
                         <div className="text-2xl font-bold">{paidCount}</div>
                     </div>
@@ -158,8 +160,8 @@ export default function Index() {
                 <div className="border border-orange-400 rounded-lg p-4 bg-white">
                     <div className="flex justify-between items-start">
                         <div>
-                            <div className="text-orange-500 font-semibold">Unpaid</div>
-                            <div className="text-sm text-gray-500">Total Invoice</div>
+                            <div className="text-orange-500 font-semibold">{t("invoices.stats.unpaid") || "Unpaid"}</div>
+                            <div className="text-sm text-gray-500">{t("invoices.stats.total_invoice") || "Total Invoice"}</div>
                         </div>
                         <div className="text-2xl font-bold">{unpaidCount}</div>
                     </div>
@@ -172,8 +174,8 @@ export default function Index() {
                 <div className="border border-red-500 rounded-lg p-4 bg-white">
                     <div className="flex justify-between items-start">
                         <div>
-                            <div className="text-red-600 font-semibold">Cancelled</div>
-                            <div className="text-sm text-gray-500">Total Invoice</div>
+                            <div className="text-red-600 font-semibold">{t("invoices.stats.cancelled") || "Cancelled"}</div>
+                            <div className="text-sm text-gray-500">{t("invoices.stats.total_invoice") || "Total Invoice"}</div>
                         </div>
                         <div className="text-2xl font-bold">{cancelledCount}</div>
                     </div>
@@ -186,29 +188,29 @@ export default function Index() {
 
             <div className="flex gap-4 items-end mb-4">
                 <div className="flex-1">
-                    <label className="text-xs text-gray-500">Keyword</label>
-                    <input className="w-full border rounded px-3 py-2" placeholder="Search" />
+                    <label className="text-xs text-gray-500">{t("invoices.filters.keyword") || "Keyword"}</label>
+                    <input className="w-full border rounded px-3 py-2" placeholder={t("invoices.filters.search_placeholder") || "Search"} />
                 </div>
                 <div className="w-72">
-                    <label className="text-xs text-gray-500">Status</label>
+                    <label className="text-xs text-gray-500">{t("invoices.filters.status") || "Status"}</label>
                     <select className="w-full border rounded px-3 py-2">
-                        <option>All</option>
-                        <option>Paid</option>
-                        <option>Unpaid</option>
-                        <option>Draft</option>
+                        <option>{t("invoices.filters.all_status") || "All"}</option>
+                        <option>{t("invoices.stats.paid") || "Paid"}</option>
+                        <option>{t("invoices.stats.unpaid") || "Unpaid"}</option>
+                        <option>{t("invoices.stats.draft") || "Draft"}</option>
                     </select>
                 </div>
                 <div className="w-48">
-                    <label className="text-xs text-gray-500">Year</label>
+                    <label className="text-xs text-gray-500">{t("invoices.filters.year") || "Year"}</label>
                     <select className="w-full border rounded px-3 py-2">
-                        <option value="">All Years</option>
+                        <option value="">{t("invoices.filters.all_years") || "All Years"}</option>
                         {yearOptions.map(year => (
                             <option key={year} value={year}>{year}</option>
                         ))}
                     </select>
                 </div>
                 <div>
-                    <button onClick={handleCreateInvoice} className="bg-teal-800 text-white px-4 py-2 rounded">Add invoice</button>
+                    <button onClick={handleCreateInvoice} className="bg-teal-800 text-white px-4 py-2 rounded">{t("invoices.button_add") || "Add invoice"}</button>
                 </div>
             </div>
 
@@ -216,15 +218,15 @@ export default function Index() {
                 <table className="min-w-full divide-y">
                     <thead className="bg-green-50">
                         <tr>
-                            <th className="px-4 py-3 text-left">No</th>
-                            <th className="px-4 py-3 text-left">Invoice</th>
-                            <th className="px-4 py-3 text-left">Company Name</th>
-                            <th className="px-4 py-3 text-left">Invoice Ammount</th>
-                            <th className="px-4 py-3 text-left">Payment</th>
-                            <th className="px-4 py-3 text-left">Tax</th>
-                            <th className="px-4 py-3 text-left">Ammount Due</th>
-                            <th className="px-4 py-3 text-left">Status</th>
-                            <th className="px-4 py-3 text-left">Action</th>
+                            <th className="px-4 py-3 text-left">{t("invoices.table.no") || "No"}</th>
+                            <th className="px-4 py-3 text-left">{t("invoices.table.invoice") || "Invoice"}</th>
+                            <th className="px-4 py-3 text-left">{t("invoices.table.company_name") || "Company Name"}</th>
+                            <th className="px-4 py-3 text-left">{t("invoices.table.amount") || "Invoice Amount"}</th>
+                            <th className="px-4 py-3 text-left">{t("invoices.table.payment") || "Payment"}</th>
+                            <th className="px-4 py-3 text-left">{t("invoices.table.tax") || "Tax"}</th>
+                            <th className="px-4 py-3 text-left">{t("invoices.table.due_amount") || "Amount Due"}</th>
+                            <th className="px-4 py-3 text-left">{t("invoices.table.status") || "Status"}</th>
+                            <th className="px-4 py-3 text-left">{t("invoices.table.actions") || "Action"}</th>
                         </tr>
                     </thead>
                     <tbody className="bg-white divide-y">
@@ -258,11 +260,11 @@ export default function Index() {
                                             'border-gray-300 text-gray-700 bg-white'
                                         }`}
                                     >
-                                        <option value="Draft">Draft</option>
-                                        <option value="Unpaid">Unpaid</option>
-                                        <option value="Partial">Partial</option>
-                                        <option value="Paid">Paid</option>
-                                        <option value="Cancelled">Cancelled</option>
+                                        <option value="Draft">{t("invoices.stats.draft") || "Draft"}</option>
+                                        <option value="Unpaid">{t("invoices.stats.unpaid") || "Unpaid"}</option>
+                                        <option value="Partial">{t("invoices.stats.partial") || "Partial"}</option>
+                                        <option value="Paid">{t("invoices.stats.paid") || "Paid"}</option>
+                                        <option value="Cancelled">{t("invoices.stats.cancelled") || "Cancelled"}</option>
                                     </select>
                                 </td>
                                 <td className="px-4 py-4">

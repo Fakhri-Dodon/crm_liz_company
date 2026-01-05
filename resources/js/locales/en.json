@@ -263,5 +263,98 @@
             "status": "STATUS",
             "actions": "ACTIONS"
         }
+    },
+    "payments": {
+        "title": "PAYMENTS",
+        "button_add": "ADD PAYMENT",
+        "stats": {
+            "draft": "DRAFT",
+            "sent": "SENT",
+            "accepted": "ACCEPTED",
+            "expired": "EXPIRED",
+            "rejected": "REJECTED"
+        },
+        "filters": {
+            "search_placeholder": "Search by invoice, company, or method",
+            "status": "Status",
+            "all_status": "All Status",
+            "method": "Method",
+            "all_methods": "All Methods",
+            "month": "Month",
+            "all_months": "All Months",
+            "year": "Year",
+            "all_years": "All Years",
+            "apply": "Apply",
+            "reset": "Reset"
+        },
+        "method": {
+            "transfer": "Transfer",
+            "cash": "Cash",
+            "check": "Check"
+        },
+        "month": {
+            "january": "January",
+            "february": "February",
+            "march": "March",
+            "april": "April",
+            "may": "May",
+            "june": "June",
+            "july": "July",
+            "august": "August",
+            "september": "September",
+            "october": "October",
+            "november": "November",
+            "december": "December"
+        },
+        "table": {
+            "no": "NO",
+            "date": "DATE",
+            "company_name": "COMPANY NAME",
+            "invoice": "INVOICE",
+            "amount": "AMOUNT",
+            "method": "METHOD",
+            "bank": "BANK",
+            "note": "NOTE",
+            "status": "STATUS",
+            "actions": "ACTIONS"
+        }
+    },
+    "invoices": {
+        "title": "INVOICE",
+        "button_add": "Add Invoice",
+        "stats": {
+            "paid": "Paid",
+            "unpaid": "Unpaid",
+            "draft": "Draft",
+            "cancelled": "Cancelled",
+            "total_invoice": "Total Invoice",
+            "partial": "Partial"
+        },
+        "filters": {
+            "keyword": "Keyword",
+            "status": "Status",
+            "all_status": "All",
+            "year": "Year",
+            "all_years": "All Years",
+            "search_placeholder": "Search"
+        },
+        "table": {
+            "no": "No",
+            "invoice": "Invoice",
+            "company_name": "Company Name",
+            "amount": "Invoice Amount",
+            "payment": "Payment",
+            "tax": "Tax",
+            "due_amount": "Amount Due",
+            "status": "Status",
+            "actions": "Action"
+        },
+        "add_service": "Add New Service",
+        "service_name": "Service Name",
+        "qualification": "Qualification",
+        "price": "Price",
+        "cancel": "Cancel",
+        "add_item": "Add Item",
+        "builder_title": "Invoice Builder"
     }
 }
