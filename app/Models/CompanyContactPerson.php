@@ -40,7 +40,8 @@ class CompanyContactPerson extends Model
         'deleted_at' => 'datetime'
     ];
 
-    protected $appends = ['name', 'email', 'phone'];
+    // HAPUS $appends ini karena menyebabkan conflict
+    // protected $appends = ['name', 'email', 'phone'];
 
     protected static function boot()
     {
@@ -82,32 +83,32 @@ class CompanyContactPerson extends Model
         return $this->belongsTo(Lead::class, 'lead_id', 'id');
     }
 
-    // Accessors - HARUS ADA DI DALAM CLASS
-    public function getNameAttribute()
-    {
-        // Jika ada lead, ambil nama dari lead
-        if ($this->lead) {
-            return $this->lead->contact_person;
-        }
+    // Accessors - TIDAK PERLU karena akan menyebabkan infinite loop
+    // public function getNameAttribute()
+    // {
+    //     // Jika ada lead, ambil nama dari lead
+    //     if ($this->lead) {
+    //         return $this->lead->contact_person;
+    //     }
         
-        return $this->attributes['name'] ?? null;
-    }
+    //     return $this->attributes['name'] ?? null;
+    // }
 
-    public function getEmailAttribute()
-    {
-        if ($this->lead) {
-            return $this->lead->email;
-        }
+    // public function getEmailAttribute()
+    // {
+    //     if ($this->lead) {
+    //         return $this->lead->email;
+    //     }
         
-        return $this->attributes['email'] ?? null;
-    }
+    //     return $this->attributes['email'] ?? null;
+    // }
 
-    public function getPhoneAttribute()
-    {
-        if ($this->lead) {
-            return $this->lead->phone;
-        }
+    // public function getPhoneAttribute()
+    // {
+    //     if ($this->lead) {
+    //         return $this->lead->phone;
+    //     }
         
-        return $this->attributes['phone'] ?? null;
-    }
+    //     return $this->attributes['phone'] ?? null;
+    // }
 }

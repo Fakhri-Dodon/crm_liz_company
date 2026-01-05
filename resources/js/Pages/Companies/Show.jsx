@@ -11,6 +11,7 @@ import ContactTable from './ContactTable';
 import ProjectModal from '@/Components/Project/ProjectModal';
 import HeaderLayout from '@/Layouts/HeaderLayout';
 import { Trash2 } from 'lucide-react';
+import axios from 'axios';
 
 const Show = ({ company, quotations, invoices, payments, projects, contacts, statistics, grouped_quotations }) => {
     const { props } = usePage();
@@ -21,10 +22,26 @@ const Show = ({ company, quotations, invoices, payments, projects, contacts, sta
     const [selectedProject, setSelectedProject] = useState(null);
     const [modalMode, setModalMode] = useState('create'); // 'create' atau 'edit'
     
+    // State untuk contacts yang bisa diupdate
+    const [contactData, setContactData] = useState(contacts || []);
+    const [isLoadingContacts, setIsLoadingContacts] = useState(false);
+    
     console.log('========== SHOW PAGE DATA ==========');
     console.log('Company:', company);
+    console.log('Contacts data received:', contacts);
     console.log('Projects data:', projects);
     console.log('===================================');
+
+    // Setup axios defaults
+    useEffect(() => {
+        axios.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest';
+        axios.defaults.withCredentials = true;
+        
+        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+        if (csrfToken) {
+            axios.defaults.headers.common['X-CSRF-TOKEN'] = csrfToken;
+        }
+    }, []);
 
     // Debug log untuk memastikan data diterima
     useEffect(() => {
@@ -34,15 +51,55 @@ const Show = ({ company, quotations, invoices, payments, projects, contacts, sta
             console.log('SUCCESS: Company data received:', {
                 id: company.id,
                 name: company.client_code,
-                contact_person: company.contact_person
+                contact_person: company.contact_person,
+                contacts_count: contacts?.length || 0
             });
         }
-    }, [company]);
+        
+        // Update contactData ketika contacts berubah
+        if (contacts) {
+            setContactData(contacts);
+        }
+    }, [company, contacts]);
+
+    // Function untuk fetch contacts dari API
+    const fetchContacts = async () => {
+        if (!company?.id) return;
+        
+        setIsLoadingContacts(true);
+        try {
+            const response = await axios.get(`/companies/${company.id}/contacts`);
+            console.log('Fetched contacts:', response.data);
+            
+            if (response.data.success) {
+                setContactData(response.data.data);
+            } else {
+                console.error('Failed to fetch contacts:', response.data.message);
+            }
+        } catch (error) {
+            console.error('Error fetching contacts:', error);
+            // Fallback ke data dari props jika API gagal
+            setContactData(contacts || []);
+        } finally {
+            setIsLoadingContacts(false);
+        }
+    };
+
+    // Load contacts saat tab contact aktif
+    useEffect(() => {
+        if (activeTab === 'contact' && company?.id) {
+            fetchContacts();
+        }
+    }, [activeTab, company?.id]);
 
     // Toast notification function
     const showToast = (message, type = 'success') => {
+        // Hapus toast yang ada sebelumnya
+        const existingToasts = document.querySelectorAll('.custom-toast');
+        existingToasts.forEach(toast => toast.remove());
+        
         const toast = document.createElement('div');
-        toast.className = `fixed top-4 right-4 z-50 px-6 py-4 rounded-lg shadow-lg transform transition-all duration-300 ${
+        toast.className = `custom-toast fixed top-4 right-4 z-50 px-6 py-4 rounded-lg shadow-lg transform transition-all duration-300 ${
             type === 'success' ? 'bg-green-500 text-white' : 'bg-red-500 text-white'
         }`;
         toast.innerHTML = `
@@ -94,6 +151,20 @@ const Show = ({ company, quotations, invoices, payments, projects, contacts, sta
         }
     };
 
+    // Function untuk menangani update contacts
+    const handleContactsUpdate = () => {
+        console.log('Refreshing contacts data...');
+        fetchContacts();
+        showToast('Contacts updated successfully!', 'success');
+    };
+
+    // Function untuk menambah project baru
+    const handleAddProject = () => {
+        setSelectedProject(null);
+        setModalMode('create');
+        setShowProjectModal(true);
+    };
+
     // Jika company tidak ada, tampilkan error message
     if (!company || !company.id) {
         return (
@@ -141,19 +212,7 @@ const Show = ({ company, quotations, invoices, payments, projects, contacts, sta
         invoices: invoices || [],
         payments: payments || [],
         projects: projects || [],
-        contacts: contacts?.length > 0 ? contacts : [
-            // Fallback jika tidak ada contacts
-            {
-                id: 1,
-                name: company.contact_person || company.client_code,
-                email: company.contact_email || 'email@example.com',
-                phone: company.contact_phone || '081234567890',
-                position: company.contact_position || 'Contact Person',
-                is_primary: true,
-                is_active: true,
-                company_id: company.id
-            }
-        ],
+        contacts: contactData, // Gunakan state contactData yang bisa diupdate
         grouped_quotations: grouped_quotations || []
     };
 
@@ -189,10 +248,18 @@ const Show = ({ company, quotations, invoices, payments, projects, contacts, sta
                         data={displayData.projects} 
                         onEdit={handleProjectEdit}
                         onDelete={handleProjectDelete}
+                        onAdd={handleAddProject}
                     />
                 );
             case 'contact':
-                return <ContactTable data={displayData.contacts} />;
+                return (
+                    <ContactTable 
+                        contacts={displayData.contacts}
+                        companyId={displayData.company.id}
+                        onUpdate={handleContactsUpdate}
+                        isLoading={isLoadingContacts}
+                    />
+                );
             default:
                 return <ProfileTable data={displayData.company} />;
         }
@@ -218,6 +285,29 @@ const Show = ({ company, quotations, invoices, payments, projects, contacts, sta
         }
     };
 
+    // Fungsi untuk mendapatkan tombol tambah berdasarkan tab
+    const renderAddButton = () => {
+        switch (activeTab) {
+            case 'project':
+                return (
+                    <button
+                        onClick={handleAddProject}
+                        className="px-4 py-2 bg-[#054748] text-white rounded-lg hover:bg-[#0a5d5e] transition-colors font-medium flex items-center gap-2"
+                    >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4"></path>
+                        </svg>
+                        Add Project
+                    </button>
+                );
+            case 'contact':
+                // Tombol Add sudah ada di dalam ContactTable component
+                return null;
+            default:
+                return null;
+        }
+    };
+
     return (
         <HeaderLayout>
             <Head title={`${displayData.company.client_code} - Detail Perusahaan`} />
@@ -232,23 +322,27 @@ const Show = ({ company, quotations, invoices, payments, projects, contacts, sta
                 <div className="flex-1 min-w-0">
                     <div className="p-0">
                         {/* Success Message */}
-                        <div className="mb-4 p-4 bg-green-50 border border-green-200 rounded-lg mx-6 mt-6">
-                            <div className="flex items-center">
-                                <div className="flex-shrink-0">
-                                    <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
-                                        <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
-                                        </svg>
+                        {company && (
+                            <div className="mb-4 p-4 bg-green-50 border border-green-200 rounded-lg mx-6 mt-6">
+                                <div className="flex items-center">
+                                    <div className="flex-shrink-0">
+                                        <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
+                                            <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
+                                            </svg>
+                                        </div>
+                                    </div>
+                                    <div className="ml-3">
+                                        <h3 className="text-sm font-medium text-green-800">Successfully loaded company data</h3>
+                                        <p className="text-sm text-green-600 mt-1">
+                                            Viewing: <span className="font-bold">{displayData.company.client_code}</span> | 
+                                            Contacts: <span className="font-bold">{displayData.contacts?.length || 0}</span> | 
+                                            Projects: <span className="font-bold">{displayData.projects?.length || 0}</span>
+                                        </p>
                                     </div>
                                 </div>
-                                <div className="ml-3">
-                                    <h3 className="text-sm font-medium text-green-800">Successfully loaded company data</h3>
-                                    <p className="text-sm text-green-600 mt-1">
-                                        Viewing: <span className="font-bold">{displayData.company.client_code}</span>
-                                    </p>
-                                </div>
                             </div>
-                        </div>
+                        )}
 
                         {/* Company Header */}
                         <div className="px-6">
@@ -275,7 +369,8 @@ const Show = ({ company, quotations, invoices, payments, projects, contacts, sta
                                         {getItemCount()} item{getItemCount() !== 1 ? 's' : ''}
                                     </p>
                                 </div>
-                                {/* TIDAK ADA TOMBOL TAMBAH BARU */}
+                                {/* Tombol Tambah berdasarkan tab */}
+                                {renderAddButton()}
                             </div>
                             
                             {renderContent()}
@@ -298,8 +393,8 @@ const Show = ({ company, quotations, invoices, payments, projects, contacts, sta
                         name: company.client_code,
                         client_code: company.client_code,
                         city: company.city || ''
-                    }]} // Kirim company saat ini saja untuk project modal
-                    quotations={[]} // Anda bisa menambahkan quotations jika diperlukan
+                    }]}
+                    quotations={quotations || []}
                     statusOptions={[
                         { value: 'in_progress', label: 'In Progress' },
                         { value: 'completed', label: 'Completed' },
