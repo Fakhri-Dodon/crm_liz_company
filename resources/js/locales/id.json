@@ -444,7 +444,8 @@
     "filtered_invoices": "Tagihan tersaring: {{count}}",
     "sample_data": "Data tagihan sampel:"
 },
-"payment_table": {
+
+  "payment_table": {
     "currency_format": "Rp{{amount}}",
     "currency_m": "Rp{{amount}}M",
     "currency_jt": "Rp{{amount}}Jt",
@@ -488,8 +489,25 @@
     "cash_payments": "Pembayaran Tunai",
     "check_payments": "Pembayaran Cek",
     "total_invoice_value": "Total Nilai Tagihan",
-    "payment_ratio": "Rasio Pembayaran"
-},
+    "payment_ratio": "Rasio Pembayaran",
+    
+    "method_transfer_short": "TF",
+    "method_cash_short": "Cash",
+    "method_check_short": "Check",
+    "no_invoice": "No Invoice",
+    "invalid_date": "Invalid Date",
+    "edit_payment": "Edit Pembayaran",
+    "delete_payment": "Hapus Pembayaran",
+    "delete_confirmation": "Konfirmasi Hapus",
+    "delete_message": "Apakah Anda yakin ingin menghapus pembayaran ini?",
+    "delete_warning": "Tindakan ini tidak dapat dibatalkan. Pembayaran akan dihapus dari sistem.",
+    "update_payment": "Perbarui Pembayaran",
+    "saving": "Menyimpan...",
+    "deleting": "Menghapus...",
+    "cancel": "Batal",
+    "notes_placeholder": "Tambahkan catatan tentang pembayaran ini..."
+  }
+,
 "project_table": {
     "not_available": "T/A",
     "status_in_progress": "Dalam Proses",
