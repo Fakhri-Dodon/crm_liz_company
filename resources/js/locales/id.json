@@ -842,6 +842,12 @@
     "payments": {
         "title": "PEMBAYARAN",
         "button_add": "TAMBAH PEMBAYARAN",
+        "add_title": "TAMBAH PEMBAYARAN BARU",
+        "edit_payment": "EDIT PAYMENT",
+        "select_invoice": "Pilih Invoice",
+        "no_unpaid_invoice": "Tidak ada Invoice yang belum dibayarkan",
+        "close": "Tutup",
+        "submit": "Kirim",
         "stats": {
             "draft": "RANCANGAN",
             "sent": "DIKIRIM",

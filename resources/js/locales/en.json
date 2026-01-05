@@ -827,6 +827,12 @@
     "payments": {
         "title": "PAYMENTS",
         "button_add": "ADD PAYMENT",
+        "add_title": "ADD NEW PAYMENT",
+        "edit_payment": "EDIT PAYMENT",
+        "select_invoice": "Select Invoice",
+        "no_unpaid_invoice": "No unpaid invoices available",
+        "close": "Close",
+        "submit": "Submit",
         "stats": {
             "draft": "DRAFT",
             "sent": "SENT",
