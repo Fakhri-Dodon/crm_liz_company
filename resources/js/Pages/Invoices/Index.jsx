@@ -27,6 +27,8 @@ export default function Index() {
             date: "21-10-2024",
             company: "PT. Pumigas Indonesia",
             amount: 12000000,
+            // total = amount + taxes
+            total: 12000000 + 660000 + 120000,
             paid_amount: 6000000,
             tax: { ppn: 660000, pph: 120000 },
             due_amount: 6540000,
@@ -38,6 +40,7 @@ export default function Index() {
             date: "28-10-2024",
             company: "PT. Pumigas Indonesia",
             amount: 12000000,
+            total: 12000000 + 396000 + 72000,
             paid_amount: 3600000,
             tax: { ppn: 396000, pph: 72000 },
             due_amount: 3924000,
@@ -49,6 +52,7 @@ export default function Index() {
             date: "11-11-2024",
             company: "China Communication Engineering Construction",
             amount: 12000000,
+            total: 12000000 + 264000 + 48000,
             paid_amount: 2400000,
             tax: { ppn: 264000, pph: 48000 },
             due_amount: 2616000,
@@ -56,7 +60,8 @@ export default function Index() {
         },
     ];
 
-    const totalAmount = invoices.reduce((s, i) => s + (i.amount || 0), 0);
+    // Use full invoice total (including taxes) for the dashboard totals. Fall back to `amount` if `total` is not available.
+    const totalAmount = invoices.reduce((s, i) => s + (i.total ?? i.amount ?? 0), 0);
     const totalPaid = invoices.reduce((s, i) => s + (i.paid_amount || 0), 0);
     const paidCount = invoices.filter((i) => i.status === "Paid").length;
     const unpaidCount = invoices.filter((i) => i.status === "Unpaid").length;

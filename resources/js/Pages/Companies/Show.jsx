@@ -32,6 +32,7 @@ const Show = ({ company, quotations, invoices, payments, projects, contacts, sta
     console.log('========== SHOW PAGE DATA ==========');
     console.log('Company:', company);
     console.log('Contacts data received:', contacts);
+    console.log('Invoices data received:', invoices); // Tambah log untuk invoices
     console.log('Projects data:', projects);
     console.log('===================================');
 
@@ -55,6 +56,7 @@ const Show = ({ company, quotations, invoices, payments, projects, contacts, sta
                 id: company.id,
                 name: company.client_code,
                 contact_person: company.contact_person,
+                invoices_count: invoices?.length || 0, // Tambah invoice count
                 contacts_count: contacts?.length || 0
             });
         }
@@ -63,7 +65,7 @@ const Show = ({ company, quotations, invoices, payments, projects, contacts, sta
         if (contacts) {
             setContactData(contacts);
         }
-    }, [company, contacts]);
+    }, [company, contacts, invoices]); // Tambah invoices ke dependency
 
     // Function untuk fetch contacts dari API
     const fetchContacts = async () => {
@@ -216,7 +218,7 @@ const Show = ({ company, quotations, invoices, payments, projects, contacts, sta
         },
         statistics: statistics || {},
         quotations: quotations || [],
-        invoices: invoices || [],
+        invoices: invoices || [], // Pastikan ini menggunakan prop invoices
         payments: payments || [],
         projects: projects || [],
         contacts: contactData, // Gunakan state contactData yang bisa diupdate
@@ -248,9 +250,19 @@ const Show = ({ company, quotations, invoices, payments, projects, contacts, sta
                     />
                 );
             case 'invoice':
-                return <InvoiceTable data={displayData.invoices} />;
+                // PERBAIKAN: Ganti invoicesData menjadi displayData.invoices
+                return <InvoiceTable 
+                            data={displayData.invoices} // Gunakan displayData.invoices
+                            companyId={company.id}
+                        />;
             case 'payment':
-                return <PaymentTable data={displayData.payments} />;
+                return (
+                    <PaymentTable 
+                        data={displayData.payments} 
+                        companyId={displayData.company.id} 
+                        showInvoiceAmount={true}
+                    />
+                );
             case 'project':
                 return (
                     <ProjectTable 
@@ -282,7 +294,7 @@ const Show = ({ company, quotations, invoices, payments, projects, contacts, sta
             case 'quotation':
                 return displayData.quotations?.length || 0;
             case 'invoice':
-                return displayData.invoices?.length || 0;
+                return displayData.invoices?.length || 0; // Perbaiki ini juga
             case 'payment':
                 return displayData.payments?.length || 0;
             case 'project':
@@ -367,6 +379,7 @@ const Show = ({ company, quotations, invoices, payments, projects, contacts, sta
                                         </h3>
                                         <p className="text-sm text-green-600 mt-1">
                                             {t('companies_show.viewing')}: <span className="font-bold">{displayData.company.client_code}</span> | 
+                                            {t('companies_show.invoices')}: <span className="font-bold">{displayData.invoices?.length || 0}</span> | 
                                             {t('companies_show.contacts')}: <span className="font-bold">{displayData.contacts?.length || 0}</span> | 
                                             {t('companies_show.projects')}: <span className="font-bold">{displayData.projects?.length || 0}</span>
                                         </p>
