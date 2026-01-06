@@ -882,6 +882,7 @@
         },
         "table": {
             "no": "NO",
+            "no_date": "NO & DATE",
             "no_data": "No Payments Found",
             "date": "DATE",
             "company_name": "COMPANY NAME",
@@ -920,10 +921,15 @@
             "all_status": "All",
             "year": "Year",
             "all_years": "All Years",
-            "search_placeholder": "Search"
+            "month": "Month",
+            "all_months": "All Months",
+            "search_placeholder": "Search",
+            "apply": "Apply",
+            "reset": "Reset"
         },
         "table": {
             "no": "No",
+            "no_date": "NO & DATE",
             "invoice": "Invoice",
             "company_name": "Company Name",
             "amount": "Invoice Amount",

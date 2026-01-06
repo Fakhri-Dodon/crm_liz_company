@@ -898,6 +898,7 @@
         },
         "table": {
             "no": "NO",
+            "no_date": "NO & TANGGAL",
             "no_data": "Tidak Ada Pembayaran Ditemukan",
             "date": "TANGGAL",
             "company_name": "NAMA PERUSAHAAN",
@@ -936,10 +937,15 @@
             "all_status": "Semua",
             "year": "Tahun",
             "all_years": "Semua Tahun",
-            "search_placeholder": "Cari"
+            "month": "Bulan",
+            "all_months": "Semua Bulan",
+            "search_placeholder": "Cari",
+            "apply": "Terapkan",
+            "reset": "Atur Ulang"
         },
         "table": {
             "no": "No",
+            "no_date": "NO & TANGGAL",
             "invoice": "Tagihan",
             "company_name": "Nama Perusahaan",
             "amount": "Jumlah Tagihan",
