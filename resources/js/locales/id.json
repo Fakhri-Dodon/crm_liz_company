@@ -943,7 +943,8 @@
             "draft": "Rancangan",
             "cancelled": "Dibatalkan",
             "total_invoice": "Total Tagihan",
-            "partial": "Sebagian"
+            "partial": "Sebagian",
+            "summary": "Total"
         },
         "filters": {
             "keyword": "Kata Kunci",
