@@ -1,7 +1,7 @@
 import { React, useEffect, useState } from "react";
 import HeaderLayout from "@/Layouts/HeaderLayout";
 import TableLayout from "@/Layouts/TableLayout";
-import { Link, usePage, useForm, router } from "@inertiajs/react";
+import { Head, Link, usePage, useForm, router } from "@inertiajs/react";
 import ModalAdd from "@/Components/ModalAdd";
 import PrimaryButton from "@/Components/PrimaryButton";
 import { Search, Filter, Plus, Calendar, Download, RefreshCw } from 'lucide-react';
@@ -192,10 +192,30 @@ export default function ProposalsIndex({ proposals, statusOptions, summary, filt
     };
 
     const statusColors = {
-        sent: { bg: 'bg-blue-100', text: 'text-blue-600', border: 'border-blue-500' },
-        opened: { bg: 'bg-green-100', text: 'text-green-600', border: 'border-green-500' },
-        rejected: { bg: 'bg-red-100', text: 'text-red-600', border: 'border-red-500' },
-        failed: { bg: 'bg-orange-100', text: 'text-orange-600', border: 'border-orange-500' }
+        sent: { 
+            bg: 'bg-blue-100', 
+            text: 'text-blue-800', 
+            border: 'border-blue-200',
+            icon: '⚡'
+        },
+        opened: { 
+            bg: 'bg-green-100', 
+            text: 'text-green-800', 
+            border: 'border-green-200',
+            icon: '✅'
+        },
+        rejected: { 
+            bg: 'bg-yellow-100', 
+            text: 'text-yellow-800', 
+            border: 'border-yellow-200',
+            icon: '⏳'
+        },
+        failed: { 
+            bg: 'bg-red-100', 
+            text: 'text-red-800', 
+            border: 'border-red-200',
+            icon: '❌'
+        }
         // approved: { bg: 'bg-greed-100', text: 'text-greed-800', border: 'border-greed-200' },
         // draft: { bg: 'bg-grey-100', text: 'text-grey-800', border: 'border-grey-200' },
         // revised: { bg: 'bg-red-100', text: 'text-red-800', border: 'border-red-200' }
@@ -352,21 +372,26 @@ export default function ProposalsIndex({ proposals, statusOptions, summary, filt
                 subtitle="Manage all company proposals"
             />
             <div className="p-4 sm:p-6 md:p-8">
+                <Head title="Proposals" />
                 <div className="grid grid-cols-4 gap-6 mb-3">
                     {Object.entries(statusColors).map(([status, colors]) => (
-                        <div
+                        <div 
                             key={status}
-                            className={`border ${colors.border} rounded-sm p-3 bg-white`}
+                            className={`rounded-xl p-5 shadow-sm border ${colors.border} ${colors.bg} transition-transform hover:scale-[1.02] hover:shadow-md`}
                         >
-                            <div className="flex justify-between items-start">
+                            <div className="flex items-center justify-between">
                                 <div>
-                                    <div className={`${colors.text} font-semibold`}>{t(`proposals.stats.${status}`)}</div>
-                                    <div className="text-sm text-gray-500">Total Proposal</div>
-                                    <p className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 mt-2">
-                                        
+                                    <p className={`text-sm font-medium ${colors.text} uppercase tracking-wide`}>
+                                        {t(`proposals.stats.${status}`)}
                                     </p>
+                                    <p className="text-2xl md:text-3xl font-bold text-gray-900 mt-2">
+                                        {summary[status] || 0}
+                                    </p>
+                                    <p className="text-xs text-gray-500 mt-2">Total Proposal</p>
                                 </div>
-                                <div className="text-2xl font-bold">{summary[status] || 0}</div>
+                                <div className={`p-3 rounded-full ${colors.bg}`}>
+                                    <span className="text-lg">{colors.icon}</span>
+                                </div>
                             </div>
                         </div>
                     ))}
