@@ -5,7 +5,7 @@ import "@/assets/css/grapes-custom.css";
 import presetWebpage from "grapesjs-preset-webpage";
 import * as htmlToImage from 'html-to-image';
 
-export default function Create({id, template}) {
+export default function Create({name}) {
 
     const [loading, setLoading] = useState(false);
 	const editorRef = useRef(null);
@@ -79,28 +79,6 @@ export default function Create({id, template}) {
             }
         ]);
 
-        editor.on('load', () => {
-            if (template) {
-
-                if (template.html_output) {
-                    editor.setComponents(template.html_output);
-                }
-
-                if (template.css_output) {
-                    editor.setStyle(template.css_output);
-                }
-
-            }
-
-            const openBlocksBtn = editor.Panels.getButton('views', 'open-blocks');
-            if (openBlocksBtn) openBlocksBtn.set('active', true);
-
-            const categories = editor.BlockManager.getCategories();
-            categories.each(category => {
-                category.set('open', false);
-            });
-        });
-
 		fetch(`/api/proposal/templates`)
             .then(res => res.json())
             .then(templates => {
@@ -169,14 +147,14 @@ export default function Create({id, template}) {
             reader.readAsDataURL(imageBlob);
         });
 
-        const res = await fetch("/proposal", {
+        const res = await fetch("/setting/proposal-element", {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
                 "X-CSRF-TOKEN": document.querySelector('meta[name="csrf-token"]').getAttribute("content"),
             },
             body: JSON.stringify({
-                id: id,
+                name: name,
                 html: html,
                 css: finalUsedCss,
                 categories: categoriesUsed,

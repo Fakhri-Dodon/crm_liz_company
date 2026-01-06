@@ -17,17 +17,20 @@ import { Switch } from "@/Components/ui/switch";
 import SimpleModal from "@/Components/ui/SimpleModal";
 
 export default function ProposalSettings() {
-    const { numbering, config, statuses } = usePage().props;
+    const { numbering, config, statuses, templates } = usePage().props;
     const queryClient = useQueryClient();
     const [isProcessing, setIsProcessing] = useState(false);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isStatusModalOpen, setIsStatusModalOpen] = useState(false);
+    const [isAddModalOpen, setIsAddModalOpen] = useState(false);
     const [editingStatus, setEditingStatus] = useState(null);
+    const [editingElement, setEditingElement] = useState(null);
     const [formData, setFormData] = useState({
         id: null,
         prefix: "",
         padding: "",
         next_number: "",
+        name: "",
     });
     const {
         data,
@@ -83,6 +86,20 @@ export default function ProposalSettings() {
         setIsStatusModalOpen(true);
     };
 
+    const openAddModal = () => {
+        setEditingElement(null);
+        reset();
+        setIsAddModalOpen(true);
+    };
+
+    const openEditElement = (element) => {
+        setEditingElement(element.id);
+        setData({
+            name: element.name,
+        });
+        setIsAddModalOpen(true);
+    };
+
     const handleStatusSubmit = (e) => {
         e.preventDefault();
         if (editingStatus) {
@@ -129,7 +146,58 @@ export default function ProposalSettings() {
                 onFinish: () => setIsProcessing(false),
             }
         );
+    }; 
+
+    const handleAddSubmit = (e) => {
+        e.preventDefault();
+        if (editingElement) {
+            router.get(route("settings.proposal-element.edit", editingElement), data, {
+                preserveState: false,
+                preserveScroll: true,
+                onSuccess: () => {
+                    reset();
+                    setIsAddModalOpen(false);
+                },
+            });
+        } else {
+            router.get(route("settings.proposal-element.create"), data, {
+                preserveState: false,
+                preserveScroll: true,
+                onSuccess: () => {
+                    reset();
+                    setIsAddModalOpen(false);
+                },
+            });
+        }
     };
+
+    const handleElementName = (e) => {
+        e.preventDefault();
+        if (editingElement) {
+            router.get(route("settings.proposal-element.editNama", editingElement), data, {
+                preserveState: false,
+                preserveScroll: true,
+                onSuccess: () => {
+                    reset();
+                    setIsAddModalOpen(false);
+                },
+            });
+        } else {
+            console.error("Data Template tidak memiliki ID", item);
+        }
+
+    };
+
+    const handleElementDelete = (id) => {
+        if (confirm("Are you sure you want to delete this status?")) {
+            if (id) {
+                router.delete(`/setting/proposal-element/${id}`);
+            } else {
+                console.error("Data Template tidak memiliki ID", item);
+            }
+        }
+    };
+
     // Helper Konversi Boolean
     const toBool = (val) =>
         val === true || val === 1 || val === "1" || val === "true";
@@ -203,12 +271,6 @@ export default function ProposalSettings() {
         };
         return colors[color] || "text-gray-500 border-gray-500";
     };
-
-    const templates = [
-        { name: "Modern", color: "bg-teal-800" },
-        { name: "Professional", color: "bg-cyan-400" },
-        { name: "Creative", color: "bg-red-700" },
-    ];
 
     return (
         <div className="space-y-12 pt-10 px-4">
@@ -716,27 +778,129 @@ export default function ProposalSettings() {
                     Templates
                 </h2>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-6">
-                    {templates.map((template, idx) => (
-                        <div key={idx} className="group cursor-pointer">
-                            <div className="border border-gray-300 aspect-[3/4] flex flex-col transition-all group-hover:shadow-lg group-hover:border-teal-500 rounded-md overflow-hidden">
-                                <div
-                                    className={`h-2/3 w-full ${template.color} group-hover:opacity-90`}
-                                ></div>
-                                <div className="h-1/3 w-full bg-white flex items-center justify-center text-[10px] font-bold text-gray-300 tracking-widest">
-                                    PREVIEW
+                    {templates.map((template, idx) => {
+
+                        const thumbnail = template?.preview_image
+                            ? `/storage/proposal_thumbnails/${template.preview_image}`
+                            : null;
+
+                        return (
+                            <a 
+                                href={`/proposal/${template.id}`} 
+                                target="_blank" 
+                                rel="noopener noreferrer"
+                            >
+                                <div key={idx} className="group cursor-pointer">
+                                    <div className="relative border border-gray-300 aspect-[3/4] flex flex-col transition-all group-hover:shadow-lg group-hover:border-teal-500 rounded-md overflow-hidden">
+                                        <div className="absolute top-2 right-2 z-10 flex gap-2 opacity-0 group-hover:opacity-100 transition">
+                                            {/* Edit */}
+                                            <button
+                                                className="hover:bg-black text-blue-600 px-1 rounded-full shadow"
+                                                onClick={(e) => {
+                                                    e.preventDefault();   // cegah <a> navigate
+                                                    e.stopPropagation();  // cegah bubbling ke parent
+                                                    openEditElement(template);
+                                                }}
+                                            >
+                                                ✎
+                                            </button>
+
+                                            {/* Delete */}
+                                            <button
+                                                className="hover:bg-black text-red-600 px-2 rounded-full shadow"
+                                                onClick={(e) => {
+                                                    e.preventDefault();   // cegah <a> navigate
+                                                    e.stopPropagation();  // cegah bubbling ke parent
+                                                    handleElementDelete(template.id);
+                                                }}
+                                            >
+                                                X
+                                            </button>
+                                        </div>
+                                        <div
+                                            className="h-2/3 w-full bg-cover bg-center group-hover:opacity-90"
+                                            style={{
+                                                backgroundImage: `url(${thumbnail})`,
+                                            }}
+                                        ></div>
+                                        <div className="h-1/3 w-full bg-white flex items-center justify-center text-[10px] font-bold text-gray-300 tracking-widest">
+                                            PREVIEW
+                                        </div>
+                                    </div>
+                                    <p className="mt-3 text-xs font-bold text-gray-700 uppercase text-center">
+                                        {template.name}
+                                    </p>
                                 </div>
-                            </div>
-                            <p className="mt-3 text-xs font-bold text-gray-700 uppercase text-center">
-                                {template.name}
-                            </p>
-                        </div>
-                    ))}
+                            </a>
+                        );
+                    })}
                 </div>
                 <div className="flex justify-end gap-4 mt-8">
-                    <Button className="bg-teal-800 hover:bg-teal-900 text-white px-10 h-9 font-bold uppercase text-xs tracking-widest">
+                    <Button
+                        onClick={openAddModal}
+                        className="bg-teal-800 hover:bg-teal-900 text-white px-10 h-9 font-bold uppercase text-xs tracking-widest">
                         Add New Template
                     </Button>
                 </div>
+
+                <SimpleModal
+                    isOpen={isAddModalOpen}
+                    onClose={() => setIsAddModalOpen(false)}
+                    title={editingElement ? "EDIT TEMPLATE NAME" : "ADD PROPOSAL TEMPLATE"}
+                >
+                    
+                    <form onSubmit={handleAddSubmit} className="space-y-4">
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700">
+                                Template Name
+                            </label>
+                            <input
+                                type="text"
+                                required
+                                className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-teal-500 focus:border-teal-500"
+                                value={data.name}
+                                onChange={(e) =>
+                                    setData("name", e.target.value)
+                                }
+                            />
+                        </div>
+                        <div className="flex justify-end gap-2 pt-4">
+                            <Button
+                                type="button"
+                                variant="outline"
+                                onClick={() => setIsAddModalOpen(false)}
+                            >
+                                Cancel
+                            </Button>
+                            {editingElement ? (
+                                <Button
+                                    type="button"
+                                    className="bg-green-900 text-white"
+                                    onClick={handleElementName}
+                                    disabled={actionProcessing}
+                                >
+                                    {actionProcessing ? (
+                                        <Loader2 className="w-4 h-4 animate-spin" />
+                                    ) : (
+                                        "Save Name"
+                                    )}
+                                </Button>
+                            ) : null}
+                            <Button
+                                type="submit"
+                                className="bg-teal-900 text-white"
+                                disabled={actionProcessing}
+                            >
+                                {actionProcessing ? (
+                                    <Loader2 className="w-4 h-4 animate-spin" />
+                                ) : (
+                                    "Save Changes"
+                                )}
+                            </Button>
+                        </div>
+                    </form>
+                </SimpleModal>
+
             </div>
 
             {/* Syncing Loader Overlay */}

@@ -5,7 +5,7 @@ import "@/assets/css/grapes-custom.css";
 import presetWebpage from "grapesjs-preset-webpage";
 import * as htmlToImage from 'html-to-image';
 
-export default function Create({id, template}) {
+export default function Create({id, name, template}) {
 
     const [loading, setLoading] = useState(false);
 	const editorRef = useRef(null);
@@ -169,14 +169,14 @@ export default function Create({id, template}) {
             reader.readAsDataURL(imageBlob);
         });
 
-        const res = await fetch("/proposal", {
-            method: "POST",
+        const res = await fetch(`/setting/proposal-element/${id}`, {
+            method: "PUT",
             headers: {
                 "Content-Type": "application/json",
                 "X-CSRF-TOKEN": document.querySelector('meta[name="csrf-token"]').getAttribute("content"),
             },
             body: JSON.stringify({
-                id: id,
+                name: name,
                 html: html,
                 css: finalUsedCss,
                 categories: categoriesUsed,

@@ -17,7 +17,7 @@ RUN npm run build
 FROM php:8.3-fpm-alpine AS backend
 WORKDIR /var/www/html
 
-# Tambahkan pcntl di sini
+# Tambahkan pcntl
 RUN apk add --no-cache nginx git icu-dev libpng-dev libzip-dev zip unzip mysql-client ca-certificates && \
     docker-php-ext-install pdo pdo_mysql bcmath intl pcntl
 
@@ -32,6 +32,7 @@ COPY --from=frontend /app/public/build /var/www/html/public/build
 
 RUN composer dump-autoload --optimize --no-dev --classmap-authoritative --no-scripts
 
+# Setup Permissions
 RUN mkdir -p /var/www/html/storage/logs \
              /var/www/html/storage/framework/views \
              /var/www/html/storage/framework/sessions \
@@ -46,8 +47,9 @@ RUN touch /var/www/html/storage/logs/laravel.log && \
 
 EXPOSE 8000
 
-# Jalankan Reverb, PHP-FPM, dan Nginx
-CMD php-fpm -D && \
+# JALANKAN PERINTAH SAAT STARTUP
+CMD php artisan storage:link --force && \
+    php-fpm -D && \
     php artisan reverb:start --host=0.0.0.0 --port=8081 & \
     php artisan queue:work --tries=3 --timeout=90 & \
     nginx -g "daemon off;"
