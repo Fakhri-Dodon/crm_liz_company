@@ -4,7 +4,7 @@ import HeaderLayout from "@/Layouts/HeaderLayout";
 import { Head, router, useForm } from "@inertiajs/react";
 import TableLayout from "@/Layouts/TableLayout";
 import PrimaryButton from "@/Components/PrimaryButton";
-import { Search, Filter, Calendar, RefreshCw } from 'lucide-react';
+import { Search, Filter, Calendar, RefreshCw, FileText, X } from 'lucide-react';
 import Swal from 'sweetalert2';
 import { FiEdit2, FiTrash2 } from "react-icons/fi";
 import axios from "axios";
@@ -445,19 +445,36 @@ export default function PaymentIndex({ payments = [], stats = {}, filters = {} }
                     </div>
                 </div>
 
-                {/* Add/Edit Payment Modal */}
                 {showAddModal && (
-                    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-2 sm:p-4">
-                        <div className="bg-white rounded-lg w-full max-w-xl sm:max-w-xl md:max-w-xl lg:max-w-xl xl:max-w-xl mx-auto overflow-y-auto max-h-[95vh]">
-                            <div className="bg-teal-700 text-white px-4 py-3 sm:px-6 sm:py-4 rounded-t-lg">
-                                <h2 className="text-lg sm:text-xl font-semibold">{editingPayment ? t("payments.edit_title") : t("payments.add_title")}</h2>
-                            </div>
-                            <form onSubmit={handleSubmit} className="p-3 sm:p-6">
-                                <div className="space-y-3 sm:space-y-4">
+                    <div className="fixed inset-0 bg-gray-900/50 backdrop-blur-sm overflow-y-auto h-full w-full z-50">
+                        <div className="relative min-h-screen flex items-center justify-center p-4">
+                            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl">
+                                {/* Header */}
+                                <div className="flex items-center justify-between p-6 border-b border-gray-100">
+                                    <div className="flex items-center gap-3">
+                                        <div className="p-2 bg-[#005954]/10 rounded-lg">
+                                            <FileText className="w-6 h-6 text-[#005954]" />
+                                        </div>
+                                        <div>
+                                            <h2 className="text-lg font-bold text-gray-900">{editingPayment ? t("payments.edit_title") : t("payments.add_title")}</h2>
+                                            <p className="text-sm text-gray-500 mt-1">{editingPayment ? (t("payments.edit_subtitle") || 'Update payment details') : (t("payments.add_subtitle") || 'Create a new payment')}</p>
+                                        </div>
+                                    </div>
+                                    <button
+                                        onClick={() => setShowAddModal(false)}
+                                        className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                                        disabled={processing}
+                                    >
+                                        <X className="w-5 h-5" />
+                                    </button>
+                                </div>
+
+                                <form onSubmit={handleSubmit} className="p-6 space-y-6 max-h-[70vh] overflow-y-auto">
                                     <div>
-                                        <label className="block text-sm font-semibold text-gray-700 mb-2">
+                                        <label className="block text-sm font-medium text-gray-700 mb-2">
                                             {t("payments.table.invoice")}<span className="text-red-500">*</span>
                                         </label>
+
                                         {editingPayment ? (
                                             <input
                                                 type="text"
@@ -466,24 +483,21 @@ export default function PaymentIndex({ payments = [], stats = {}, filters = {} }
                                                     (selectedInvoice && selectedInvoice.company_name ? selectedInvoice.company_name : (editingPayment.company_name || 'No Company'))
                                                 }
                                                 disabled
-                                                className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100 text-xs sm:text-sm"
+                                                className="w-full px-4 py-3 border border-gray-300 rounded-xl bg-gray-100 text-sm"
                                             />
                                         ) : (
                                             <select
                                                 value={formData.invoice_id}
                                                 onChange={(e) => handleInvoiceChange(e.target.value)}
-                                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500 text-xs sm:text-sm"
+                                                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#005954] focus:border-transparent text-sm"
                                                 required
                                             >
                                                 <option value="">{t("payments.select_invoice") || "Select Invoice"}</option>
-                                                {/* Invoice list: pastikan invoice yang sedang diedit tetap muncul jika belum lunas */}
                                                 {(() => {
                                                     let invoiceOptions = invoices.slice();
-                                                    // Jika sedang edit dan invoice belum lunas, pastikan invoice yang diedit tetap ada di list
                                                     if (editingPayment && formData.invoice_id) {
                                                         const alreadyInList = invoiceOptions.some(inv => inv.id === formData.invoice_id);
                                                         if (!alreadyInList) {
-                                                            // Tambahkan invoice yang sedang diedit ke list
                                                             invoiceOptions.push({
                                                                 id: formData.invoice_id,
                                                                 invoice_number: editingPayment.invoice_number,
@@ -509,43 +523,18 @@ export default function PaymentIndex({ payments = [], stats = {}, filters = {} }
                                     </div>
 
                                     <div>
-                                        <label className="block text-sm font-semibold text-gray-700 mb-2">
-                                            {t("payments.table.company_name")}
-                                        </label>
-                                        <input
-                                            type="text"
-                                            value={formData.company_name}
-                                            disabled
-                                            placeholder="Appears when selecting invoice"
-                                            className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100 text-xs sm:text-sm"
-                                        />
+                                        <label className="block text-sm font-medium text-gray-700 mb-2">{t("payments.table.company_name")}</label>
+                                        <input type="text" value={formData.company_name} disabled placeholder="Appears when selecting invoice" className="w-full px-4 py-3 border border-gray-300 rounded-xl bg-gray-100 text-sm" />
                                     </div>
 
                                     <div>
-                                        <label className="block text-sm font-semibold text-gray-700 mb-2">
-                                            {t("payments.table.amount")}<span className="text-red-500">*</span>
-                                        </label>
-                                        <input
-                                            type="number"
-                                            step="0.01"
-                                            value={formData.amount}
-                                            onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
-                                            placeholder="Rp."
-                                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500 text-xs sm:text-sm"
-                                            required
-                                        />
+                                        <label className="block text-sm font-medium text-gray-700 mb-2">{t("payments.table.amount")}<span className="text-red-500">*</span></label>
+                                        <input type="number" step="0.01" value={formData.amount} onChange={(e) => setFormData({ ...formData, amount: e.target.value })} placeholder="Rp." className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#005954] focus:border-transparent text-sm" required />
                                     </div>
 
                                     <div>
-                                        <label className="block text-sm font-semibold text-gray-700 mb-2">
-                                            {t("payments.table.method")}<span className="text-red-500">*</span>
-                                        </label>
-                                        <select
-                                            value={formData.method}
-                                            onChange={(e) => setFormData({ ...formData, method: e.target.value })}
-                                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500 text-xs sm:text-sm"
-                                            required
-                                        >
+                                        <label className="block text-sm font-medium text-gray-700 mb-2">{t("payments.table.method")}<span className="text-red-500">*</span></label>
+                                        <select value={formData.method} onChange={(e) => setFormData({ ...formData, method: e.target.value })} className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#005954] focus:border-transparent text-sm" required>
                                             <option value="transfer">{t("payments.method.transfer")}</option>
                                             <option value="cash">{t("payments.method.cash")}</option>
                                             <option value="check">{t("payments.method.check")}</option>
@@ -553,95 +542,60 @@ export default function PaymentIndex({ payments = [], stats = {}, filters = {} }
                                     </div>
 
                                     <div>
-                                        <label className="block text-sm font-semibold text-gray-700 mb-2">
-                                            {t("payments.table.date")}<span className="text-red-500">*</span>
-                                        </label>
-                                        <input
-                                            type="date"
-                                            value={formData.date}
-                                            onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-                                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500 text-xs sm:text-sm"
-                                            required
-                                        />
+                                        <label className="block text-sm font-medium text-gray-700 mb-2">{t("payments.table.date")}<span className="text-red-500">*</span></label>
+                                        <input type="date" value={formData.date} onChange={(e) => setFormData({ ...formData, date: e.target.value })} className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#005954] focus:border-transparent text-sm" required />
                                     </div>
 
                                     <div>
-                                        <label className="block text-sm font-semibold text-gray-700 mb-2">
-                                            {t("payments.table.bank")}
-                                        </label>
-                                        <input
-                                            type="text"
-                                            value={formData.bank}
-                                            onChange={(e) => setFormData({ ...formData, bank: e.target.value })}
-                                            placeholder="Bank name and branch"
-                                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500 text-xs sm:text-sm"
-                                        />
+                                        <label className="block text-sm font-medium text-gray-700 mb-2">{t("payments.table.bank")}</label>
+                                        <input type="text" value={formData.bank} onChange={(e) => setFormData({ ...formData, bank: e.target.value })} placeholder="Bank name and branch" className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#005954] focus:border-transparent text-sm" />
                                     </div>
 
                                     <div>
-                                        <label className="block text-sm font-semibold text-gray-700 mb-2">
-                                            {t("payments.table.note")}
-                                        </label>
-                                        <textarea
-                                            value={formData.note}
-                                            onChange={(e) => setFormData({ ...formData, note: e.target.value })}
-                                            rows="3"
-                                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500 text-xs sm:text-sm"
-                                        />
+                                        <label className="block text-sm font-medium text-gray-700 mb-2">{t("payments.table.note")}</label>
+                                        <textarea value={formData.note} onChange={(e) => setFormData({ ...formData, note: e.target.value })} rows="3" className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#005954] focus:border-transparent min-h-[100px] resize-none text-sm" />
                                     </div>
-                                </div>
 
-                                <div className="flex flex-col sm:flex-row justify-end gap-2 sm:gap-3 mt-4 sm:mt-6">
-                                    <button
-                                        type="button"
-                                        onClick={() => setShowAddModal(false)}
-                                        disabled={processing}
-                                        className="px-4 py-2 sm:px-6 sm:py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors disabled:opacity-50 text-xs sm:text-sm"
-                                    >
-                                        {t("payments.close") || "CLOSE"}
-                                    </button>
-                                    <button
-                                        type="submit"
-                                        disabled={processing}
-                                        className="px-4 py-2 sm:px-6 sm:py-2 bg-teal-700 text-white rounded-md hover:bg-teal-800 transition-colors disabled:opacity-50 text-xs sm:text-sm"
-                                    >
-                                        {processing ? t("payments.processing") || "PROCESSING..." : t("payments.submit") || "SUBMIT"}
-                                    </button>
-                                </div>
-                            </form>
+                                    <div className="flex flex-col-reverse sm:flex-row gap-3 pt-6 border-t border-gray-100">
+                                        <button type="button" onClick={() => setShowAddModal(false)} disabled={processing} className="px-6 py-3 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 transition-colors font-medium flex-1">{t("payments.close") || "CANCEL"}</button>
+                                        <button type="submit" disabled={processing} className="px-6 py-3 bg-[#005954] text-white rounded-xl hover:bg-[#004d47] transition-colors font-medium flex-1 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm hover:shadow-md">{processing ? (t("payments.processing") || "PROCESSING...") : (t("payments.submit") || "SUBMIT")}</button>
+                                    </div>
+                                </form>
+                            </div>
                         </div>
                     </div>
                 )}
 
-                {/* Delete Confirmation Modal */}
                 {showDeleteModal && (
-                    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-                        <div className="bg-white rounded-lg w-full max-w-md">
-                            <div className="bg-teal-700 text-white px-6 py-4 rounded-t-lg">
-                                <h2 className="text-xl font-semibold">{t("payments.delete_title") || "Delete Payment"}</h2>
-                            </div>
-                            <div className="p-6">
-                                <h3 className="text-lg font-semibold text-center mb-4">{t("payments.delete_confirm") || "Are you sure?"}</h3>
-                                <div className="border border-gray-300 rounded-md p-4 mb-6">
-                                    <p className="text-red-600 text-center">
-                                        {t("payments.delete_warning") || "Do you really want to delete this payment permanently. You cannot undo this action"}
-                                    </p>
+                    <div className="fixed inset-0 bg-gray-900/50 backdrop-blur-sm overflow-y-auto h-full w-full z-50">
+                        <div className="relative min-h-screen flex items-center justify-center p-4">
+                            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md">
+                                <div className="flex items-center justify-between p-5 border-b border-gray-100">
+                                    <div className="flex items-center gap-3">
+                                        <div className="p-2 bg-[#005954]/10 rounded-lg">
+                                            <span className="text-[#005954]"><FiTrash2 className="w-5 h-5" /></span>
+                                        </div>
+                                        <div>
+                                            <h3 className="text-lg font-semibold text-gray-900">{t("payments.delete_title") || "Delete Payment"}</h3>
+                                            <p className="text-sm text-gray-500 mt-1">{t("payments.delete_confirm") || "Are you sure?"}</p>
+                                        </div>
+                                    </div>
+                                    <button onClick={() => setShowDeleteModal(false)} className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors" disabled={processing}>
+                                        <X className="w-5 h-5" />
+                                    </button>
                                 </div>
-                                <div className="flex justify-center gap-4">
-                                    <button
-                                        onClick={confirmDelete}
-                                        disabled={processing}
-                                        className="px-8 py-2 bg-teal-700 text-white rounded-md hover:bg-teal-800 transition-colors disabled:opacity-50"
-                                    >
-                                        {processing ? t("payments.deleting") || "DELETING..." : t("payments.yes") || "YES"}
-                                    </button>
-                                    <button
-                                        onClick={() => setShowDeleteModal(false)}
-                                        disabled={processing}
-                                        className="px-8 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors disabled:opacity-50"
-                                    >
-                                        {t("payments.no") || "NO"}
-                                    </button>
+
+                                <div className="p-6">
+                                    <div className="border border-gray-300 rounded-md p-4 mb-6">
+                                        <p className="text-red-600 text-center">
+                                            {t("payments.delete_warning") || "Do you really want to delete this payment permanently. You cannot undo this action"}
+                                        </p>
+                                    </div>
+
+                                    <div className="flex flex-col-reverse sm:flex-row gap-3 pt-6 border-t border-gray-100">
+                                        <button onClick={() => setShowDeleteModal(false)} disabled={processing} className="px-6 py-3 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 transition-colors font-medium flex-1">{t("payments.no") || "NO"}</button>
+                                        <button onClick={confirmDelete} disabled={processing} className="px-6 py-3 bg-[#005954] text-white rounded-xl hover:bg-[#004d47] transition-colors font-medium flex-1 disabled:opacity-50">{processing ? (t("payments.deleting") || "DELETING...") : (t("payments.yes") || "YES")}</button>
+                                    </div>
                                 </div>
                             </div>
                         </div>
