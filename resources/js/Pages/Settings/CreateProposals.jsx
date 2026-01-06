@@ -248,7 +248,7 @@ export default function Create({name}) {
                 </div>
             )}
 
-            <div id="gjs"></div>
+            <div id="gjs" className="ps-2 pb-4"></div>
         </>
     );
 }
