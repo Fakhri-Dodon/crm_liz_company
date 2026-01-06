@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import grapesjs from "grapesjs";
+import { router } from "@inertiajs/react";
 import "grapesjs/dist/css/grapes.min.css";
 import "@/assets/css/grapes-custom.css";
 import presetWebpage from "grapesjs-preset-webpage";
@@ -72,7 +73,7 @@ export default function Create({id, name, template}) {
                 className: "fa fa-arrow-left",
                 command: () => {
                     if (confirm("Perubahan yang belum disimpan akan hilang. Kembali?")) {
-                        window.history.back();
+                        router.visit(document.referrer || route("settings.proposals"));
                     }
                 },
                 attributes: { title: "Kembali" },
@@ -270,7 +271,7 @@ export default function Create({id, name, template}) {
                 </div>
             )}
 
-            <div id="gjs" className="ps-2 pb-2"></div>
+            <div id="gjs" className="ps-2 pb-4"></div>
         </>
     );
 }
