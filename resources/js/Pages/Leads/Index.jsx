@@ -590,11 +590,7 @@ export default function LeadsIndex({ leads = [], auth }) {
                         <PrimaryButton
                             onClick={handleAdd}
                             disabled={!currentUser}
-                            className={`w-full sm:w-auto px-6 py-3 text-sm font-semibold rounded-xl transition-all duration-200 flex items-center justify-center gap-3 shadow-sm hover:shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2 ${
-                                !currentUser 
-                                    ? 'bg-gray-200 text-gray-500 cursor-not-allowed border border-gray-300' 
-                                    : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white focus:ring-blue-500 border border-blue-600'
-                            }`}
+                            className="inline-flex items-center rounded-md border border-transparent px-5 py-2.5 text-sm font-medium font-semibold uppercase tracking-widest text-white transition duration-150 ease-in-out bg-[rgb(17,94,89)] hover:bg-[rgb(13,75,71)] focus:bg-[rgb(13,75,71)] focus:outline-none focus:ring-2 focus:ring-[rgb(17,94,89)] focus:ring-offset-2 active:bg-[rgb(10,60,57)] w-full sm:w-auto flex items-center justify-center gap-2 shadow-sm hover:shadow"
                         >
                             <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
