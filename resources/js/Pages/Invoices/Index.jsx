@@ -290,15 +290,14 @@ export default function Index() {
                 </PrimaryButton>
             </div>
 
-            {/* Status Summary - styled like Quotations */}
+            {/* Status Summary - Project-style cards */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 my-7">
-                {/** compute summary and totals from invoices */}
                 {(() => {
-                    const statusColors = {
-                        Paid: { border: 'border-green-500', text: 'text-green-600', badgeBg: 'bg-green-100', badgeText: 'text-green-600' },
-                        Unpaid: { border: 'border-orange-500', text: 'text-orange-600', badgeBg: 'bg-orange-100', badgeText: 'text-orange-600' },
-                        Draft: { border: 'border-gray-300', text: 'text-gray-700', badgeBg: 'bg-gray-100', badgeText: 'text-gray-700' },
-                        Cancelled: { border: 'border-red-500', text: 'text-red-600', badgeBg: 'bg-red-100', badgeText: 'text-red-600' }
+                    const statColors = {
+                        Paid: { bg: 'bg-green-100', text: 'text-green-800', border: 'border-green-200', icon: '✅' },
+                        Unpaid: { bg: 'bg-orange-100', text: 'text-orange-800', border: 'border-orange-200', icon: '⏳' },
+                        Draft: { bg: 'bg-gray-100', text: 'text-gray-800', border: 'border-gray-200', icon: '📝' },
+                        Cancelled: { bg: 'bg-red-100', text: 'text-red-800', border: 'border-red-200', icon: '❌' }
                     };
 
                     const summary = invoices.reduce((acc, inv) => {
@@ -312,27 +311,27 @@ export default function Index() {
                         return acc;
                     }, {});
 
-                    return Object.entries(statusColors).map(([status, colors]) => (
-                        <div 
-                            key={status}
-                            className={`bg-white border-2 ${colors.border} rounded-lg p-4`}
-                        >
-                            <div className="flex justify-between items-start mb-2">
-                                <div>
-                                    <h3 className={`text-lg font-semibold ${colors.text}`}>
-                                        {t(`invoices.stats.${status.toLowerCase()}`) || status}
-                                    </h3>
-                                    <p className="text-gray-600 text-sm">{t('invoices.stats.summary') || t('invoices.stats.sent') || 'Total'}</p>
+                    return Object.keys(statColors).map((status) => {
+                        const colors = statColors[status];
+                        const count = summary[status] || 0;
+                        const amount = totalsByStatus[status] || 0;
+                        const label = t(`invoices.stats.${status.toLowerCase()}`) || status;
+
+                        return (
+                            <div key={status} className={`rounded-xl p-5 shadow-sm border ${colors.border} ${colors.bg} transition-transform hover:scale-[1.02] hover:shadow-md`}>
+                                <div className="flex items-center justify-between">
+                                    <div>
+                                        <p className={`text-sm font-medium ${colors.text} uppercase tracking-wide`}>{label}</p>
+                                        <p className="text-2xl md:text-3xl font-bold text-gray-900 mt-2">{count}</p>
+                                        <p className="text-xs text-gray-500 mt-2">Rp {formatRp(amount).replace(/^Rp\s?/, '')}</p>
+                                    </div>
+                                    <div className={`p-3 rounded-full ${colors.bg}`}>
+                                        <span className="text-lg">{colors.icon}</span>
+                                    </div>
                                 </div>
-                                <span className={`${colors.badgeBg} ${colors.badgeText} px-3 py-1 rounded-full font-semibold`}>
-                                    {summary[status] || 0}
-                                </span>
                             </div>
-                            <div className="text-xl font-bold text-gray-800">
-                                Rp {formatRp(totalsByStatus[status] || 0).replace(/^Rp\s?/, '')}
-                            </div>
-                        </div>
-                    ));
+                        );
+                    });
                 })()}
             </div>
 
