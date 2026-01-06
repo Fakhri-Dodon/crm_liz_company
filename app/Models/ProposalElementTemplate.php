@@ -17,7 +17,6 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
  * 
  * @property string $id
  * @property string $name
- * @property string $slug
  * @property array $content_json
  * @property string $preview_image
  * @property string|null $html_output
@@ -50,7 +49,6 @@ class ProposalElementTemplate extends Model
 
 	protected $fillable = [
 		'name',
-		'slug',
 		'content_json',
 		'preview_image',
 		'html_output',

@@ -131,7 +131,6 @@ class ProposalController extends Controller
 
                 $template = ProposalElementTemplate::create([
                     'name'          => $validated['name'],
-                    'slug'          => $resultNumber,
                     'content_json'  => '-',
                     'preview_image' => '-',
                     'created_by'    => auth()->id(),
