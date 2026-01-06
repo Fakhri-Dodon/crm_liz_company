@@ -2,16 +2,17 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\MenuMapping;
 use App\Models\Menu;
-use App\Models\AppConfig;
-use App\Models\LeadStatuses;
 use App\Models\Roles;
-use App\Models\ProposalNumberFormatted;
-use App\Models\ProposalStatuses;
+use App\Models\EmailLogs;
+use App\Models\AppConfig;
+use App\Models\MenuMapping;
+use App\Models\LeadStatuses;
 use App\Models\MailSettings;
 use App\Models\EmailTemplates;
-use App\Models\EmailLogs;
+use App\Models\ProposalStatuses;
+use App\Models\ProposalNumberFormatted;
+use App\Models\ProposalElementTemplate;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
@@ -110,14 +111,23 @@ class SettingController extends Controller
 
     public function proposals()
     {
-        $config = AppConfig::where('deleted', 0)->first();
-        $numbering = ProposalNumberFormatted::where('deleted', 0)->first();
-        $statuses = ProposalStatuses::where('deleted', 0)->orderBy('order', 'asc')->get();
+        $config     = AppConfig::where('deleted', 0)->first();
+        
+        $numbering  = ProposalNumberFormatted::where('deleted', 0)->first();
+        
+        $statuses   = ProposalStatuses::where('deleted', 0)->orderBy('order', 'asc')->get();
+        
+        $templates  = ProposalElementTemplate::limit(4)
+            ->whereNotNull('html_output')
+            ->whereNotNull('css_output')
+            // ->where('created_by', Auth::id())
+            ->get();
 
         return Inertia::render('Settings/Proposals', [
-            'config' => $config,
+            'config'    => $config,
             'numbering' => $numbering,
-            'statuses' => $statuses
+            'statuses'  => $statuses,
+            'templates' => $templates
         ]);
     }
 

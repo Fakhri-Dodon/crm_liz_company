@@ -122,7 +122,7 @@ export default function ProposalsIndex({ proposals, statusOptions, summary, filt
                 return (
                     <select
                         value={value}
-                        onChange={handleStatusChange}
+                        // onChange={handleStatusChange}
                         style={{ 
                             backgroundImage: 'none',
                             WebkitAppearance: 'none',

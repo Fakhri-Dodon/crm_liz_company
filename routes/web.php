@@ -16,6 +16,7 @@ use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\Quotation\QuotationController;
 use App\Http\Controllers\ProposalController;
 use App\Http\Controllers\ProposalNumberFormated;
+use App\Http\Controllers\ProposalElementController;
 use App\Http\Controllers\RolesController;
 use App\Http\Controllers\DashboardController;
 use Illuminate\Foundation\Application;
@@ -137,6 +138,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('/proposal-status/store', [ProposalStatusesController::class, 'store'])->name('proposal-status.store');
         Route::put('/proposal-status/update/{id}', [ProposalStatusesController::class, 'update'])->name('proposal-status.update');
         Route::delete('/proposal-status/destroy/{id}', [ProposalStatusesController::class, 'destroy'])->name('proposal-status.delete');
+
+        Route::get('/proposal-element/editNama/{id}', [ProposalElementController::class, 'editNama'])->name('proposal-element.editNama');
+        Route::resource('proposal-element', ProposalElementController::class);
 
         // Emails
         Route::prefix('email')->name('email.')->group(function () {
