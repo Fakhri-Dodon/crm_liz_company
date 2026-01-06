@@ -49,7 +49,7 @@ class ProposalElementTemplate extends Model
 
 	protected $fillable = [
 		'name',
-		'slug',
+		'content_json',
 		'preview_image',
 		'html_output',
 		'css_output',
