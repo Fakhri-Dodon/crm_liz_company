@@ -84,3 +84,7 @@ body, html {
     padding-left: 10px;
     padding-right: 15px;
 }
+
+.gjs-frame {
+    padding-bottom: 10px;
+}
