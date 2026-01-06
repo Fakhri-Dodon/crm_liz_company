@@ -1,4 +1,4 @@
-import { React, useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import HeaderLayout from "@/Layouts/HeaderLayout";
 import TableLayout from "@/Layouts/TableLayout";
 import { Head, Link, usePage, useForm, router } from "@inertiajs/react";
@@ -106,23 +106,23 @@ export default function ProposalsIndex({ proposals, statusOptions, summary, filt
                 const handleStatusChange = (e) => {
                     const newStatus = e.target.value;
                     
-                    router.patch(route('quotation.update-status', row.id), {
-                        status: newStatus
-                    }, {
-                        preserveScroll: true,
-                        onSuccess: () => {
-                            toast('Status updated to ' + newStatus.toUpperCase());
-                        },
-                        onError: () => {
-                            toast('Failed to update status', 'error');
-                        }
-                    });
+                    // router.patch(route('quotation.update-status', row.id), {
+                    //     status: newStatus
+                    // }, {
+                    //     preserveScroll: true,
+                    //     onSuccess: () => {
+                    //         toast('Status updated to ' + newStatus.toUpperCase());
+                    //     },
+                    //     onError: () => {
+                    //         toast('Failed to update status', 'error');
+                    //     }
+                    // });
                 };
 
                 return (
                     <select
                         value={value}
-                        // onChange={handleStatusChange}
+                        disabled
                         style={{ 
                             backgroundImage: 'none',
                             WebkitAppearance: 'none',
@@ -249,9 +249,7 @@ export default function ProposalsIndex({ proposals, statusOptions, summary, filt
 
     const handleSubmit = (e) => {
         if (mode === "add") {
-            router.get(route("proposal.add"), data, {
-                preserveState: false,
-                preserveScroll: true,
+            post(route("proposal.add"), {
                 onSuccess: () => {
                     reset();
                     setIsModalOpen(false);
@@ -290,12 +288,8 @@ export default function ProposalsIndex({ proposals, statusOptions, summary, filt
         }
     }
 
-    const proposalOptions = Array.isArray(proposals) 
-        ? [...new Set(proposals
-            .filter(proposals => proposals.id)
-            .map(proposals => proposals.title)
-            .sort()
-          )]
+    const proposalOptions = proposals?.data
+        ? [...new Set(proposals.data.map(p => p.title).filter(Boolean))]
         : [];
 
     return (
@@ -310,7 +304,7 @@ export default function ProposalsIndex({ proposals, statusOptions, summary, filt
                             onClick={() => setIsModalOpen(false)}
                             className="text-gray-500 hover:text-gray-700 font-bold px-4 py-2"
                         >
-                            Cancle
+                            Cancel
                         </button>
                         <PrimaryButton
                             onClick={handleSubmit}
@@ -431,7 +425,7 @@ export default function ProposalsIndex({ proposals, statusOptions, summary, filt
                             <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600 mb-4"></div>
                             <p className="text-gray-600 font-medium">{t('common.loading') || 'Loading...'}</p>
                         </div>
-                    ) : localFilters.length === 0 ? (
+                    ) : tableData.length === 0 ? (
                         <div className="flex flex-col items-center justify-center py-16 border border-gray-200 rounded-sm bg-gray-50">
                             <div className="h-12 w-12 text-gray-300 mb-4">
                                 <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
