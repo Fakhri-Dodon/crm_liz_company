@@ -913,7 +913,8 @@
             "draft": "Draft",
             "cancelled": "Cancelled",
             "total_invoice": "Total Invoice",
-            "partial": "Partial"
+            "partial": "Partial",
+            "summary": "Total"
         },
         "filters": {
             "keyword": "Keyword",

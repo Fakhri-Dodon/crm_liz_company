@@ -4,7 +4,7 @@ import HeaderLayout from "@/Layouts/HeaderLayout";
 import TableLayout from "@/Layouts/TableLayout";
 import PrimaryButton from "@/Components/PrimaryButton";
 import { Link, usePage, router, useForm } from "@inertiajs/react";
-import { Search, Filter, Calendar, RefreshCw } from 'lucide-react';
+import { Search, Filter, Calendar, RefreshCw, Edit } from 'lucide-react';
 import Swal from 'sweetalert2';
 import DevelopmentPage from "../DevelopmentPage";
 
@@ -213,23 +213,14 @@ export default function Index() {
                     >
                         <option value="Draft">{t('invoices.stats.draft') || 'Draft'}</option>
                         <option value="Unpaid">{t('invoices.stats.unpaid') || 'Unpaid'}</option>
-                        <option value="Partial">{t('invoices.stats.partial') || 'Partial'}</option>
+                      
                         <option value="Paid">{t('invoices.stats.paid') || 'Paid'}</option>
                         <option value="Cancelled">{t('invoices.stats.cancelled') || 'Cancelled'}</option>
                     </select>
                 );
             }
         },
-        {
-            key: 'actions',
-            label: t('invoices.table.actions') || 'Action',
-            render: (value, row) => (
-                <>
-                    <button onClick={() => handleEditInvoice(row.id)} className="mr-2 text-gray-600 hover:text-gray-800">✎</button>
-                    <button onClick={() => handleDeleteInvoice(row.id, row.no)} className="text-red-600 hover:text-red-800">🗑</button>
-                </>
-            )
-        }
+        
     ];
 
     const tableData = invoices.map(inv => ({
@@ -292,18 +283,22 @@ export default function Index() {
 
     return (
         <div className="p-6">
-            <h2 className="text-2xl font-bold text-gray-700 mb-6">{t("invoices.title") || "INVOICE"}</h2>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-3">
+                <h2 className="text-2xl font-bold text-gray-700">{t("invoices.title") || "INVOICE"}</h2>
+                <PrimaryButton onClick={handleCreateInvoice} className="w-full sm:w-auto px-5 py-2.5 text-white text-sm font-medium rounded-lg">
+                    <span>{t('invoices.button_add') || 'Add Invoice'}</span>
+                </PrimaryButton>
+            </div>
 
             {/* Status Summary - styled like Quotations */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 my-7">
                 {/** compute summary and totals from invoices */}
                 {(() => {
                     const statusColors = {
-                        Paid: { bg: 'bg-green-100', text: 'text-green-800', border: 'border-green-200' },
-                        Unpaid: { bg: 'bg-orange-100', text: 'text-orange-800', border: 'border-orange-200' },
-                        Draft: { bg: 'bg-gray-100', text: 'text-gray-800', border: 'border-gray-200' },
-                        Cancelled: { bg: 'bg-red-100', text: 'text-red-800', border: 'border-red-200' },
-                        Partial: { bg: 'bg-yellow-100', text: 'text-yellow-800', border: 'border-yellow-200' }
+                        Paid: { border: 'border-green-500', text: 'text-green-600', badgeBg: 'bg-green-100', badgeText: 'text-green-600' },
+                        Unpaid: { border: 'border-orange-500', text: 'text-orange-600', badgeBg: 'bg-orange-100', badgeText: 'text-orange-600' },
+                        Draft: { border: 'border-gray-300', text: 'text-gray-700', badgeBg: 'bg-gray-100', badgeText: 'text-gray-700' },
+                        Cancelled: { border: 'border-red-500', text: 'text-red-600', badgeBg: 'bg-red-100', badgeText: 'text-red-600' }
                     };
 
                     const summary = invoices.reduce((acc, inv) => {
@@ -320,25 +315,21 @@ export default function Index() {
                     return Object.entries(statusColors).map(([status, colors]) => (
                         <div 
                             key={status}
-                            className={`rounded-xl p-4 sm:p-5 shadow-sm border ${colors.border} ${colors.bg} transition-transform hover:scale-[1.02] hover:shadow-md min-h-[110px] flex flex-col justify-between`}
+                            className={`bg-white border-2 ${colors.border} rounded-lg p-4`}
                         >
-                            <div className="flex items-center justify-between">
+                            <div className="flex justify-between items-start mb-2">
                                 <div>
-                                    <p className={`text-sm font-medium ${colors.text} uppercase tracking-wide`}>
+                                    <h3 className={`text-lg font-semibold ${colors.text}`}>
                                         {t(`invoices.stats.${status.toLowerCase()}`) || status}
-                                    </p>
-                                    <p className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 mt-2">
-                                        {summary[status] || 0}
-                                    </p>
+                                    </h3>
+                                    <p className="text-gray-600 text-sm">{t('invoices.stats.summary') || t('invoices.stats.sent') || 'Total'}</p>
                                 </div>
-                                <div className={`p-3 rounded-full ${colors.bg} ${colors.text}`}>
-                                    <div className={`w-3 h-3 rounded-full ${colors.text.replace('text-', 'bg-')}`}></div>
-                                </div>
+                                <span className={`${colors.badgeBg} ${colors.badgeText} px-3 py-1 rounded-full font-semibold`}>
+                                    {summary[status] || 0}
+                                </span>
                             </div>
-                            <div className="mt-3 pt-3 border-t border-gray-200">
-                                <p className="text-sm text-gray-600 font-semibold truncate">
-                                    {formatRp(totalsByStatus[status] || 0)}
-                                </p>
+                            <div className="text-xl font-bold text-gray-800">
+                                Rp {formatRp(totalsByStatus[status] || 0).replace(/^Rp\s?/, '')}
                             </div>
                         </div>
                     ));
@@ -434,9 +425,6 @@ export default function Index() {
                             <RefreshCw className="w-4 h-4" />
                             {t('invoices.filters.reset')}
                         </button>
-                        <PrimaryButton onClick={handleCreateInvoice} className="w-full sm:w-auto px-5 py-2.5 text-white text-sm font-medium rounded-lg">
-                            <span>{t('invoices.button_add') || 'Add Invoice'}</span>
-                        </PrimaryButton>
                     </div>
                 </div>
             </div>

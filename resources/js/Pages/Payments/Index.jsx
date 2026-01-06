@@ -123,12 +123,7 @@ export default function PaymentIndex({ payments = [], stats = {}, filters = {} }
         { key: 'method', label: t('payments.table.method') },
         { key: 'bank', label: t('payments.table.bank') },
         { key: 'note', label: t('payments.table.note') },
-        { key: 'actions', label: t('payments.table.actions'), render: (v, row) => (
-            <>
-                <button onClick={() => handleEditPayment(row.original)} className="mr-2 text-gray-600 hover:text-gray-800">✎</button>
-                <button onClick={() => handleDeletePayment(row.original)} className="text-red-600 hover:text-red-800">🗑</button>
-            </>
-        ) }
+        
     ];
 
     const tableData = payments.map((p) => ({
@@ -306,55 +301,77 @@ export default function PaymentIndex({ payments = [], stats = {}, filters = {} }
             <Head title={t("payments.title")}/>
             <div className="p-6 bg-gray-50 min-h-screen">
                 {/* Header */}
-                
+                <div className="flex justify-between items-center mb-6">
+                    <h1 className="text-2xl font-bold text-gray-800">{t("payments.title")}</h1>
+                    <button
+                        onClick={handleAddPayment}
+                        className="bg-teal-700 hover:bg-teal-800 text-white px-6 py-2 rounded-md transition-colors"
+                    >
+                        {t("payments.button_add")}
+                    </button>
+                </div>
 
-                {/* Status Summary - styled like Quotations/Invoices */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 my-7">
-                    {(() => {
-                        const statusColors = {
-                            Payments: { bg: 'bg-blue-100', text: 'text-blue-800', border: 'border-blue-200' },
-                            Transfer: { bg: 'bg-green-100', text: 'text-green-800', border: 'border-green-200' },
-                            Cash: { bg: 'bg-yellow-100', text: 'text-yellow-800', border: 'border-yellow-200' },
-                            Check: { bg: 'bg-red-100', text: 'text-red-800', border: 'border-red-200' }
-                        };
-
-                        const summary = {
-                            Payments: stats.total_payment?.count || 0,
-                            Transfer: stats.transfer?.count || 0,
-                            Cash: stats.cash?.count || 0,
-                            Check: stats.check?.count || 0
-                        };
-
-                        const totals = {
-                            Payments: stats.total_payment?.amount || 0,
-                            Transfer: stats.transfer?.amount || 0,
-                            Cash: stats.cash?.amount || 0,
-                            Check: stats.check?.amount || 0
-                        };
-
-                        return Object.entries(statusColors).map(([label, colors]) => (
-                            <div key={label} className={`rounded-xl p-4 sm:p-5 shadow-sm border ${colors.border} ${colors.bg} transition-transform hover:scale-[1.02] hover:shadow-md min-h-[110px] flex flex-col justify-between`}>
-                                <div className="flex items-center justify-between">
-                                    <div>
-                                        <p className={`text-sm font-medium ${colors.text} uppercase tracking-wide`}>
-                                            {label === 'Payments' ? t('payments.title') : label}
-                                        </p>
-                                        <p className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 mt-2">
-                                            {summary[label]}
-                                        </p>
-                                    </div>
-                                    <div className={`p-3 rounded-full ${colors.bg} ${colors.text}`}>
-                                        <div className={`w-3 h-3 rounded-full ${colors.text.replace('text-', 'bg-')}`}></div>
-                                    </div>
-                                </div>
-                                <div className="mt-3 pt-3 border-t border-gray-200">
-                                    <p className="text-sm text-gray-600 font-semibold truncate">
-                                        {totals[label] > 0 ? formatCurrency(totals[label]) : '-'}
-                                    </p>
-                                </div>
+                {/* Stats Cards */}
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                    <div className="bg-white border-2 border-blue-500 rounded-lg p-4">
+                        <div className="flex justify-between items-start mb-2">
+                            <div>
+                                <h3 className="text-blue-600 font-semibold text-lg">{t("payments.title")}</h3>
+                                <p className="text-gray-600 text-sm">{t("payments.stats.sent")}</p>
                             </div>
-                        ));
-                    })()}
+                            <span className="bg-blue-100 text-blue-600 px-3 py-1 rounded-full font-semibold">
+                                {stats.total_payment?.count || 0}
+                            </span>
+                        </div>
+                        <div className="text-xl font-bold text-gray-800">
+                            Rp {formatCurrency(stats.total_payment?.amount || 0)}
+                        </div>
+                    </div>
+
+                    <div className="bg-white border-2 border-green-500 rounded-lg p-4">
+                        <div className="flex justify-between items-start mb-2">
+                            <div>
+                                <h3 className="text-green-600 font-semibold text-lg">{t("payments.method.transfer")}</h3>
+                                <p className="text-gray-600 text-sm">{t("payments.stats.sent")}</p>
+                            </div>
+                            <span className="bg-green-100 text-green-600 px-3 py-1 rounded-full font-semibold">
+                                {stats.transfer?.count || 0}
+                            </span>
+                        </div>
+                        <div className="text-xl font-bold text-gray-800">
+                            Rp {formatCurrency(stats.transfer?.amount || 0)}
+                        </div>
+                    </div>
+
+                    <div className="bg-white border-2 border-yellow-500 rounded-lg p-4">
+                        <div className="flex justify-between items-start mb-2">
+                            <div>
+                                <h3 className="text-yellow-600 font-semibold text-lg">{t("payments.method.cash")}</h3>
+                                <p className="text-gray-600 text-sm">{t("payments.stats.sent")}</p>
+                            </div>
+                            <span className="bg-yellow-100 text-yellow-600 px-3 py-1 rounded-full font-semibold">
+                                {stats.cash?.count || 0}
+                            </span>
+                        </div>
+                        <div className="text-xl font-bold text-gray-800">
+                            Rp {stats.cash?.amount > 0 ? formatCurrency(stats.cash.amount) : "-"}
+                        </div>
+                    </div>
+
+                    <div className="bg-white border-2 border-red-500 rounded-lg p-4">
+                        <div className="flex justify-between items-start mb-2">
+                            <div>
+                                <h3 className="text-red-600 font-semibold text-lg">{t("payments.method.check")}</h3>
+                                <p className="text-gray-600 text-sm">{t("payments.stats.sent")}</p>
+                            </div>
+                            <span className="bg-red-100 text-red-600 px-3 py-1 rounded-full font-semibold">
+                                {stats.check?.count || 0}
+                            </span>
+                        </div>
+                        <div className="text-xl font-bold text-gray-800">
+                            Rp {stats.check?.amount > 0 ? formatCurrency(stats.check.amount) : "-"}
+                        </div>
+                    </div>
                 </div>
 
                 {/* Filters & Actions - Quotation style */}
@@ -412,7 +429,7 @@ export default function PaymentIndex({ payments = [], stats = {}, filters = {} }
                         <div className="flex flex-col sm:flex-row gap-3 pt-2">
                             <button onClick={applyFilters} className="px-4 py-2.5 bg-[#005954] text-white rounded-lg hover:bg-[#004d47] flex items-center gap-2 transition-colors justify-center text-sm font-medium"><Filter className="w-4 h-4" />{t('payments.filters.apply')}</button>
                             <button onClick={resetFilters} className="px-4 py-2.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors flex items-center gap-2 justify-center text-sm font-medium"><RefreshCw className="w-4 h-4" />{t('payments.filters.reset')}</button>
-                            <PrimaryButton onClick={handleAddPayment} className="w-full sm:w-auto px-5 py-2.5 text-white text-sm font-medium rounded-lg">{t('payments.button_add')}</PrimaryButton>
+                            
                         </div>
                     </div>
                 </div>
