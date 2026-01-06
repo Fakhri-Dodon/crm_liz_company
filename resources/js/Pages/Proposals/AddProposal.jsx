@@ -21,7 +21,7 @@ export default function AddProposal({proposal_id, templates}) {
             <div className="p-8">
                 <a 
                     href={route('proposal.create', { id: 0, id_proposal: proposal_id })} 
-                    target="_blank" 
+                    // target="_blank"
                     rel="noopener noreferrer"
                 >
                     <h2 className="text-2xl font-bold text-center mb-8 border-2 border-green-700 py-4 w-3/4 mx-auto">

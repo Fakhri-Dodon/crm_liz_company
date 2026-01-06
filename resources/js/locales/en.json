@@ -99,13 +99,14 @@
     "delete_failed_try_again": "Delete failed. Please try again.",
     "table": {
       "client_code": "Client Code",
-      "company_name": "Company Name",
+      "address": "Address",
       "client_type": "Client Type",
       "contact_person": "Contact Person",
       "email": "Email",
       "phone": "Phone",
       "status": "Status",
-      "client_since": "Client Since"
+      "client_since": "Client Since",
+      "contact" : "Email & Phone"
     }
   },
     "companies_create": {

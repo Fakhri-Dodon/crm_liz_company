@@ -166,6 +166,13 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
 Route::middleware(['auth', 'verified'])->group(function () {
     // ====================== COMPANY ROUTES ======================
+
+    // ====================== ADDITIONAL COMPANY ROUTES ======================
+    Route::get('/companies/get-accepted-quotations', [CompanyController::class, 'getAcceptedQuotations']);
+    Route::get('/companies/get-lead-from-quotation/{id}', [CompanyController::class, 'getLeadFromQuotation']);
+    Route::get('/companies/get-accepted-quotation/{id}', [CompanyController::class, 'getAcceptedQuotation']);
+    
+
     // Company List & Creation
     Route::get('/companies', [CompanyController::class, 'index'])->name('companies.index');
     Route::get('/companies/create', [CompanyController::class, 'create'])->name('companies.create');
@@ -188,11 +195,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->name('companies.force-delete');
     Route::post('/companies/{company}/restore', [CompanyController::class, 'restore'])
         ->name('companies.restore');
-    
-    // ====================== ADDITIONAL COMPANY ROUTES ======================
-    Route::get('/companies/get-accepted-quotations', [CompanyController::class, 'getAcceptedQuotations']);
-    Route::get('/companies/get-lead-from-quotation/{id}', [CompanyController::class, 'getLeadFromQuotation']);
-    Route::get('/companies/get-accepted-quotation/{id}', [CompanyController::class, 'getAcceptedQuotation']);
     
     // ====================== COMPANY API DATA ENDPOINTS ======================
     Route::prefix('api/companies/{company}')->group(function () {
