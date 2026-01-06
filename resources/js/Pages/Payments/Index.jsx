@@ -1,16 +1,32 @@
 import React, { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import HeaderLayout from "@/Layouts/HeaderLayout";
-import { Head, router } from "@inertiajs/react";
+import { Head, router, useForm } from "@inertiajs/react";
+import TableLayout from "@/Layouts/TableLayout";
+import PrimaryButton from "@/Components/PrimaryButton";
+import { Search, Filter, Calendar, RefreshCw } from 'lucide-react';
+import Swal from 'sweetalert2';
 import { FiEdit2, FiTrash2 } from "react-icons/fi";
 import axios from "axios";
 
+export const toast = (title, icon = 'success') => {
+    const Toast = Swal.mixin({
+        toast: true,
+        position: 'top-end',
+        showConfirmButton: false,
+        timer: 3000,
+        timerProgressBar: true,
+        didOpen: (toast) => {
+            toast.onmouseenter = Swal.stopTimer;
+            toast.onmouseleave = Swal.resumeTimer;
+        }
+    });
+    Toast.fire({ icon: icon, title: title });
+};
+
 export default function PaymentIndex({ payments = [], stats = {}, filters = {} }) {
     const { t } = useTranslation();
-    const [keyword, setKeyword] = useState(filters.keyword || "");
-    const [selectedMethod, setSelectedMethod] = useState(filters.method || "Transfer");
-    const [selectedMonth, setSelectedMonth] = useState(filters.month || "January");
-    const [selectedYear, setSelectedYear] = useState(filters.year || "2024");
+
     const [showAddModal, setShowAddModal] = useState(false);
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [editingPayment, setEditingPayment] = useState(null);
@@ -31,10 +47,102 @@ export default function PaymentIndex({ payments = [], stats = {}, filters = {} }
 
     const paymentMethods = [t("payments.method.transfer"), t("payments.method.cash"), t("payments.method.check")];
     const months = [
-        t("payments.month.january"), t("payments.month.february"), t("payments.month.march"), t("payments.month.april"),
-        t("payments.month.may"), t("payments.month.june"), t("payments.month.july"), t("payments.month.august"),
-        t("payments.month.september"), t("payments.month.october"), t("payments.month.november"), t("payments.month.december")
+        { value: '', label: t('payments.filters.all_months') || 'All Months' },
+        { value: '1', label: t("payments.month.january") }, { value: '2', label: t("payments.month.february") }, { value: '3', label: t("payments.month.march") }, { value: '4', label: t("payments.month.april") },
+        { value: '5', label: t("payments.month.may") }, { value: '6', label: t("payments.month.june") }, { value: '7', label: t("payments.month.july") }, { value: '8', label: t("payments.month.august") },
+        { value: '9', label: t("payments.month.september") }, { value: '10', label: t("payments.month.october") }, { value: '11', label: t("payments.month.november") }, { value: '12', label: t("payments.month.december") }
     ];
+
+    // Filter state (useForm + localFilters for UI)
+    const { data, setData, get } = useForm({
+        keyword: filters.keyword || '',
+        method: filters.method || 'all',
+        month: filters.month || '',
+        year: filters.year || ''
+    });
+
+    const [localFilters, setLocalFilters] = useState({
+        keyword: data.keyword || '',
+        method: data.method || 'all',
+        month: data.month || '',
+        year: data.year || ''
+    });
+
+    useEffect(() => {
+        setLocalFilters({
+            keyword: data.keyword || '',
+            method: data.method || 'all',
+            month: data.month || '',
+            year: data.year || ''
+        });
+    }, [data.keyword, data.method, data.month, data.year]);
+
+    const handleFilterChange = (key, value) => {
+        setLocalFilters(prev => ({ ...prev, [key]: value }));
+        setData(key, value);
+    };
+
+    const applyFilters = () => {
+        get(route('payment.index'), {
+            preserveState: true,
+            preserveScroll: true,
+            replace: true,
+            data: {
+                keyword: localFilters.keyword,
+                method: localFilters.method !== 'all' ? localFilters.method : '',
+                month: localFilters.month,
+                year: localFilters.year
+            }
+        });
+    };
+
+    const resetFilters = () => {
+        const defaultFilters = { keyword: '', method: 'all', month: '', year: '' };
+        setLocalFilters(defaultFilters);
+        setData(defaultFilters);
+        router.get(route('payment.index'), {}, { replace: true, preserveState: false, preserveScroll: true });
+    };
+
+    // Table columns and data
+    // Currency formatter (declare before using it in table data)
+    const formatCurrency = (amount) => {
+        return new Intl.NumberFormat("id-ID").format(amount);
+    };
+
+    const columns = [
+        { key: 'no', label: t('payments.table.no_date') || 'No & Date', render: (value, row) => (
+            <div>
+                <div className="text-blue-600 font-semibold">{value}</div>
+                <div className="text-xs text-gray-500">{row.date}</div>
+            </div>
+        ) },
+        { key: 'invoice', label: t('payments.table.invoice') },
+        { key: 'date', label: t('payments.table.date') },
+        { key: 'company_name', label: t('payments.table.company_name') },
+        { key: 'amount', label: t('payments.table.amount') },
+        { key: 'method', label: t('payments.table.method') },
+        { key: 'bank', label: t('payments.table.bank') },
+        { key: 'note', label: t('payments.table.note') },
+        { key: 'actions', label: t('payments.table.actions'), render: (v, row) => (
+            <>
+                <button onClick={() => handleEditPayment(row.original)} className="mr-2 text-gray-600 hover:text-gray-800">✎</button>
+                <button onClick={() => handleDeletePayment(row.original)} className="text-red-600 hover:text-red-800">🗑</button>
+            </>
+        ) }
+    ];
+
+    const tableData = payments.map((p) => ({
+        id: p.id,
+        no: p.invoice_number || `#${p.id}`,
+        date: p.payment_date,
+        invoice: p.invoice_number,
+        company_name: p.company_name || 'N/A',
+        amount: `Rp ${formatCurrency(p.amount)}`,
+        method: p.methode,
+        bank: p.bank || '-',
+        note: p.note || '-',
+        original: p
+    }));
 
     // Load invoices when modal opens
     useEffect(() => {
@@ -50,22 +158,6 @@ export default function PaymentIndex({ payments = [], stats = {}, filters = {} }
         } catch (error) {
             console.error('Failed to load invoices:', error);
         }
-    };
-
-    const formatCurrency = (amount) => {
-        return new Intl.NumberFormat("id-ID").format(amount);
-    };
-
-    const handleSearch = () => {
-        router.get(route('payment.index'), {
-            keyword,
-            method: selectedMethod,
-            month: selectedMonth,
-            year: selectedYear
-        }, {
-            preserveState: true,
-            preserveScroll: true,
-        });
     };
 
     const handleAddPayment = () => {
@@ -214,219 +306,127 @@ export default function PaymentIndex({ payments = [], stats = {}, filters = {} }
             <Head title={t("payments.title")}/>
             <div className="p-6 bg-gray-50 min-h-screen">
                 {/* Header */}
-                <div className="flex justify-between items-center mb-6">
-                    <h1 className="text-2xl font-bold text-gray-800">{t("payments.title")}</h1>
-                    <button
-                        onClick={handleAddPayment}
-                        className="bg-teal-700 hover:bg-teal-800 text-white px-6 py-2 rounded-md transition-colors"
-                    >
-                        {t("payments.button_add")}
-                    </button>
+                
+
+                {/* Status Summary - styled like Quotations/Invoices */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 my-7">
+                    {(() => {
+                        const statusColors = {
+                            Payments: { bg: 'bg-blue-100', text: 'text-blue-800', border: 'border-blue-200' },
+                            Transfer: { bg: 'bg-green-100', text: 'text-green-800', border: 'border-green-200' },
+                            Cash: { bg: 'bg-yellow-100', text: 'text-yellow-800', border: 'border-yellow-200' },
+                            Check: { bg: 'bg-red-100', text: 'text-red-800', border: 'border-red-200' }
+                        };
+
+                        const summary = {
+                            Payments: stats.total_payment?.count || 0,
+                            Transfer: stats.transfer?.count || 0,
+                            Cash: stats.cash?.count || 0,
+                            Check: stats.check?.count || 0
+                        };
+
+                        const totals = {
+                            Payments: stats.total_payment?.amount || 0,
+                            Transfer: stats.transfer?.amount || 0,
+                            Cash: stats.cash?.amount || 0,
+                            Check: stats.check?.amount || 0
+                        };
+
+                        return Object.entries(statusColors).map(([label, colors]) => (
+                            <div key={label} className={`rounded-xl p-4 sm:p-5 shadow-sm border ${colors.border} ${colors.bg} transition-transform hover:scale-[1.02] hover:shadow-md min-h-[110px] flex flex-col justify-between`}>
+                                <div className="flex items-center justify-between">
+                                    <div>
+                                        <p className={`text-sm font-medium ${colors.text} uppercase tracking-wide`}>
+                                            {label === 'Payments' ? t('payments.title') : label}
+                                        </p>
+                                        <p className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 mt-2">
+                                            {summary[label]}
+                                        </p>
+                                    </div>
+                                    <div className={`p-3 rounded-full ${colors.bg} ${colors.text}`}>
+                                        <div className={`w-3 h-3 rounded-full ${colors.text.replace('text-', 'bg-')}`}></div>
+                                    </div>
+                                </div>
+                                <div className="mt-3 pt-3 border-t border-gray-200">
+                                    <p className="text-sm text-gray-600 font-semibold truncate">
+                                        {totals[label] > 0 ? formatCurrency(totals[label]) : '-'}
+                                    </p>
+                                </div>
+                            </div>
+                        ));
+                    })()}
                 </div>
 
-                {/* Stats Cards */}
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-                    <div className="bg-white border-2 border-blue-500 rounded-lg p-4">
-                        <div className="flex justify-between items-start mb-2">
-                            <div>
-                                <h3 className="text-blue-600 font-semibold text-lg">{t("payments.title")}</h3>
-                                <p className="text-gray-600 text-sm">{t("payments.stats.sent")}</p>
+                {/* Filters & Actions - Quotation style */}
+                <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 md:p-6 mb-6">
+                    <div className="flex flex-col lg:flex-row lg:items-end gap-4">
+                        {/* Search Input */}
+                        <div className="flex-1">
+                            <label className="block text-sm font-medium text-gray-700 mb-2">{t('payments.filters.search_placeholder')}</label>
+                            <div className="relative">
+                                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                                <input
+                                    type="text"
+                                    placeholder={t('payments.filters.search_placeholder')}
+                                    value={localFilters.keyword}
+                                    onChange={(e) => handleFilterChange('keyword', e.target.value)}
+                                    className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#005954] focus:border-transparent transition-colors"
+                                />
                             </div>
-                            <span className="bg-blue-100 text-blue-600 px-3 py-1 rounded-full font-semibold">
-                                {stats.total_payment?.count || 0}
-                            </span>
                         </div>
-                        <div className="text-xl font-bold text-gray-800">
-                            Rp {formatCurrency(stats.total_payment?.amount || 0)}
-                        </div>
-                    </div>
 
-                    <div className="bg-white border-2 border-green-500 rounded-lg p-4">
-                        <div className="flex justify-between items-start mb-2">
-                            <div>
-                                <h3 className="text-green-600 font-semibold text-lg">{t("payments.method.transfer")}</h3>
-                                <p className="text-gray-600 text-sm">{t("payments.stats.sent")}</p>
+                        <div className="grid grid-cols-2 lg:flex lg:space-x-4 gap-4">
+                            <div className="lg:w-40">
+                                <label className="block text-sm font-medium text-gray-700 mb-2">{t('payments.filters.method')}</label>
+                                <select value={localFilters.method} onChange={(e) => handleFilterChange('method', e.target.value)} className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#005954] focus:border-transparent bg-white text-sm">
+                                    <option value="all">{t('payments.filters.all_methods') || 'All Methods'}</option>
+                                    {paymentMethods.map(option => (
+                                        <option key={option} value={option}>{option}</option>
+                                    ))}
+                                </select>
                             </div>
-                            <span className="bg-green-100 text-green-600 px-3 py-1 rounded-full font-semibold">
-                                {stats.transfer?.count || 0}
-                            </span>
-                        </div>
-                        <div className="text-xl font-bold text-gray-800">
-                            Rp {formatCurrency(stats.transfer?.amount || 0)}
-                        </div>
-                    </div>
 
-                    <div className="bg-white border-2 border-yellow-500 rounded-lg p-4">
-                        <div className="flex justify-between items-start mb-2">
-                            <div>
-                                <h3 className="text-yellow-600 font-semibold text-lg">{t("payments.method.cash")}</h3>
-                                <p className="text-gray-600 text-sm">{t("payments.stats.sent")}</p>
+                            <div className="lg:w-40">
+                                <label className="block text-sm font-medium text-gray-700 mb-2">{t('payments.filters.month')}</label>
+                                <div className="relative">
+                                    <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                                    <select value={localFilters.month} onChange={(e) => handleFilterChange('month', e.target.value)} className="w-full pl-9 pr-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#005954] focus:border-transparent bg-white text-sm">
+                                        {months.map(m => (
+                                            <option key={m.value} value={m.value}>{m.label}</option>
+                                        ))}
+                                    </select>
+                                </div>
                             </div>
-                            <span className="bg-yellow-100 text-yellow-600 px-3 py-1 rounded-full font-semibold">
-                                {stats.cash?.count || 0}
-                            </span>
-                        </div>
-                        <div className="text-xl font-bold text-gray-800">
-                            Rp {stats.cash?.amount > 0 ? formatCurrency(stats.cash.amount) : "-"}
-                        </div>
-                    </div>
 
-                    <div className="bg-white border-2 border-red-500 rounded-lg p-4">
-                        <div className="flex justify-between items-start mb-2">
-                            <div>
-                                <h3 className="text-red-600 font-semibold text-lg">{t("payments.method.check")}</h3>
-                                <p className="text-gray-600 text-sm">{t("payments.stats.sent")}</p>
+                            <div className="lg:w-32">
+                                <label className="block text-sm font-medium text-gray-700 mb-2">{t('payments.filters.year')}</label>
+                                <select value={localFilters.year} onChange={(e) => handleFilterChange('year', e.target.value)} className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#005954] focus:border-transparent bg-white text-sm">
+                                    <option value="">{t('payments.filters.all_years') || 'All Years'}</option>
+                                    <option value="2024">2024</option>
+                                    <option value="2025">2025</option>
+                                    <option value="2026">2026</option>
+                                </select>
                             </div>
-                            <span className="bg-red-100 text-red-600 px-3 py-1 rounded-full font-semibold">
-                                {stats.check?.count || 0}
-                            </span>
-                        </div>
-                        <div className="text-xl font-bold text-gray-800">
-                            Rp {stats.check?.amount > 0 ? formatCurrency(stats.check.amount) : "-"}
-                        </div>
-                    </div>
-                </div>
-
-                {/* Filters */}
-                <div className="bg-white rounded-lg p-4 mb-6">
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                        <div className="flex gap-2">
-                            <input
-                                type="text"
-                                placeholder={t("payments.filters.search_placeholder")}
-                                value={keyword}
-                                onChange={(e) => setKeyword(e.target.value)}
-                                className="flex-1 px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500"
-                            />
-                            <button className="bg-gray-200 hover:bg-gray-300 px-6 py-2 rounded-md transition-colors" onClick={handleSearch}>
-                                {t("payments.filters.apply")}
-                            </button>
                         </div>
 
-                        <div>
-                            <select
-                                value={selectedMethod}
-                                onChange={(e) => setSelectedMethod(e.target.value)}
-                                className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500"
-                            >
-                                {paymentMethods.map((method) => (
-                                    <option key={method} value={method}>
-                                        {method}
-                                    </option>
-                                ))}
-                            </select>
-                            <label className="text-xs text-gray-600 ml-1">{t("payments.filters.method")}</label>
-                        </div>
-
-                        <div>
-                            <select
-                                value={selectedMonth}
-                                onChange={(e) => setSelectedMonth(e.target.value)}
-                                className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500"
-                            >
-                                {months.map((month) => (
-                                    <option key={month} value={month}>
-                                        {month}
-                                    </option>
-                                ))}
-                            </select>
-                            <label className="text-xs text-gray-600 ml-1">{t("payments.filters.month")}</label>
-                        </div>
-
-                        <div>
-                            <select
-                                value={selectedYear}
-                                onChange={(e) => setSelectedYear(e.target.value)}
-                                className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500"
-                            >
-                                <option value="2024">2024</option>
-                                <option value="2025">2025</option>
-                                <option value="2026">2026</option>
-                            </select>
-                            <label className="text-xs text-gray-600 ml-1">{t("payments.filters.year")}</label>
+                        <div className="flex flex-col sm:flex-row gap-3 pt-2">
+                            <button onClick={applyFilters} className="px-4 py-2.5 bg-[#005954] text-white rounded-lg hover:bg-[#004d47] flex items-center gap-2 transition-colors justify-center text-sm font-medium"><Filter className="w-4 h-4" />{t('payments.filters.apply')}</button>
+                            <button onClick={resetFilters} className="px-4 py-2.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors flex items-center gap-2 justify-center text-sm font-medium"><RefreshCw className="w-4 h-4" />{t('payments.filters.reset')}</button>
+                            <PrimaryButton onClick={handleAddPayment} className="w-full sm:w-auto px-5 py-2.5 text-white text-sm font-medium rounded-lg">{t('payments.button_add')}</PrimaryButton>
                         </div>
                     </div>
                 </div>
 
-                {/* Table */}
-                <div className="bg-white rounded-lg overflow-hidden shadow">
-                    <div className="overflow-x-auto">
-                        <table className="w-full">
-                            <thead className="bg-green-100">
-                                <tr>
-                                    <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">{t("payments.table.no")}</th>
-                                    <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">{t("payments.table.invoice")}</th>
-                                    <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">{t("payments.table.date")}</th>
-                                    <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">
-                                        <div>{t("payments.table.company_name")}</div>
-                                        <div className="text-xs font-normal text-gray-600">Click to view Client-Profile</div>
-                                    </th>
-                                    <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">{t("payments.table.amount")}</th>
-                                    <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">{t("payments.table.method")}</th>
-                                    <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">{t("payments.table.bank")}</th>
-                                    <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">{t("payments.table.note")}</th>
-                                    <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">{t("payments.table.actions")}</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-gray-200">
-                                {payments.length > 0 ? payments.map((payment, index) => (
-                                    <tr key={payment.id} className="hover:bg-gray-50">
-                                        <td className="px-4 py-3 text-sm">{index + 1}</td>
-                                        <td className="px-4 py-3 text-sm">
-                                            <span className="text-blue-600 font-medium">{payment.invoice_number}</span>
-                                        </td>
-                                        <td className="px-4 py-3 text-sm">{payment.payment_date}</td>
-                                        <td className="px-4 py-3 text-sm">
-                                            {payment.company_id ? (
-                                                <a 
-                                                    href={route('companies.show', payment.company_id)}
-                                                    className="text-blue-600 cursor-pointer hover:underline"
-                                                >
-                                                    {(payment.invoice_number ? payment.invoice_number + ' - ' : '') + (payment.company_name || 'N/A')}
-                                                </a>
-                                            ) : (
-                                                <span>{(payment.invoice_number ? payment.invoice_number + ' - ' : '') + (payment.company_name || 'N/A')}</span>
-                                            )}
-                                        </td>
-                                        <td className="px-4 py-3 text-sm">
-                                            <div>Rp</div>
-                                            <div className="font-medium">{formatCurrency(payment.amount)}</div>
-                                        </td>
-                                        <td className="px-4 py-3 text-sm">
-                                            <span className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-xs font-medium">
-                                                {payment.methode}
-                                            </span>
-                                        </td>
-                                        <td className="px-4 py-3 text-sm">{payment.bank || '-'}</td>
-                                        <td className="px-4 py-3 text-sm">
-                                            <span className="text-red-600">{payment.note || '-'}</span>
-                                        </td>
-                                        <td className="px-4 py-3 text-sm">
-                                            <div className="flex gap-2">
-                                                <button
-                                                    onClick={() => handleEditPayment(payment)}
-                                                    className="p-2 hover:bg-gray-100 rounded transition-colors"
-                                                >
-                                                    <FiEdit2 className="w-4 h-4 text-gray-600" />
-                                                </button>
-                                                <button
-                                                    onClick={() => handleDeletePayment(payment)}
-                                                    className="p-2 hover:bg-gray-100 rounded transition-colors"
-                                                >
-                                                    <FiTrash2 className="w-4 h-4 text-red-600" />
-                                                </button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                )) : (
-                                    <tr>
-                                        <td colSpan="9" className="px-4 py-8 text-center text-gray-500">
-                                            {t("payments.table.no_data") || "No payment data available"}
-                                        </td>
-                                    </tr>
-                                )}
-                            </tbody>
-                        </table>
+                {/* Table - use TableLayout for consistent look */}
+                <div className="py-4">
+                    <div className="overflow-x-auto -mx-4 px-4">
+                        <TableLayout
+                            data={tableData}
+                            columns={columns}
+                            onEdit={handleEditPayment}
+                            onDelete={handleDeletePayment}
+                            showAction={true}
+                        />
                     </div>
                 </div>
 
