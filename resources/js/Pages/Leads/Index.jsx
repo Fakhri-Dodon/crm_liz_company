@@ -583,7 +583,7 @@ export default function LeadsIndex({ leads = [], auth }) {
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
                     <div>
                         <h2 className="text-2xl font-bold text-gray-900">
-                            All Leads Database
+                            {t('leads.title')}
                         </h2>
                     </div>
                     <div className="sm:w-auto">
@@ -602,7 +602,7 @@ export default function LeadsIndex({ leads = [], auth }) {
             </div>
 
             {/* ACTION BAR */}
-            <div className="bg-white border-b border-gray-200 px-8 py-6">
+            <div className="bg-white border-b border-gray-200 px-8">
                 <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
                     {/* FILTERS SECTION */}
                     <div className="w-full">
@@ -616,7 +616,7 @@ export default function LeadsIndex({ leads = [], auth }) {
                                 </div>
                                 <input
                                     type="text"
-                                    placeholder="Search leads by company, contact, or email..."
+                                    placeholder={t('leads.filters.search_placeholder')}
                                     value={search}
                                     onChange={(e) => setSearch(e.target.value)}
                                     className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm transition-all duration-200"
@@ -770,7 +770,7 @@ export default function LeadsIndex({ leads = [], auth }) {
                         </div>
                         
                         {/* Table Footer */}
-                        <div className="px-6 py-4 border-t border-gray-100 bg-gray-50">
+                        {/* <div className="px-6 py-4 border-t border-gray-100 bg-gray-50">
                             <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
                                 <div className="text-sm text-gray-600">
                                     {t("leads.table.showing_info", { count: filteredLeads.length })}
@@ -785,7 +785,7 @@ export default function LeadsIndex({ leads = [], auth }) {
                                     })}
                                 </div>
                             </div>
-                        </div>
+                        </div> */}
                     </div>
                 )}
             </div>

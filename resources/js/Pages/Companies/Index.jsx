@@ -26,6 +26,8 @@ import {
 const CompaniesIndex = () => {
     const { companies, statistics, types, filters, fromQuotation, quotationId } = usePage().props;
     const { t } = useTranslation();
+
+    console.log('DEBUG: Props Received:', { quotationId });
     
     const [search, setSearch] = useState(filters.search || '');
     const [selectedType, setSelectedType] = useState(filters.client_type_id || '');
@@ -288,8 +290,8 @@ const handleStatusUpdate = async (companyId, newStatus) => {
             )
         },
         {
-            key: "name",
-            label: t('companies.table.company_name'),
+            key: "address",
+            label: t('companies.table.address'),
             render: (value, row) => {
                 const isActive = row.is_active;
                 return (
@@ -307,34 +309,21 @@ const handleStatusUpdate = async (companyId, newStatus) => {
             }
         },
         {
-            key: "client_type_name",
-            label: t('companies.table.client_type'),
-            render: (value) => (
-                <span className="text-gray-700">
-                    {value || '-'}
-                </span>
-            )
-        },
-        {
             key: "contact_person",
             label: t('companies.table.contact_person'),
         },
         {
-            key: "email",
-            label: t('companies.table.email'),
-            render: (value) => (
-                <span className="text-gray-700">
-                    {value || '-'}
-                </span>
-            )
-        },
-        {
-            key: "phone",
-            label: t('companies.table.phone'),
-            render: (value) => (
-                <span className="text-gray-700">
-                    {value || '-'}
-                </span>
+            key: "contact_info",
+            label: t('companies.table.contact'),
+            render: (_, record) => (
+                <div className="flex flex-col">
+                    <span className="text-sm font-medium text-gray-900">
+                        {record.email || '-'}
+                    </span>
+                    <span className="text-xs text-gray-500 font-normal">
+                        {record.phone || '-'}
+                    </span>
+                </div>
             )
         },
         {
@@ -411,7 +400,7 @@ const handleStatusUpdate = async (companyId, newStatus) => {
     const tableData = companies.data?.map((company, index) => ({
         id: company.id,
         client_code: company.client_code || '-',
-        name: company.name || '-',
+        address: company.address || '-',
         client_type_name: company.client_type?.name || t('companies.unknown'),
         contact_person: company.contact_person || '-',
         email: company.email || '-',

@@ -98,13 +98,14 @@
     "delete_failed_try_again": "Gagal menghapus. Silakan coba lagi.",
     "table": {
       "client_code": "Kode Klien",
-      "company_name": "Nama Perusahaan",
+      "address": "Alamat",
       "client_type": "Tipe Klien",
       "contact_person": "Kontak Person",
       "email": "Email",
       "phone": "Telepon",
       "status": "Status",
-      "client_since": "Klien Sejak"
+      "client_since": "Klien Sejak",
+      "contact" : "Email & Telepon"
     }
   },
     "companies_create": {
