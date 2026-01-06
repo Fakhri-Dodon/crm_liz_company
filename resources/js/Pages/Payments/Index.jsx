@@ -53,6 +53,36 @@ export default function PaymentIndex({ payments = [], stats = {}, filters = {} }
         { value: '9', label: t("payments.month.september") }, { value: '10', label: t("payments.month.october") }, { value: '11', label: t("payments.month.november") }, { value: '12', label: t("payments.month.december") }
     ];
 
+    // Small colors/config to mimic Project card style ✅
+    const statColors = {
+        total_payment: {
+            bg: 'bg-blue-100',
+            text: 'text-blue-800',
+            border: 'border-blue-200',
+            icon: '📊'
+        },
+        transfer: {
+            bg: 'bg-green-100',
+            text: 'text-green-800',
+            border: 'border-green-200',
+            icon: '💸'
+        },
+        cash: {
+            bg: 'bg-yellow-100',
+            text: 'text-yellow-800',
+            border: 'border-yellow-200',
+            icon: '💵'
+        },
+        check: {
+            bg: 'bg-red-100',
+            text: 'text-red-800',
+            border: 'border-red-200',
+            icon: '🧾'
+        }
+    };
+
+    const methodsToShow = ['total_payment', 'transfer', 'cash', 'check'];
+
     // Filter state (useForm + localFilters for UI)
     const { data, setData, get } = useForm({
         keyword: filters.keyword || '',
@@ -311,67 +341,35 @@ export default function PaymentIndex({ payments = [], stats = {}, filters = {} }
                     </button>
                 </div>
 
-                {/* Stats Cards */}
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-                    <div className="bg-white border-2 border-blue-500 rounded-lg p-4">
-                        <div className="flex justify-between items-start mb-2">
-                            <div>
-                                <h3 className="text-blue-600 font-semibold text-lg">{t("payments.title")}</h3>
-                                <p className="text-gray-600 text-sm">{t("payments.stats.sent")}</p>
-                            </div>
-                            <span className="bg-blue-100 text-blue-600 px-3 py-1 rounded-full font-semibold">
-                                {stats.total_payment?.count || 0}
-                            </span>
-                        </div>
-                        <div className="text-xl font-bold text-gray-800">
-                            Rp {formatCurrency(stats.total_payment?.amount || 0)}
-                        </div>
-                    </div>
+                {/* Stats Cards (updated style similar to Project) */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                    {methodsToShow.map((key) => {
+                        const colors = statColors[key];
+                        const label = key === 'total_payment' ? t('payments.title') : t(`payments.method.${key}`);
+                        const count = key === 'total_payment' ? (stats.total_payment?.count || 0) : (stats[key]?.count || 0);
+                        const amount = key === 'total_payment' ? (stats.total_payment?.amount || 0) : (stats[key]?.amount || 0);
 
-                    <div className="bg-white border-2 border-green-500 rounded-lg p-4">
-                        <div className="flex justify-between items-start mb-2">
-                            <div>
-                                <h3 className="text-green-600 font-semibold text-lg">{t("payments.method.transfer")}</h3>
-                                <p className="text-gray-600 text-sm">{t("payments.stats.sent")}</p>
+                        return (
+                            <div key={key} className={`rounded-xl p-5 shadow-sm border ${colors.border} ${colors.bg} transition-transform hover:scale-[1.02] hover:shadow-md`}>
+                                <div className="flex items-center justify-between">
+                                    <div>
+                                        <p className={`text-sm font-medium ${colors.text} uppercase tracking-wide`}>
+                                            {label}
+                                        </p>
+                                        <p className="text-2xl md:text-3xl font-bold text-gray-900 mt-2">
+                                            {count}
+                                        </p>
+                                        <p className="text-xs text-gray-500 mt-2">
+                                            Rp {formatCurrency(amount)}
+                                        </p>
+                                    </div>
+                                    <div className={`p-3 rounded-full ${colors.bg}`}>
+                                        <span className="text-lg">{colors.icon}</span>
+                                    </div>
+                                </div>
                             </div>
-                            <span className="bg-green-100 text-green-600 px-3 py-1 rounded-full font-semibold">
-                                {stats.transfer?.count || 0}
-                            </span>
-                        </div>
-                        <div className="text-xl font-bold text-gray-800">
-                            Rp {formatCurrency(stats.transfer?.amount || 0)}
-                        </div>
-                    </div>
-
-                    <div className="bg-white border-2 border-yellow-500 rounded-lg p-4">
-                        <div className="flex justify-between items-start mb-2">
-                            <div>
-                                <h3 className="text-yellow-600 font-semibold text-lg">{t("payments.method.cash")}</h3>
-                                <p className="text-gray-600 text-sm">{t("payments.stats.sent")}</p>
-                            </div>
-                            <span className="bg-yellow-100 text-yellow-600 px-3 py-1 rounded-full font-semibold">
-                                {stats.cash?.count || 0}
-                            </span>
-                        </div>
-                        <div className="text-xl font-bold text-gray-800">
-                            Rp {stats.cash?.amount > 0 ? formatCurrency(stats.cash.amount) : "-"}
-                        </div>
-                    </div>
-
-                    <div className="bg-white border-2 border-red-500 rounded-lg p-4">
-                        <div className="flex justify-between items-start mb-2">
-                            <div>
-                                <h3 className="text-red-600 font-semibold text-lg">{t("payments.method.check")}</h3>
-                                <p className="text-gray-600 text-sm">{t("payments.stats.sent")}</p>
-                            </div>
-                            <span className="bg-red-100 text-red-600 px-3 py-1 rounded-full font-semibold">
-                                {stats.check?.count || 0}
-                            </span>
-                        </div>
-                        <div className="text-xl font-bold text-gray-800">
-                            Rp {stats.check?.amount > 0 ? formatCurrency(stats.check.amount) : "-"}
-                        </div>
-                    </div>
+                        );
+                    })}
                 </div>
 
                 {/* Filters & Actions - Quotation style */}
