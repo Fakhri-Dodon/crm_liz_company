@@ -123,12 +123,7 @@ export default function PaymentIndex({ payments = [], stats = {}, filters = {} }
         { key: 'method', label: t('payments.table.method') },
         { key: 'bank', label: t('payments.table.bank') },
         { key: 'note', label: t('payments.table.note') },
-        { key: 'actions', label: t('payments.table.actions'), render: (v, row) => (
-            <>
-                <button onClick={() => handleEditPayment(row.original)} className="mr-2 text-gray-600 hover:text-gray-800">✎</button>
-                <button onClick={() => handleDeletePayment(row.original)} className="text-red-600 hover:text-red-800">🗑</button>
-            </>
-        ) }
+        
     ];
 
     const tableData = payments.map((p) => ({
