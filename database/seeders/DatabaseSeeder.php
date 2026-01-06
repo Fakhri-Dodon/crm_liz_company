@@ -20,7 +20,7 @@ class DatabaseSeeder extends Seeder
 
         $this->call([
             UserSeeder::class,
-            ClientTypeSeeder::class,
+            ClientTypesTableSeeder::class,
             MenuSeeder::class,
             ProposalNumberFormatedSeeder::class,
             // QuotationsTableSeeder::class,

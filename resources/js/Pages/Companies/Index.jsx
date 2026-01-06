@@ -535,7 +535,7 @@ const handleStatusUpdate = async (companyId, newStatus) => {
                                         <Building className="w-6 h-6 text-blue-600" />
                                     </div>
                                 </div>
-                                <div className="mt-3 pt-3 border-t border-gray-200">
+                                {/* <div className="mt-3 pt-3 border-t border-gray-200">
                                     <button 
                                         onClick={() => handleTypeFilter(typeData.id)}
                                         className="text-sm font-medium text-blue-700 bg-blue-50 hover:opacity-90 px-4 py-1.5 rounded-full transition-colors duration-200 w-full text-center"
@@ -545,7 +545,7 @@ const handleStatusUpdate = async (companyId, newStatus) => {
                                             : t('companies.view_clients')
                                         }
                                     </button>
-                                </div>
+                                </div> */}
                             </div>
                         );
                     })}
@@ -668,7 +668,7 @@ const handleStatusUpdate = async (companyId, newStatus) => {
                 </div>
 
                 {/* Quick Summary */}
-                <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
+                {/* <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
                     <h3 className="text-lg font-semibold text-gray-900 mb-4">
                         {t('companies.quick_summary')}
                     </h3>
@@ -690,10 +690,10 @@ const handleStatusUpdate = async (companyId, newStatus) => {
                             <div className="text-sm text-gray-600">{t('companies.currently_displayed')}</div>
                         </div>
                     </div>
-                </div>
+                </div> */}
 
                 {/* Help Section */}
-                <div className="bg-blue-50 border border-blue-200 rounded-xl p-6">
+                {/* <div className="bg-blue-50 border border-blue-200 rounded-xl p-6">
                     <h3 className="text-lg font-semibold text-blue-900 mb-3 flex items-center gap-2">
                         <FileText className="w-5 h-5" />
                         {t('companies.need_help')}
@@ -709,7 +709,7 @@ const handleStatusUpdate = async (companyId, newStatus) => {
                         <li>{t('companies.tip_select_multiple_clients')}</li>
                         <li>{t('companies.tip_click_status_to_update')}</li>
                     </ul>
-                </div>
+                </div> */}
             </div>
         </>
     );

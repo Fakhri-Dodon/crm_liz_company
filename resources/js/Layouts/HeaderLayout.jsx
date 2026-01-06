@@ -708,7 +708,7 @@ export default function HeaderLayout({ header, children, }) {
                     <Dropdown>
                         <Dropdown.Trigger>
                             <div className="flex flex-col items-center p-2 hover:bg-gray-50 rounded-xl transition-all group cursor-pointer border-l border-gray-100 ml-1 pl-3">
-                                <div className="bg-teal-100 p-1 rounded-full text-teal-700 mb-1">
+                                <div className="bg-blue-100 p-1 rounded-full text-teal-700 mb-1">
                                     <User size={18} />
                                 </div>
                                 <span className="text-[10px] font-bold text-gray-700 truncate max-w-[60px]">
