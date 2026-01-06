@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
+import { X, FileText } from 'lucide-react'; // Pastikan lucide-react terinstall
 
-const ModalAdd = ({ isOpen, onClose, title, children, footer }) => {
+const ModalAdd = ({ isOpen, onClose, title, subtitle, children, footer, icon: Icon = FileText }) => {
     // Menutup modal dengan tombol Escape
     useEffect(() => {
         const handleEsc = (event) => {
@@ -13,39 +14,55 @@ const ModalAdd = ({ isOpen, onClose, title, children, footer }) => {
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center overflow-x-hidden overflow-y-auto outline-none focus:outline-none">
-            {/* Overlay / Background Gelap */}
-            <div 
-                className="fixed inset-0 bg-black opacity-50 transition-opacity" 
-                onClick={onClose}
-            ></div>
-
-            {/* Konten Modal */}
-            <div className="relative w-full max-w-lg mx-auto my-6 z-50">
-                <div className="relative flex flex-col w-full bg-white border-0 rounded-lg shadow-xl outline-none focus:outline-none">
+        <div className="fixed inset-0 bg-gray-900/50 backdrop-blur-sm overflow-y-auto h-full w-full z-50 transition-all duration-300">
+            <div className="relative min-h-screen flex items-center justify-center p-4">
+                <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl transform transition-all">
                     
                     {/* Header */}
-                    <div className="flex items-start justify-between p-5 border-b border-solid border-gray-200 rounded-t">
-                        <h3 className="text-xl font-semibold text-gray-800">
-                            {title || 'Input Data'}
-                        </h3>
+                    <div className="flex items-center justify-between p-6 border-b border-gray-100">
+                        <div className="flex items-center gap-3">
+                            <div className="p-2 bg-[#005954]/10 rounded-lg">
+                                <Icon className="w-6 h-6 text-[#005954]" />
+                            </div>
+                            <div>
+                                <h3 className="text-xl font-bold text-gray-900">
+                                    {title || 'Input Data'}
+                                </h3>
+                                {subtitle && (
+                                    <p className="text-sm text-gray-500 mt-1">
+                                        {subtitle}
+                                    </p>
+                                )}
+                            </div>
+                        </div>
                         <button
-                            className="p-1 ml-auto bg-transparent border-0 text-gray-500 float-right text-2xl leading-none font-semibold outline-none focus:outline-none hover:text-red-500"
                             onClick={onClose}
+                            className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
                         >
-                            ×
+                            <X className="w-5 h-5" />
                         </button>
                     </div>
 
-                    {/* Body (Input Data dikirim ke sini) */}
-                    <div className="relative p-6 flex-auto">
+                    {/* Body */}
+                    <div className="p-6 max-h-[70vh] overflow-y-auto">
                         {children}
                     </div>
 
-                    {/* Footer (Opsional) */}
-                    {footer && (
-                        <div className="flex items-center justify-end p-4 border-t border-solid border-gray-200 rounded-b gap-2">
+                    {/* Footer */}
+                    {footer ? (
+                        <div className="p-6 border-t border-gray-100 flex flex-col-reverse sm:flex-row gap-3">
                             {footer}
+                        </div>
+                    ) : (
+                        // Default Footer jika tidak ada prop footer yang dikirim
+                        <div className="p-6 border-t border-gray-100 flex flex-col-reverse sm:flex-row gap-3">
+                            <button
+                                type="button"
+                                onClick={onClose}
+                                className="px-6 py-3 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 transition-colors font-medium flex-1"
+                            >
+                                Cancel
+                            </button>
                         </div>
                     )}
                 </div>

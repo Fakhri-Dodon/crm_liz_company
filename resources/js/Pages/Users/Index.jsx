@@ -7,7 +7,12 @@ import ModalAdd from "@/Components/ModalAdd";
 import { toast } from "react-hot-toast";
 import { useTranslation } from "react-i18next";
 
-export default function UsersIndex({ users, roles, templates, auth_permissions }) {
+export default function UsersIndex({
+    users,
+    roles,
+    templates,
+    auth_permissions,
+}) {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editId, setEditId] = useState(null);
     const [isSendingEmail, setIsSendingEmail] = useState(false);
@@ -18,7 +23,7 @@ export default function UsersIndex({ users, roles, templates, auth_permissions }
 
     const canRead = auth_permissions.can_read === 1;
     const canCreate = auth_permissions.can_create === 1;
-    const canUpdate   = auth_permissions.can_update === 1;
+    const canUpdate = auth_permissions.can_update === 1;
     const canDelete = auth_permissions.can_delete === 1;
 
     const { t } = useTranslation();
@@ -35,27 +40,27 @@ export default function UsersIndex({ users, roles, templates, auth_permissions }
     const columns = [
         {
             key: "name",
-            label: t('users.table.name') || "Name",
+            label: t("users.table.name") || "Name",
         },
         {
             key: "position",
-            label: t('users.table.position') || "Position",
+            label: t("users.table.position") || "Position",
         },
         {
             key: "role",
-            label: t('users.table.role') || "Role",
+            label: t("users.table.role") || "Role",
         },
         {
             key: "email",
-            label: t('users.table.email') || "Email",
+            label: t("users.table.email") || "Email",
         },
         {
             key: "phone",
-            label: t('users.table.phone') || "Phone",
+            label: t("users.table.phone") || "Phone",
         },
         {
             key: "last_seen",
-            label: t('users.table.last_seen') || "Last Seen",
+            label: t("users.table.last_seen") || "Last Seen",
         },
     ];
 
@@ -130,7 +135,9 @@ export default function UsersIndex({ users, roles, templates, auth_permissions }
                 },
                 onError: (err) => {
                     console.error("Terjadi kesalahan:", err);
-                    toast.error("Terjadi kesalahan saat menghapus user.", { id: toastId });
+                    toast.error("Terjadi kesalahan saat menghapus user.", {
+                        id: toastId,
+                    });
                 },
             });
         }
@@ -189,44 +196,62 @@ export default function UsersIndex({ users, roles, templates, auth_permissions }
             <ModalAdd
                 isOpen={isModalOpen}
                 onClose={() => setIsModalOpen(false)}
-                title={editId ? t('users.modals.edit_title') || "Edit User" : t('users.modals.add_title') || "Add User"}
+                title={
+                    editId
+                        ? t("users.modals.edit_title") || "Edit User"
+                        : t("users.modals.add_title") || "Add User"
+                }
+                subtitle={
+                    editId
+                        ? "Update existing user information"
+                        : "Create a new user account"
+                }
                 footer={
                     <>
                         <button
                             onClick={() => setIsModalOpen(false)}
-                            className="text-gray-500 hover:text-gray-700 font-bold px-4 py-2"
+                            className="px-6 py-3 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 transition-colors font-medium flex-1"
                         >
-                            {t('users.modals.btn_cancel') || "Cancel"}
+                            {t("users.modals.btn_cancel") || "Cancel"}
                         </button>
-                        <PrimaryButton
+                        <button
                             onClick={handleSubmit}
                             disabled={processing}
-                            className="w-full sm:w-auto px-5 py-2.5 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-all duration-200 flex items-center justify-center gap-2 shadow-sm hover:shadow focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                            className="px-6 py-3 bg-[#005954] text-white rounded-xl hover:bg-[#004d47] transition-colors font-medium flex-1 disabled:opacity-50 flex items-center justify-center gap-2 shadow-sm"
                         >
-                            <svg
-                                className="h-4 w-4"
-                                fill="none"
-                                viewBox="0 0 24 24"
-                                stroke="currentColor"
-                            >
-                                <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    strokeWidth={2}
-                                    d="M12 4v16m8-8H4"
-                                />
-                            </svg>
-                            <span>{editId ? t('users.modals.btn_update') || "Update" : t('users.modals.btn_add') || "Add"}</span>
-                        </PrimaryButton>
+                            {processing ? (
+                                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                            ) : (
+                                <svg
+                                    className="h-4 w-4"
+                                    fill="none"
+                                    viewBox="0 0 24 24"
+                                    stroke="currentColor"
+                                >
+                                    <path
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        strokeWidth={2}
+                                        d="M12 4v16m8-8H4"
+                                    />
+                                </svg>
+                            )}
+                            <span>
+                                {editId
+                                    ? t("users.modals.btn_update") || "Update"
+                                    : t("users.modals.btn_add") || "Add"}
+                            </span>
+                        </button>
                     </>
                 }
             >
-                {/* Isi Form Input Di Sini (Children) */}
-                    <div className="space-y-4">
-                    <div className="flex flex-col sm:flex-row gap-4">
-                        <div className="flex-1">
-                            <label className="block text-sm font-medium text-gray-700">
-                                {t('users.modals.label_name') || "Name*"}
+                {/* Isi Form dengan Style Modern */}
+                <div className="space-y-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        {/* Name */}
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                                {t("users.modals.label_name") || "Name*"}
                             </label>
                             <input
                                 type="text"
@@ -234,89 +259,102 @@ export default function UsersIndex({ users, roles, templates, auth_permissions }
                                 onChange={(e) =>
                                     setData("name", e.target.value)
                                 }
-                                className="mt-1 block w-full border border-gray-300 rounded-md p-2 focus:ring-indigo-500 focus:border-indigo-500"
+                                placeholder="Full Name"
+                                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#005954] focus:border-transparent transition-colors"
                             />
                         </div>
-                        <div className="flex-1">
-                            <label className="block text-sm font-medium text-gray-700">
-                                {t('users.modals.label_position') || "Position*"}
+
+                        {/* Position */}
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                                {t("users.modals.label_position") ||
+                                    "Position*"}
                             </label>
                             <input
+                                type="text"
                                 value={data.position}
                                 onChange={(e) =>
                                     setData("position", e.target.value)
                                 }
-                                type="text"
-                                className="mt-1 block w-full border border-gray-300 rounded-md p-2 focus:ring-indigo-500 focus:border-indigo-500"
+                                placeholder="Job Position"
+                                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#005954] focus:border-transparent transition-colors"
                             />
                         </div>
                     </div>
 
-                    <div className="flex flex-col sm:flex-row gap-4">
-                        <div className="flex-1">
-                            <label className="block text-sm font-medium text-gray-700">
-                                {t('users.modals.label_email') || "Email*"}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        {/* Email */}
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                                {t("users.modals.label_email") || "Email*"}
                             </label>
                             <input
+                                type="email"
                                 value={data.email}
                                 onChange={(e) =>
                                     setData("email", e.target.value)
                                 }
-                                type="text"
-                                className="mt-1 block w-full border border-gray-300 rounded-md p-2 focus:ring-indigo-500 focus:border-indigo-500"
+                                placeholder="email@example.com"
+                                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#005954] focus:border-transparent transition-colors"
                             />
                         </div>
-                        <div className="flex-1">
-                            <label className="block text-sm font-medium text-gray-700">
-                                {t('users.modals.label_phone') || "Phone*"}
+
+                        {/* Phone */}
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                                {t("users.modals.label_phone") || "Phone*"}
                             </label>
                             <input
+                                type="text"
                                 value={data.phone}
                                 onChange={(e) =>
                                     setData("phone", e.target.value)
                                 }
-                                type="text"
-                                className="mt-1 block w-full border border-gray-300 rounded-md p-2 focus:ring-indigo-500 focus:border-indigo-500"
+                                placeholder="Phone Number"
+                                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#005954] focus:border-transparent transition-colors"
                             />
                         </div>
                     </div>
 
-                    <div className="flex flex-col sm:flex-row gap-4">
-                        <div className="flex-1">
-                            <label className="block text-sm font-medium text-gray-700">
-                                {t('users.modals.label_role') || "Role*"}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        {/* Role Selection */}
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                                {t("users.modals.label_role") || "Role*"}
                             </label>
                             <select
                                 value={data.role_id}
                                 onChange={(e) =>
                                     setData("role_id", e.target.value)
                                 }
-                                className="mt-1 block w-full border border-gray-300 rounded-md p-2 focus:ring-indigo-500 focus:border-indigo-500"
+                                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#005954] focus:border-transparent transition-colors appearance-none"
                             >
-                                <option value="">{t('users.modals.choose_role') || "-- Choose Role --"}</option>
-
-                                {roles && roles.length > 0 ? (
-                                    roles.map((role) => (
-                                        <option key={role.id} value={role.id}>
-                                            {role.name}
-                                        </option>
-                                    ))
-                                ) : (
-                                    <option disabled>{t('users.modals.no_roles') || "No roles available"}</option>
-                                )}
+                                <option value="">
+                                    {t("users.modals.choose_role") ||
+                                        "-- Choose Role --"}
+                                </option>
+                                {roles?.map((role) => (
+                                    <option key={role.id} value={role.id}>
+                                        {role.name}
+                                    </option>
+                                ))}
                             </select>
                         </div>
-                        <div className="flex-1">
-                            <label className="block text-sm font-medium text-gray-700">
-                                {t('users.modals.label_password') || "Password*"}
+
+                        {/* Password */}
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                                {t("users.modals.label_password") ||
+                                    "Password*"}
                             </label>
                             <input
+                                type="password"
                                 value={data.password}
                                 onChange={(e) =>
                                     setData("password", e.target.value)
                                 }
-                                type="password"
-                                className="mt-1 block w-full border border-gray-300 rounded-md p-2 focus:ring-indigo-500 focus:border-indigo-500"
+                                placeholder="••••••••"
+                                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#005954] focus:border-transparent transition-colors"
                             />
                         </div>
                     </div>
@@ -330,10 +368,12 @@ export default function UsersIndex({ users, roles, templates, auth_permissions }
 
                         <div className="text-center">
                             <p className="font-bold text-gray-800 text-lg">
-                                {t('users.email_overlay.sending') || "Sending Email..."}
+                                {t("users.email_overlay.sending") ||
+                                    "Sending Email..."}
                             </p>
                             <p className="text-sm text-gray-500">
-                                {t('users.email_overlay.wait') || "Please wait while we process your request."}
+                                {t("users.email_overlay.wait") ||
+                                    "Please wait while we process your request."}
                             </p>
                         </div>
 
@@ -341,7 +381,7 @@ export default function UsersIndex({ users, roles, templates, auth_permissions }
                             onClick={() => setIsSendingEmail(false)}
                             className="mt-2 text-xs text-gray-400 hover:text-gray-600 underline"
                         >
-                            {t('users.email_overlay.hide') || "Cancel"}
+                            {t("users.email_overlay.hide") || "Cancel"}
                         </button>
                     </div>
                 </div>
@@ -369,10 +409,12 @@ export default function UsersIndex({ users, roles, templates, auth_permissions }
 
                             <div className="text-center mb-6">
                                 <h3 className="text-xl font-black text-gray-800">
-                                    {t('users.email_modal.title') || "Send Email Template"}
+                                    {t("users.email_modal.title") ||
+                                        "Send Email Template"}
                                 </h3>
                                 <p className="text-sm text-gray-500">
-                                    {t('users.email_modal.subtitle') || "Send message to"}{" "}
+                                    {t("users.email_modal.subtitle") ||
+                                        "Send message to"}{" "}
                                     <span className="font-bold text-gray-700">
                                         {selectedUser?.name}
                                     </span>
@@ -381,13 +423,22 @@ export default function UsersIndex({ users, roles, templates, auth_permissions }
 
                             {/* DROPDOWN PILIHAN TEMPLATE */}
                             <div className="space-y-2 text-left mb-6">
-                                <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">{t('users.email_modal.label_template') || "Choose Email Template"}</label>
-                                <select 
-                                        value={selectedTemplateId}
-                                        onChange={(e) => setSelectedTemplateId(e.target.value)}
-                                        className="w-full border border-gray-200 rounded-xl p-2 focus:ring-blue-500 focus:border-blue-500 bg-gray-50 text-sm"
-                                    >
-                                    <option value="" disabled>{t('users.email_modal.choose_template') || "-- Choose Template --"}</option>
+                                <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">
+                                    {t("users.email_modal.label_template") ||
+                                        "Choose Email Template"}
+                                </label>
+                                <select
+                                    value={selectedTemplateId}
+                                    onChange={(e) =>
+                                        setSelectedTemplateId(e.target.value)
+                                    }
+                                    className="w-full border border-gray-200 rounded-xl p-2 focus:ring-blue-500 focus:border-blue-500 bg-gray-50 text-sm"
+                                >
+                                    <option value="" disabled>
+                                        {t(
+                                            "users.email_modal.choose_template"
+                                        ) || "-- Choose Template --"}
+                                    </option>
                                     {templates.map((t) => (
                                         <option key={t.id} value={t.id}>
                                             {t.name} - {t.subject}
@@ -409,32 +460,33 @@ export default function UsersIndex({ users, roles, templates, auth_permissions }
                                 onClick={() => setEmailModalOpen(false)}
                                 className="flex-1 px-4 py-3 text-gray-500 font-bold hover:bg-white rounded-xl transition-all border border-transparent hover:border-gray-200"
                             >
-                                {t('users.email_modal.btn_cancel') || "Cancel"}
+                                {t("users.email_modal.btn_cancel") || "Cancel"}
                             </button>
                             <button
                                 onClick={confirmSendEmail}
                                 className="flex-1 px-4 py-3 bg-blue-600 text-white font-bold rounded-xl shadow-lg shadow-blue-200 hover:bg-blue-700 active:scale-95 transition-all"
                             >
-                                {t('users.email_modal.btn_send') || "Send Email"}
+                                {t("users.email_modal.btn_send") ||
+                                    "Send Email"}
                             </button>
                         </div>
                     </div>
                 </div>
             )}
 
-            <HeaderLayout title={t('users.title')} />
+            <HeaderLayout title={t("users.title")} />
 
             <div className="px-4 sm:px-8 py-6">
                 <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
-                    <h1 className="text-xl font-black uppercase tracking-widest text-gray-800">
-                        {t('users.title')}
+                    <h1 className="text-2xl font-bold text-gray-800">
+                        {t("users.title")}
                     </h1>
 
                     {/* ADD BUTTON */}
                     {canCreate && (
                         <PrimaryButton
                             onClick={handleAdd}
-                            className="w-full sm:w-auto px-5 py-2.5 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-all duration-200 flex items-center justify-center gap-2 shadow-sm hover:shadow focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                            className="w-full sm:w-auto px-5 py-2.5 text-white text-sm font-medium rounded-lg hover:bg-[#004d47] transition-all duration-200 flex items-center justify-center gap-2 shadow-sm hover:shadow focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
                         >
                             <svg
                                 className="h-4 w-4"
@@ -449,7 +501,7 @@ export default function UsersIndex({ users, roles, templates, auth_permissions }
                                     d="M12 4v16m8-8H4"
                                 />
                             </svg>
-                            <span>{t('users.button_add')}</span>
+                            <span>{t("users.button_add")}</span>
                         </PrimaryButton>
                     )}
                 </div>

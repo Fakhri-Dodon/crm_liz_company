@@ -50,7 +50,7 @@ export default function Builder({ title, data, setData, renderEditor, renderPrev
             
             {/* Sidebar Editor */}
             <div className="w-[360px] bg-[#fdfdfd] border-r-4 border-[#2d6a4f] overflow-y-auto p-5 shadow-xl">
-                <h2 className="text-gray-500 font-black text-lg mb-6 italic uppercase tracking-tighter">{title}</h2>
+                <h2 className="text-gray-500 font-black text-lg mb-6 uppercase tracking-tighter">{title}</h2>
                 {renderEditor({ data, updateField, updateItem, addItem, removeItem })}
             </div>
 
