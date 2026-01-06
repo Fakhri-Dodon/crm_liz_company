@@ -3,6 +3,7 @@
 use App\Http\Controllers\LeadController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\ProposalController;
+use App\Http\Controllers\CompanyController;
 use App\Models\User;
 
 Route::get('/test', [LeadController::class, 'test']);
@@ -62,6 +63,7 @@ Route::get('/users', function () {
         ], 500);
     }
 });
+
 
 // Statuses API
 Route::get('/lead-statuses', [LeadController::class, 'getStatuses']);
