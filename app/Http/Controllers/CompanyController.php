@@ -3171,4 +3171,27 @@ public function updateContact(Request $request, $companyId, $contactId)
         }
     }
 
+// CompanyController.php
+public function updateStatus(Request $request, $company)
+{
+    // Cari company
+    $companyModel = Company::where('id', $company)->firstOrFail();
+    
+    // Validasi
+    $validated = $request->validate([
+        'is_active' => 'required|boolean'
+    ]);
+    
+    // Update status
+    $companyModel->update([
+        'is_active' => $validated['is_active']
+    ]);
+    
+    // Return Inertia response dengan data yang diperbarui
+    return back()->with([
+        'success' => 'Status updated successfully',
+        'updated_company' => $companyModel->id
+    ]);
+}
+
 }

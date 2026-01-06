@@ -170,23 +170,29 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/companies', [CompanyController::class, 'index'])->name('companies.index');
     Route::get('/companies/create', [CompanyController::class, 'create'])->name('companies.create');
     Route::post('/companies', [CompanyController::class, 'store'])->name('companies.store');
-    // Untuk Create Company - Get Accepted Quotations
-    // Additional company routes untuk Create.jsx
-    Route::get('/companies/get-accepted-quotations', [CompanyController::class, 'getAcceptedQuotations']);
-    Route::get('/companies/get-lead-from-quotation/{id}', [CompanyController::class, 'getLeadFromQuotation']);
-    Route::get('/companies/get-accepted-quotation/{id}', [CompanyController::class, 'getAcceptedQuotation']);    // Company Detail - ROUTE UTAMA untuk halaman profil
+    
+    // Company Detail - ROUTE UTAMA untuk halaman profil
     Route::get('/companies/{company}', [CompanyController::class, 'show'])->name('companies.show');
     
     // Company Edit & Update
     Route::get('/companies/{company}/edit', [CompanyController::class, 'edit'])->name('companies.edit');
     Route::put('/companies/{company}', [CompanyController::class, 'update'])->name('companies.update');
     
+    // ====================== COMPANY STATUS UPDATE ======================
+    // INI YANG UTAMA - route untuk update status
+    Route::patch('/companies/{company}/status', [CompanyController::class, 'updateStatus'])
+        ->name('companies.status.update');
     // Delete & Restore routes
     Route::delete('/companies/{company}', [CompanyController::class, 'destroy'])->name('companies.destroy');
     Route::delete('/companies/force-delete/{company}', [CompanyController::class, 'forceDelete'])
         ->name('companies.force-delete');
     Route::post('/companies/{company}/restore', [CompanyController::class, 'restore'])
         ->name('companies.restore');
+    
+    // ====================== ADDITIONAL COMPANY ROUTES ======================
+    Route::get('/companies/get-accepted-quotations', [CompanyController::class, 'getAcceptedQuotations']);
+    Route::get('/companies/get-lead-from-quotation/{id}', [CompanyController::class, 'getLeadFromQuotation']);
+    Route::get('/companies/get-accepted-quotation/{id}', [CompanyController::class, 'getAcceptedQuotation']);
     
     // ====================== COMPANY API DATA ENDPOINTS ======================
     Route::prefix('api/companies/{company}')->group(function () {

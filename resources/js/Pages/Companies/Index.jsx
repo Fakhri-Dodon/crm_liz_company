@@ -1,5 +1,5 @@
 // resources/js/Pages/Companies/Index.jsx
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Head, usePage, router } from '@inertiajs/react';
 import { useTranslation } from 'react-i18next';
 import HeaderLayout from '@/Layouts/HeaderLayout';
@@ -17,7 +17,10 @@ import {
     Users,
     CheckCircle,
     XCircle,
-    ChevronRight
+    ChevronRight,
+    ChevronDown,
+    Check,
+    Loader2
 } from 'lucide-react';
 
 const CompaniesIndex = () => {
@@ -31,6 +34,9 @@ const CompaniesIndex = () => {
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [selectedCompany, setSelectedCompany] = useState(null);
     const [selectedCompanies, setSelectedCompanies] = useState([]);
+    const [statusDropdownOpen, setStatusDropdownOpen] = useState(null);
+    const [updatingStatus, setUpdatingStatus] = useState(null);
+    const statusDropdownRef = useRef(null);
 
     // Auto-open modal if coming from quotation
     useEffect(() => {
@@ -38,6 +44,18 @@ const CompaniesIndex = () => {
             setIsCreateModalOpen(true);
         }
     }, [fromQuotation, quotationId]);
+
+    // Close dropdown when clicking outside
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (statusDropdownRef.current && !statusDropdownRef.current.contains(event.target)) {
+                setStatusDropdownOpen(null);
+            }
+        };
+
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
 
     // Handle search dengan debounce
     const handleSearch = useCallback((value) => {
@@ -148,6 +166,53 @@ const CompaniesIndex = () => {
         }
     };
 
+// resources/js/Pages/Companies/Index.jsx
+
+// ====================== STATUS UPDATE HANDLER ======================
+const handleStatusUpdate = async (companyId, newStatus) => {
+    setUpdatingStatus(companyId);
+    
+    try {
+        // Gunakan Inertia.js router - sudah handle session & CSRF otomatis
+        router.patch(`/companies/${companyId}/status`, {
+            is_active: newStatus
+        }, {
+            preserveScroll: true,
+            preserveState: true,
+            onSuccess: () => {
+                // Show success message
+                const event = new CustomEvent('show-toast', {
+                    detail: {
+                        type: 'success',
+                        message: t('companies.status_updated_successfully')
+                    }
+                });
+                window.dispatchEvent(event);
+            },
+            onError: (errors) => {
+                // Show error message
+                const event = new CustomEvent('show-toast', {
+                    detail: {
+                        type: 'error',
+                        message: t('companies.status_update_failed')
+                    }
+                });
+                window.dispatchEvent(event);
+            },
+            onFinish: () => {
+                setUpdatingStatus(null);
+                setStatusDropdownOpen(null);
+            }
+        });
+        
+    } catch (error) {
+        // Fallback error handling
+        alert(t('companies.status_update_failed'));
+        setUpdatingStatus(null);
+        setStatusDropdownOpen(null);
+    }
+};
+
     // Handle search input with debounce
     useEffect(() => {
         const timer = setTimeout(() => {
@@ -196,6 +261,12 @@ const CompaniesIndex = () => {
         router.visit(`/companies/${company.id}`);
     };
 
+    // Toggle status dropdown
+    const toggleStatusDropdown = (companyId, event) => {
+        event.stopPropagation();
+        setStatusDropdownOpen(statusDropdownOpen === companyId ? null : companyId);
+    };
+
     // Prepare columns for TableLayout
     const columns = [
         {
@@ -205,7 +276,7 @@ const CompaniesIndex = () => {
                 <div className="flex items-center gap-2">
                     <button 
                         onClick={(e) => {
-                            e.stopPropagation(); // Prevent row click
+                            e.stopPropagation();
                             handleRowClick(row);
                         }}
                         className="font-medium text-blue-600 hover:text-blue-800 hover:underline flex items-center gap-1 transition-colors"
@@ -269,12 +340,59 @@ const CompaniesIndex = () => {
         {
             key: "is_active",
             label: t('companies.table.status'),
-            render: (value) => {
+            render: (value, row) => {
                 const isActive = Boolean(value);
+                const isUpdating = updatingStatus === row.id;
+                const isDropdownOpen = statusDropdownOpen === row.id;
+
                 return (
-                    <span className={`text-xs font-bold py-1 px-2 rounded-lg border-2 ${isActive ? 'border-green-500 text-green-700 bg-green-50' : 'border-gray-500 text-gray-700 bg-gray-50'}`}>
-                        {isActive ? t('companies.active') : t('companies.inactive')}
-                    </span>
+                    <div className="relative" ref={statusDropdownRef}>
+                        <button
+                            onClick={(e) => toggleStatusDropdown(row.id, e)}
+                            disabled={isUpdating}
+                            className={`relative text-xs font-bold py-1.5 px-3 rounded-lg border-2 transition-all duration-200 flex items-center gap-2 ${isActive ? 'border-green-500 text-green-700 bg-green-50 hover:bg-green-100' : 'border-gray-500 text-gray-700 bg-gray-50 hover:bg-gray-100'} ${isUpdating ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                        >
+                            {isUpdating ? (
+                                <>
+                                    <Loader2 className="w-3 h-3 animate-spin" />
+                                    <span>{t('companies.updating')}</span>
+                                </>
+                            ) : (
+                                <>
+                                    <span>{isActive ? t('companies.active') : t('companies.inactive')}</span>
+                                    <ChevronDown className={`w-3 h-3 transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} />
+                                </>
+                            )}
+                        </button>
+
+                        {/* Status Dropdown */}
+                        {isDropdownOpen && (
+                            <div className="absolute top-full left-0 mt-1 w-40 bg-white border border-gray-200 rounded-lg shadow-lg z-50">
+                                <div className="py-1">
+                                    <button
+                                        onClick={() => handleStatusUpdate(row.id, true)}
+                                        className={`w-full px-4 py-2 text-sm text-left flex items-center justify-between hover:bg-green-50 transition-colors ${isActive ? 'bg-green-50 text-green-700' : 'text-gray-700'}`}
+                                    >
+                                        <span className="flex items-center gap-2">
+                                            <div className="w-2 h-2 rounded-full bg-green-500"></div>
+                                            {t('companies.active')}
+                                        </span>
+                                        {isActive && <Check className="w-4 h-4" />}
+                                    </button>
+                                    <button
+                                        onClick={() => handleStatusUpdate(row.id, false)}
+                                        className={`w-full px-4 py-2 text-sm text-left flex items-center justify-between hover:bg-gray-50 transition-colors ${!isActive ? 'bg-gray-50 text-gray-700' : 'text-gray-700'}`}
+                                    >
+                                        <span className="flex items-center gap-2">
+                                            <div className="w-2 h-2 rounded-full bg-gray-500"></div>
+                                            {t('companies.inactive')}
+                                        </span>
+                                        {!isActive && <Check className="w-4 h-4" />}
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+                    </div>
                 );
             }
         },
@@ -391,35 +509,36 @@ const CompaniesIndex = () => {
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 my-7">
                     {/* Client Type Cards */}
                     {statistics.client_types?.map((typeData, index) => {
-                        const colors = [
-                            { border: 'border-blue-500', text: 'text-blue-700', bg: 'bg-blue-50', iconBg: 'bg-blue-100', iconColor: 'text-blue-600' },
-                            { border: 'border-green-500', text: 'text-green-700', bg: 'bg-green-50', iconBg: 'bg-green-100', iconColor: 'text-green-600' },
-                            { border: 'border-orange-500', text: 'text-orange-700', bg: 'bg-orange-50', iconBg: 'bg-orange-100', iconColor: 'text-orange-600' },
-                            { border: 'border-purple-500', text: 'text-purple-700', bg: 'bg-purple-50', iconBg: 'bg-purple-100', iconColor: 'text-purple-600' }
-                        ][index % 4];
-                        
+                        // Pilih warna card berdasarkan index
+                        const cardColors = [
+                            'border-blue-200 bg-blue-100',
+                            'border-green-200 bg-green-100',
+                            'border-orange-200 bg-orange-100',
+                            'border-purple-200 bg-purple-100'
+                        ];
+                        const colorClass = cardColors[index % cardColors.length];
                         return (
                             <div 
                                 key={typeData.id}
-                                className={`rounded-xl p-5 shadow-sm border-l-4 ${colors.border} border border-gray-200 bg-white transition-transform hover:scale-[1.02] hover:shadow-md min-h-[120px] flex flex-col justify-between`}
+                                className={`rounded-xl p-5 shadow-sm border ${colorClass} transition-transform hover:scale-[1.02] hover:shadow-md min-h-[120px] flex flex-col justify-between`}
                             >
                                 <div className="flex items-center justify-between">
                                     <div>
-                                        <p className={`text-sm font-medium ${colors.text} uppercase tracking-wide`}>
+                                        <p className="text-sm font-medium text-gray-700 uppercase tracking-wide">
                                             {typeData.name}
                                         </p>
-                                        <p className={`text-2xl md:text-3xl font-bold ${colors.text} mt-2`}>
+                                        <p className="text-2xl md:text-3xl font-bold text-gray-900 mt-2">
                                             {typeData.count}
                                         </p>
                                     </div>
-                                    <div className={`p-3 rounded-full ${colors.iconBg}`}>
-                                        <Building className={`w-6 h-6 ${colors.iconColor}`} />
+                                    <div className="p-3 rounded-full bg-white">
+                                        <Building className="w-6 h-6 text-blue-600" />
                                     </div>
                                 </div>
                                 <div className="mt-3 pt-3 border-t border-gray-200">
                                     <button 
                                         onClick={() => handleTypeFilter(typeData.id)}
-                                        className={`text-sm font-medium ${colors.text} ${colors.bg} hover:opacity-90 px-4 py-1.5 rounded-full transition-colors duration-200 w-full text-center`}
+                                        className="text-sm font-medium text-blue-700 bg-blue-50 hover:opacity-90 px-4 py-1.5 rounded-full transition-colors duration-200 w-full text-center"
                                     >
                                         {selectedType === typeData.id 
                                             ? t('companies.filter_applied') 
@@ -588,6 +707,7 @@ const CompaniesIndex = () => {
                         <li>{t('companies.tip_click_client_details')}</li>
                         <li>{t('companies.tip_add_new_client')}</li>
                         <li>{t('companies.tip_select_multiple_clients')}</li>
+                        <li>{t('companies.tip_click_status_to_update')}</li>
                     </ul>
                 </div>
             </div>
