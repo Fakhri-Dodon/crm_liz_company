@@ -270,7 +270,7 @@ export default function Create({id, name, template}) {
                 </div>
             )}
 
-            <div id="gjs"></div>
+            <div id="gjs" className="ps-2 pb-2"></div>
         </>
     );
 }

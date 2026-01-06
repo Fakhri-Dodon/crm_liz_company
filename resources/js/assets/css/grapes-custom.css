@@ -2,6 +2,7 @@ body, html {
   margin: 0;
   font: caption;
   height: 100%;
+  background-color: #242A3B;
 }
 
 .editor-clm {
