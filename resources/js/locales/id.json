@@ -495,6 +495,7 @@
   }
 ,
 "project_table": {
+    "title": "Proyek",
     "not_available": "T/A",
     "status_in_progress": "Dalam Proses",
     "status_completed": "Selesai",
