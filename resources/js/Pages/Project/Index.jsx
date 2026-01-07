@@ -196,8 +196,7 @@ export default function Index({
             <div className="mb-8">
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                     <div>
-                        <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Project Management</h1>
-                        <p className="text-gray-600 mt-2">Manage and track all your projects efficiently</p>
+                        <h1 className="text-2xl font-bold text-gray-800">PROJECT</h1>
                     </div>
                     <button
                         onClick={() => setShowCreateModal(true)}
@@ -344,18 +343,13 @@ export default function Index({
 
             {/* Projects Table Section */}
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-                <div className="px-4 md:px-6 py-4 border-b border-gray-200 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                    <div>
-                        <h2 className="text-lg font-semibold text-gray-900">Project List</h2>
-                        <p className="text-sm text-gray-500 mt-1">
-                            Showing {projects.from || 0} to {projects.to || 0} of {projects.total || 0} projects
-                        </p>
-                    </div>
-                </div>
                 <TableLayout
                     columns={[
                         { key: 'project_description', label: 'Description' },
-                        { key: 'company_name', label: 'Company' },
+                        { key: 'name', label: 'Client', render: (val, project) => {
+                            if (!project) return '-';
+                            return project.quotation?.lead?.company_name || 'N/A';
+                        }},
                         { key: 'start_date', label: 'Start Date', render: (val) => val ? new Date(val).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }) : '-' },
                         { key: 'deadline', label: 'Deadline', render: (val) => val ? new Date(val).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }) : '-' },
                         { key: 'status', label: 'Status', render: (val, row) => {

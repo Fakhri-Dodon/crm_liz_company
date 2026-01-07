@@ -4,6 +4,7 @@ import { usePage, useForm } from "@inertiajs/react";
 import TableLayout from "@/Layouts/TableLayout";
 import { router, Link } from "@inertiajs/react";
 import PrimaryButton from "@/Components/PrimaryButton";
+import DeleteModal from '@/Components/DeleteModal';
 import {
     Search,
     Filter,
@@ -42,6 +43,9 @@ export default function QoutationsIndex({
     totals,
     auth_permissions,
 }) {
+    const [showDeleteModal, setShowDeleteModal] = useState(false);
+    const [selectedQuotationId, setSelectedQuotationId] = useState(null); // Ubah ke ID saja
+    const [editingQuotation, setEditingQuotation] = useState(null);
     const { t } = useTranslation();
 
     const canRead = auth_permissions.can_read === 1;
@@ -322,11 +326,17 @@ export default function QoutationsIndex({
         }
     };
 
-    const handleDelete = (item) => {
-        if (item && item.id) {
-            router.delete(`/quotation/destroy/${item.id}`);
-        } else {
-            console.error("Data quotation tidak memiliki ID", item);
+    const confirmDelete = (item) => {
+        setSelectedQuotationId(item.id);
+        setEditingQuotation(item);
+        setShowDeleteModal(true);
+    }
+
+    const handleDelete = () => {
+        if (selectedQuotationId) {
+            router.delete(route("quotation.destroy", selectedQuotationId), {
+                onSuccess: () => setShowDeleteModal(false),
+            });
         }
     };
 
@@ -559,11 +569,22 @@ export default function QoutationsIndex({
                             data={tableData}
                             columns={columns}
                             onEdit={canUpdate ? handleEdit : null}
-                            onDelete={canDelete ? handleDelete : null}
+                            onDelete={canDelete ? confirmDelete : null}
                             showAction={canUpdate || canDelete}
                         />
                     </div>
                 </div>
+                <DeleteModal
+                    show={showDeleteModal}
+                    onClose={() => {
+                        setShowDeleteModal(false);
+                        setSelectedQuotationId(null);
+                        setEditingQuotation(null);
+                    }}
+                    onConfirm={handleDelete}
+                    title="Delete Quotation"
+                    message={`Are you sure you want to delete quotation? This action cannot be undone.`}
+                />
             </div>
         </>
     );
