@@ -241,6 +241,10 @@ const ProjectTable = ({ data, onEdit, onDelete }) => {
 
     return (
         <div>
+            {/* Title for Project Table */}
+            <h2 className="text-xl font-bold text-gray-900 mb-4">
+                {t('project_table.title') || 'Daftar Proyek'}
+            </h2>
             {/* Mobile View */}
             <div className="sm:hidden">
                 {data.map((project, index) => (
