@@ -98,6 +98,7 @@ class ProposalController extends Controller
             'filterData'=> $filterData,
             'summary'   => $summary,
             'lead'      => $lead,
+            'auth_permissions' => auth()->user()->getPermissions('PROPOSAL'),
         ]);
 
     }

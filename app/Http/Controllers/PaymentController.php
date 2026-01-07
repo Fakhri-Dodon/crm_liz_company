@@ -104,7 +104,8 @@ class PaymentController extends Controller
         return Inertia::render('Payments/Index', [
             'payments' => $payments,
             'stats' => $stats,
-            'filters' => $request->only(['keyword', 'method', 'month', 'year'])
+            'filters' => $request->only(['keyword', 'method', 'month', 'year']),
+            'auth_permissions' => auth()->user()->getPermissions('PAYMENT'),
         ]);
     }
 

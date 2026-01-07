@@ -66,6 +66,7 @@ class InvoiceController extends Controller
         return Inertia::render('Invoices/Index', [
             'invoices' => $data,
             'contacts' => $contacts,
+            'auth_permissions' => auth()->user()->getPermissions('INVOICE'),
         ]);
     }
 

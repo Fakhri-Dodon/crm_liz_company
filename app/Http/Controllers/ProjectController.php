@@ -135,7 +135,8 @@ class ProjectController extends Controller
                 ['value' => 'completed', 'label' => 'Completed'],
                 ['value' => 'pending', 'label' => 'Pending'],
                 ['value' => 'cancelled', 'label' => 'Cancelled']
-            ]
+            ],
+            'auth_permissions' => auth()->user()->getPermissions('PROJECT'),
         ]);
     }
 

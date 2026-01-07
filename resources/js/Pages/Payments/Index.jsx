@@ -24,7 +24,7 @@ export const toast = (title, icon = 'success') => {
     Toast.fire({ icon: icon, title: title });
 };
 
-export default function PaymentIndex({ payments = [], stats = {}, filters = {} }) {
+export default function PaymentIndex({ payments = [], stats = {}, filters = {}, auth_permissions }) {
     const { t } = useTranslation();
 
     const [showAddModal, setShowAddModal] = useState(false);
@@ -34,6 +34,11 @@ export default function PaymentIndex({ payments = [], stats = {}, filters = {} }
     const [invoices, setInvoices] = useState([]);
     const [selectedInvoice, setSelectedInvoice] = useState(null);
     const [processing, setProcessing] = useState(false);
+
+    const canRead = auth_permissions.can_read === 1;
+    const canCreate = auth_permissions.can_create === 1;
+    const canUpdate = auth_permissions.can_update === 1;
+    const canDelete = auth_permissions.can_delete === 1;
     
     const [formData, setFormData] = useState({
         invoice_id: "",
@@ -333,12 +338,14 @@ export default function PaymentIndex({ payments = [], stats = {}, filters = {} }
                 {/* Header */}
                 <div className="flex justify-between items-center mb-6">
                     <h1 className="text-2xl font-bold text-gray-800">{t("payments.title")}</h1>
-                    <button
-                        onClick={handleAddPayment}
-                        className="bg-teal-700 hover:bg-teal-800 text-white px-6 py-2 rounded-md transition-colors"
-                    >
-                        {t("payments.button_add")}
-                    </button>
+                    {canCreate && (
+                        <button
+                            onClick={handleAddPayment}
+                            className="bg-teal-700 hover:bg-teal-800 text-white px-6 py-2 rounded-md transition-colors"
+                        >
+                            {t("payments.button_add")}
+                        </button>
+                    )}
                 </div>
 
                 {/* Stats Cards (updated style similar to Project) */}
@@ -438,9 +445,9 @@ export default function PaymentIndex({ payments = [], stats = {}, filters = {} }
                         <TableLayout
                             data={tableData}
                             columns={columns}
-                            onEdit={handleEditPayment}
-                            onDelete={handleDeletePayment}
-                            showAction={true}
+                            onEdit={canUpdate ? handleEditPayment : null}
+                            onDelete={canDelete ? handleDeletePayment : null}
+                            showAction={canUpdate || canDelete}
                         />
                     </div>
                 </div>

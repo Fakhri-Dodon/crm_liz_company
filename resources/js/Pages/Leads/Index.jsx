@@ -9,13 +9,18 @@ import DeleteConfirmationModal from "@/Components/DeleteConfirmationModal";
 import NotificationModal from "@/Components/NotificationModal";
 import { useTranslation } from "react-i18next";
 
-export default function LeadsIndex({ leads = [], auth }) {
+export default function LeadsIndex({ leads = [], auth, auth_permissions }) {
     // Gunakan SEMUA leads dari props
     const [leadsData, setLeadsData] = useState(leads);
     const [users, setUsers] = useState([]); // State untuk users
     const [loadingUsers, setLoadingUsers] = useState(false);
     
     const { t } = useTranslation();
+
+    const canRead = auth_permissions.can_read === 1;
+    const canCreate = auth_permissions.can_create === 1;
+    const canUpdate = auth_permissions.can_update === 1;
+    const canDelete = auth_permissions.can_delete === 1;
     
     const [loading, setLoading] = useState(false);
     const [modalOpen, setModalOpen] = useState(false);
@@ -587,16 +592,18 @@ export default function LeadsIndex({ leads = [], auth }) {
                         </h2>
                     </div>
                     <div className="sm:w-auto">
-                        <PrimaryButton
-                            onClick={handleAdd}
-                            disabled={!currentUser}
-                            className="inline-flex items-center rounded-md border border-transparent px-5 py-2.5 text-sm font-medium font-semibold uppercase tracking-widest text-white transition duration-150 ease-in-out bg-[rgb(17,94,89)] hover:bg-[rgb(13,75,71)] focus:bg-[rgb(13,75,71)] focus:outline-none focus:ring-2 focus:ring-[rgb(17,94,89)] focus:ring-offset-2 active:bg-[rgb(10,60,57)] w-full sm:w-auto flex items-center justify-center gap-2 shadow-sm hover:shadow"
-                        >
-                            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                            </svg>
-                            <span className="font-semibold">{t('leads.button_add') || 'Add New Lead'}</span>
-                        </PrimaryButton>
+                        {canCreate && (
+                            <PrimaryButton
+                                onClick={handleAdd}
+                                disabled={!currentUser}
+                                className="inline-flex items-center rounded-md border border-transparent px-5 py-2.5 text-sm font-medium font-semibold uppercase tracking-widest text-white transition duration-150 ease-in-out bg-[rgb(17,94,89)] hover:bg-[rgb(13,75,71)] focus:bg-[rgb(13,75,71)] focus:outline-none focus:ring-2 focus:ring-[rgb(17,94,89)] focus:ring-offset-2 active:bg-[rgb(10,60,57)] w-full sm:w-auto flex items-center justify-center gap-2 shadow-sm hover:shadow"
+                            >
+                                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                                </svg>
+                                <span className="font-semibold">{t('leads.button_add') || 'Add New Lead'}</span>
+                            </PrimaryButton>
+                        )}
                     </div>
                 </div>
             </div>
@@ -763,9 +770,9 @@ export default function LeadsIndex({ leads = [], auth }) {
                             <TableLayout
                                 columns={columns}
                                 data={filteredLeads}
-                                onEdit={handleEdit}
-                                onDelete={handleDelete}
-                                showAction={true}
+                                onEdit={canUpdate ? handleEdit : null}
+                                onDelete={canDelete ? handleDelete : null}
+                                showAction={canUpdate || canDelete}
                             />
                         </div>
                         
