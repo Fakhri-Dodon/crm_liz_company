@@ -494,6 +494,7 @@
     },
 
 "project_table": {
+    "title": "Projects",
     "not_available": "N/A",
     "status_in_progress": "In Progress",
     "status_completed": "Completed",

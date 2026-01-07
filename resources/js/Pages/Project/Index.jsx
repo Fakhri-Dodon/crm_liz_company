@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Head, usePage, router, useForm } from '@inertiajs/react';
 import HeaderLayout from '@/Layouts/HeaderLayout';
-import ProjectTable from '@/Components/Project/ProjectTable';
+import TableLayout from '@/Layouts/TableLayout';
 import ProjectModal from '@/Components/Project/ProjectModal';
 import StatusModal from '@/Components/Project/StatusModal';
 import DeleteModal from '@/Components/DeleteModal';
@@ -352,13 +352,29 @@ export default function Index({
                         </p>
                     </div>
                 </div>
-                <ProjectTable
-                    projects={projects || { data: [] }}
+                <TableLayout
+                    columns={[
+                        { key: 'project_description', label: 'Description' },
+                        { key: 'company_name', label: 'Company' },
+                        { key: 'start_date', label: 'Start Date', render: (val) => val ? new Date(val).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }) : '-' },
+                        { key: 'deadline', label: 'Deadline', render: (val) => val ? new Date(val).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }) : '-' },
+                        { key: 'status', label: 'Status', render: (val, row) => {
+                            const statusLabel = statusOptions?.find(opt => opt.value === val)?.label || val;
+                            return <span>{statusLabel}</span>;
+                        } },
+                        { key: 'note', label: 'Note' },
+                    ]}
+                    data={projects.data || []}
                     onEdit={handleEdit}
-                    onStatusChange={handleStatusChange}
                     onDelete={handleDelete}
-                    companies={companies || []}
-                    statusOptions={statusOptions || []}
+                    showAction={true}
+                    pagination={{
+                        currentPage: projects.current_page,
+                        totalPages: projects.last_page,
+                        totalItems: projects.total,
+                        itemsPerPage: projects.per_page,
+                        onPageChange: (page) => get(route('projects.index', { ...data, page }), { preserveScroll: true })
+                    }}
                 />
             </div>
 
