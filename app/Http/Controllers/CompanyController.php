@@ -26,162 +26,176 @@ class CompanyController extends Controller
     /**
      * Display a listing of companies.
      */
-    /**
-     * Display a listing of companies.
-     */
-    public function index(Request $request)
-    {
-        try {
-            \Log::info('Companies index accessed - AUTH USER: ' . auth()->id());
-            
-            // Pastikan user authenticated
-            if (!auth()->check()) {
-                \Log::warning('User not authenticated, redirecting to login');
-                return redirect()->route('login');
-            }
-            
-            // Query companies dengan relasi
-            $query = Company::with(['clientType', 'primaryContact'])
-                ->orderBy('created_at', 'desc');
 
-            // Apply search filter
-            if ($request->has('search') && !empty($request->search)) {
-                $search = $request->search;
-                $query->where(function($q) use ($search) {
-                    $q->where('client_code', 'like', "%{$search}%")
-                      ->orWhereHas('primaryContact', function($subQuery) use ($search) {
-                          $subQuery->where('name', 'like', "%{$search}%")
-                                   ->orWhere('email', 'like', "%{$search}%")
-                                   ->orWhere('phone', 'like', "%{$search}%");
-                      });
-                });
-            }
+public function index(Request $request)
+{
+    try {
+        \Log::info('Companies index accessed - AUTH USER: ' . auth()->id());
+        
+        if (!auth()->check()) {
+            \Log::warning('User not authenticated, redirecting to login');
+            return redirect()->route('login');
+        }
+        
+        // **PERBAIKAN: Tambahkan relasi lead**
+        $query = Company::with(['clientType', 'primaryContact', 'lead'])
+            ->orderBy('created_at', 'desc');
 
-            // Apply client type filter
-            if ($request->has('client_type_id') && !empty($request->client_type_id)) {
-                $query->where('client_type_id', $request->client_type_id);
-            }
-
-            // Get statistics
-            $totalClients = Company::count();
-            $activeClients = Company::where('is_active', true)->count();
-            $inactiveClients = Company::where('is_active', false)->count();
-            
-            // Get client types with counts
-            $clientTypes = ClientType::withCount(['companies' => function($query) {
-                $query->where('deleted', 0);
-            }])->get();
-
-            // Paginate results
-            $perPage = $request->get('per_page', 15);
-            $companies = $query->paginate($perPage)->withQueryString();
-
-            \Log::info('Companies fetched: ' . $companies->total());
-
-            // **PERBAIKAN UTAMA: Format companies data untuk Inertia**
-            $formattedCompanies = $companies->through(function($company) {
-                return [
-                    'id' => $company->id,
-                    'name' => $company->client_code, // Nama perusahaan = client_code
-                    'client_code' => $company->client_code,
-                    'client_type_name' => $company->clientType->name ?? 'N/A',
-                    'client_type_id' => $company->client_type_id,
-                    // Data contact person dari primary contact
-                    'contact_person' => $company->primaryContact ? $company->primaryContact->name : 'N/A',
-                    'email' => $company->primaryContact ? $company->primaryContact->email : 'N/A',
-                    'phone' => $company->primaryContact ? $company->primaryContact->phone : 'N/A',
-                    'position' => $company->primaryContact ? $company->primaryContact->position : 'Contact Person',
-                    'address' => trim(implode(', ', array_filter([
-                        $company->city,
-                        $company->province,
-                        $company->country
-                    ])), ', '),
-                    'city' => $company->city,
-                    'province' => $company->province,
-                    'country' => $company->country,
-                    'postal_code' => $company->postal_code,
-                    'is_active' => (bool) $company->is_active,
-                    'client_since' => $company->client_since ? $company->client_since->format('Y-m-d') : null,
-                    'created_at' => $company->created_at,
-                    'updated_at' => $company->updated_at,
-                    'logo_url' => $company->logo_path ? Storage::url($company->logo_path) : null,
-                    // Additional info
-                    'vat_number' => $company->vat_number,
-                    'nib' => $company->nib,
-                    'website' => $company->website,
-                    // Primary contact object untuk konsistensi
-                    'primary_contact' => $company->primaryContact ? [
-                        'name' => $company->primaryContact->name,
-                        'email' => $company->primaryContact->email,
-                        'phone' => $company->primaryContact->phone,
-                        'position' => $company->primaryContact->position
-                    ] : null
-                ];
+        // **PERBAIKAN: Tambahkan pencarian berdasarkan company_name dari leads**
+        if ($request->has('search') && !empty($request->search)) {
+            $search = $request->search;
+            $query->where(function($q) use ($search) {
+                $q->where('client_code', 'like', "%{$search}%")
+                  ->orWhereHas('lead', function($subQuery) use ($search) {
+                      $subQuery->where('company_name', 'like', "%{$search}%");
+                  })
+                  ->orWhereHas('primaryContact', function($subQuery) use ($search) {
+                      $subQuery->where('name', 'like', "%{$search}%")
+                               ->orWhere('email', 'like', "%{$search}%")
+                               ->orWhere('phone', 'like', "%{$search}%");
+                  });
             });
+        }
 
-            // Prepare statistics array
-            $statistics = [
-                'total' => $totalClients,
-                'active' => $activeClients,
-                'inactive' => $inactiveClients,
-                'client_types' => $clientTypes->map(function($type) {
-                    return [
-                        'id' => $type->id,
-                        'name' => $type->name,
-                        'label' => $type->information ?? $type->name,
-                        'count' => $type->companies_count ?? 0
-                    ];
-                })
+        if ($request->has('client_type_id') && !empty($request->client_type_id)) {
+            $query->where('client_type_id', $request->client_type_id);
+        }
+
+        // Get statistics
+        $totalClients = Company::count();
+        $activeClients = Company::where('is_active', true)->count();
+        $inactiveClients = Company::where('is_active', false)->count();
+        
+        // Get client types with counts
+        $clientTypes = ClientType::withCount(['companies' => function($query) {
+            $query->where('deleted', 0);
+        }])->get();
+
+        // Paginate results
+        $perPage = $request->get('per_page', 15);
+        $companies = $query->paginate($perPage)->withQueryString();
+
+        \Log::info('Companies fetched: ' . $companies->total());
+
+        // **PERBAIKAN: Update formatter untuk menampilkan company_name dari lead**
+        $formattedCompanies = $companies->through(function($company) {
+            // Ambil company_name dari relasi lead
+            $companyName = $company->lead->company_name ?? $company->client_code ?? 'N/A';
+            
+            // Format alamat dari data company
+            $addressParts = array_filter([
+                $company->city,
+                $company->province,
+                $company->country
+            ]);
+            $formattedAddress = !empty($addressParts) 
+                ? implode(', ', $addressParts) 
+                : ($company->lead->address ?? 'N/A');
+
+            return [
+                'id' => $company->id,
+                'name' => $companyName, // **DARI LEADS**
+                'client_code' => $company->client_code,
+                'client_type_name' => $company->clientType->name ?? 'N/A',
+                'client_type_id' => $company->client_type_id,
+                // Data contact person dari primary contact
+                'contact_person' => $company->primaryContact ? $company->primaryContact->name : ($company->lead->contact_person ?? 'N/A'),
+                'email' => $company->primaryContact ? $company->primaryContact->email : ($company->lead->email ?? 'N/A'),
+                'phone' => $company->primaryContact ? $company->primaryContact->phone : ($company->lead->phone ?? 'N/A'),
+                'position' => $company->primaryContact ? $company->primaryContact->position : ($company->lead->position ?? 'Contact Person'),
+                'address' => $formattedAddress,
+                'city' => $company->city,
+                'province' => $company->province,
+                'country' => $company->country,
+                'postal_code' => $company->postal_code,
+                'is_active' => (bool) $company->is_active,
+                'client_since' => $company->client_since ? $company->client_since->format('Y-m-d') : null,
+                'created_at' => $company->created_at,
+                'updated_at' => $company->updated_at,
+                'logo_url' => $company->logo_path ? Storage::url($company->logo_path) : null,
+                // Additional info
+                'vat_number' => $company->vat_number,
+                'nib' => $company->nib,
+                'website' => $company->website,
+                // Primary contact object
+                'primary_contact' => $company->primaryContact ? [
+                    'name' => $company->primaryContact->name,
+                    'email' => $company->primaryContact->email,
+                    'phone' => $company->primaryContact->phone,
+                    'position' => $company->primaryContact->position
+                ] : null,
+                // Lead data untuk reference
+                'lead' => $company->lead ? [
+                    'company_name' => $company->lead->company_name,
+                    'address' => $company->lead->address,
+                    'contact_person' => $company->lead->contact_person,
+                    'email' => $company->lead->email,
+                    'phone' => $company->lead->phone,
+                    'position' => $company->lead->position
+                ] : null
             ];
+        });
 
-            // Get all client types for filter
-            $types = ClientType::all()->map(function($type) {
+        // Prepare statistics array
+        $statistics = [
+            'total' => $totalClients,
+            'active' => $activeClients,
+            'inactive' => $inactiveClients,
+            'client_types' => $clientTypes->map(function($type) {
                 return [
                     'id' => $type->id,
                     'name' => $type->name,
-                    'information' => $type->information,
-                    'created_at' => $type->created_at,
-                    'updated_at' => $type->updated_at
+                    'label' => $type->information ?? $type->name,
+                    'count' => $type->companies_count ?? 0
                 ];
-            });
+            })
+        ];
 
-            // Check if coming from quotation
-            $fromQuotation = $request->has('from_quotation') && $request->from_quotation == 'true';
-            $quotationId = $request->get('quotation_id');
+        // Get all client types for filter
+        $types = ClientType::all()->map(function($type) {
+            return [
+                'id' => $type->id,
+                'name' => $type->name,
+                'information' => $type->information,
+                'created_at' => $type->created_at,
+                'updated_at' => $type->updated_at
+            ];
+        });
 
-            return Inertia::render('Companies/Index', [
-                'companies' => $formattedCompanies, // **Gunakan formattedCompanies**
-                'statistics' => $statistics,
-                'types' => $types,
-                'filters' => [
-                    'search' => $request->search ?? '',
-                    'client_type_id' => $request->client_type_id ?? ''
-                ],
-                'fromQuotation' => $fromQuotation,
-                'quotationId' => $quotationId
-            ]);
+        // Check if coming from quotation
+        $fromQuotation = $request->has('from_quotation') && $request->from_quotation == 'true';
+        $quotationId = $request->get('quotation_id');
 
-        } catch (\Exception $e) {
-            \Log::error('Error in companies index: ' . $e->getMessage());
-            \Log::error('Stack trace: ' . $e->getTraceAsString());
-            \Log::error('User ID: ' . (auth()->check() ? auth()->id() : 'Not authenticated'));
-            
-            // Return error response
-            if ($request->wantsJson()) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Failed to load companies: ' . $e->getMessage()
-                ], 500);
-            }
-            
-            // For web, render error page
-            return Inertia::render('Error', [
-                'message' => 'Failed to load companies',
-                'error' => $e->getMessage()
-            ])->withStatus(500);
+        return Inertia::render('Companies/Index', [
+            'companies' => $formattedCompanies,
+            'statistics' => $statistics,
+            'types' => $types,
+            'filters' => [
+                'search' => $request->search ?? '',
+                'client_type_id' => $request->client_type_id ?? ''
+            ],
+            'fromQuotation' => $fromQuotation,
+            'quotationId' => $quotationId
+        ]);
+
+    } catch (\Exception $e) {
+        \Log::error('Error in companies index: ' . $e->getMessage());
+        \Log::error('Stack trace: ' . $e->getTraceAsString());
+        \Log::error('User ID: ' . (auth()->check() ? auth()->id() : 'Not authenticated'));
+        
+        if ($request->wantsJson()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to load companies: ' . $e->getMessage()
+            ], 500);
         }
+        
+        return Inertia::render('Error', [
+            'message' => 'Failed to load companies',
+            'error' => $e->getMessage()
+        ])->withStatus(500);
     }
-
+}
     /**
      * Show the form for creating a new company.
      */
