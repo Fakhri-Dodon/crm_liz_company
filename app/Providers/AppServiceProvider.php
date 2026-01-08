@@ -21,19 +21,10 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        $this->app->bind('path.public', function() {
-            return base_path('public');
-        });
+        app()->usePublicPath(base_path());
 
-        // Cek environment dari .env
         if (app()->environment('production')) {
-            URL::forceScheme('https');
-
-            $this->app['request']->server->set('HTTPS', 'on');
-
-            config([
-                'session.secure' => true,
-            ]);
+            \Illuminate\Support\Facades\URL::forceScheme('https');
         }
     }
 }
