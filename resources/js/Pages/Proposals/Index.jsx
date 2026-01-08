@@ -25,6 +25,7 @@ export default function ProposalsIndex({
     filters,
     filterData,
     lead,
+    auth_permissions,
 }) {
     // const dev = true
     // if (dev) {
@@ -39,6 +40,11 @@ export default function ProposalsIndex({
     const [loading, setLoading] = useState(false);
     const [mode, setMode] = useState("add");
     const [editingId, setEditingId] = useState(null);
+
+    const canRead = auth_permissions.can_read === 1;
+    const canCreate = auth_permissions.can_create === 1;
+    const canUpdate = auth_permissions.can_update === 1;
+    const canDelete = auth_permissions.can_delete === 1;
 
     // Debug: log totals to confirm prop is received from server
     useEffect(() => {
@@ -417,9 +423,36 @@ export default function ProposalsIndex({
                 title="Proposals Management"
                 subtitle="Manage all company proposals"
             />
-            <div className="p-4 sm:p-6 md:p-8">
+            <div className="px-8 py-6">
+                <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
+                    <h1 className="text-2xl font-bold text-gray-800">
+                        Proposal
+                    </h1>
+                    {/* ADD BUTTON */}
+                    {canCreate && (
+                        <PrimaryButton
+                            onClick={handleAdd}
+                            className="w-full sm:w-auto px-5 py-2.5 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-all duration-200 flex items-center justify-center gap-2 shadow-sm hover:shadow focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                        >
+                            <svg
+                                className="h-4 w-4"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                stroke="currentColor"
+                            >
+                                <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={2}
+                                    d="M12 4v16m8-8H4"
+                                />
+                            </svg>
+                            <span>{t("proposals.button_add")}</span>
+                        </PrimaryButton>
+                    )}
+                </div>
                 <Head title="Proposals" />
-                <div className="grid grid-cols-4 gap-6 mb-3">
+                <div className="grid grid-cols-4 gap-6 my-7">
                     {Object.entries(statusColors).map(([status, colors]) => (
                         <div
                             key={status}
@@ -458,27 +491,6 @@ export default function ProposalsIndex({
                         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 w-full lg:w-auto">
                             {/* Company Filter */}
                         </div>
-
-                        {/* ADD BUTTON */}
-                        <PrimaryButton
-                            onClick={handleAdd}
-                            className="w-full sm:w-auto px-5 py-2.5 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-all duration-200 flex items-center justify-center gap-2 shadow-sm hover:shadow focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-                        >
-                            <svg
-                                className="h-4 w-4"
-                                fill="none"
-                                viewBox="0 0 24 24"
-                                stroke="currentColor"
-                            >
-                                <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    strokeWidth={2}
-                                    d="M12 4v16m8-8H4"
-                                />
-                            </svg>
-                            <span>{t("proposals.button_add")}</span>
-                        </PrimaryButton>
                     </div>
 
                     {/* Results Count */}
@@ -536,9 +548,9 @@ export default function ProposalsIndex({
                             <TableLayout
                                 data={tableData}
                                 columns={columns}
-                                onEdit={handleEdit}
-                                onDelete={handleDelete}
-                                showAction={true}
+                                onEdit={canUpdate ? handleEdit : null}
+                                onDelete={canDelete ? handleDelete : null}
+                                showAction={canUpdate || canDelete}
                             />
                         </div>
                     )}

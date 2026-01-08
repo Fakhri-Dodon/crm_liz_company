@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\AppConfig;
+use App\Models\ActivityLogs;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Redirect;
@@ -83,6 +84,12 @@ class AppConfigController extends Controller
             $newConfig->deleted = 0;
             $newConfig->created_by = Auth::id();
             $newConfig->save();
+            ActivityLogs::create([
+                'user_id' => auth()->id(),
+                'module' => 'General Setting',
+                'action' => 'Update',
+                'description' => 'Update General Setting',
+            ]);
         } else {
             $finalData = array_merge($validatedData, $newPaths, [
                 'deleted' => 0,
@@ -90,6 +97,13 @@ class AppConfigController extends Controller
             ]);
             unset($finalData['logo'], $finalData['doc_logo']); // Hapus file mentah dari array create
             AppConfig::create($finalData);
+
+            ActivityLogs::create([
+                'user_id' => auth()->id(),
+                'module' => 'General Setting',
+                'action' => 'Create',
+                'description' => 'Create General Setting',
+            ]);
         }
 
         return back();

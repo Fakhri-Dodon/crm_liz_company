@@ -18,6 +18,13 @@ class ProposalStatusesController extends Controller
 
         ProposalStatuses::create($validated);
 
+        ActivityLogs::create([
+            'user_id' => auth()->id(),
+            'module' => 'Proposal Status Setting',
+            'action' => 'Create',
+            'description' => 'Create Proposal Status Setting',
+        ]);
+
         return back()->with('success', 'New status created successfully.');
     }
 
@@ -34,6 +41,13 @@ class ProposalStatusesController extends Controller
 
         $status->update($validated);
 
+        ActivityLogs::create([
+            'user_id' => auth()->id(),
+            'module' => 'Proposal Status Setting',
+            'action' => 'Update',
+            'description' => 'Update Proposal Status Setting',
+        ]);
+
         return back()->with('success', 'Status updated.');
     }
 
@@ -46,6 +60,13 @@ class ProposalStatusesController extends Controller
         }
 
         $status->update(['deleted' => 1]);
+
+        ActivityLogs::create([
+            'user_id' => auth()->id(),
+            'module' => 'Proposal Status Setting',
+            'action' => 'Delete',
+            'description' => 'Delete Proposal Status Setting',
+        ]);
 
         return back()->with('success', 'Status removed.');
     }

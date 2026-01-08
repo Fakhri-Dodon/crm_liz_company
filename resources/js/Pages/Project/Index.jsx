@@ -14,7 +14,8 @@ export default function Index({
     years, 
     companies, 
     quotations,
-    statusOptions 
+    statusOptions,
+    auth_permissions
 }) {
     const { props } = usePage();
     const flash = props.flash || {};
@@ -31,6 +32,11 @@ export default function Index({
         month: filters?.month || '',
         year: filters?.year || ''
     });
+
+    const canRead = auth_permissions.can_read === 1;
+    const canCreate = auth_permissions.can_create === 1;
+    const canUpdate = auth_permissions.can_update === 1;
+    const canDelete = auth_permissions.can_delete === 1;
 
     const { data, setData, get, reset } = useForm({
         search: localFilters.search,
@@ -198,13 +204,15 @@ export default function Index({
                     <div>
                         <h1 className="text-2xl font-bold text-gray-800">PROJECT</h1>
                     </div>
-                    <button
-                        onClick={() => setShowCreateModal(true)}
-                        className="px-4 py-3 bg-[#005954] text-white rounded-lg hover:bg-[#004d47] flex items-center gap-2 transition-colors shadow-sm hover:shadow-md w-full sm:w-auto justify-center"
-                    >
-                        <Plus className="w-4 h-4" />
-                        <span className="font-medium">Add Project</span>
-                    </button>
+                    {canCreate && (
+                        <button
+                            onClick={() => setShowCreateModal(true)}
+                            className="px-4 py-3 bg-[#005954] text-white rounded-lg hover:bg-[#004d47] flex items-center gap-2 transition-colors shadow-sm hover:shadow-md w-full sm:w-auto justify-center"
+                        >
+                            <Plus className="w-4 h-4" />
+                            <span className="font-medium">Add Project</span>
+                        </button>
+                    )}
                 </div>
             </div>
 
@@ -359,9 +367,9 @@ export default function Index({
                         { key: 'note', label: 'Note' },
                     ]}
                     data={projects.data || []}
-                    onEdit={handleEdit}
-                    onDelete={handleDelete}
-                    showAction={true}
+                    onEdit={canUpdate ? handleEdit : null}
+                    onDelete={canDelete ? handleDelete : null}
+                    showAction={canUpdate || canDelete}
                     pagination={{
                         currentPage: projects.current_page,
                         totalPages: projects.last_page,

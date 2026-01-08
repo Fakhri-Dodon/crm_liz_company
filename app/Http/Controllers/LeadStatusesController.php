@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\LeadStatuses;
+use App\Models\ActivityLogs;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -18,6 +19,13 @@ class LeadStatusesController extends Controller
         ]);
 
         LeadStatuses::create($validated);
+
+        ActivityLogs::create([
+            'user_id' => auth()->id(),
+            'module' => 'Lead Status Setting',
+            'action' => 'Create',
+            'description' => 'Create Lead Status Setting',
+        ]);
 
         return back()->with('success', 'New status created successfully.');
     }
@@ -35,6 +43,13 @@ class LeadStatusesController extends Controller
 
         $status->update($validated);
 
+        ActivityLogs::create([
+            'user_id' => auth()->id(),
+            'module' => 'Lead Status Setting',
+            'action' => 'Update',
+            'description' => 'Update Lead Status Setting',
+        ]);
+
         return back()->with('success', 'Status updated.');
     }
 
@@ -47,6 +62,13 @@ class LeadStatusesController extends Controller
         }
 
         $status->update(['deleted' => 1]);
+
+        ActivityLogs::create([
+            'user_id' => auth()->id(),
+            'module' => 'Lead Status Setting',
+            'action' => 'Delete',
+            'description' => 'Delete Lead Status Setting',
+        ]);
 
         return back()->with('success', 'Status removed.');
     }

@@ -13,6 +13,7 @@ use App\Models\EmailTemplates;
 use App\Models\ProposalStatuses;
 use App\Models\ProposalNumberFormatted;
 use App\Models\ProposalElementTemplate;
+use App\Models\ActivityLogs;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
@@ -31,8 +32,14 @@ class SettingController extends Controller
             return back()->with('error', 'Configuration not found');
         }
 
-        // Update dinamis untuk lead_... atau proposal_...
         $config->update($request->all());
+
+        ActivityLogs::create([
+            'user_id' => auth()->id(),
+            'module' => 'General Setting',
+            'action' => 'Update',
+            'description' => 'Update General Settings',
+        ]);
 
         return back()->with('success', 'Settings updated successfully');
     }
@@ -66,6 +73,13 @@ class SettingController extends Controller
 
         MenuMapping::create($validated);
 
+        ActivityLogs::create([
+            'user_id' => auth()->id(),
+            'module' => 'Roles Setting',
+            'action' => 'Created',
+            'description' => 'Create New Role',
+        ]);
+
         return redirect()->back();
     }
 
@@ -81,6 +95,13 @@ class SettingController extends Controller
         ]);
 
         $permission->update($validated);
+
+        ActivityLogs::create([
+            'user_id' => auth()->id(),
+            'module' => 'Roles Setting',
+            'action' => 'Update',
+            'description' => 'Update Role',
+        ]);
 
         return redirect()->back();
     }

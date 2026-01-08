@@ -455,12 +455,12 @@ class QuotationController extends Controller {
                 ->where('data->type', 'quotation')
                 ->delete();
 
-             ActivityLogs::create([
-                 'user_id' => auth()->id(),
-                 'module' => 'Quotations',
-                 'action' => 'Deleted',
-                 'description' => 'Delete Quotation: ' . $quotation->quotation_number,
-             ]);
+            ActivityLogs::create([
+                'user_id' => auth()->id(),
+                'module' => 'Quotations',
+                'action' => 'Deleted',
+                'description' => 'Delete Quotation: ' . $quotation->quotation_number,
+            ]);
 
             return redirect()->route('quotation.index')
                 ->with('success', 'Quotation berhasil dihapus!');
@@ -607,6 +607,13 @@ class QuotationController extends Controller {
                 ->where('data->id', (string)$id)
                 ->where('data->type', $docType)
                 ->delete();
+
+            ActivityLogs::create([
+                'user_id' => auth()->id(),
+                'module' => $docType,
+                'action' => 'Send',
+                'description' => 'Send ' . $docType,
+            ]);
 
             return back()->with('success', ucfirst($docType) . ' berhasil dikirim!');
 

@@ -86,9 +86,10 @@ class LeadController extends Controller
                         'name'  => $currentUser->name,
                         'email' => $currentUser->email,
                         // Cek role dengan aman
-                        'role_name' => $currentUser->role?->name 
+                        'role_name' => $currentUser->role?->name,
                     ]
-                ]
+                ],
+                'auth_permissions' => auth()->user()->getPermissions('LEAD'),
             ]);
             
         } catch (\Exception $e) {
