@@ -58,14 +58,29 @@ return [
             'prefix_indexes' => true,
             'strict' => true,
             'engine' => null,
-            'options' => extension_loaded('pdo_mysql') ? array_filter([
-                PDO::MYSQL_ATTR_SSL_CA => env('MYSQL_ATTR_SSL_CA', '/etc/ssl/certs/ca-certificates.crt'),
-                PDO::MYSQL_ATTR_SSL_VERIFY_SERVER_CERT => false, 
-                PDO::ATTR_TIMEOUT => 5, 
-                PDO::ATTR_EMULATE_PREPARES => true,
-            ]) : [],
+            'options' => [
+                PDO::MYSQL_ATTR_SSL_CA => null,
+                PDO::MYSQL_ATTR_SSL_CERT => null,
+                PDO::MYSQL_ATTR_SSL_KEY => null,
+                PDO::MYSQL_ATTR_SSL_VERIFY_SERVER_CERT => false,
+            ],
             
             // 'options' => [],
+        ],
+        
+        'mysql_custom' => [
+            'driver' => 'mysql',
+            'host' => env('DB_HOST', '127.0.0.1'),
+            'port' => env('DB_PORT', '3306'),
+            'database' => env('DB_DATABASE', 'u423548579_crm_liz'),
+            'username' => env('DB_USERNAME', 'u423548579_crm_liz'),
+            'password' => env('DB_PASSWORD', 'LizCompany2024!'),
+            'charset' => 'utf8mb4',
+            'collation' => 'utf8mb4_unicode_ci',
+            'prefix' => '',
+            'strict' => true,
+            'engine' => null,
+            'options' => [],
         ],
 
         'mariadb' => [
@@ -83,9 +98,7 @@ return [
             'prefix_indexes' => true,
             'strict' => true,
             'engine' => null,
-            'options' => extension_loaded('pdo_mysql') ? array_filter([
-                (PHP_VERSION_ID >= 80500 ? \Pdo\Mysql::ATTR_SSL_CA : \PDO::MYSQL_ATTR_SSL_CA) => env('MYSQL_ATTR_SSL_CA'),
-            ]) : [],
+            'options' => [],
         ],
 
         'pgsql' => [
