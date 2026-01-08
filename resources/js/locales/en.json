@@ -98,7 +98,7 @@
     "delete_failed": "Delete failed",
     "delete_failed_try_again": "Delete failed. Please try again.",
     "table": {
-      "client_code": "Client Code",
+      "client_name": "Client Name",
       "address": "Address",
       "client_type": "Client Type",
       "contact_person": "Contact Person",

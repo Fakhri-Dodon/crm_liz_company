@@ -97,7 +97,7 @@
     "delete_failed": "Gagal menghapus",
     "delete_failed_try_again": "Gagal menghapus. Silakan coba lagi.",
     "table": {
-      "client_code": "Kode Klien",
+      "client_name": "Nama Klien",
       "address": "Alamat",
       "client_type": "Tipe Klien",
       "contact_person": "Kontak Person",
