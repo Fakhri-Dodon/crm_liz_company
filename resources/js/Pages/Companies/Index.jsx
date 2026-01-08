@@ -272,8 +272,8 @@ const handleStatusUpdate = async (companyId, newStatus) => {
     // Prepare columns for TableLayout
     const columns = [
         {
-            key: "client_code",
-            label: t('companies.table.client_code'),
+            key: "client_name",
+            label: t('companies.table.client_name'),
             render: (value, row) => (
                 <div className="flex items-center gap-2">
                     <button 
@@ -399,7 +399,7 @@ const handleStatusUpdate = async (companyId, newStatus) => {
     // Prepare data for TableLayout
     const tableData = companies.data?.map((company, index) => ({
         id: company.id,
-        client_code: company.client_code || '-',
+        client_name: company.client_name || company.name || '-',
         address: company.address || '-',
         client_type_name: company.client_type?.name || t('companies.unknown'),
         contact_person: company.contact_person || '-',
