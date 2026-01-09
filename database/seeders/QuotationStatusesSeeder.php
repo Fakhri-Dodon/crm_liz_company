@@ -26,7 +26,7 @@ class QuotationStatusesSeeder extends Seeder
                 'color_name'    => 'Green'
             ],
             [
-                'name'  => 'Opened',
+                'name'  => 'Accepted',
                 'color' => '#22C55E',
                 'color_name'    => 'Green'
             ],
@@ -41,7 +41,7 @@ class QuotationStatusesSeeder extends Seeder
                 'color_name'    => 'Red'
             ],
             [
-                'name'  => 'Failed',
+                'name'  => 'Expired',
                 'color' => '#F97316',
                 'color_name'    => 'Orange'
             ],

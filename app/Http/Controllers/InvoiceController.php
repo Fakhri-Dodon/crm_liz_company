@@ -12,6 +12,7 @@ use App\Models\Quotation;
 use App\Models\EmailTemplates;
 use App\Models\User;
 use App\Models\ActivityLogs;
+use App\Models\InvoiceNumberFormated;
 use App\Notifications\DocumentNotification;
 use App\Mail\SystemMail;
 use Illuminate\Http\Request;
@@ -189,10 +190,21 @@ class InvoiceController extends Controller
                 }
 
                 // Create invoice
+                // attach formatted number if setting exists
+                $fmt = InvoiceNumberFormated::first();
+                $fmtId = $fmt ? $fmt->id : null;
+                $invoiceNumber = $fmt ? InvoiceNumberFormated::generate() : $validated['number'];
+
+                // find default invoice status (Draft)
+                $defaultStatus = \App\Models\InvoiceStatuses::where('name', 'Draft')->first();
+                $statusId = $defaultStatus ? $defaultStatus->id : null;
+
                 $invoice = Invoice::create([
                     'company_contact_persons_id' => $contactPersonId,
                     'quotation_id'          => $validated['quotation_id'] ?: null,
-                    'invoice_number'        => $validated['number'],
+                    'invoice_number_formated_id' => $fmtId,
+                    'invoice_statuses_id'  => $statusId,
+                    'invoice_number'        => $invoiceNumber,
                     'date'                  => $validated['date'],
                     'invoice_amout'         => $validated['sub_total'],
                     'payment_terms'         => $validated['payment_terms'] ?? '',

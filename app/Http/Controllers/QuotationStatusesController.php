@@ -8,7 +8,7 @@ use App\Models\QuotationStatuses;
 use App\Models\ActivityLogs;
 use Illuminate\Support\Facades\Auth;
 
-class QuotationStatusController extends Controller
+class QuotationStatusesController extends Controller
 {
     public function store(Request $request)
     {

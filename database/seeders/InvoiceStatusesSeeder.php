@@ -4,7 +4,7 @@ namespace Database\Seeders;
 
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
-use App\Models\ProposalStatuses;
+use App\Models\InvoiceStatuses;
 use Illuminate\Support\Str;
 
 class InvoiceStatusesSeeder extends Seeder
@@ -53,7 +53,7 @@ class InvoiceStatusesSeeder extends Seeder
         ];
 
         foreach ($allStatus as $status) {
-            ProposalStatuses::create([
+            InvoiceStatuses::create([
                 'id' => Str::uuid()->toString(),
                 'name' => $status['name'],
                 'color' => $status['color'],
@@ -63,4 +63,4 @@ class InvoiceStatusesSeeder extends Seeder
             ]);
         }
     }
-}
+} 

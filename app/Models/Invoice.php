@@ -21,6 +21,8 @@ class Invoice extends Model
         'company_id',
         'quotation_id',
         'company_contact_persons_id',
+        'invoice_number_formated_id',
+        'invoice_statuses_id',
         'invoice_number',
         'date',
         'invoice_amout',

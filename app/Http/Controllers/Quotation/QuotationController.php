@@ -8,6 +8,8 @@ use App\Models\Quotation;
 use App\Models\QuotationItem;
 use App\Models\Lead;
 use App\Models\User;
+use App\Models\QuotationStatuses;
+use App\Models\QuotationNumberFormated;
 use App\Models\Company;
 use App\Models\ActivityLogs;
 use App\Notifications\DocumentNotification;
@@ -22,8 +24,12 @@ use Illuminate\Support\Facades\Mail;
 class QuotationController extends Controller {
     public function index(Request $request) {
         // SYNC: Update status di database sebelum melakukan perhitungan apapun
-        Quotation::syncExpiredStatus();
-
+        Quotation::where('deleted', 0)
+            ->whereNotIn('status', ['accepted', 'rejected', 'expired'])
+            ->whereNotNull('valid_until')
+            ->where('valid_until', '<', now()->startOfDay())
+            ->update(['status' => 'expired']);
+            
         // Summary (Sekarang data 'expired' sudah terhitung dengan benar oleh database)
         $summary = Quotation::select('status', DB::raw('count(*) as count'))
             ->where('deleted', 0)
@@ -76,6 +82,16 @@ class QuotationController extends Controller {
             $q->whereYear('date', $year);
         });
 
+        // status
+        $statusOptions = QuotationStatuses::where('deleted', 0)
+        ->get()
+        ->map(fn($s) => [
+            'id'    => $s->id,
+            'slug'  => $s->slug,
+            'name'  => $s->name,
+            'color' => $s->color, 
+        ]);
+
         // Pagination
         $quotations = $query->orderBy('created_at', 'desc')
             ->paginate(10)
@@ -91,12 +107,7 @@ class QuotationController extends Controller {
         return Inertia::render('Quotations/Index', [
             'quotations' => $quotations,
             'filters'    => $request->only(['search', 'status', 'month', 'year']),
-            'statusOptions' => [
-                ['value' => 'sent', 'label' => 'Sent'],
-                ['value' => 'accepted', 'label' => 'Accepted'],
-                ['value' => 'expired', 'label' => 'Expired'],
-                ['value' => 'rejected', 'label' => 'Rejected'],
-            ],
+            'statusOptions' => $statusOptions,
             'summary'    => $summary,
             'years'      => $years,
             'totals'     => $totals,
@@ -105,7 +116,14 @@ class QuotationController extends Controller {
     }
 
     public function create() {
-        $nextNumber = Quotation::count() + 1;
+        $setting = QuotationNumberFormated::where('deleted', 0)->first();
+        $nextNumberPreview = "Config Missing";
+
+        if ($setting) {
+            $nextNumberPreview = $setting->prefix .  str_pad($setting->next_number, $setting->padding, '0', STR_PAD_LEFT);
+        }
+
+        // $nextNumber = Quotation::count() + 1;
         $existingLeadIds = Company::where('deleted', 0)
             ->whereNotNull('lead_id')
             ->pluck('lead_id');
@@ -118,7 +136,7 @@ class QuotationController extends Controller {
         return Inertia::render('Quotations/Create', [
             'companies' => $companies,
             'leads' => $availableLeads,
-            'nextNumber' => $nextNumber
+            'nextNumber' => $nextNumberPreview
         ]);
     }
 
@@ -153,6 +171,17 @@ class QuotationController extends Controller {
         try {
             return DB::transaction(function () use ($request, $validated) {
                 $path = $request->file('pdf_file')->store('quotations', 'public');
+                
+                $setting = QuotationNumberFormated::where('deleted', 0)->first();
+                if (!$setting) {
+                    throw new \Exception("Format nomor quotation belum dikonfigurasi.");
+                }
+
+                $statusEntry = QuotationStatuses::where('name', 'draft')->where('deleted', 0)->first();
+                if (!$statusEntry) {
+                    throw new \Exception("Status 'draft' tidak ditemukan di tabel referensi status.");
+                }
+
                 $leadId = null;
 
                 if ($validated['client_type'] === 'Client') {
@@ -168,6 +197,8 @@ class QuotationController extends Controller {
 
                 $quotation = Quotation::create([
                     'lead_id'          => $leadId,
+                    'quotation_number_formated_id' => $setting->id,
+                    'quotation_statuses_id'        => $statusEntry->id,
                     'quotation_number' => $validated['number'], 
                     'date'             => $validated['date'],
                     'valid_until'      => $validated['valid_until'],
@@ -177,7 +208,7 @@ class QuotationController extends Controller {
                     'note'             => $validated['note'],
                     'pdf_path'         => $path,
                     'discount'         => $validated['discount_amount'] ?? 0,
-                    'sub_total'        => $validated['sub_total'] ?? 0,
+                    'subtotal'        => $validated['sub_total'] ?? 0,
                     'tax'              => $validated['tax_amount'] ?? 0,
                     'total'            => $validated['total'],
                     'created_by'       => auth()->id(),
@@ -234,8 +265,15 @@ class QuotationController extends Controller {
             'status' => 'required|in:draft,sent,accepted,expired,rejected'
         ]);
 
+        $status = QuotationStatuses::where('name', $request->status)->first();
+
+        if (!$status) {
+            return back()->withErrors(['status' => 'Status tidak valid']);
+        }
+
         $quotation->update([
             'status' => $request->status,
+            'quotation_statuses_id' => $status->id,
             'updated_by' => auth()->id(),
         ]);
 
@@ -337,6 +375,16 @@ class QuotationController extends Controller {
                 $path = $request->file('pdf_file')->store('quotations', 'public');
             }
 
+            $setting = QuotationNumberFormated::where('deleted', 0)->first();
+            if (!$setting) {
+                throw new \Exception("Format nomor quotation belum dikonfigurasi.");
+            }
+
+            $statusEntry = QuotationStatuses::where('name', 'draft')->where('deleted', 0)->first();
+            if (!$statusEntry) {
+                throw new \Exception("Status 'draft' tidak ditemukan di tabel referensi status.");
+            }
+
             $leadId = null;
 
             if ($validated['client_type'] === 'Client') {
@@ -352,6 +400,8 @@ class QuotationController extends Controller {
 
             $quotation->update([
                 'lead_id'       => $leadId, 
+                'quotation_number_formated_id' => $setting->id,
+                'quotation_statuses_id'        => $statusEntry->id,
                 'date'          => $validated['date'],
                 'valid_until'   => $validated['valid_until'],
                 'subject'       => $validated['subject'],
@@ -481,9 +531,18 @@ class QuotationController extends Controller {
             'revision_note' => 'required_if:status,revised'
         ]);
 
+        $status = QuotationStatuses::where('name', $request->status)->first();
+
+        if (!$status) {
+            return back()->withErrors(['status' => 'Status tidak valid']);
+        }
+
         $quotation = Quotation::where('id', $id)->where('deleted', 0)->firstOrFail();
 
-        $updateData = ['status' => $request->status];
+        $updateData = [
+            'status' => $request->status, 
+            'quotation_statuses_id' => $statusRecord->id,
+        ];
         if ($request->status === 'revised') {
             $updateData['revision_note'] = $request->revision_note;
         }

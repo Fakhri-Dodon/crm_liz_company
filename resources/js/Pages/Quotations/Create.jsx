@@ -30,7 +30,7 @@ export default function Create({ nextNumber, leads = [], companies = [] }) {
             typeof num === "object" && num !== null ? num.nextNumber : num;
         const sequence = String(val || 1).padStart(4, "0");
 
-        return `SP-${sequence}`;
+        return `${sequence}`;
     };
 
     const {
