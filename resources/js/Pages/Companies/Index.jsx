@@ -297,15 +297,9 @@ const CompaniesIndex = () => {
             key: "client_name",
             label: t('companies.table.client_name'),
             render: (value, row) => {
-                // **PERBAIKAN: Ambil company_name dari lead atau client_code**
-                const displayName = row.company_name || 
-                                   row.lead?.company_name || 
-                                   row.client_code || 
-                                   row.name || 
-                                   '-';
-                
+                const displayName = row.company_name || row.lead?.company_name || row.name || '-';
                 return (
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-col">
                         <button 
                             onClick={(e) => {
                                 e.stopPropagation();
@@ -316,9 +310,7 @@ const CompaniesIndex = () => {
                             {displayName}
                             <ChevronRight className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
                         </button>
-                        <span className="text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded">
-                            {row.client_code}
-                        </span>
+                        <span className="text-xs text-gray-500 mt-1">{row.client_code}</span>
                     </div>
                 );
             }
@@ -328,21 +320,15 @@ const CompaniesIndex = () => {
             label: t('companies.table.address'),
             render: (value, row) => {
                 const isActive = row.is_active;
-                // Format alamat dari city, province, country
                 const addressParts = [row.city, row.province, row.country].filter(Boolean);
                 const displayAddress = addressParts.length > 0 
                     ? addressParts.join(', ') 
                     : (row.address || '-');
-                
                 return (
                     <div>
-                        <span className={`font-medium ${isActive ? 'text-gray-900' : 'text-gray-500'}`}>
-                            {displayAddress}
-                        </span>
+                        <span className={`font-medium ${isActive ? 'text-gray-900' : 'text-gray-500'}`}>{displayAddress}</span>
                         {!isActive && (
-                            <div className="text-xs text-gray-400 mt-0.5">
-                                {t('companies.inactive')}
-                            </div>
+                            <div className="text-xs text-gray-400 mt-0.5">{t('companies.inactive')}</div>
                         )}
                     </div>
                 );
@@ -352,9 +338,7 @@ const CompaniesIndex = () => {
             key: "contact_person",
             label: t('companies.table.contact_person'),
             render: (value) => (
-                <span className="font-medium text-gray-900">
-                    {value || '-'}
-                </span>
+                <span className="font-medium text-gray-900">{value || '-'}</span>
             )
         },
         {
@@ -362,85 +346,23 @@ const CompaniesIndex = () => {
             label: t('companies.table.contact'),
             render: (_, record) => (
                 <div className="flex flex-col">
-                    <span className="text-sm font-medium text-gray-900">
-                        {record.email || '-'}
-                    </span>
-                    <span className="text-xs text-gray-500 font-normal">
-                        {record.phone || '-'}
-                    </span>
+                    <span className="text-sm font-medium text-gray-900">{record.email || '-'}</span>
+                    <span className="text-xs text-gray-500 font-normal">{record.phone || '-'}</span>
                 </div>
             )
         },
         {
-            key: "is_active",
+            key: "client_type_name",
             label: t('companies.table.status'),
-            render: (value, row) => {
-                const isActive = Boolean(value);
-                const isUpdating = updatingStatus === row.id;
-                const isDropdownOpen = statusDropdownOpen === row.id;
-
-                return (
-                    <div className="relative" ref={statusDropdownRef}>
-                        <button
-                            onClick={(e) => toggleStatusDropdown(row.id, e)}
-                            disabled={isUpdating}
-                            className={`relative text-xs font-bold py-1.5 px-3 rounded-lg border-2 transition-all duration-200 flex items-center gap-2 ${isActive ? 'border-green-500 text-green-700 bg-green-50 hover:bg-green-100' : 'border-gray-500 text-gray-700 bg-gray-50 hover:bg-gray-100'} ${isUpdating ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
-                        >
-                            {isUpdating ? (
-                                <>
-                                    <Loader2 className="w-3 h-3 animate-spin" />
-                                    <span>{t('companies.updating')}</span>
-                                </>
-                            ) : (
-                                <>
-                                    <span>{isActive ? t('companies.active') : t('companies.inactive')}</span>
-                                    <ChevronDown className={`w-3 h-3 transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} />
-                                </>
-                            )}
-                        </button>
-
-                        {/* Status Dropdown */}
-                        {isDropdownOpen && (
-                            <div className="absolute top-full left-0 mt-1 w-40 bg-white border border-gray-200 rounded-lg shadow-lg z-50">
-                                <div className="py-1">
-                                    <button
-                                        onClick={() => handleStatusUpdate(row.id, true)}
-                                        className={`w-full px-4 py-2 text-sm text-left flex items-center justify-between hover:bg-green-50 transition-colors ${isActive ? 'bg-green-50 text-green-700' : 'text-gray-700'}`}
-                                    >
-                                        <span className="flex items-center gap-2">
-                                            <div className="w-2 h-2 rounded-full bg-green-500"></div>
-                                            {t('companies.active')}
-                                        </span>
-                                        {isActive && <Check className="w-4 h-4" />}
-                                    </button>
-                                    <button
-                                        onClick={() => handleStatusUpdate(row.id, false)}
-                                        className={`w-full px-4 py-2 text-sm text-left flex items-center justify-between hover:bg-gray-50 transition-colors ${!isActive ? 'bg-gray-50 text-gray-700' : 'text-gray-700'}`}
-                                    >
-                                        <span className="flex items-center gap-2">
-                                            <div className="w-2 h-2 rounded-full bg-gray-500"></div>
-                                            {t('companies.inactive')}
-                                        </span>
-                                        {!isActive && <Check className="w-4 h-4" />}
-                                    </button>
-                                </div>
-                            </div>
-                        )}
-                    </div>
-                );
-            }
+            render: (value) => (
+                <span className="font-semibold text-green-700 bg-green-50 rounded px-2 py-1 text-xs">{value || '-'}</span>
+            )
         },
         {
             key: "client_since",
             label: t('companies.table.client_since'),
             render: (value) => (
-                <div className="text-sm text-gray-600">
-                    {value ? new Date(value).toLocaleDateString('id-ID', {
-                        year: 'numeric',
-                        month: 'short',
-                        day: 'numeric'
-                    }) : '-'}
-                </div>
+                <div className="text-sm text-gray-600">{value ? new Date(value).toLocaleDateString('id-ID', { year: 'numeric', month: 'short', day: 'numeric' }) : '-'}</div>
             ),
         },
     ];

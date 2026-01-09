@@ -197,7 +197,7 @@ const QuotationTable = ({ data, groupedData = [], companyId }) => {
                             onMouseEnter={() => setTooltip(formatFullCurrency(quotation.total))}
                             onMouseLeave={() => setTooltip(null)}
                         >
-                            {formatCurrency(quotation.total)}
+                            {formatFullCurrency(quotation.total)}
                         </p>
                     </div>
                 </div>
@@ -361,7 +361,7 @@ const QuotationTable = ({ data, groupedData = [], companyId }) => {
                                                             <div className="text-right">
                                                                 <p className="text-xs text-gray-500">{t('quotation_table.total')}</p>
                                                                 <p className="text-sm font-bold text-gray-900">
-                                                                    {formatCurrency(quotation.total)}
+                                                                    {formatFullCurrency(quotation.total)}
                                                                 </p>
                                                             </div>
                                                         </div>
@@ -430,7 +430,7 @@ const QuotationTable = ({ data, groupedData = [], companyId }) => {
                                                                 onMouseEnter={() => setTooltip(formatFullCurrency(group.total_value))}
                                                                 onMouseLeave={() => setTooltip(null)}
                                                             >
-                                                                {formatCurrency(group.total_value)}
+                                                                {formatFullCurrency(group.total_value)}
                                                             </span>
                                                         </div>
                                                     </div>
@@ -470,7 +470,7 @@ const QuotationTable = ({ data, groupedData = [], companyId }) => {
                                                                 {t('quotation_table.amount')}
                                                             </th>
                                                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
-                                                                {t('quotation_table.status')}
+                                                                status
                                                             </th>
                                                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
                                                                 {t('quotation_table.actions')}
@@ -499,11 +499,10 @@ const QuotationTable = ({ data, groupedData = [], companyId }) => {
                                                                 </td>
                                                                 <td className="px-6 py-4 whitespace-nowrap">
                                                                     <div 
-                                                                        className="font-semibold text-gray-900 cursor-help"
-                                                                        onMouseEnter={() => setTooltip(formatFullCurrency(quotation.total))}
-                                                                        onMouseLeave={() => setTooltip(null)}
+                                                                        className="font-semibold text-gray-900 cursor-pointer transition-all duration-200 hover:bg-gray-100 rounded px-2 py-1"
+                                                                        title={formatFullCurrency(quotation.total)}
                                                                     >
-                                                                        {formatCurrency(quotation.total)}
+                                                                        {formatFullCurrency(quotation.total)}
                                                                     </div>
                                                                 </td>
                                                                 <td className="px-6 py-4 whitespace-nowrap">
@@ -560,13 +559,10 @@ const QuotationTable = ({ data, groupedData = [], companyId }) => {
                                                 {t('quotation_table.lead')}
                                             </th>
                                             <th scope="col" className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
-                                                <div className="flex items-center">
-                                                    <DollarSign className="w-4 h-4 mr-2" />
-                                                    {t('quotation_table.amount')}
-                                                </div>
+                                                {t('quotation_table.amount')}
                                             </th>
                                             <th scope="col" className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
-                                                {t('quotation_table.status')}
+                                                status
                                             </th>
                                             <th scope="col" className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
                                                 {t('quotation_table.actions')}
@@ -606,11 +602,10 @@ const QuotationTable = ({ data, groupedData = [], companyId }) => {
                                                 </td>
                                                 <td className="px-4 md:px-6 py-4 whitespace-nowrap">
                                                     <div 
-                                                        className="text-sm md:text-base font-semibold text-gray-900 cursor-help"
-                                                        onMouseEnter={() => setTooltip(formatFullCurrency(quotation.total))}
-                                                        onMouseLeave={() => setTooltip(null)}
+                                                        className="text-sm md:text-base font-semibold text-gray-900 cursor-pointer transition-all duration-200 hover:bg-gray-100 rounded px-2 py-1"
+                                                        title={formatFullCurrency(quotation.total)}
                                                     >
-                                                        {formatCurrency(quotation.total)}
+                                                        {formatFullCurrency(quotation.total)}
                                                     </div>
                                                 </td>
                                                 <td className="px-4 md:px-6 py-4 whitespace-nowrap">
@@ -666,11 +661,10 @@ const QuotationTable = ({ data, groupedData = [], companyId }) => {
                                 {t('quotation_table.total_value')}
                             </p>
                             <p 
-                                className="text-lg md:text-2xl font-bold text-gray-900 cursor-help"
-                                onMouseEnter={() => setTooltip(formatFullCurrency(data.reduce((sum, q) => sum + (q.total || 0), 0)))}
-                                onMouseLeave={() => setTooltip(null)}
+                                className="text-lg md:text-2xl font-bold text-gray-900 cursor-pointer transition-all duration-200 hover:bg-gray-100 rounded px-2 py-1"
+                                title={formatFullCurrency(data.reduce((sum, q) => sum + (q.total || 0), 0))}
                             >
-                                {formatCurrency(data.reduce((sum, q) => sum + (q.total || 0), 0))}
+                                {formatFullCurrency(data.reduce((sum, q) => sum + (q.total || 0), 0))}
                             </p>
                         </div>
                         <div className="bg-yellow-50 p-3 md:p-4 rounded-lg">

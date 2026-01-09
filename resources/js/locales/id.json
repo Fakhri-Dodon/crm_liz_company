@@ -342,7 +342,8 @@
     "total_leads": "Total Lead",
     "total_value": "Total Nilai",
     "accepted": "Diterima",
-    "status_breakdown": "Rincian Status"
+    "status_breakdown": "Rincian Status",
+    "status": "Status"
 },
 "profile_table": {
     "company_profile": "Profil Perusahaan",
