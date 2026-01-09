@@ -14,6 +14,8 @@ return new class extends Migration
         Schema::create('quotations', function (Blueprint $table) {
             $table->char('id', 36)->primary();
             $table->char('lead_id', 36);
+            $table->char('quotation_number_formated_id', 36)->index();
+            $table->char('quotation_statuses_id', 36)->index();
             $table->string('quotation_number', 50);
             $table->date('date');
             $table->date('valid_until');
