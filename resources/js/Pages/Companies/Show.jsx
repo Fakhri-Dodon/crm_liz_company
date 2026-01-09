@@ -402,17 +402,11 @@ const Show = ({ company, quotations, invoices, payments, projects, contacts, sta
                         <div className="mt-6 bg-white rounded-xl shadow-sm border border-gray-100 mx-6 p-6">
                             <div className="mb-6 flex justify-between items-center">
                                 <div>
-                                    <h2 className="text-xl font-bold text-gray-900 capitalize">
-                                        {getTabLabel()}
-                                    </h2>
-                                    <p className="text-gray-600 mt-1">
-                                        {getItemCount()} {t('companies_show.item', { count: getItemCount() })}
-                                    </p>
+                                    {/* Hapus judul tabel dan jumlah item */}
                                 </div>
                                 {/* Tombol Tambah berdasarkan tab */}
                                 {renderAddButton()}
                             </div>
-                            
                             {renderContent()}
                         </div>
                     </div>

@@ -718,342 +718,335 @@ const handleViewClick = (company) => {
     }
 
     // ============= DESKTOP VIEW =============
-    return (
-        <div className="bg-white rounded-lg shadow-sm overflow-hidden">
-            {/* Table header with search and filters */}
-            <div className="p-4 border-b border-gray-200">
-                <div className="flex items-center justify-between">
-                    <div className="relative w-64">
-                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                        <input
-                            ref={searchInputRef}
-                            type="text"
-                            placeholder="Search clients..."
-                            value={search}
-                            onChange={(e) => setSearch(e.target.value)}
-                            className="w-full pl-9 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-sm"
-                        />
-                    </div>
-                    
-                    {/* Results count */}
-                    <div className="text-sm text-gray-600">
-                        {companies.total || 0} client{companies.total !== 1 ? 's' : ''} found
-                    </div>
+// resources/js/Components/Companies/CompaniesTable.jsx - Desktop View bagian saja
+// ============= DESKTOP VIEW =============
+return (
+    <div className="bg-white rounded-lg shadow-sm overflow-hidden">
+        {/* Table header with search and filters */}
+        <div className="p-4 border-b border-gray-200">
+            <div className="flex items-center justify-between">
+                <div className="relative w-64">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                    <input
+                        ref={searchInputRef}
+                        type="text"
+                        placeholder="Search clients..."
+                        value={search}
+                        onChange={(e) => setSearch(e.target.value)}
+                        className="w-full pl-9 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm transition-colors"
+                    />
+                </div>
+                
+                {/* Results count */}
+                <div className="text-sm text-gray-600">
+                    {companies.total || 0} client{companies.total !== 1 ? 's' : ''} found
                 </div>
             </div>
+        </div>
 
-            {/* Table container */}
-            <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
-                    <thead className="bg-gray-50">
-                        <tr>
-                            {bulkSelect && (
-                                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-10">
-                                    <input
-                                        type="checkbox"
-                                        className="h-4 w-4 text-teal-600 rounded border-gray-300 focus:ring-teal-500"
-                                        onChange={(e) => {
-                                            if (onBulkSelect) {
-                                                companies.data.forEach(company => {
-                                                    onBulkSelect(company.id, e.target.checked);
-                                                });
-                                            }
-                                        }}
-                                    />
-                                </th>
-                            )}
-                            <th 
-                                scope="col" 
-                                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                                onClick={() => handleSort('name')}
-                            >
-                                <div className="flex items-center gap-1">
-                                    Client Name
-                                    {sortConfig.key === 'name' && (
-                                        sortConfig.direction === 'asc' ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />
-                                    )}
-                                </div>
+        {/* Table container */}
+        <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                    <tr>
+                        {bulkSelect && (
+                            <th scope="col" className="px-6 py-3.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-10">
+                                <input
+                                    type="checkbox"
+                                    className="h-4 w-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                                    onChange={(e) => {
+                                        if (onBulkSelect) {
+                                            companies.data.forEach(company => {
+                                                onBulkSelect(company.id, e.target.checked);
+                                            });
+                                        }
+                                    }}
+                                />
                             </th>
-                            <th 
-                                scope="col" 
-                                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                                onClick={() => handleSort('contact_person')}
-                            >
-                                <div className="flex items-center gap-1">
-                                    Contact Person
-                                    {sortConfig.key === 'contact_person' && (
-                                        sortConfig.direction === 'asc' ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />
-                                    )}
-                                </div>
+                        )}
+                        <th 
+                            scope="col" 
+                            className="px-6 py-3.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
+                            onClick={() => handleSort('name')}
+                        >
+                            <div className="flex items-center gap-1">
+                                Client Name
+                                {sortConfig.key === 'name' && (
+                                    sortConfig.direction === 'asc' ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />
+                                )}
+                            </div>
+                        </th>
+                        <th 
+                            scope="col" 
+                            className="px-6 py-3.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
+                            onClick={() => handleSort('contact_person')}
+                        >
+                            <div className="flex items-center gap-1">
+                                Contact Information
+                                {sortConfig.key === 'contact_person' && (
+                                    sortConfig.direction === 'asc' ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />
+                                )}
+                            </div>
+                        </th>
+                        <th 
+                            scope="col" 
+                            className="px-6 py-3.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
+                            onClick={() => handleSort('client_type_name')}
+                        >
+                            <div className="flex items-center gap-1">
+                                Type & Status
+                                {sortConfig.key === 'client_type_name' && (
+                                    sortConfig.direction === 'asc' ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />
+                                )}
+                            </div>
+                        </th>
+                        <th 
+                            scope="col" 
+                            className="px-6 py-3.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
+                            onClick={() => handleSort('client_since')}
+                        >
+                            <div className="flex items-center gap-1">
+                                Location & Date
+                                {sortConfig.key === 'client_since' && (
+                                    sortConfig.direction === 'asc' ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />
+                                )}
+                            </div>
+                        </th>
+                        {showActions && (
+                            <th scope="col" className="px-6 py-3.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-40">
+                                Actions
                             </th>
-                            <th 
-                                scope="col" 
-                                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                                onClick={() => handleSort('client_type_name')}
-                            >
-                                <div className="flex items-center gap-1">
-                                    Type & Status
-                                    {sortConfig.key === 'client_type_name' && (
-                                        sortConfig.direction === 'asc' ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />
-                                    )}
-                                </div>
-                            </th>
-                            <th 
-                                scope="col" 
-                                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                                onClick={() => handleSort('client_since')}
-                            >
-                                <div className="flex items-center gap-1">
-                                    Location & Date
-                                    {sortConfig.key === 'client_since' && (
-                                        sortConfig.direction === 'asc' ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />
-                                    )}
-                                </div>
-                            </th>
-                            {showActions && (
-                                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    Actions
-                                </th>
-                            )}
-                        </tr>
-                    </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
-                        {companies.data && companies.data.length > 0 ? (
-                            companies.data.map((company) => {
-                                const colors = getTypeColor(company.client_type_name);
-                                const isSelected = bulkSelect && selectedIds.includes(company.id);
-                                const contact = getContactPerson(company);
-                                const initials = getInitials(contact.name);
-                                
-                                return (
-                                    <tr 
-                                        key={company.id} 
-                                        className={`group transition-colors ${isSelected ? 'bg-teal-50' : 'hover:bg-gray-50'}`}
-                                    >
-                                        {bulkSelect && (
-                                            <td className="px-6 py-4">
-                                                <input
-                                                    type="checkbox"
-                                                    checked={isSelected}
-                                                    onChange={(e) => onBulkSelect && onBulkSelect(company.id, e.target.checked)}
-                                                    className="h-4 w-4 text-teal-600 rounded border-gray-300 focus:ring-teal-500"
-                                                />
-                                            </td>
-                                        )}
-                                        
-                                        {/* Client Name Column */}
+                        )}
+                    </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                    {companies.data && companies.data.length > 0 ? (
+                        companies.data.map((company) => {
+                            const colors = getTypeColor(company.client_type_name);
+                            const isSelected = bulkSelect && selectedIds.includes(company.id);
+                            const contact = getContactPerson(company);
+                            const initials = getInitials(contact.name);
+                            
+                            return (
+                                <tr 
+                                    key={company.id} 
+                                    className={`group transition-colors ${isSelected ? 'bg-blue-50' : 'hover:bg-gray-50'}`}
+                                >
+                                    {bulkSelect && (
                                         <td className="px-6 py-4">
-                                            <div 
-                                                className="flex items-center cursor-pointer"
-                                                onClick={() => handleViewClick(company)}
-                                            >
-                                                <div className="flex-shrink-0">
-                                                    {company.logo_url ? (
-                                                        <img 
-                                                            src={company.logo_url} 
-                                                            alt={company.name}
-                                                            className="h-12 w-12 rounded-lg object-cover border border-gray-200 group-hover:border-teal-300 transition-colors"
-                                                        />
-                                                    ) : (
-                                                        <div className="h-12 w-12 bg-gradient-to-br from-[#054748] to-[#0a5d5e] rounded-lg flex items-center justify-center group-hover:scale-105 transition-transform">
-                                                            <Building className="w-6 h-6 text-white" />
-                                                        </div>
-                                                    )}
-                                                </div>
-                                                <div className="ml-4 min-w-0 flex-1">
-                                                    <div className="flex items-center gap-2">
-                                                        <div className="font-medium text-gray-900 truncate group-hover:text-teal-600 transition-colors">
-                                                            {company.name}
-                                                        </div>
-                                                        <ExternalLink className="w-3 h-3 text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity" />
-                                                    </div>
-                                                    <div className="text-sm text-gray-500 flex items-center gap-2 mt-1">
-                                                        <span className="bg-gray-100 px-2 py-0.5 rounded text-xs font-medium">
-                                                            {company.client_code}
-                                                        </span>
-                                                    </div>
-                                                </div>
-                                            </div>
+                                            <input
+                                                type="checkbox"
+                                                checked={isSelected}
+                                                onChange={(e) => onBulkSelect && onBulkSelect(company.id, e.target.checked)}
+                                                className="h-4 w-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                                            />
                                         </td>
-
-                                        {/* Contact Person Column */}
-                                        <td className="px-6 py-4">
-                                            <div className="space-y-2">
-                                                <div className="flex items-center gap-3">
-                                                    <div className="flex-shrink-0">
-                                                        <div className="w-10 h-10 bg-teal-100 rounded-full flex items-center justify-center">
-                                                            <span className="text-sm font-bold text-teal-700">
-                                                                {initials}
-                                                            </span>
-                                                        </div>
+                                    )}
+                                    
+                                    {/* Client Name Column */}
+                                    <td className="px-6 py-4">
+                                        <div className="flex items-center">
+                                            <div className="flex-shrink-0">
+                                                {company.logo_url ? (
+                                                    <img 
+                                                        src={company.logo_url} 
+                                                        alt={company.name}
+                                                        className="h-10 w-10 rounded-lg object-cover border border-gray-200"
+                                                    />
+                                                ) : (
+                                                    <div className="h-10 w-10 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-lg flex items-center justify-center">
+                                                        <Building className="w-5 h-5 text-white" />
                                                     </div>
-                                                    <div className="min-w-0 flex-1">
-                                                        <div className="text-sm font-medium text-gray-900 truncate">
-                                                            {contact.name}
-                                                        </div>
-                                                        <div className="text-xs text-gray-500 truncate">
-                                                            {contact.position}
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                                <div className="space-y-1.5 pl-12">
-                                                    <div className="flex items-center gap-2">
-                                                        <Mail className="w-4 h-4 text-gray-400 flex-shrink-0" />
-                                                        <span className="text-sm text-gray-900 truncate">{contact.email}</span>
-                                                    </div>
-                                                    <div className="flex items-center gap-2">
-                                                        <Phone className="w-4 h-4 text-gray-400 flex-shrink-0" />
-                                                        <span className="text-sm bg-yellow-100 px-3 py-1 rounded font-medium">
-                                                            {formatPhoneNumber(contact.phone)}
-                                                        </span>
-                                                    </div>
-                                                </div>
+                                                )}
                                             </div>
-                                        </td>
-
-                                        {/* Type & Status Column */}
-                                        <td className="px-6 py-4">
-                                            <div className="space-y-2">
-                                                <span className={`inline-flex items-center px-3 py-1.5 rounded-full text-xs font-medium ${colors.bgColor} ${colors.badgeText} border ${colors.badgeBorder}`}>
-                                                    <span className={`w-2 h-2 rounded-full mr-2 ${colors.dotColor}`}></span>
-                                                    {company.client_type_name}
-                                                </span>
+                                            <div className="ml-4 min-w-0 flex-1">
                                                 <div className="flex items-center gap-2">
-                                                    <span className={`inline-flex items-center px-2.5 py-1 rounded text-xs ${
-                                                        company.is_active 
-                                                            ? 'bg-green-100 text-green-800 border border-green-200' 
-                                                            : 'bg-gray-100 text-gray-800 border border-gray-200'
-                                                    }`}>
-                                                        {company.is_active ? (
-                                                            <>
-                                                                <CheckCircle className="w-3 h-3 mr-1" />
-                                                                Active
-                                                            </>
-                                                        ) : (
-                                                            <>
-                                                                <XCircle className="w-3 h-3 mr-1" />
-                                                                Inactive
-                                                            </>
-                                                        )}
+                                                    <div 
+                                                        className="font-medium text-gray-900 truncate cursor-pointer hover:text-blue-600 transition-colors"
+                                                        onClick={() => handleViewClick(company)}
+                                                    >
+                                                        {company.name}
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-center gap-2 mt-1">
+                                                    <span className="bg-gray-100 px-2 py-0.5 rounded text-xs font-medium text-gray-700">
+                                                        {company.client_code}
                                                     </span>
                                                 </div>
                                             </div>
-                                        </td>
+                                        </div>
+                                    </td>
 
-                                        {/* Location & Date Column */}
-                                        <td className="px-6 py-4">
-                                            <div className="space-y-2">
-                                                <div className="flex items-center gap-2">
-                                                    <MapPin className="w-4 h-4 text-gray-400 flex-shrink-0" />
-                                                    <div className="text-sm text-gray-900">
-                                                        <div className="font-medium">{company.city || 'N/A'}</div>
-                                                        <div className="text-xs text-gray-500">
-                                                            {company.province || ''} {company.country ? `, ${company.country}` : ''}
-                                                        </div>
+                                    {/* Contact Information Column */}
+                                    <td className="px-6 py-4">
+                                        <div className="space-y-2">
+                                            <div className="flex items-center gap-3">
+                                                <div className="flex-shrink-0">
+                                                    <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                                                        <span className="text-xs font-bold text-blue-700">
+                                                            {initials}
+                                                        </span>
                                                     </div>
                                                 </div>
-                                                <div className="space-y-1">
-                                                    {company.client_since && (
-                                                        <div className="flex items-center gap-2 text-xs text-gray-600">
-                                                            <Calendar className="w-3 h-3" />
-                                                            <span>Client since: {formatDate(company.client_since)}</span>
-                                                        </div>
-                                                    )}
-                                                    {company.created_at && (
-                                                        <div className="text-xs text-gray-500">
-                                                            Created: {formatDate(company.created_at)}
-                                                        </div>
-                                                    )}
+                                                <div className="min-w-0 flex-1">
+                                                    <div className="text-sm font-medium text-gray-900 truncate">
+                                                        {contact.name}
+                                                    </div>
+                                                    <div className="text-xs text-gray-500 truncate">
+                                                        {contact.position}
+                                                    </div>
                                                 </div>
                                             </div>
-                                        </td>
-
-                                        {/* Actions Column */}
-                                        {showActions && (
-                                            <td className="px-6 py-4">
+                                            <div className="space-y-1 pl-11">
                                                 <div className="flex items-center gap-2">
-                                                    <button
-                                                        onClick={() => handleViewClick(company)}
-                                                        className="inline-flex items-center gap-2 px-3 py-1.5 text-sm text-teal-600 hover:text-teal-900 hover:bg-teal-50 rounded-lg border border-teal-200 transition"
-                                                        title="View Details"
-                                                    >
-                                                        <Eye className="w-4 h-4" />
-                                                        View
-                                                    </button>
-                                                    <button
-                                                        onClick={() => onEditClick && onEditClick(company)}
-                                                        className="inline-flex items-center gap-2 px-3 py-1.5 text-sm text-blue-600 hover:text-blue-900 hover:bg-blue-50 rounded-lg border border-blue-200 transition"
-                                                        title="Edit"
-                                                    >
-                                                        <Edit className="w-4 h-4" />
-                                                        Edit
-                                                    </button>
-                                                    <button
-                                                        onClick={() => onDeleteClick && onDeleteClick(company)}
-                                                        className="inline-flex items-center gap-2 px-3 py-1.5 text-sm text-red-600 hover:text-red-900 hover:bg-red-50 rounded-lg border border-red-200 transition"
-                                                        title="Delete"
-                                                    >
-                                                        <Trash2 className="w-4 h-4" />
-                                                        Delete
-                                                    </button>
+                                                    <Mail className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
+                                                    <span className="text-sm text-gray-900 truncate">{contact.email}</span>
                                                 </div>
-                                            </td>
-                                        )}
-                                    </tr>
-                                );
-                            })
-                        ) : (
-                            <tr>
-                                <td colSpan={showActions ? (bulkSelect ? 6 : 5) : (bulkSelect ? 5 : 4)} className="px-6 py-12 text-center">
-                                    <div className="text-gray-500">
-                                        <Building className="w-16 h-16 mx-auto mb-4 text-gray-300" />
-                                        <div className="text-lg font-medium mb-2">No clients found</div>
-                                        <p className="text-sm text-gray-400">
-                                            {search ? 'Try adjusting your search' : 'Get started by adding your first client'}
-                                        </p>
-                                    </div>
-                                </td>
-                            </tr>
-                        )}
-                    </tbody>
-                </table>
-            </div>
+                                                <div className="flex items-center gap-2">
+                                                    <Phone className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
+                                                    <span className="text-sm text-gray-700">
+                                                        {formatPhoneNumber(contact.phone)}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </td>
 
-            {/* Desktop Pagination */}
-            {companies.data && companies.data.length > 0 && (
-                <div className="px-6 py-4 border-t border-gray-200">
-                    <div className="flex items-center justify-between">
-                        {/* Results info */}
-                        <div className="text-sm text-gray-700">
-                            Showing <span className="font-medium">{companies.from}</span> to{' '}
-                            <span className="font-medium">{companies.to}</span> of{' '}
-                            <span className="font-medium">{companies.total}</span> results
-                        </div>
-                        
-                        {/* Pagination links */}
-                        <nav className="flex items-center">
-                            <div className="flex items-center gap-1">
-                                {companies.links.map((link, index) => (
-                                    <Link
-                                        key={index}
-                                        href={link.url || '#'}
-                                        className={`relative inline-flex items-center px-3 py-2 text-sm font-medium border ${
-                                            link.active
-                                                ? 'z-10 bg-teal-50 border-teal-500 text-teal-600'
-                                                : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
-                                        } ${index === 0 ? 'rounded-l-md' : ''} ${
-                                            index === companies.links.length - 1 ? 'rounded-r-md' : ''
-                                        }`}
-                                        dangerouslySetInnerHTML={{ __html: link.label }}
-                                    />
-                                ))}
-                            </div>
-                        </nav>
-                    </div>
-                </div>
-            )}
+                                    {/* Type & Status Column */}
+                                    <td className="px-6 py-4">
+                                        <div className="space-y-2">
+                                            <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${colors.bgColor} ${colors.badgeText} border ${colors.badgeBorder}`}>
+                                                <span className={`w-1.5 h-1.5 rounded-full mr-1.5 ${colors.dotColor}`}></span>
+                                                {company.client_type_name}
+                                            </span>
+                                            <div>
+                                                <span className={`inline-flex items-center px-2.5 py-1 rounded text-xs ${
+                                                    company.is_active 
+                                                        ? 'bg-green-100 text-green-800 border border-green-200' 
+                                                        : 'bg-gray-100 text-gray-700 border border-gray-200'
+                                                }`}>
+                                                    {company.is_active ? (
+                                                        <>
+                                                            <CheckCircle className="w-3 h-3 mr-1" />
+                                                            Active
+                                                        </>
+                                                    ) : (
+                                                        <>
+                                                            <XCircle className="w-3 h-3 mr-1" />
+                                                            Inactive
+                                                        </>
+                                                    )}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </td>
+
+                                    {/* Location & Date Column */}
+                                    <td className="px-6 py-4">
+                                        <div className="space-y-2">
+                                            <div className="flex items-start gap-2">
+                                                <MapPin className="w-3.5 h-3.5 text-gray-400 mt-0.5 flex-shrink-0" />
+                                                <div className="text-sm">
+                                                    <div className="font-medium text-gray-900">{company.city || 'N/A'}</div>
+                                                    <div className="text-xs text-gray-500 mt-0.5">
+                                                        {company.province} {company.country ? `, ${company.country}` : ''}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            {company.client_since && (
+                                                <div className="flex items-center gap-2 text-xs text-gray-600 mt-2">
+                                                    <Calendar className="w-3 h-3 flex-shrink-0" />
+                                                    <span>Since {formatDate(company.client_since)}</span>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </td>
+
+                                    {/* Actions Column */}
+                                    {showActions && (
+                                        <td className="px-6 py-4">
+                                            <div className="flex items-center gap-2">
+                                                <button
+                                                    onClick={() => handleViewClick(company)}
+                                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg border border-gray-300 transition-colors"
+                                                    title="View Details"
+                                                >
+                                                    <Eye className="w-3.5 h-3.5" />
+                                                    View
+                                                </button>
+                                                <button
+                                                    onClick={() => onEditClick && onEditClick(company)}
+                                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-lg border border-blue-300 transition-colors"
+                                                    title="Edit"
+                                                >
+                                                    <Edit className="w-3.5 h-3.5" />
+                                                    Edit
+                                                </button>
+                                                <button
+                                                    onClick={() => onDeleteClick && onDeleteClick(company)}
+                                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs text-red-600 hover:text-red-800 hover:bg-red-50 rounded-lg border border-red-300 transition-colors"
+                                                    title="Delete"
+                                                >
+                                                    <Trash2 className="w-3.5 h-3.5" />
+                                                </button>
+                                            </div>
+                                        </td>
+                                    )}
+                                </tr>
+                            );
+                        })
+                    ) : (
+                        <tr>
+                            <td colSpan={showActions ? (bulkSelect ? 6 : 5) : (bulkSelect ? 5 : 4)} className="px-6 py-12 text-center">
+                                <div className="text-gray-500">
+                                    <Building className="w-12 h-12 mx-auto mb-3 text-gray-300" />
+                                    <div className="text-base font-medium mb-1">No clients found</div>
+                                    <p className="text-sm text-gray-400">
+                                        {search ? 'Try adjusting your search' : 'Get started by adding your first client'}
+                                    </p>
+                                </div>
+                            </td>
+                        </tr>
+                    )}
+                </tbody>
+            </table>
         </div>
-    );
+
+        {/* Desktop Pagination */}
+        {companies.data && companies.data.length > 0 && (
+            <div className="px-6 py-4 border-t border-gray-200 bg-gray-50">
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+                    {/* Results info */}
+                    <div className="text-sm text-gray-600">
+                        Showing <span className="font-medium">{companies.from}</span> to{' '}
+                        <span className="font-medium">{companies.to}</span> of{' '}
+                        <span className="font-medium">{companies.total}</span> results
+                    </div>
+                    
+                    {/* Pagination links */}
+                    <nav className="flex items-center">
+                        <div className="flex items-center gap-1">
+                            {companies.links.map((link, index) => (
+                                <Link
+                                    key={index}
+                                    href={link.url || '#'}
+                                    className={`relative inline-flex items-center px-3 py-2 text-sm font-medium border ${
+                                        link.active
+                                            ? 'z-10 bg-blue-50 border-blue-500 text-blue-600'
+                                            : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50 hover:border-gray-400'
+                                    } ${index === 0 ? 'rounded-l-lg' : ''} ${
+                                        index === companies.links.length - 1 ? 'rounded-r-lg' : ''
+                                    } transition-colors`}
+                                    dangerouslySetInnerHTML={{ __html: link.label }}
+                                />
+                            ))}
+                        </div>
+                    </nav>
+                </div>
+            </div>
+        )}
+    </div>
+);
 };
 
 export default CompaniesTable;

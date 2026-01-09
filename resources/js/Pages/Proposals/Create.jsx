@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import grapesjs from "grapesjs";
+import { router } from "@inertiajs/react";
 import "grapesjs/dist/css/grapes.min.css";
 import "@/assets/css/grapes-custom.css";
 import presetWebpage from "grapesjs-preset-webpage";
@@ -60,13 +61,21 @@ export default function Create({id, template}) {
             {
                 id: "save-page",
                 className: "fa fa-save",
-                command: () => savePage(editor),
+                command: () => {
+                    if (confirm("Apakah Anda yakin ingin menyimpan halaman ini?")) {
+                        savePage(editor);
+                    }
+                },
                 attributes: { title: "Save Page" },
             },
             {
                 id: "go-back",
                 className: "fa fa-arrow-left",
-                command: () => window.history.back(),
+                command: () => {
+                    if (confirm("Perubahan yang belum disimpan akan hilang. Kembali?")) {
+                        router.visit(document.referrer || route("proposal.index"));
+                    }
+                },
                 attributes: { title: "Kembali" },
             }
         ]);
@@ -262,7 +271,7 @@ export default function Create({id, template}) {
                 </div>
             )}
 
-            <div id="gjs"></div>
+            <div id="gjs" className="ps-2 pb-4"></div>
         </>
     );
 }

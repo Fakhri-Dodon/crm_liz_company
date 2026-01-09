@@ -20,7 +20,7 @@ class DatabaseSeeder extends Seeder
 
         $this->call([
             UserSeeder::class,
-            ClientTypeSeeder::class,
+            ClientTypesTableSeeder::class,
             MenuSeeder::class,
             ProposalNumberFormatedSeeder::class,
             // QuotationsTableSeeder::class,
@@ -29,6 +29,10 @@ class DatabaseSeeder extends Seeder
             ProposalStatusesSeeder::class,
             EmailTemplateSeeder::class,
             MenuMappingSeeder::class,
+            QuotationNumberFormatedSeeder::class,
+            InvoiceNumberFormatedSeeder::class,
+            QuotationStatusesSeeder::class,
+            InvoiceStatusesSeeder::class,
         ]);
     }
 }

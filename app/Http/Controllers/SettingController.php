@@ -2,16 +2,18 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\MenuMapping;
 use App\Models\Menu;
-use App\Models\AppConfig;
-use App\Models\LeadStatuses;
 use App\Models\Roles;
-use App\Models\ProposalNumberFormatted;
-use App\Models\ProposalStatuses;
+use App\Models\EmailLogs;
+use App\Models\AppConfig;
+use App\Models\MenuMapping;
+use App\Models\LeadStatuses;
 use App\Models\MailSettings;
 use App\Models\EmailTemplates;
-use App\Models\EmailLogs;
+use App\Models\ProposalStatuses;
+use App\Models\ProposalNumberFormatted;
+use App\Models\ProposalElementTemplate;
+use App\Models\ActivityLogs;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
@@ -30,8 +32,14 @@ class SettingController extends Controller
             return back()->with('error', 'Configuration not found');
         }
 
-        // Update dinamis untuk lead_... atau proposal_...
         $config->update($request->all());
+
+        ActivityLogs::create([
+            'user_id' => auth()->id(),
+            'module' => 'General Setting',
+            'action' => 'Update',
+            'description' => 'Update General Settings',
+        ]);
 
         return back()->with('success', 'Settings updated successfully');
     }
@@ -65,6 +73,13 @@ class SettingController extends Controller
 
         MenuMapping::create($validated);
 
+        ActivityLogs::create([
+            'user_id' => auth()->id(),
+            'module' => 'Roles Setting',
+            'action' => 'Created',
+            'description' => 'Create New Role',
+        ]);
+
         return redirect()->back();
     }
 
@@ -80,6 +95,13 @@ class SettingController extends Controller
         ]);
 
         $permission->update($validated);
+
+        ActivityLogs::create([
+            'user_id' => auth()->id(),
+            'module' => 'Roles Setting',
+            'action' => 'Update',
+            'description' => 'Update Role',
+        ]);
 
         return redirect()->back();
     }
@@ -110,14 +132,23 @@ class SettingController extends Controller
 
     public function proposals()
     {
-        $config = AppConfig::where('deleted', 0)->first();
-        $numbering = ProposalNumberFormatted::where('deleted', 0)->first();
-        $statuses = ProposalStatuses::where('deleted', 0)->orderBy('order', 'asc')->get();
+        $config     = AppConfig::where('deleted', 0)->first();
+        
+        $numbering  = ProposalNumberFormatted::where('deleted', 0)->first();
+        
+        $statuses   = ProposalStatuses::where('deleted', 0)->orderBy('order', 'asc')->get();
+        
+        $templates  = ProposalElementTemplate::limit(4)
+            ->whereNotNull('html_output')
+            ->whereNotNull('css_output')
+            // ->where('created_by', Auth::id())
+            ->get();
 
         return Inertia::render('Settings/Proposals', [
-            'config' => $config,
+            'config'    => $config,
             'numbering' => $numbering,
-            'statuses' => $statuses
+            'statuses'  => $statuses,
+            'templates' => $templates
         ]);
     }
 

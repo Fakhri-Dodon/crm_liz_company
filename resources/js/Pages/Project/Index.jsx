@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Head, usePage, router, useForm } from '@inertiajs/react';
 import HeaderLayout from '@/Layouts/HeaderLayout';
-import ProjectTable from '@/Components/Project/ProjectTable';
+import TableLayout from '@/Layouts/TableLayout';
 import ProjectModal from '@/Components/Project/ProjectModal';
 import StatusModal from '@/Components/Project/StatusModal';
 import DeleteModal from '@/Components/DeleteModal';
@@ -14,7 +14,8 @@ export default function Index({
     years, 
     companies, 
     quotations,
-    statusOptions 
+    statusOptions,
+    auth_permissions
 }) {
     const { props } = usePage();
     const flash = props.flash || {};
@@ -32,6 +33,11 @@ export default function Index({
         year: filters?.year || ''
     });
 
+    const canRead = auth_permissions.can_read === 1;
+    const canCreate = auth_permissions.can_create === 1;
+    const canUpdate = auth_permissions.can_update === 1;
+    const canDelete = auth_permissions.can_delete === 1;
+
     const { data, setData, get, reset } = useForm({
         search: localFilters.search,
         status: localFilters.status,
@@ -45,25 +51,21 @@ export default function Index({
             bg: 'bg-blue-100', 
             text: 'text-blue-800', 
             border: 'border-blue-200',
-            icon: '⚡'
         },
         completed: { 
             bg: 'bg-green-100', 
             text: 'text-green-800', 
             border: 'border-green-200',
-            icon: '✅'
         },
         pending: { 
             bg: 'bg-yellow-100', 
             text: 'text-yellow-800', 
             border: 'border-yellow-200',
-            icon: '⏳'
         },
         cancelled: { 
             bg: 'bg-red-100', 
             text: 'text-red-800', 
             border: 'border-red-200',
-            icon: '❌'
         }
     };
 
@@ -200,16 +202,17 @@ export default function Index({
             <div className="mb-8">
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                     <div>
-                        <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Project Management</h1>
-                        <p className="text-gray-600 mt-2">Manage and track all your projects efficiently</p>
+                        <h1 className="text-2xl font-bold text-gray-800">PROJECT</h1>
                     </div>
-                    <button
-                        onClick={() => setShowCreateModal(true)}
-                        className="px-4 py-3 bg-[#005954] text-white rounded-lg hover:bg-[#004d47] flex items-center gap-2 transition-colors shadow-sm hover:shadow-md w-full sm:w-auto justify-center"
-                    >
-                        <Plus className="w-4 h-4" />
-                        <span className="font-medium">Add Project</span>
-                    </button>
+                    {canCreate && (
+                        <button
+                            onClick={() => setShowCreateModal(true)}
+                            className="px-4 py-3 bg-[#005954] text-white rounded-lg hover:bg-[#004d47] flex items-center gap-2 transition-colors shadow-sm hover:shadow-md w-full sm:w-auto justify-center"
+                        >
+                            <Plus className="w-4 h-4" />
+                            <span className="font-medium">Add Project</span>
+                        </button>
+                    )}
                 </div>
             </div>
 
@@ -348,21 +351,32 @@ export default function Index({
 
             {/* Projects Table Section */}
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-                <div className="px-4 md:px-6 py-4 border-b border-gray-200 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                    <div>
-                        <h2 className="text-lg font-semibold text-gray-900">Project List</h2>
-                        <p className="text-sm text-gray-500 mt-1">
-                            Showing {projects.from || 0} to {projects.to || 0} of {projects.total || 0} projects
-                        </p>
-                    </div>
-                </div>
-                <ProjectTable
-                    projects={projects || { data: [] }}
-                    onEdit={handleEdit}
-                    onStatusChange={handleStatusChange}
-                    onDelete={handleDelete}
-                    companies={companies || []}
-                    statusOptions={statusOptions || []}
+                <TableLayout
+                    columns={[
+                        { key: 'project_description', label: 'Description' },
+                        { key: 'name', label: 'Client', render: (val, project) => {
+                            if (!project) return '-';
+                            return project.quotation?.lead?.company_name || 'N/A';
+                        }},
+                        { key: 'start_date', label: 'Start Date', render: (val) => val ? new Date(val).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }) : '-' },
+                        { key: 'deadline', label: 'Deadline', render: (val) => val ? new Date(val).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }) : '-' },
+                        { key: 'status', label: 'Status', render: (val, row) => {
+                            const statusLabel = statusOptions?.find(opt => opt.value === val)?.label || val;
+                            return <span>{statusLabel}</span>;
+                        } },
+                        { key: 'note', label: 'Note' },
+                    ]}
+                    data={projects.data || []}
+                    onEdit={canUpdate ? handleEdit : null}
+                    onDelete={canDelete ? handleDelete : null}
+                    showAction={canUpdate || canDelete}
+                    pagination={{
+                        currentPage: projects.current_page,
+                        totalPages: projects.last_page,
+                        totalItems: projects.total,
+                        itemsPerPage: projects.per_page,
+                        onPageChange: (page) => get(route('projects.index', { ...data, page }), { preserveScroll: true })
+                    }}
                 />
             </div>
 

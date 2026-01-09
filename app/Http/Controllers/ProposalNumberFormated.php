@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\ProposalNumberFormatted;
+use App\Models\ActivityLogs;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Redirect;
@@ -79,6 +80,13 @@ class ProposalNumberFormated extends Controller
                 'prefix'      => $request->prefix,
                 'padding'     => $request->padding,
                 'next_number' => $request->next_number,
+            ]);
+
+            ActivityLogs::create([
+                'user_id' => auth()->id(),
+                'module' => 'Proposal Number Formatted Setting',
+                'action' => 'Update',
+                'description' => 'Update Proposal Number Formatted Setting',
             ]);
 
             return Redirect::back()->with('success', 'Numbering setting updated successfully!');

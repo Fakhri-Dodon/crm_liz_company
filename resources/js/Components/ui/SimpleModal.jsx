@@ -14,8 +14,8 @@ export default function SimpleModal({ isOpen, onClose, title, children }) {
             
             {/* Modal Content */}
             <div className="bg-white rounded-xl shadow-2xl w-full max-w-md z-10 overflow-hidden animate-in fade-in zoom-in duration-200">
-                <div className="flex justify-between items-center p-4 border-b bg-teal-50">
-                    <h3 className="font-bold text-teal-900">{title}</h3>
+                <div className="flex justify-between items-center p-4 border-b bg-teal-800">
+                    <h3 className="font-bold text-white">{title}</h3>
                     <button onClick={onClose} className="text-gray-500 hover:text-red-600 transition-colors">
                         <X className="w-5 h-5" />
                     </button>

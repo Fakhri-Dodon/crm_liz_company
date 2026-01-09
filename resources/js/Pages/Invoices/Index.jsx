@@ -26,13 +26,18 @@ export const toast = (title, icon = 'success') => {
     });
 };
 
-export default function Index() {
+export default function Index({ auth_permissions }) {
     const { t } = useTranslation();
     const dev = false; // Ubah ke true untuk menampilkan halaman development
     if (dev) {
         return <DevelopmentPage />;
     }
     const { props } = usePage();
+
+    const canRead = auth_permissions.can_read === 1;
+    const canCreate = auth_permissions.can_create === 1;
+    const canUpdate = auth_permissions.can_update === 1;
+    const canDelete = auth_permissions.can_delete === 1;
 
     // Show success message if exists
     useEffect(() => {
@@ -285,9 +290,11 @@ export default function Index() {
         <div className="p-6">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-3">
                 <h2 className="text-2xl font-bold text-gray-700">{t("invoices.title") || "INVOICE"}</h2>
-                <PrimaryButton onClick={handleCreateInvoice} className="w-full sm:w-auto px-5 py-2.5 text-white text-sm font-medium rounded-lg">
-                    <span>{t('invoices.button_add') || 'Add Invoice'}</span>
-                </PrimaryButton>
+                {canCreate && (
+                    <PrimaryButton onClick={handleCreateInvoice} className="w-full sm:w-auto px-5 py-2.5 text-white text-sm font-medium rounded-lg">
+                        <span>{t('invoices.button_add') || 'Add Invoice'}</span>
+                    </PrimaryButton>
+                )}
             </div>
 
             {/* Status Summary - Project-style cards */}
@@ -434,9 +441,9 @@ export default function Index() {
                     <TableLayout
                         data={tableData}
                         columns={columns}
-                        onEdit={handleEditInvoice}
-                        onDelete={handleDeleteInvoice}
-                        showAction={true}
+                        onEdit={canUpdate ? handleEditInvoice : null}
+                        onDelete={canDelete ? handleDeleteInvoice : null}
+                        showAction={canUpdate || canDelete}
                     />
                 </div>
             </div>

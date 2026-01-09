@@ -16,6 +16,7 @@ use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\Quotation\QuotationController;
 use App\Http\Controllers\ProposalController;
 use App\Http\Controllers\ProposalNumberFormated;
+use App\Http\Controllers\ProposalElementController;
 use App\Http\Controllers\RolesController;
 use App\Http\Controllers\DashboardController;
 use Illuminate\Foundation\Application;
@@ -138,6 +139,14 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::put('/proposal-status/update/{id}', [ProposalStatusesController::class, 'update'])->name('proposal-status.update');
         Route::delete('/proposal-status/destroy/{id}', [ProposalStatusesController::class, 'destroy'])->name('proposal-status.delete');
 
+        Route::get('/proposal-element/editNama/{id}', [ProposalElementController::class, 'editNama'])->name('proposal-element.editNama');
+        Route::resource('proposal-element', ProposalElementController::class);
+
+        Route::get('/quotations', [SettingController::class, 'quotations'])->name('quotations');
+        Route::post('/quotation-status/store', [LeadStatusesController::class, 'store'])->name('quotation-status.store');
+        Route::put('/quotation-status/update/{id}', [LeadStatusesController::class, 'update'])->name('quotation-status.update');
+        Route::delete('/quotation-status/destroy/{id}', [LeadStatusesController::class, 'destroy'])->name('quotation-status.delete');
+
         // Emails
         Route::prefix('email')->name('email.')->group(function () {
             Route::get('/', [SettingController::class, 'email']);
@@ -162,21 +171,29 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
 Route::middleware(['auth', 'verified'])->group(function () {
     // ====================== COMPANY ROUTES ======================
+
+    // ====================== ADDITIONAL COMPANY ROUTES ======================
+    Route::get('/companies/get-accepted-quotations', [CompanyController::class, 'getAcceptedQuotations']);
+    Route::get('/companies/get-lead-from-quotation/{id}', [CompanyController::class, 'getLeadFromQuotation']);
+    Route::get('/companies/get-accepted-quotation/{id}', [CompanyController::class, 'getAcceptedQuotation']);
+    
+
     // Company List & Creation
     Route::get('/companies', [CompanyController::class, 'index'])->name('companies.index');
     Route::get('/companies/create', [CompanyController::class, 'create'])->name('companies.create');
     Route::post('/companies', [CompanyController::class, 'store'])->name('companies.store');
-    // Untuk Create Company - Get Accepted Quotations
-    // Additional company routes untuk Create.jsx
-    Route::get('/companies/get-accepted-quotations', [CompanyController::class, 'getAcceptedQuotations']);
-    Route::get('/companies/get-lead-from-quotation/{id}', [CompanyController::class, 'getLeadFromQuotation']);
-    Route::get('/companies/get-accepted-quotation/{id}', [CompanyController::class, 'getAcceptedQuotation']);    // Company Detail - ROUTE UTAMA untuk halaman profil
+    
+    // Company Detail - ROUTE UTAMA untuk halaman profil
     Route::get('/companies/{company}', [CompanyController::class, 'show'])->name('companies.show');
     
     // Company Edit & Update
     Route::get('/companies/{company}/edit', [CompanyController::class, 'edit'])->name('companies.edit');
     Route::put('/companies/{company}', [CompanyController::class, 'update'])->name('companies.update');
     
+    // ====================== COMPANY STATUS UPDATE ======================
+    // INI YANG UTAMA - route untuk update status
+    Route::patch('/companies/{company}/status', [CompanyController::class, 'updateStatus'])
+        ->name('companies.status.update');
     // Delete & Restore routes
     Route::delete('/companies/{company}', [CompanyController::class, 'destroy'])->name('companies.destroy');
     Route::delete('/companies/force-delete/{company}', [CompanyController::class, 'forceDelete'])
@@ -268,7 +285,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 });
 
 // Route untuk halaman tambah proposal
-Route::get('/proposal/add', [ProposalController::class, 'add'])->name('proposal.add');
+Route::post('/proposal/add', [ProposalController::class, 'add'])->name('proposal.add');
 Route::get('/proposal/addProposal/{id}', [ProposalController::class, 'addProposal'])->name('proposal.addProposal');
 Route::get('/html-sections', [ProposalController::class, 'sections']);
 Route::resource('proposal', ProposalController::class);

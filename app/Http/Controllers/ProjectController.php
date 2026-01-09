@@ -67,7 +67,13 @@ class ProjectController extends Controller
         }
 
         // Get paginated results
-        $projects = $query->orderBy('created_at', 'desc')
+        $projects = Project::with([
+                'company', 
+                'assignedUser', 
+                'quotation.lead:id,company_name'
+            ])
+            ->where('deleted', 0)
+            ->orderBy('created_at', 'desc')
             ->paginate(10)
             ->withQueryString();
 
@@ -97,15 +103,17 @@ class ProjectController extends Controller
                 ];
             });
 
-        $quotations = Quotation::where('deleted', 0)
+        $quotations = Quotation::with('lead:id,company_name') 
+            ->where('deleted', 0)
             ->whereNull('deleted_at')
-            ->select('id', 'quotation_number', 'date')
+            ->select('id', 'quotation_number', 'date', 'lead_id')
             ->orderBy('quotation_number', 'desc')
             ->get()
             ->map(function ($quotation) {
                 return [
                     'id' => $quotation->id,
-                    'name' => $quotation->quotation_number . ' (' . $quotation->date . ')'
+                    'name' => $quotation->lead?->company_name ?? 'No Company', 
+                    'number' => "{$quotation->quotation_number} ({$quotation->date})"
                 ];
             });
 
@@ -127,7 +135,8 @@ class ProjectController extends Controller
                 ['value' => 'completed', 'label' => 'Completed'],
                 ['value' => 'pending', 'label' => 'Pending'],
                 ['value' => 'cancelled', 'label' => 'Cancelled']
-            ]
+            ],
+            'auth_permissions' => auth()->user()->getPermissions('PROJECT'),
         ]);
     }
 

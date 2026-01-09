@@ -2,6 +2,7 @@ body, html {
   margin: 0;
   font: caption;
   height: 100%;
+  background-color: #242A3B;
 }
 
 .editor-clm {
@@ -82,4 +83,8 @@ body, html {
 .gjs-clm-states {
     padding-left: 10px;
     padding-right: 15px;
+}
+
+.gjs-frame {
+    padding-bottom: 10px;
 }

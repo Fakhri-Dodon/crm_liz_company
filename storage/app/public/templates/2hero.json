@@ -15,7 +15,7 @@
     "name": "Hero 1-3",
     "category": "Hero",
     "preview": "/templates/thumbs/hero1-3.png",
-    "html": "<section id=\"hero1-3\" class=\"hero bg-img\" style=\"background-image:url('images/yoga.jpg')\"> <div class=\"overlay\"></div> <div class=\"container vertical-center-rel\"> <div class=\"row\"> <div class=\"col-md-8\"> <h1 class=\"text-white p-t-md\">Live your Power</h1> <p class=\"lead text-white m-b-md \">At Getleads Yoga something amazing is happening. Lorem ipsum dolor sit amet, consectetur adipisicing elit.</p> <a href=\"#subscription4-1\" class=\"btn btn-shadow btn-green btn-md smooth-scroll text-uppercase\">Get your Free Week</a> <a class=\"mp-iframe watch-video inverse f-w-900\" href=\"https://www.youtube.com/watch?v=c7Oy4ojSwyE\"><i class=\"fa fa-play-circle-o\"></i>Watch the video</a> </div> </div> </div> </section>"
+    "html": "<section id=\"hero1-3\" class=\"hero bg-img\" style=\"background-image:url('/templates/images/yoga.jpg')\"> <div class=\"overlay\"></div> <div class=\"container vertical-center-rel\"> <div class=\"row\"> <div class=\"col-md-8\"> <h1 class=\"text-white p-t-md\">Live your Power</h1> <p class=\"lead text-white m-b-md \">At Getleads Yoga something amazing is happening. Lorem ipsum dolor sit amet, consectetur adipisicing elit.</p> <a href=\"#subscription4-1\" class=\"btn btn-shadow btn-green btn-md smooth-scroll text-uppercase\">Get your Free Week</a> <a class=\"mp-iframe watch-video inverse f-w-900\" href=\"https://www.youtube.com/watch?v=c7Oy4ojSwyE\"><i class=\"fa fa-play-circle-o\"></i>Watch the video</a> </div> </div> </div> </section>"
   },
   {
     "name": "Hero 2",
@@ -45,42 +45,42 @@
     "name": "Hero 6",
     "category": "Hero",
     "preview": "/templates/thumbs/hero6.png",
-    "html": "<section id=\"hero6\" class=\"hero hero-devices bg-img\" style=\"background-image:url('images/polygonal.png')\"> <div class=\"container\"> <div class=\"row y-middle\"> <div class=\"col-sm-6 text-white\"> <h1>A new way to connect.</h1> <p class=\"lead\">Introducing the most advanced social app.</p> <a href=\"\"><img src=\"/templates/images/android.png\" class=\"app-image\"></a> <a href=\"\"><img src=\"/templates/images/apple.png\" class=\"app-image\"></a> </div> <div class=\"col-sm-6\"> <img src=\"/templates/images/app1.png\" class=\"img-responsive\"> </div> </div> </div> </section>"
+    "html": "<section id=\"hero6\" class=\"hero hero-devices bg-img\" style=\"background-image:url('/templates/images/polygonal.png')\"> <div class=\"container\"> <div class=\"row y-middle\"> <div class=\"col-sm-6 text-white\"> <h1>A new way to connect.</h1> <p class=\"lead\">Introducing the most advanced social app.</p> <a href=\"\"><img src=\"/templates/images/android.png\" class=\"app-image\"></a> <a href=\"\"><img src=\"/templates/images/apple.png\" class=\"app-image\"></a> </div> <div class=\"col-sm-6\"> <img src=\"/templates/images/app1.png\" class=\"img-responsive\"> </div> </div> </div> </section>"
   },
   {
     "name": "Hero 7",
     "category": "Hero",
     "preview": "/templates/thumbs/hero7.png",
-    "html": "<section id=\"hero7\" class=\"bg-img p-y-md\" style=\"background-image:url('images/polygonal.png');\"> <div class=\"container text-center text-white\"> <h1>Master new skills</h1> <p class=\"lead\">Learn how to code websites and build apps.</p> <div class=\"popup-box m-b-lg\"> <img src=\"/templates/images/learning.jpg\" class=\"img-responsive\"> <a class=\"mp-iframe\" href=\"#\"><i class=\"fa fa-play\"></i></a> </div> <form class=\"form-inline form-white\"> <input type=\"text\" class=\"form-control\" placeholder=\"Name\"> <input type=\"email\" class=\"form-control\" placeholder=\"Email\"> <button type=\"submit\" class=\"btn btn-blue\">GET STARTED</button> </form> </div> </section>"
+    "html": "<section id=\"hero7\" class=\"bg-img p-y-md\" style=\"background-image:url('/templates/images/polygonal.png');\"> <div class=\"container text-center text-white\"> <h1>Master new skills</h1> <p class=\"lead\">Learn how to code websites and build apps.</p> <div class=\"popup-box m-b-lg\"> <img src=\"/templates/images/learning.jpg\" class=\"img-responsive\"> <a class=\"mp-iframe\" href=\"#\"><i class=\"fa fa-play\"></i></a> </div> <form class=\"form-inline form-white\"> <input type=\"text\" class=\"form-control\" placeholder=\"Name\"> <input type=\"email\" class=\"form-control\" placeholder=\"Email\"> <button type=\"submit\" class=\"btn btn-blue\">GET STARTED</button> </form> </div> </section>"
   },
   {
     "name": "Hero 8",
     "category": "Hero",
     "preview": "/templates/thumbs/hero8.png",
-    "html": "<section id=\"hero8\" class=\"hero hero-countdown bg-img\" style=\"background-image:url('images/polygonal.png');\"> <div class=\"container text-center text-white\"> <h1>Master new skills</h1> <a class=\"mp-iframe\" href=\"#\"><i class=\"fa fa-play-circle\"></i></a> <form class=\"form-inline form-white\"> <input type=\"text\" class=\"form-control\" placeholder=\"Name\"> <button type=\"submit\" class=\"btn btn-green\">GET STARTED</button> </form> </div> </section>"
+    "html": "<section id=\"hero8\" class=\"hero hero-countdown bg-img\" style=\"background-image:url('/templates/images/polygonal.png');\"> <div class=\"container text-center text-white\"> <h1>Master new skills</h1> <a class=\"mp-iframe\" href=\"#\"><i class=\"fa fa-play-circle\"></i></a> <form class=\"form-inline form-white\"> <input type=\"text\" class=\"form-control\" placeholder=\"Name\"> <button type=\"submit\" class=\"btn btn-green\">GET STARTED</button> </form> </div> </section>"
   },
   {
     "name": "Hero 9",
     "category": "Hero",
     "preview": "/templates/thumbs/hero9.png",
-    "html": "<section id=\"hero9\" class=\"bg-img hero-leadbox content-align-md\" style=\"background-image:url('images/carpenter1.jpg');\"> <div class=\"overlay\"></div> <div class=\"container\"> <div class=\"row y-middle text-white\"> <div class=\"col-md-7\"> <h1>Fine Custom Woodworking</h1> <p>Since 1981 we provide high quality custom cabinetry.</p> </div> <div class=\"col-md-5\"> <form class=\"form-horizontal form-white\"> <h4>Request a Quote Now</h4> <input type=\"text\" class=\"form-control\" placeholder=\"Name\"> <button type=\"submit\" class=\"btn btn-yellow\">GET A QUOTE!</button> </form> </div> </div> </div> </section>"
+    "html": "<section id=\"hero9\" class=\"bg-img hero-leadbox content-align-md\" style=\"background-image:url('/templates/images/carpenter1.jpg');\"> <div class=\"overlay\"></div> <div class=\"container\"> <div class=\"row y-middle text-white\"> <div class=\"col-md-7\"> <h1>Fine Custom Woodworking</h1> <p>Since 1981 we provide high quality custom cabinetry.</p> </div> <div class=\"col-md-5\"> <form class=\"form-horizontal form-white\"> <h4>Request a Quote Now</h4> <input type=\"text\" class=\"form-control\" placeholder=\"Name\"> <button type=\"submit\" class=\"btn btn-yellow\">GET A QUOTE!</button> </form> </div> </div> </div> </section>"
   },
   {
     "name": "Hero 10",
     "category": "Hero",
     "preview": "/templates/thumbs/hero10.png",
-    "html": "<section id=\"hero10\" class=\"bg-img hero-leadbox content-align-md\" style=\"background-image:url('images/bg-3-blur.png');\"> <div class=\"overlay\"></div> <div class=\"container\"> <div class=\"row y-middle text-white\"> <div class=\"col-md-5\"> <h1>Turn every project into success</h1> <p>Get started with a 30-day free trial.</p> </div> <div class=\"col-md-5 col-md-offset-1\"> <form class=\"form-horizontal form-white bg-grey\"> <h4 class=\"text-center\">Make an Appointment</h4> <input type=\"text\" class=\"form-control\" placeholder=\"Your Name\"> <button type=\"submit\" class=\"btn btn-green\">SEND REQUEST</button> </form> </div> </div> </div> </section>"
+    "html": "<section id=\"hero10\" class=\"bg-img hero-leadbox content-align-md\" style=\"background-image:url('/templates/images/bg-3-blur.png');\"> <div class=\"overlay\"></div> <div class=\"container\"> <div class=\"row y-middle text-white\"> <div class=\"col-md-5\"> <h1>Turn every project into success</h1> <p>Get started with a 30-day free trial.</p> </div> <div class=\"col-md-5 col-md-offset-1\"> <form class=\"form-horizontal form-white bg-grey\"> <h4 class=\"text-center\">Make an Appointment</h4> <input type=\"text\" class=\"form-control\" placeholder=\"Your Name\"> <button type=\"submit\" class=\"btn btn-green\">SEND REQUEST</button> </form> </div> </div> </div> </section>"
   },
   {
     "name": "Hero 11",
     "category": "Hero",
     "preview": "/templates/thumbs/hero11.png",
-    "html": "<section id=\"hero11\" class=\"bg-img hero-leadbox\" style=\"background-image:url('images/medical-1.jpg');\"> <div class=\"overlay\"></div> <div class=\"container text-white\"> <div class=\"row\"> <div class=\"col-md-6\"> <h1>We care for you</h1> <p>Medical Services That You Can Trust.</p> </div> <div class=\"col-md-6\"> <form class=\"form-horizontal form-white text-white\"> <h4>Make an Appointment</h4> <input type=\"text\" class=\"form-control\" placeholder=\"Name\"> <button type=\"submit\" class=\"btn btn-blue\">BOOK NOW!</button> </form> </div> </div> </div> </section>"
+    "html": "<section id=\"hero11\" class=\"bg-img hero-leadbox\" style=\"background-image:url('/templates/images/medical-1.jpg');\"> <div class=\"overlay\"></div> <div class=\"container text-white\"> <div class=\"row\"> <div class=\"col-md-6\"> <h1>We care for you</h1> <p>Medical Services That You Can Trust.</p> </div> <div class=\"col-md-6\"> <form class=\"form-horizontal form-white text-white\"> <h4>Make an Appointment</h4> <input type=\"text\" class=\"form-control\" placeholder=\"Name\"> <button type=\"submit\" class=\"btn btn-blue\">BOOK NOW!</button> </form> </div> </div> </div> </section>"
   },
   {
     "name": "Hero 12",
     "category": "Hero",
     "preview": "/templates/thumbs/hero12.png",
-    "html": "<section id=\"hero12\" class=\"hero hero-countdown bg-img\" style=\"background-image:url('images/event1.jpg');\"> <div class=\"overlay\"></div> <div class=\"container text-center text-white\"> <h1>The Creative Conference 2016</h1> <p class=\"lead\">Three days, one track, 5 workshops and 16 speakers.</p> <div class=\"countdown p-y-md\"> <div class=\"timer\"><div class=\"days\">00</div><em>days</em></div> <div class=\"timer\"><div class=\"hours\">00</div><em>hours</em></div> </div> <a href=\"\" class=\"btn btn-shadow btn-green\">RESERVE YOUR SEAT</a> <p class=\"m-t-md\">Join us for the event of the year.</p> </div> </section>"
+    "html": "<section id=\"hero12\" class=\"hero hero-countdown bg-img\" style=\"background-image:url('/templates/images/event1.jpg');\"> <div class=\"overlay\"></div> <div class=\"container text-center text-white\"> <h1>The Creative Conference 2016</h1> <p class=\"lead\">Three days, one track, 5 workshops and 16 speakers.</p> <div class=\"countdown p-y-md\"> <div class=\"timer\"><div class=\"days\">00</div><em>days</em></div> <div class=\"timer\"><div class=\"hours\">00</div><em>hours</em></div> </div> <a href=\"\" class=\"btn btn-shadow btn-green\">RESERVE YOUR SEAT</a> <p class=\"m-t-md\">Join us for the event of the year.</p> </div> </section>"
   }
 ]

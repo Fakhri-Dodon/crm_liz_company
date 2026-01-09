@@ -24,9 +24,6 @@ const DeleteConfirmationModal = ({ isOpen, onClose, onConfirm, lead }) => {
                     Are you sure you want to delete{" "}
                     <span className="font-semibold text-gray-900">{lead?.company_name}</span>?
                   </p>
-                  <p className="mt-2 text-sm text-red-600 font-medium">
-                    This action cannot be undone.
-                  </p>
                 </div>
               </div>
             </div>

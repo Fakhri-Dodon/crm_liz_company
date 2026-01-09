@@ -98,6 +98,7 @@ class ProposalController extends Controller
             'filterData'=> $filterData,
             'summary'   => $summary,
             'lead'      => $lead,
+            'auth_permissions' => auth()->user()->getPermissions('PROPOSAL'),
         ]);
 
     }
@@ -131,7 +132,6 @@ class ProposalController extends Controller
 
                 $template = ProposalElementTemplate::create([
                     'name'          => $validated['name'],
-                    'slug'          => $resultNumber,
                     'content_json'  => '-',
                     'preview_image' => '-',
                     'created_by'    => auth()->id(),

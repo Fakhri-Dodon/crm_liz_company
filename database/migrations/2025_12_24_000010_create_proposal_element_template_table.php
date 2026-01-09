@@ -15,7 +15,6 @@ return new class extends Migration
             $table->char('id', 36)->primary();
             // $table->char('proposal_element_id', 36);
             $table->string('name');
-            $table->string('slug')->unique();
             $table->longText('content_json');
             $table->string('preview_image', 255);
             $table->longText('html_output')->nullable();

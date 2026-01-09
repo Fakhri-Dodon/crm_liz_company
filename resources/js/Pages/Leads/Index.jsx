@@ -9,13 +9,18 @@ import DeleteConfirmationModal from "@/Components/DeleteConfirmationModal";
 import NotificationModal from "@/Components/NotificationModal";
 import { useTranslation } from "react-i18next";
 
-export default function LeadsIndex({ leads = [], auth }) {
+export default function LeadsIndex({ leads = [], auth, auth_permissions }) {
     // Gunakan SEMUA leads dari props
     const [leadsData, setLeadsData] = useState(leads);
     const [users, setUsers] = useState([]); // State untuk users
     const [loadingUsers, setLoadingUsers] = useState(false);
     
     const { t } = useTranslation();
+
+    const canRead = auth_permissions.can_read === 1;
+    const canCreate = auth_permissions.can_create === 1;
+    const canUpdate = auth_permissions.can_update === 1;
+    const canDelete = auth_permissions.can_delete === 1;
     
     const [loading, setLoading] = useState(false);
     const [modalOpen, setModalOpen] = useState(false);
@@ -33,13 +38,18 @@ export default function LeadsIndex({ leads = [], auth }) {
     });
     const [leadToDelete, setLeadToDelete] = useState(null);
 
+    // State untuk status dropdown
+    const [statusDropdownOpen, setStatusDropdownOpen] = useState(null); // null = tidak ada yang terbuka, id lead = terbuka untuk lead tersebut
+    const [leadStatuses, setLeadStatuses] = useState([]); // State untuk menyimpan data dari tabel lead_statuses
+
     // Get current user
     const currentUser = auth?.user || null;
     const isAdmin = currentUser?.is_admin || false;
 
-    // Fetch users untuk filter
+    // Fetch users dan lead_statuses dari API
     useEffect(() => {
         fetchUsers();
+        fetchLeadStatuses();
     }, []);
 
     // Fetch users dari API
@@ -59,13 +69,194 @@ export default function LeadsIndex({ leads = [], auth }) {
         }
     };
 
+    // Fetch lead_statuses dari API
+    const fetchLeadStatuses = async () => {
+        try {
+            const response = await fetch('/api/lead-statuses'); // Endpoint untuk mengambil data lead_statuses
+            if (response.ok) {
+                const data = await response.json();
+                setLeadStatuses(data);
+            } else {
+                console.error('Failed to fetch lead statuses:', response.status);
+                // Jika endpoint tidak tersedia, coba fetch dari endpoint lain atau gunakan data dari props jika ada
+                fetchLeadStatusesAlternative();
+            }
+        } catch (err) {
+            console.error('Error fetching lead statuses:', err);
+            // Fallback: coba endpoint alternatif
+            fetchLeadStatusesAlternative();
+        }
+    };
+
+    // Alternative method untuk fetch lead_statuses
+    const fetchLeadStatusesAlternative = async () => {
+        try {
+            // Coba endpoint lain jika /api/lead-statuses tidak tersedia
+            const response = await fetch('/api/lead-status'); // Alternative endpoint
+            if (response.ok) {
+                const data = await response.json();
+                setLeadStatuses(data);
+            } else {
+                // Jika masih gagal, coba ambil dari endpoint leads yang mungkin menyertakan statuses
+                const leadsResponse = await fetch('/api/leads');
+                if (leadsResponse.ok) {
+                    const leadsData = await leadsResponse.json();
+                    // Extract unique statuses from leads data
+                    const uniqueStatuses = [];
+                    const seenStatuses = new Set();
+                    
+                    leadsData.forEach(lead => {
+                        if (lead.status_id && lead.status_name && lead.status_color && !seenStatuses.has(lead.status_id)) {
+                            seenStatuses.add(lead.status_id);
+                            uniqueStatuses.push({
+                                id: lead.status_id,
+                                name: lead.status_name,
+                                color: lead.status_color
+                            });
+                        }
+                    });
+                    
+                    if (uniqueStatuses.length > 0) {
+                        setLeadStatuses(uniqueStatuses);
+                    } else {
+                        // Jika tidak ada data status sama sekali, tampilkan pesan error
+                        console.error('No lead statuses available');
+                    }
+                }
+            }
+        } catch (err) {
+            console.error('Error fetching lead statuses from alternative source:', err);
+        }
+    };
+
     // Debug info
-    // useEffect(() => {
-    //     console.log('=== ALL LEADS FROM DATABASE ===');
-    //     console.log('Total leads:', leads.length);
-    //     console.log('Current user:', currentUser);
-    //     console.log('Available users:', users.length);
-    // }, [leads, currentUser, users]);
+    useEffect(() => {
+        console.log('=== LEAD STATUSES FROM DATABASE ===');
+        console.log('Total statuses:', leadStatuses.length);
+        console.log('Statuses data:', leadStatuses);
+    }, [leadStatuses]);
+
+    // Handle status change
+    const handleStatusChange = async (leadId, newStatusId) => {
+        try {
+            setLoading(true);
+            
+            // Find the status object
+            const statusObj = leadStatuses.find(s => s.id === newStatusId);
+            
+            if (!statusObj) {
+                throw new Error('Status not found');
+            }
+            
+            console.log('Selected status object:', statusObj);
+            console.log('Lead ID to update:', leadId);
+            
+            // Siapkan payload sesuai dengan field di database (lead_statuses_id)
+            const payload = {
+                lead_statuses_id: newStatusId, // Gunakan field yang sesuai dengan database
+                status: statusObj.name,
+                status_name: statusObj.name,
+                status_color: statusObj.color || '#3b82f6',
+                _method: 'PUT' // Untuk Laravel method spoofing
+            };
+            
+            console.log('Updating status with payload:', payload);
+            
+            try {
+                // Gunakan fetch langsung
+                const response = await fetch(`/api/leads/${leadId}`, {
+                    method: 'POST', // Untuk Laravel method spoofing
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    body: JSON.stringify(payload)
+                });
+                
+                const data = await response.json();
+                console.log('Update response:', data);
+                
+                if (!response.ok) {
+                    throw new Error(data.message || data.error || `Update failed with status ${response.status}`);
+                }
+                
+                // Update local state - SESUAIKAN DENGAN FIELD DATABASE
+                setLeadsData(prev => prev.map(lead => {
+                    if (lead.id === leadId) {
+                        return {
+                            ...lead,
+                            lead_statuses_id: newStatusId, // Perhatikan field name
+                            status_id: newStatusId, // Untuk kompatibilitas
+                            status_name: statusObj.name,
+                            status_color: statusObj.color || '#3b82f6',
+                            status: statusObj.name
+                        };
+                    }
+                    return lead;
+                }));
+                
+                // Close dropdown
+                setStatusDropdownOpen(null);
+                
+                // Show notification
+                showNotification('success', 'Status Updated', `Lead status changed to ${statusObj.name}`);
+                
+            } catch (fetchError) {
+                console.error('Fetch error:', fetchError);
+                throw fetchError;
+            }
+            
+        } catch (err) {
+            console.error('Status update error:', err);
+            console.error('Full error:', err);
+            
+            // Tampilkan error yang lebih spesifik
+            let errorMessage = 'Failed to update status';
+            if (err.response?.data) {
+                errorMessage = err.response.data.message || 
+                            err.response.data.error || 
+                            JSON.stringify(err.response.data.errors || err.response.data);
+            } else if (err.message) {
+                errorMessage = err.message;
+            }
+            
+            showNotification('error', 'Update Failed', errorMessage);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    // Toggle status dropdown
+    const toggleStatusDropdown = (leadId) => {
+        if (!currentUser) {
+            showNotification('error', 'Authentication Required', 'Please login to update lead status');
+            return;
+        }
+        
+        // Cek apakah ada data status
+        if (leadStatuses.length === 0) {
+            showNotification('error', 'No Status Available', 'Cannot update status: No status data available');
+            return;
+        }
+        
+        setStatusDropdownOpen(statusDropdownOpen === leadId ? null : leadId);
+    };
+
+    // Close dropdown when clicking outside
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (statusDropdownOpen && !event.target.closest('.status-dropdown-container')) {
+                setStatusDropdownOpen(null);
+            }
+        };
+
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+        };
+    }, [statusDropdownOpen]);
 
     // Columns definition - TAMPILKAN SEMUA DATA
     const columns = [
@@ -156,24 +347,87 @@ export default function LeadsIndex({ leads = [], auth }) {
             key: "status_name",
             label: t('leads.table.status') || 'Status',
             render: (statusName, row) => {
-                const statusColor = row.status_color || '#3b82f6';
-                const displayName = statusName || 'New';
+                // Cari status berdasarkan status_id atau status_name dari data lead_statuses
+                const currentStatus = leadStatuses.find(status => 
+                    status.id === row.status_id || status.name === (row.status_name || row.status)
+                );
+                
+                const statusColor = currentStatus?.color || row.status_color || '#3b82f6';
+                const displayName = currentStatus?.name || row.status_name || row.status || 'New';
+                const isDropdownOpen = statusDropdownOpen === row.id;
                 
                 return (
-                    <span 
-                        className="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-semibold"
-                        style={{
-                            backgroundColor: `${statusColor}15`,
-                            color: statusColor,
-                            border: `1px solid ${statusColor}30`
-                        }}
-                    >
-                        <div 
-                            className="w-2 h-2 rounded-full mr-2"
-                            style={{ backgroundColor: statusColor }}
-                        ></div>
-                        {displayName}
-                    </span>
+                    <div className="relative status-dropdown-container">
+                        <button
+                            type="button"
+                            onClick={() => toggleStatusDropdown(row.id)}
+                            className={`inline-flex items-center px-3 py-1.5 rounded-full text-xs font-semibold transition-all duration-200 hover:shadow-sm ${
+                                isDropdownOpen ? 'ring-2 ring-blue-300 ring-offset-1' : ''
+                            }`}
+                            style={{
+                                backgroundColor: `${statusColor}15`,
+                                color: statusColor,
+                                border: `1px solid ${statusColor}30`,
+                                cursor: currentUser ? 'pointer' : 'default'
+                            }}
+                            disabled={!currentUser || leadStatuses.length === 0}
+                        >
+                            {displayName}
+                            {currentUser && leadStatuses.length > 0 && (
+                                <svg 
+                                    className={`ml-1.5 h-3.5 w-3.5 transition-transform duration-200 ${isDropdownOpen ? 'rotate-180' : ''}`}
+                                    fill="none" 
+                                    viewBox="0 0 24 24" 
+                                    stroke="currentColor"
+                                >
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                </svg>
+                            )}
+                        </button>
+                        
+                        {/* Status Dropdown - DIHAPUS STYLE */}
+                        {isDropdownOpen && currentUser && leadStatuses.length > 0 && (
+                            <div className="absolute z-50 mt-1 w-48 bg-white shadow-lg border border-gray-200 py-1">
+                                {leadStatuses.map((status) => {
+                                    const isCurrentStatus = currentStatus?.id === status.id || 
+                                                           displayName === status.name;
+                                    return (
+                                        <button
+                                            key={status.id}
+                                            type="button"
+                                            onClick={() => handleStatusChange(row.id, status.id)}
+                                            className={`w-full px-3 py-2.5 text-left hover:bg-gray-50 flex items-center justify-between ${
+                                                isCurrentStatus ? 'bg-blue-50' : ''
+                                            }`}
+                                        >
+                                            <div className="flex items-center">
+                                                <div 
+                                                    className="w-2.5 h-2.5 rounded-full mr-3"
+                                                    style={{ backgroundColor: status.color || '#3b82f6' }}
+                                                ></div>
+                                                <span className="text-sm font-medium text-gray-900">
+                                                    {status.name}
+                                                </span>
+                                            </div>
+                                            {isCurrentStatus && (
+                                                <svg className="h-4 w-4 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                                </svg>
+                                            )}
+                                        </button>
+                                    );
+                                })}
+                                {loading && (
+                                    <div className="px-3 py-2 border-t border-gray-100">
+                                        <div className="flex items-center justify-center">
+                                            <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                                            <span className="ml-2 text-xs text-gray-500">Updating...</span>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+                    </div>
                 );
             },
         },
@@ -329,47 +583,33 @@ export default function LeadsIndex({ leads = [], auth }) {
                 subtitle={t('leads.sub_title') || 'Manage all company leads'}
             />
 
-            {/* INFO BANNER */}
-            <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border-b border-blue-200 px-8 py-4">
-                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                    <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-sm border border-blue-100">
-                            <svg className="h-5 w-5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                            </svg>
-                        </div>
-                        <div>
-                            <h3 className="text-sm font-semibold text-gray-900">
-                                {t('leads.headers.all_lead_database') || 'All Leads Database'}
-                            </h3>
-                            <p className="text-xs text-gray-600">
-                                {leadsData.length} {t('leads.headers.leads') || 'leads'} • {filteredLeads.length} {t('leads.headers.filtered') || 'filtered'}
-                            </p>
-                        </div>
+            {/* TITLE SECTION - DIMODIFIKASI: Button sejajar dengan title, subtitle dihilangkan */}
+            <div className="px-8 py-6">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+                    <div>
+                        <h2 className="text-2xl font-bold text-gray-900">
+                            {t('leads.title')}
+                        </h2>
                     </div>
-                    
-                    {currentUser && (
-                        <div className="flex items-center gap-3 bg-white px-3 py-2 rounded-lg border border-blue-100 shadow-sm">
-                            <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full flex items-center justify-center">
-                                <span className="text-white font-semibold text-sm">
-                                    {currentUser.name?.charAt(0).toUpperCase() || 'U'}
-                                </span>
-                            </div>
-                            <div>
-                                <div className="text-sm font-medium text-gray-900">
-                                    {currentUser.name}
-                                </div>
-                                <div className="text-xs text-gray-500">
-                                    {currentUser.email}
-                                </div>
-                            </div>
-                        </div>
-                    )}
+                    <div className="sm:w-auto">
+                        {canCreate && (
+                            <PrimaryButton
+                                onClick={handleAdd}
+                                disabled={!currentUser}
+                                className="inline-flex items-center rounded-md border border-transparent px-5 py-2.5 text-sm font-medium font-semibold uppercase tracking-widest text-white transition duration-150 ease-in-out bg-[rgb(17,94,89)] hover:bg-[rgb(13,75,71)] focus:bg-[rgb(13,75,71)] focus:outline-none focus:ring-2 focus:ring-[rgb(17,94,89)] focus:ring-offset-2 active:bg-[rgb(10,60,57)] w-full sm:w-auto flex items-center justify-center gap-2 shadow-sm hover:shadow"
+                            >
+                                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                                </svg>
+                                <span className="font-semibold">{t('leads.button_add') || 'Add New Lead'}</span>
+                            </PrimaryButton>
+                        )}
+                    </div>
                 </div>
             </div>
 
             {/* ACTION BAR */}
-            <div className="bg-white border-b border-gray-200 px-8 py-6">
+            <div className="bg-white border-b border-gray-200 px-8">
                 <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
                     {/* FILTERS SECTION */}
                     <div className="w-full">
@@ -383,7 +623,7 @@ export default function LeadsIndex({ leads = [], auth }) {
                                 </div>
                                 <input
                                     type="text"
-                                    placeholder="Search leads by company, contact, or email..."
+                                    placeholder={t('leads.filters.search_placeholder')}
                                     value={search}
                                     onChange={(e) => setSearch(e.target.value)}
                                     className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm transition-all duration-200"
@@ -466,52 +706,7 @@ export default function LeadsIndex({ leads = [], auth }) {
                         )}
                     </div>
 
-                    {/* ADD BUTTON */}
-                    <div className="w-full sm:w-auto">
-                        <PrimaryButton
-                            onClick={handleAdd}
-                            disabled={!currentUser}
-                            className={`w-full sm:w-auto px-6 py-3.5 text-sm font-semibold rounded-xl transition-all duration-200 flex items-center justify-center gap-3 shadow-sm hover:shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2 ${
-                                !currentUser 
-                                    ? 'bg-gray-200 text-gray-500 cursor-not-allowed border border-gray-300' 
-                                    : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white focus:ring-blue-500 border border-blue-600'
-                            }`}
-                        >
-                            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                            </svg>
-                            <span className="font-semibold">{t('leads.button_add') || 'Add New Lead'}</span>
-                        </PrimaryButton>
-                    </div>
-                </div>
-                
-                {/* Results Summary */}
-                <div className="mt-6 pt-4 border-t border-gray-100">
-                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-                        <div className="text-sm text-gray-600">
-                            <span className="font-medium">{t("leads.filters.showing_info", { 
-                                    count: filteredLeads.length, 
-                                    total: leadsData.length 
-                                })}
-                            </span>
-                            {hasActiveFilters && " (filtered)"}
-                        </div>
-                        
-                        <div className="flex items-center gap-4 text-xs text-gray-500">
-                            <div className="flex items-center gap-2">
-                                <div className="w-3 h-3 rounded-full bg-blue-500"></div>
-                                <span>{t("leads.status_labels.new")}</span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                                <div className="w-3 h-3 rounded-full bg-green-500"></div>
-                                <span>{t("leads.status_labels.contacted")}</span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                                <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
-                                <span>{t("leads.status_labels.qualified")}</span>
-                            </div>
-                        </div>
-                    </div>
+                    {/* ADD BUTTON DIHAPUS DARI SINI karena sudah dipindah ke atas */}
                 </div>
             </div>
 
@@ -575,14 +770,14 @@ export default function LeadsIndex({ leads = [], auth }) {
                             <TableLayout
                                 columns={columns}
                                 data={filteredLeads}
-                                onEdit={handleEdit}
-                                onDelete={handleDelete}
-                                showAction={true}
+                                onEdit={canUpdate ? handleEdit : null}
+                                onDelete={canDelete ? handleDelete : null}
+                                showAction={canUpdate || canDelete}
                             />
                         </div>
                         
                         {/* Table Footer */}
-                        <div className="px-6 py-4 border-t border-gray-100 bg-gray-50">
+                        {/* <div className="px-6 py-4 border-t border-gray-100 bg-gray-50">
                             <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
                                 <div className="text-sm text-gray-600">
                                     {t("leads.table.showing_info", { count: filteredLeads.length })}
@@ -597,7 +792,7 @@ export default function LeadsIndex({ leads = [], auth }) {
                                     })}
                                 </div>
                             </div>
-                        </div>
+                        </div> */}
                     </div>
                 )}
             </div>
@@ -611,6 +806,7 @@ export default function LeadsIndex({ leads = [], auth }) {
                 currentUser={currentUser}
                 isAdmin={isAdmin}
                 users={users} // Kirim users data ke modal
+                statuses={leadStatuses} // Kirim statuses ke modal
             />
 
             <DeleteConfirmationModal

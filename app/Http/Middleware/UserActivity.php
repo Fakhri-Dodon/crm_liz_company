@@ -11,17 +11,18 @@ class UserActivity
 {
     public function handle(Request $request, Closure $next): Response
     {
-        if (auth()->check()) {
+        if (Auth::check()) {
             try {
-                \DB::reconnect(); 
-
-                auth()->user()->updateQuietly([
-                    'last_seen' => now()
-                ]);
+                \DB::getPdo(); 
             } catch (\Exception $e) {
-                \Log::error("Gagal update last_seen: " . $e->getMessage());
+                \DB::reconnect();
             }
-        } 
+            try {
+                Auth::user()->updateQuietly(['last_seen' => now()]);
+            } catch (\Exception $e) {
+                \Log::error("Update last_seen gagal: " . $e->getMessage());
+            }
+        }
         
         return $next($request);
     }

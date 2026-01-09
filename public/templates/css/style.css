@@ -318,7 +318,7 @@ b {
 /*   Background Images for demos
 /*------------------------------------------*/
 .bg-img {
-    background: url("../images/bg-1.jpg") no-repeat center center scroll;
+    background: url("/templates/images/bg-1.jpg") no-repeat center center scroll;
     -webkit-background-size: cover;
     -moz-background-size:cover;
     background-size: cover;  
@@ -954,7 +954,7 @@ a.btn-app {
     overflow: hidden;
     text-indent: 100%;
     white-space: nowrap;
-    background: #439FE0 url("../images/top-arrow.svg") no-repeat center 50%;
+    background: #439FE0 url("/templates/images/top-arrow.svg") no-repeat center 50%;
     visibility: hidden;
     opacity: 0;
     -webkit-transition: opacity .3s 0s, visibility 0s .3s;
