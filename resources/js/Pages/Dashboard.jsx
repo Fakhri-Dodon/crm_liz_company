@@ -22,6 +22,8 @@ export default function Dashboard({
     const { t } = useTranslation();
     const role = auth?.user?.role_name;
 
+    // const role = 'Finance';
+
     const getRoleConfig = () => {
         switch (role) {
             case "Marketing":

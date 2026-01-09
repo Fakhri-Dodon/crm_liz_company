@@ -20,7 +20,7 @@ const PDFPreview = ({ children, title, logoUrl }) => {
                         )}
                     </div>
                     <div className="text-right">
-                        <h1 className="text-2xl font-black italic tracking-tighter uppercase text-slate-900">{title}</h1>
+                        <h1 className="text-[50px] font-black tracking-tighter uppercase text-slate-900">{title}</h1>
                     </div>
                 </div>
                 {children}
