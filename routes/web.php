@@ -142,6 +142,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/proposal-element/editNama/{id}', [ProposalElementController::class, 'editNama'])->name('proposal-element.editNama');
         Route::resource('proposal-element', ProposalElementController::class);
 
+        Route::get('/quotations', [SettingController::class, 'quotations'])->name('quotations');
+        Route::post('/quotation-status/store', [LeadStatusesController::class, 'store'])->name('quotation-status.store');
+        Route::put('/quotation-status/update/{id}', [LeadStatusesController::class, 'update'])->name('quotation-status.update');
+        Route::delete('/quotation-status/destroy/{id}', [LeadStatusesController::class, 'destroy'])->name('quotation-status.delete');
+
         // Emails
         Route::prefix('email')->name('email.')->group(function () {
             Route::get('/', [SettingController::class, 'email']);

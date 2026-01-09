@@ -14,6 +14,8 @@ return new class extends Migration
             $table->char('id', 36)->primary();
             $table->char('quotation_id', 36);
             $table->char('company_contact_persons_id', 36);
+            $table->char('invoice_number_formated_id', 36);
+            $table->char('invoice_statuses_id', 36);
             $table->string('invoice_number', 50);
             $table->date('date');
             $table->integer('invoice_amout');

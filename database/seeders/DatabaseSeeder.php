@@ -29,6 +29,10 @@ class DatabaseSeeder extends Seeder
             ProposalStatusesSeeder::class,
             EmailTemplateSeeder::class,
             MenuMappingSeeder::class,
+            QuotationNumberFormatedSeeder::class,
+            InvoiceNumberFormatedSeeder::class,
+            QuotationStatusesSeeder::class,
+            InvoiceStatusesSeeder::class,
         ]);
     }
 }
