@@ -1,21 +1,22 @@
 // resources/js/Components/Companies/EditModal.jsx
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
     X, Upload, Building, User, Mail, Phone, MapPin, 
     Globe, FileText, AlertCircle, Check, Image, Trash2,
-    Briefcase, Smartphone, AtSign, Globe as GlobeIcon
+    Briefcase, Smartphone, AtSign, Globe as GlobeIcon,
+    Lock
 } from 'lucide-react';
 import { router } from '@inertiajs/react';
 import axios from 'axios';
-import { useTranslation } from 'react-i18next'; // Import useTranslation
+import { useTranslation } from 'react-i18next';
 
 const EditModal = ({ isOpen, onClose, company, clientTypes, onUpdate }) => {
-    const { t } = useTranslation(); // Initialize translation hook
+    const { t } = useTranslation();
     
     // State untuk menyimpan data form
     const [formData, setFormData] = useState({
-        // Company fields
-        company_name: '', // Akan disimpan sebagai client_code
+        // Company fields - company_name akan diambil dari leads (READ ONLY)
+        company_name: '',
         client_type_id: '',
         status: 'active',
         city: '',
@@ -41,6 +42,8 @@ const EditModal = ({ isOpen, onClose, company, clientTypes, onUpdate }) => {
     const [logoFile, setLogoFile] = useState(null);
     const [contactLoading, setContactLoading] = useState(false);
     const [hasContactData, setHasContactData] = useState(false);
+    const [isInitialized, setIsInitialized] = useState(false);
+    const isInitializing = useRef(false);
 
     // Setup axios defaults
     useEffect(() => {
@@ -55,61 +58,140 @@ const EditModal = ({ isOpen, onClose, company, clientTypes, onUpdate }) => {
 
     // Initialize form data when company changes
     useEffect(() => {
-        if (isOpen && company && clientTypes.length > 0) {
-            console.log('=== INITIALIZING EDIT FORM ===');
-            console.log('Company data for edit:', company);
-            console.log('Available client types:', clientTypes);
-            
-            // Cari client type yang sesuai dengan company
-            const matchingClientType = clientTypes.find(type => type.id === company.client_type_id);
-            
-            // Load contact person data
-            loadContactPersonData(company.id);
-            
-            // Data initial untuk company
-            const initialData = {
-                // Company fields
-                company_name: company.client_code || company.name || '',
-                client_type_id: company.client_type_id || (clientTypes.length > 0 ? clientTypes[0].id : ''),
-                status: company.is_active ? 'active' : 'inactive',
-                city: company.city || '',
-                province: company.province || '',
-                country: company.country || '',
-                postal_code: company.postal_code?.toString() || '',
-                vat_number: company.vat_number?.toString() || '',
-                nib: company.nib || '',
-                website: company.website || '',
-                logo: null,
-                logo_preview: company.logo_url || '',
-                delete_logo: false,
+        const initializeFormData = async () => {
+            if (!isOpen || !company || clientTypes.length === 0 || isInitializing.current) {
+                return;
+            }
+
+            isInitializing.current = true;
+            setIsInitialized(false);
+            console.log('=== EDIT MODAL INITIALIZATION ===');
+            console.log('Full company data received:', company);
+            console.log('Lead data:', company.lead);
+            console.log('Primary contact:', company.primary_contact);
+            console.log('Client Types available:', clientTypes);
+
+            try {
+                // Ambil company_name dari berbagai sumber dengan prioritas
+                const companyName = company.company_name || 
+                                   company.lead?.company_name || 
+                                   company.client_code || 
+                                   company.name || 
+                                   '';
+
+                // Ambil data kontak dari berbagai sumber dengan prioritas
+                const contactData = {
+                    contact_person: company.contact_person || 
+                                  company.primary_contact?.name || 
+                                  company.lead?.contact_person || 
+                                  '',
+                    contact_email: company.contact_email || 
+                                 company.email || 
+                                 company.primary_contact?.email || 
+                                 company.lead?.email || 
+                                 '',
+                    contact_phone: company.contact_phone || 
+                                 company.phone || 
+                                 company.primary_contact?.phone || 
+                                 company.lead?.phone || 
+                                 '',
+                    contact_position: company.contact_position || 
+                                    company.primary_contact?.position || 
+                                    company.lead?.position || 
+                                    ''
+                };
+
+                console.log('Company Name resolved:', {
+                    fromProp: company.company_name,
+                    fromLead: company.lead?.company_name,
+                    fromClientCode: company.client_code,
+                    fromName: company.name,
+                    finalValue: companyName
+                });
+
+                console.log('Contact data resolved:', contactData);
+
+                // Data untuk form
+                const companyData = {
+                    // Company Name dari leads (READ ONLY)
+                    company_name: companyName,
+                    
+                    // Client type
+                    client_type_id: company.client_type_id || (clientTypes.length > 0 ? clientTypes[0].id : ''),
+                    
+                    // Status
+                    status: company.is_active ? 'active' : 'inactive',
+                    
+                    // Location info
+                    city: company.city || '',
+                    province: company.province || '',
+                    country: company.country || '',
+                    postal_code: company.postal_code?.toString() || '',
+                    
+                    // Business details
+                    vat_number: company.vat_number?.toString() || '',
+                    nib: company.nib || '',
+                    website: company.website || '',
+                    
+                    // Logo
+                    logo: null,
+                    logo_preview: company.logo_url || '',
+                    delete_logo: false,
+                    
+                    // Contact fields
+                    contact_person: contactData.contact_person,
+                    contact_email: contactData.contact_email,
+                    contact_phone: contactData.contact_phone,
+                    contact_position: contactData.contact_position
+                };
+
+                console.log('Form data to be set:', companyData);
+
+                // Set form data
+                setFormData(companyData);
                 
-                // Contact fields - akan diisi setelah fetch
-                contact_person: '',
-                contact_email: '',
-                contact_phone: '',
-                contact_position: ''
-            };
-            
-            console.log('Initial form data:', initialData);
-            
-            setFormData(initialData);
-            setLogoFile(null);
-            setErrors({});
-        }
+                // Check if we have contact data
+                const hasContactInfo = contactData.contact_person || 
+                                      contactData.contact_email || 
+                                      contactData.contact_phone;
+                setHasContactData(!!hasContactInfo);
+
+                // Jika tidak ada data kontak, coba fetch dari API
+                if (!hasContactInfo && company.id) {
+                    await loadContactPersonData(company.id, companyData);
+                }
+
+                console.log('=== FORM INITIALIZED SUCCESSFULLY ===');
+
+            } catch (error) {
+                console.error('Error during form initialization:', error);
+            } finally {
+                setIsInitialized(true);
+                isInitializing.current = false;
+            }
+        };
+
+        initializeFormData();
+
+        // Cleanup function untuk blob URLs
+        return () => {
+            if (formData.logo_preview && formData.logo_preview.startsWith('blob:')) {
+                URL.revokeObjectURL(formData.logo_preview);
+            }
+        };
     }, [isOpen, company, clientTypes]);
 
-    // Fungsi untuk load contact person data
-    const loadContactPersonData = async (companyId) => {
+    // Fungsi untuk load contact person data dari API
+    const loadContactPersonData = async (companyId, currentFormData) => {
         setContactLoading(true);
         try {
-            console.log('Fetching contact data for company:', companyId);
+            console.log('Fetching contact data from API for company:', companyId);
             
-            // Fetch primary contact data
             const response = await axios.get(`/api/companies/${companyId}/primary-contact`);
             
             if (response.data.success && response.data.data) {
                 const contactData = response.data.data;
-                console.log('Contact data received:', contactData);
+                console.log('Contact API data received:', contactData);
                 
                 setFormData(prev => ({
                     ...prev,
@@ -120,41 +202,12 @@ const EditModal = ({ isOpen, onClose, company, clientTypes, onUpdate }) => {
                 }));
                 
                 setHasContactData(true);
-                
-                console.log('Contact form data updated:', {
-                    name: contactData.name,
-                    email: contactData.email,
-                    phone: contactData.phone,
-                    position: contactData.position
-                });
             } else {
-                console.log('No contact data found, using fallback');
-                // Fallback: Gunakan data dari company object jika ada
-                setFormData(prev => ({
-                    ...prev,
-                    contact_person: company.contact_person || company.primary_contact?.name || '',
-                    contact_email: company.contact_email || company.primary_contact?.email || '',
-                    contact_phone: company.contact_phone || company.primary_contact?.phone || '',
-                    contact_position: company.contact_position || company.primary_contact?.position || ''
-                }));
+                console.log('No contact data from API');
                 setHasContactData(false);
             }
         } catch (error) {
             console.error('Error fetching contact data:', error);
-            console.error('Error details:', {
-                status: error.response?.status,
-                data: error.response?.data,
-                message: error.message
-            });
-            
-            // Fallback: Gunakan data dari company object
-            setFormData(prev => ({
-                ...prev,
-                contact_person: company.contact_person || company.primary_contact?.name || '',
-                contact_email: company.contact_email || company.primary_contact?.email || '',
-                contact_phone: company.contact_phone || company.primary_contact?.phone || '',
-                contact_position: company.contact_position || company.primary_contact?.position || ''
-            }));
             setHasContactData(false);
         } finally {
             setContactLoading(false);
@@ -163,6 +216,12 @@ const EditModal = ({ isOpen, onClose, company, clientTypes, onUpdate }) => {
 
     const handleInputChange = (e) => {
         const { name, value, type, checked, files } = e.target;
+        
+        // Skip if trying to change company_name (read-only)
+        if (name === 'company_name') {
+            console.log('Company name is read-only, ignoring change attempt');
+            return;
+        }
         
         if (type === 'radio') {
             setFormData(prev => ({ ...prev, [name]: value }));
@@ -209,7 +268,7 @@ const EditModal = ({ isOpen, onClose, company, clientTypes, onUpdate }) => {
         try {
             // Prepare data untuk update
             const requestData = {
-                // Company data
+                // Company Name (read-only, hanya untuk validasi)
                 company_name: formData.company_name || '',
                 client_type_id: formData.client_type_id || '',
                 status: formData.status || 'active',
@@ -227,14 +286,15 @@ const EditModal = ({ isOpen, onClose, company, clientTypes, onUpdate }) => {
                 contact_phone: formData.contact_phone || '',
                 contact_position: formData.contact_position || '',
                 
-                // Konversi delete_logo ke boolean
+                // Logo deletion
                 delete_logo: formData.delete_logo ? '1' : '0'
             };
 
-            console.log('=== SENDING UPDATE DATA ===');
-            console.log('Request data:', requestData);
+            console.log('=== SUBMITTING UPDATE DATA ===');
             console.log('Company ID:', company.id);
-            console.log('URL:', `/companies/${company.id}`);
+            console.log('Company Name (read-only, for validation):', requestData.company_name);
+            console.log('Client Code (will remain unchanged):', company.client_code);
+            console.log('Full request data:', requestData);
 
             // Create FormData untuk handle file upload
             const formDataToSend = new FormData();
@@ -242,12 +302,7 @@ const EditModal = ({ isOpen, onClose, company, clientTypes, onUpdate }) => {
             // Append semua field
             Object.keys(requestData).forEach(key => {
                 if (requestData[key] !== null && requestData[key] !== undefined) {
-                    // Untuk boolean, konversi ke string '1' atau '0'
-                    if (key === 'delete_logo') {
-                        formDataToSend.append(key, requestData[key]); // '1' atau '0'
-                    } else {
-                        formDataToSend.append(key, requestData[key]);
-                    }
+                    formDataToSend.append(key, requestData[key]);
                 }
             });
             
@@ -257,19 +312,14 @@ const EditModal = ({ isOpen, onClose, company, clientTypes, onUpdate }) => {
                 console.log('Logo file appended:', formData.logo.name);
             }
 
-            console.log('FormData entries:');
-            for (let pair of formDataToSend.entries()) {
-                console.log(pair[0] + ': ' + pair[1]);
-            }
-
-            // Kirim request
+            // Kirim request ke server
             const response = await axios.post(`/companies/${company.id}`, formDataToSend, {
                 headers: {
                     'Content-Type': 'multipart/form-data',
                     'Accept': 'application/json',
                 },
                 params: {
-                    '_method': 'PUT' // Untuk Laravel PUT method via POST
+                    '_method': 'PUT'
                 }
             });
 
@@ -302,11 +352,6 @@ const EditModal = ({ isOpen, onClose, company, clientTypes, onUpdate }) => {
             }
         } catch (error) {
             console.error('Error updating client:', error);
-            console.error('Error details:', {
-                status: error.response?.status,
-                data: error.response?.data,
-                message: error.message
-            });
             
             if (error.response?.status === 422) {
                 const validationErrors = error.response.data.errors || {};
@@ -314,7 +359,6 @@ const EditModal = ({ isOpen, onClose, company, clientTypes, onUpdate }) => {
                 
                 console.log('Validation errors:', validationErrors);
                 
-                // Format validation errors untuk alert
                 const errorMessages = Object.entries(validationErrors)
                     .map(([field, messages]) => {
                         if (Array.isArray(messages)) {
@@ -346,7 +390,7 @@ const EditModal = ({ isOpen, onClose, company, clientTypes, onUpdate }) => {
         onClose();
     };
 
-    if (!isOpen || !company) return null;
+    if (!isOpen || !company || !isInitialized) return null;
 
     return (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
@@ -363,9 +407,18 @@ const EditModal = ({ isOpen, onClose, company, clientTypes, onUpdate }) => {
                             </p>
                             {company.id && (
                                 <span className="text-xs bg-gray-100 px-2 py-1 rounded text-gray-500">
-                                    ID: {company.id.substring(0, 8)}...
+                                    ID: {company.id}
                                 </span>
                             )}
+                        </div>
+                        <div className="mt-1 text-sm">
+                            <span className="text-gray-700 font-medium">Company Name: </span>
+                            <span className="text-blue-600 font-semibold">
+                                {formData.company_name}
+                            </span>
+                            <span className="ml-2 text-xs text-gray-500">
+                                (Read Only - from Leads)
+                            </span>
                         </div>
                         {contactLoading ? (
                             <p className="text-sm text-blue-600 mt-1 flex items-center gap-1">
@@ -396,21 +449,6 @@ const EditModal = ({ isOpen, onClose, company, clientTypes, onUpdate }) => {
                 {/* Form */}
                 <form onSubmit={handleSubmit} className="overflow-y-auto max-h-[calc(95vh-180px)]">
                     <div className="p-6 space-y-8">
-                        {/* Error Alert */}
-                        {errors.submit && (
-                            <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-                                <div className="flex items-start gap-3">
-                                    <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
-                                    <div>
-                                        <p className="text-sm font-medium text-red-800">{errors.submit}</p>
-                                        <p className="text-sm text-red-600 mt-1">
-                                            {t('companies_edit.check_inputs_try_again')}
-                                        </p>
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-
                         {/* Section 1: Contact Person Information */}
                         <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-6">
                             <h3 className="text-xl font-bold text-blue-900 mb-4 flex items-center gap-3">
@@ -528,24 +566,39 @@ const EditModal = ({ isOpen, onClose, company, clientTypes, onUpdate }) => {
                             </h3>
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                {/* Company Name */}
-                                <div>
-                                    <label className="block text-sm font-semibold text-gray-700 mb-2">
-                                        {t('companies_edit.company_name')} *
+                                {/* Company Name - READ ONLY */}
+                                <div className="md:col-span-2">
+                                    <label className="block text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
+                                        <Building className="w-4 h-4 text-teal-500" />
+                                        {t('companies_edit.company_name')}
+                                        <span className="ml-2 text-xs text-blue-600 font-normal bg-blue-50 px-2 py-0.5 rounded">
+                                            Read Only
+                                        </span>
                                     </label>
-                                    <input
-                                        type="text"
-                                        name="company_name"
-                                        value={formData.company_name}
-                                        onChange={handleInputChange}
-                                        className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition ${
-                                            errors.company_name ? 'border-red-300 bg-red-50' : 'border-teal-200'
-                                        }`}
-                                        required
-                                    />
-                                    <p className="mt-2 text-xs text-gray-500">
-                                        {t('companies_edit.client_code_note')}
-                                    </p>
+                                    <div className="relative">
+                                        <div className="w-full px-4 py-3 border border-teal-200 rounded-lg bg-gray-50 text-gray-800 flex items-center justify-between">
+                                            <div className="flex items-center">
+                                                <div className="font-medium">{formData.company_name}</div>
+                                            </div>
+                                            <div className="flex items-center text-gray-500">
+                                                <Lock className="w-4 h-4 mr-1" />
+                                                <span className="text-xs">Locked</span>
+                                            </div>
+                                        </div>
+                                        {/* Hidden input untuk tetap mengirim data ke server */}
+                                        <input
+                                            type="hidden"
+                                            name="company_name"
+                                            value={formData.company_name}
+                                        />
+                                    </div>
+                                    <div className="mt-2 flex items-start text-xs text-gray-500">
+                                        <AlertCircle className="w-3 h-3 mr-1 mt-0.5 flex-shrink-0" />
+                                        <span>
+                                            Company name is retrieved from the associated Lead record and cannot be edited here. 
+                                            To change the company name, please update the corresponding Lead in the Leads section.
+                                        </span>
+                                    </div>
                                 </div>
 
                                 {/* Client Type */}
@@ -807,6 +860,14 @@ const EditModal = ({ isOpen, onClose, company, clientTypes, onUpdate }) => {
                             <p className="text-sm text-gray-600">
                                 {t('companies_edit.editing_client')}: <span className="font-semibold">{company.client_code}</span>
                             </p>
+                            <div className="flex items-center gap-2 mt-1">
+                                <p className="text-xs text-gray-500">
+                                    Company Name: <span className="font-medium text-blue-600">{formData.company_name}</span>
+                                </p>
+                                <span className="text-xs bg-gray-200 text-gray-700 px-2 py-0.5 rounded">
+                                    Read Only
+                                </span>
+                            </div>
                             {contactLoading && (
                                 <p className="text-xs text-blue-600 mt-1">
                                     {t('companies_edit.loading_contact_information')}

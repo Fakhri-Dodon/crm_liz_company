@@ -37,17 +37,20 @@ public function index(Request $request)
             return redirect()->route('login');
         }
         
-        // **PERBAIKAN: Tambahkan relasi lead**
-        $query = Company::with(['clientType', 'primaryContact', 'lead'])
-            ->orderBy('created_at', 'desc');
+        // Query dengan relasi lengkap termasuk lead untuk mengambil company_name
+        $query = Company::with(['clientType', 'primaryContact', 'lead' => function($q) {
+            $q->select('id', 'company_name', 'address', 'contact_person', 'email', 'phone', 'position');
+        }])
+        ->orderBy('created_at', 'desc');
 
-        // **PERBAIKAN: Tambahkan pencarian berdasarkan company_name dari leads**
+        // Pencarian termasuk company_name dari leads
         if ($request->has('search') && !empty($request->search)) {
             $search = $request->search;
             $query->where(function($q) use ($search) {
                 $q->where('client_code', 'like', "%{$search}%")
                   ->orWhereHas('lead', function($subQuery) use ($search) {
-                      $subQuery->where('company_name', 'like', "%{$search}%");
+                      $subQuery->where('company_name', 'like', "%{$search}%")
+                               ->orWhere('contact_person', 'like', "%{$search}%");
                   })
                   ->orWhereHas('primaryContact', function($subQuery) use ($search) {
                       $subQuery->where('name', 'like', "%{$search}%")
@@ -77,12 +80,12 @@ public function index(Request $request)
 
         \Log::info('Companies fetched: ' . $companies->total());
 
-        // **PERBAIKAN: Update formatter untuk menampilkan company_name dari lead**
+        // **PERBAIKAN UTAMA: Format data dengan company_name dari leads**
         $formattedCompanies = $companies->through(function($company) {
-            // Ambil company_name dari relasi lead
-            $companyName = $company->lead->company_name ?? $company->client_code ?? 'N/A';
+            // **AMBIL COMPANY_NAME DARI LEADS** 
+            $companyName = $company->lead ? $company->lead->company_name : $company->client_code;
             
-            // Format alamat dari data company
+            // Format alamat dari data company atau lead
             $addressParts = array_filter([
                 $company->city,
                 $company->province,
@@ -90,49 +93,91 @@ public function index(Request $request)
             ]);
             $formattedAddress = !empty($addressParts) 
                 ? implode(', ', $addressParts) 
-                : ($company->lead->address ?? 'N/A');
+                : ($company->lead ? $company->lead->address : 'N/A');
 
+            // Data untuk modal edit
             return [
+                // ID dan kode
                 'id' => $company->id,
-                'name' => $companyName, // **DARI LEADS**
+                'name' => $companyName, // **INI ADALAH company_name DARI LEADS**
                 'client_code' => $company->client_code,
-                'client_type_name' => $company->clientType->name ?? 'N/A',
+                
+                // Client type
                 'client_type_id' => $company->client_type_id,
-                // Data contact person dari primary contact
-                'contact_person' => $company->primaryContact ? $company->primaryContact->name : ($company->lead->contact_person ?? 'N/A'),
-                'email' => $company->primaryContact ? $company->primaryContact->email : ($company->lead->email ?? 'N/A'),
-                'phone' => $company->primaryContact ? $company->primaryContact->phone : ($company->lead->phone ?? 'N/A'),
-                'position' => $company->primaryContact ? $company->primaryContact->position : ($company->lead->position ?? 'Contact Person'),
+                'client_type_name' => $company->clientType->name ?? 'N/A',
+                
+                // Contact person data (ambil dari primaryContact atau lead)
+                'contact_person' => $company->primaryContact 
+                    ? $company->primaryContact->name 
+                    : ($company->lead ? $company->lead->contact_person : 'N/A'),
+                'email' => $company->primaryContact 
+                    ? $company->primaryContact->email 
+                    : ($company->lead ? $company->lead->email : 'N/A'),
+                'phone' => $company->primaryContact 
+                    ? $company->primaryContact->phone 
+                    : ($company->lead ? $company->lead->phone : 'N/A'),
+                'contact_position' => $company->primaryContact 
+                    ? $company->primaryContact->position 
+                    : ($company->lead ? $company->lead->position : 'Contact Person'),
+                
+                // Location info
                 'address' => $formattedAddress,
                 'city' => $company->city,
                 'province' => $company->province,
                 'country' => $company->country,
                 'postal_code' => $company->postal_code,
+                
+                // Business details
+                'vat_number' => $company->vat_number,
+                'nib' => $company->nib,
+                'website' => $company->website,
+                
+                // Status dan tanggal
                 'is_active' => (bool) $company->is_active,
                 'client_since' => $company->client_since ? $company->client_since->format('Y-m-d') : null,
                 'created_at' => $company->created_at,
                 'updated_at' => $company->updated_at,
+                
+                // Logo
                 'logo_url' => $company->logo_path ? Storage::url($company->logo_path) : null,
-                // Additional info
-                'vat_number' => $company->vat_number,
-                'nib' => $company->nib,
-                'website' => $company->website,
-                // Primary contact object
+                'logo_path' => $company->logo_path,
+                
+                // **DATA UTUH UNTUK MODAL EDIT - INI YANG PENTING!**
+                'company_name' => $companyName, // **Field ini untuk modal edit**
                 'primary_contact' => $company->primaryContact ? [
                     'name' => $company->primaryContact->name,
                     'email' => $company->primaryContact->email,
                     'phone' => $company->primaryContact->phone,
                     'position' => $company->primaryContact->position
                 ] : null,
-                // Lead data untuk reference
+                
                 'lead' => $company->lead ? [
-                    'company_name' => $company->lead->company_name,
+                    'id' => $company->lead->id,
+                    'company_name' => $company->lead->company_name, // **DARI LEADS**
                     'address' => $company->lead->address,
                     'contact_person' => $company->lead->contact_person,
                     'email' => $company->lead->email,
                     'phone' => $company->lead->phone,
-                    'position' => $company->lead->position
-                ] : null
+                    'position' => $company->lead->position,
+                    'city' => '', // Lead mungkin tidak punya city
+                    'province' => '', // Lead mungkin tidak punya province
+                    'country' => '', // Lead mungkin tidak punya country
+                    'postal_code' => '' // Lead mungkin tidak punya postal_code
+                ] : null,
+                
+                // Original data dari companies table
+                '_raw' => [
+                    'client_type_id' => $company->client_type_id,
+                    'city' => $company->city,
+                    'province' => $company->province,
+                    'country' => $company->country,
+                    'postal_code' => $company->postal_code,
+                    'vat_number' => $company->vat_number,
+                    'nib' => $company->nib,
+                    'website' => $company->website,
+                    'is_active' => $company->is_active,
+                    'lead_id' => $company->lead_id
+                ]
             ];
         });
 
@@ -151,7 +196,7 @@ public function index(Request $request)
             })
         ];
 
-        // Get all client types for filter
+        // Get all client types for filter dan modal edit
         $types = ClientType::all()->map(function($type) {
             return [
                 'id' => $type->id,
@@ -170,6 +215,7 @@ public function index(Request $request)
             'companies' => $formattedCompanies,
             'statistics' => $statistics,
             'types' => $types,
+            'clientTypes' => $types, // Data untuk modal edit
             'filters' => [
                 'search' => $request->search ?? '',
                 'client_type_id' => $request->client_type_id ?? ''
@@ -181,14 +227,6 @@ public function index(Request $request)
     } catch (\Exception $e) {
         \Log::error('Error in companies index: ' . $e->getMessage());
         \Log::error('Stack trace: ' . $e->getTraceAsString());
-        \Log::error('User ID: ' . (auth()->check() ? auth()->id() : 'Not authenticated'));
-        
-        if ($request->wantsJson()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to load companies: ' . $e->getMessage()
-            ], 500);
-        }
         
         return Inertia::render('Error', [
             'message' => 'Failed to load companies',
@@ -2357,167 +2395,169 @@ private function getCompanyProjects($company)
         }
     }
         
-    /**
-     * Update company.
-     */
-    public function update(Request $request, $id)
-    {
-        DB::beginTransaction();
-        try {
-            \Log::info('=== UPDATE COMPANY REQUEST ===');
-            \Log::info('Company ID: ' . $id);
-            \Log::info('Request data:', $request->except(['logo'])); // Exclude file from log
+/**
+ * Update company.
+ */
+public function update(Request $request, $id)
+{
+    DB::beginTransaction();
+    try {
+        \Log::info('=== UPDATE COMPANY REQUEST ===');
+        \Log::info('Company ID: ' . $id);
+        \Log::info('Request data:', $request->except(['logo'])); // Exclude file from log
+        
+        $company = Company::findOrFail($id);
+
+        // **VALIDASI DATA**
+        $validator = Validator::make($request->all(), [
+            // Company fields
+            'company_name' => 'required|string|max:255', // Hanya untuk validasi, tidak di-update
+            'client_type_id' => 'required|exists:client_type,id',
+            'city' => 'nullable|string|max:255',
+            'province' => 'nullable|string|max:255',
+            'country' => 'nullable|string|max:255',
+            'postal_code' => 'nullable|integer',
+            'vat_number' => 'nullable|integer',
+            'nib' => 'nullable|string|max:255',
+            'website' => 'nullable|url|max:255',
+            'logo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+            'status' => 'required|in:active,inactive',
+            'delete_logo' => 'nullable|boolean',
             
-            $company = Company::findOrFail($id);
+            // Contact person fields
+            'contact_person' => 'required|string|max:255',
+            'contact_email' => 'required|email|max:255',
+            'contact_phone' => 'required|string|max:20',
+            'contact_position' => 'nullable|string|max:100',
+        ], [
+            'client_type_id.exists' => 'Tipe klien tidak valid.',
+            'postal_code.integer' => 'Kode pos harus berupa angka.',
+            'vat_number.integer' => 'VAT number harus berupa angka.',
+            'website.url' => 'Format website tidak valid.',
+            'contact_person.required' => 'Nama kontak wajib diisi.',
+            'contact_email.required' => 'Email kontak wajib diisi.',
+            'contact_phone.required' => 'Telepon kontak wajib diisi.'
+        ]);
 
-            // **VALIDASI DATA**
-            $validator = Validator::make($request->all(), [
-                // Company fields
-                'company_name' => 'required|string|max:255',
-                'client_type_id' => 'required|exists:client_type,id',
-                'city' => 'nullable|string|max:255',
-                'province' => 'nullable|string|max:255',
-                'country' => 'nullable|string|max:255',
-                'postal_code' => 'nullable|integer',
-                'vat_number' => 'nullable|integer',
-                'nib' => 'nullable|string|max:255',
-                'website' => 'nullable|url|max:255',
-                'logo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
-                'status' => 'required|in:active,inactive',
-                'delete_logo' => 'nullable|boolean',
-                
-                // **BARU**: Contact person fields
-                'contact_person' => 'required|string|max:255',
-                'contact_email' => 'required|email|max:255',
-                'contact_phone' => 'required|string|max:20',
-                'contact_position' => 'nullable|string|max:100',
-            ], [
-                'client_type_id.exists' => 'Tipe klien tidak valid.',
-                'postal_code.integer' => 'Kode pos harus berupa angka.',
-                'vat_number.integer' => 'VAT number harus berupa angka.',
-                'website.url' => 'Format website tidak valid.',
-                'contact_person.required' => 'Nama kontak wajib diisi.',
-                'contact_email.required' => 'Email kontak wajib diisi.',
-                'contact_phone.required' => 'Telepon kontak wajib diisi.'
-            ]);
-
-            if ($validator->fails()) {
-                \Log::error('Validation failed: ' . json_encode($validator->errors()));
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Validasi gagal',
-                    'errors' => $validator->errors()
-                ], 422);
-            }
-
-            // Handle logo upload
-            if ($request->hasFile('logo') && $request->file('logo')->isValid()) {
-                \Log::info('Uploading new logo');
-                if ($company->logo_path) {
-                    Storage::disk('public')->delete($company->logo_path);
-                }
-                $logoPath = $request->file('logo')->store('companies/logos', 'public');
-                $company->logo_path = $logoPath;
-                \Log::info('Logo uploaded to: ' . $logoPath);
-            }
-
-            // Handle logo deletion
-            if ($request->has('delete_logo') && $request->delete_logo == '1') {
-                \Log::info('Deleting logo');
-                if ($company->logo_path) {
-                    Storage::disk('public')->delete($company->logo_path);
-                    $company->logo_path = null;
-                    \Log::info('Logo deleted');
-                }
-            }
-
-            // Update company data
-            $updateData = [
-                'client_type_id' => $request->client_type_id,
-                'client_code' => $request->company_name,
-                'city' => $request->city,
-                'province' => $request->province,
-                'country' => $request->country,
-                'postal_code' => $request->postal_code,
-                'vat_number' => $request->vat_number,
-                'nib' => $request->nib,
-                'website' => $request->website,
-                'is_active' => $request->status === 'active',
-                'updated_by' => auth()->check() ? auth()->id() : null,
-                'updated_at' => now()
-            ];
-
-            \Log::info('Updating company with data: ', $updateData);
-            $company->update($updateData);
-
-            // **UPDATE ATAU BUAT KONTAK UTAMA**
-            $primaryContact = CompanyContactPerson::where('company_id', $company->id)
-                ->where('is_primary', true)
-                ->where('deleted', 0)
-                ->first();
-
-            if ($primaryContact) {
-                // Update existing primary contact
-                $primaryContact->update([
-                    'name' => $request->contact_person,
-                    'email' => $request->contact_email,
-                    'phone' => $request->contact_phone,
-                    'position' => $request->contact_position,
-                    'updated_at' => now()
-                ]);
-                \Log::info('Primary contact updated: ' . $primaryContact->id);
-            } else {
-                // Create new primary contact
-                $contactData = [
-                    'company_id' => $company->id,
-                    'lead_id' => $company->lead_id,
-                    'name' => $request->contact_person,
-                    'email' => $request->contact_email,
-                    'phone' => $request->contact_phone,
-                    'position' => $request->contact_position,
-                    'is_primary' => true,
-                    'is_active' => true,
-                    'deleted' => false
-                ];
-                $primaryContact = CompanyContactPerson::create($contactData);
-                \Log::info('Primary contact created: ' . $primaryContact->id);
-            }
-
-            \Log::info('Company updated successfully: ', [
-                'id' => $company->id,
-                'client_code' => $company->client_code
-            ]);
-
-            DB::commit();
-
-            // Load fresh data with relationships
-            $company->load(['clientType', 'primaryContact']);
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Klien dan kontak berhasil diperbarui!',
-                'data' => [
-                    'id' => $company->id,
-                    'client_code' => $company->client_code,
-                    'name' => $company->client_code,
-                    'contact_person' => $primaryContact->name,
-                    'contact_email' => $primaryContact->email,
-                    'contact_phone' => $primaryContact->phone,
-                    'contact_position' => $primaryContact->position
-                ]
-            ]);
-
-        } catch (\Exception $e) {
-            DB::rollBack();
-            \Log::error('Error updating company ' . $id . ': ' . $e->getMessage());
-            \Log::error('Stack trace: ' . $e->getTraceAsString());
-            
+        if ($validator->fails()) {
+            \Log::error('Validation failed: ' . json_encode($validator->errors()));
             return response()->json([
                 'success' => false,
-                'message' => 'Gagal memperbarui klien: ' . $e->getMessage()
-            ], 500);
+                'message' => 'Validasi gagal',
+                'errors' => $validator->errors()
+            ], 422);
         }
+
+        // Handle logo upload
+        if ($request->hasFile('logo') && $request->file('logo')->isValid()) {
+            \Log::info('Uploading new logo');
+            if ($company->logo_path) {
+                Storage::disk('public')->delete($company->logo_path);
+            }
+            $logoPath = $request->file('logo')->store('companies/logos', 'public');
+            $company->logo_path = $logoPath;
+            \Log::info('Logo uploaded to: ' . $logoPath);
+        }
+
+        // Handle logo deletion
+        if ($request->has('delete_logo') && $request->delete_logo == '1') {
+            \Log::info('Deleting logo');
+            if ($company->logo_path) {
+                Storage::disk('public')->delete($company->logo_path);
+                $company->logo_path = null;
+                \Log::info('Logo deleted');
+            }
+        }
+
+        // **PERBAIKAN: Jangan update client_code dari company_name**
+        // Hanya update fields yang boleh diubah
+        $updateData = [
+            'client_type_id' => $request->client_type_id,
+            // 'client_code' => $request->company_name, // <-- INI DIHAPUS/TIDAK DIUPDATE
+            'city' => $request->city,
+            'province' => $request->province,
+            'country' => $request->country,
+            'postal_code' => $request->postal_code,
+            'vat_number' => $request->vat_number,
+            'nib' => $request->nib,
+            'website' => $request->website,
+            'is_active' => $request->status === 'active',
+            'updated_by' => auth()->check() ? auth()->id() : null,
+            'updated_at' => now()
+        ];
+
+        \Log::info('Updating company with data (excluding client_code): ', $updateData);
+        $company->update($updateData);
+
+        // **UPDATE ATAU BUAT KONTAK UTAMA**
+        $primaryContact = CompanyContactPerson::where('company_id', $company->id)
+            ->where('is_primary', true)
+            ->where('deleted', 0)
+            ->first();
+
+        if ($primaryContact) {
+            // Update existing primary contact
+            $primaryContact->update([
+                'name' => $request->contact_person,
+                'email' => $request->contact_email,
+                'phone' => $request->contact_phone,
+                'position' => $request->contact_position,
+                'updated_at' => now()
+            ]);
+            \Log::info('Primary contact updated: ' . $primaryContact->id);
+        } else {
+            // Create new primary contact
+            $contactData = [
+                'company_id' => $company->id,
+                'lead_id' => $company->lead_id,
+                'name' => $request->contact_person,
+                'email' => $request->contact_email,
+                'phone' => $request->contact_phone,
+                'position' => $request->contact_position,
+                'is_primary' => true,
+                'is_active' => true,
+                'deleted' => false
+            ];
+            $primaryContact = CompanyContactPerson::create($contactData);
+            \Log::info('Primary contact created: ' . $primaryContact->id);
+        }
+
+        \Log::info('Company updated successfully (client_code unchanged): ', [
+            'id' => $company->id,
+            'client_code' => $company->client_code,
+            'company_name_from_request' => $request->company_name
+        ]);
+
+        DB::commit();
+
+        // Load fresh data with relationships
+        $company->load(['clientType', 'primaryContact']);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Klien dan kontak berhasil diperbarui!',
+            'data' => [
+                'id' => $company->id,
+                'client_code' => $company->client_code, // Masih original
+                'name' => $company->client_code,
+                'contact_person' => $primaryContact->name,
+                'contact_email' => $primaryContact->email,
+                'contact_phone' => $primaryContact->phone,
+                'contact_position' => $primaryContact->position
+            ]
+        ]);
+
+    } catch (\Exception $e) {
+        DB::rollBack();
+        \Log::error('Error updating company ' . $id . ': ' . $e->getMessage());
+        \Log::error('Stack trace: ' . $e->getTraceAsString());
+        
+        return response()->json([
+            'success' => false,
+            'message' => 'Gagal memperbarui klien: ' . $e->getMessage()
+        ], 500);
     }
+}
 
     /**
      * Get all contacts for a company
