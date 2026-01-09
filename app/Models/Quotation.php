@@ -21,6 +21,8 @@ class Quotation extends Model
     protected $fillable = [
         'id',
         'lead_id',
+        'quotation_number_formated_id', // Tambahkan ini
+        'quotation_statuses_id',
         'quotation_number',
         'status',
         'subject',
@@ -71,6 +73,11 @@ class Quotation extends Model
                 return $value;
             },
         );
+    }
+
+    public function statusRel()
+    {
+        return $this->belongsTo(QuotationStatuses::class, 'quotation_statuses_id');
     }
 
     public function scopeSyncExpiredStatus($query)

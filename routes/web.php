@@ -18,6 +18,8 @@ use App\Http\Controllers\ProposalController;
 use App\Http\Controllers\ProposalNumberFormated;
 use App\Http\Controllers\ProposalElementController;
 use App\Http\Controllers\RolesController;
+use App\Http\Controllers\QuotationStatusesController;
+use App\Http\Controllers\QuotationNumberFormatted;
 use App\Http\Controllers\DashboardController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
@@ -143,9 +145,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::resource('proposal-element', ProposalElementController::class);
 
         Route::get('/quotations', [SettingController::class, 'quotations'])->name('quotations');
-        Route::post('/quotation-status/store', [LeadStatusesController::class, 'store'])->name('quotation-status.store');
-        Route::put('/quotation-status/update/{id}', [LeadStatusesController::class, 'update'])->name('quotation-status.update');
-        Route::delete('/quotation-status/destroy/{id}', [LeadStatusesController::class, 'destroy'])->name('quotation-status.delete');
+        Route::post('/quotation-status/store', [QuotationStatusesController::class, 'store'])->name('quotation-status.store');
+        Route::put('/quotation-status/update/{id}', [QuotationStatusesController::class, 'update'])->name('quotation-status.update');
+        Route::delete('/quotation-status/destroy/{id}', [QuotationStatusesController::class, 'destroy'])->name('quotation-status.delete');
+        Route::post('/quotation_numbering/update/{id}', [QuotationNumberFormatted::class, 'update'])->name('quotation_numbering.update');
 
         // Emails
         Route::prefix('email')->name('email.')->group(function () {

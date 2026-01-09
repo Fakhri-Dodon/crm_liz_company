@@ -13,6 +13,8 @@ use App\Models\EmailTemplates;
 use App\Models\ProposalStatuses;
 use App\Models\ProposalNumberFormatted;
 use App\Models\ProposalElementTemplate;
+use App\Models\QuotationStatuses;
+use App\Models\QuotationNumberFormated;
 use App\Models\ActivityLogs;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -149,6 +151,21 @@ class SettingController extends Controller
             'numbering' => $numbering,
             'statuses'  => $statuses,
             'templates' => $templates
+        ]);
+    }
+
+    public function quotations()
+    {
+        $config     = AppConfig::where('deleted', 0)->first();
+        
+        $numbering  = QuotationNumberFormated::where('deleted', 0)->first();
+        
+        $statuses   = QuotationStatuses::where('deleted', 0)->orderBy('order', 'asc')->get();
+
+        return Inertia::render('Settings/Quotations', [
+            'config'    => $config,
+            'numbering' => $numbering,
+            'statuses'  => $statuses,
         ]);
     }
 

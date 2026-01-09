@@ -13,6 +13,18 @@ export default function Preview({ html, css }) {
         <body>
             ${html}
             <script src="/templates/js/plugins/jquery.vide.min.js"></script>
+            <script src="/templates/js/plugins/jquery1.11.2.min.js"></script>
+            <script src="/templates/js/plugins/bootstrap.min.js"></script>
+            <script src="/templates/js/plugins/jquery.easing.1.3.min.js"></script>
+            <script src="/templates/js/plugins/jquery.countTo.js"></script>
+            <script src="/templates/js/plugins/jquery.formchimp.min.js"></script>
+            <script src="/templates/js/plugins/jquery.jCounter-0.1.4.js"></script>
+            <script src="/templates/js/plugins/jquery.magnific-popup.min.js"></script>
+            <script src="/templates/js/plugins/jquery.vide.min.js"></script>
+            <script src="/templates/js/plugins/owl.carousel.min.js"></script>
+            <script src="/templates/js/plugins/twitterFetcher_min.js"></script>
+            <script src="/templates/js/plugins/wow.min.js"></script>
+            <script src="/templates/js/custom.js"></script>
         </body>
         </html>
     `;
