@@ -24,11 +24,18 @@ import {
 } from 'lucide-react';
 
 const CompaniesIndex = () => {
-    const { companies, statistics, types, filters, fromQuotation, quotationId } = usePage().props;
+    // Ambil semua props termasuk clientTypes
+    const { companies, statistics, types, filters, fromQuotation, quotationId, clientTypes } = usePage().props;
     const { t } = useTranslation();
 
-    console.log('DEBUG: Props Received:', { quotationId });
+    console.log('DEBUG: Props Received:', { 
+        companiesCount: companies?.data?.length,
+        clientTypesCount: clientTypes?.length || types?.length,
+        typesCount: types?.length,
+        companySample: companies?.data?.[0] 
+    });
     
+    // State management
     const [search, setSearch] = useState(filters.search || '');
     const [selectedType, setSelectedType] = useState(filters.client_type_id || '');
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -40,14 +47,14 @@ const CompaniesIndex = () => {
     const [updatingStatus, setUpdatingStatus] = useState(null);
     const statusDropdownRef = useRef(null);
 
-    // Auto-open modal if coming from quotation
+    // Auto-open modal jika datang dari quotation
     useEffect(() => {
         if (fromQuotation && quotationId) {
             setIsCreateModalOpen(true);
         }
     }, [fromQuotation, quotationId]);
 
-    // Close dropdown when clicking outside
+    // Close dropdown ketika klik di luar
     useEffect(() => {
         const handleClickOutside = (event) => {
             if (statusDropdownRef.current && !statusDropdownRef.current.contains(event.target)) {
@@ -85,7 +92,7 @@ const CompaniesIndex = () => {
         });
     }, [search, selectedType]);
 
-    // Clear all filters
+    // Clear semua filter
     const clearFilters = () => {
         setSearch('');
         setSelectedType('');
@@ -105,20 +112,84 @@ const CompaniesIndex = () => {
         });
     };
 
-    // Fungsi untuk handle edit
+    // FUNGSI UNTUK HANDLE EDIT - DIPERBAIKI
     const handleEditClick = (company) => {
-        setSelectedCompany(company);
+        console.log('=== EDIT CLICKED ===');
+        console.log('Original company data:', company);
+        console.log('Lead data:', company.lead);
+        console.log('Primary contact:', company.primary_contact);
+        
+        // **PERBAIKAN UTAMA: Siapkan data untuk modal edit**
+        const companyData = {
+            // ID dan identifikasi
+            id: company.id,
+            client_code: company.client_code || '',
+            
+            // **PERBAIKAN: Ambil company_name dari lead atau fallback ke client_code**
+            company_name: company.company_name || 
+                         company.lead?.company_name || 
+                         company.client_code || 
+                         company.name || 
+                         '',
+            
+            // Data contact person
+            contact_person: company.contact_person || 
+                          company.primary_contact?.name || 
+                          company.lead?.contact_person || 
+                          '',
+            contact_email: company.email || 
+                         company.primary_contact?.email || 
+                         company.lead?.email || 
+                         '',
+            contact_phone: company.phone || 
+                         company.primary_contact?.phone || 
+                         company.lead?.phone || 
+                         '',
+            contact_position: company.contact_position || 
+                            company.primary_contact?.position || 
+                            company.lead?.position || 
+                            '',
+            
+            // Company fields untuk form
+            client_type_id: company.client_type_id || '',
+            city: company.city || '',
+            province: company.province || '',
+            country: company.country || '',
+            postal_code: company.postal_code?.toString() || '',
+            vat_number: company.vat_number?.toString() || '',
+            nib: company.nib || '',
+            website: company.website || '',
+            logo_url: company.logo_url || '',
+            is_active: company.is_active || false,
+            
+            // Data asli untuk referensi
+            primary_contact: company.primary_contact,
+            lead: company.lead,
+            name: company.name
+        };
+        
+        console.log('Prepared company data for edit:', companyData);
+        console.log('Company Name source:', {
+            fromCompanyProp: company.company_name,
+            fromLead: company.lead?.company_name,
+            fromClientCode: company.client_code,
+            finalValue: companyData.company_name
+        });
+        
+        setSelectedCompany(companyData);
         setIsEditModalOpen(true);
     };
 
     // Fungsi untuk handle delete
     const handleDeleteClick = (company) => {
+        console.log('Delete clicked for:', company.id);
         setSelectedCompany(company);
         setIsDeleteModalOpen(true);
     };
 
     // Fungsi untuk handle update success
     const handleUpdateSuccess = (updatedCompany) => {
+        console.log('Update successful:', updatedCompany);
         setIsEditModalOpen(false);
         setSelectedCompany(null);
         router.reload({ 
@@ -168,52 +239,46 @@ const CompaniesIndex = () => {
         }
     };
 
-// resources/js/Pages/Companies/Index.jsx
-
-// ====================== STATUS UPDATE HANDLER ======================
-const handleStatusUpdate = async (companyId, newStatus) => {
-    setUpdatingStatus(companyId);
-    
-    try {
-        // Gunakan Inertia.js router - sudah handle session & CSRF otomatis
-        router.patch(`/companies/${companyId}/status`, {
-            is_active: newStatus
-        }, {
-            preserveScroll: true,
-            preserveState: true,
-            onSuccess: () => {
-                // Show success message
-                const event = new CustomEvent('show-toast', {
-                    detail: {
-                        type: 'success',
-                        message: t('companies.status_updated_successfully')
-                    }
-                });
-                window.dispatchEvent(event);
-            },
-            onError: (errors) => {
-                // Show error message
-                const event = new CustomEvent('show-toast', {
-                    detail: {
-                        type: 'error',
-                        message: t('companies.status_update_failed')
-                    }
-                });
-                window.dispatchEvent(event);
-            },
-            onFinish: () => {
-                setUpdatingStatus(null);
-                setStatusDropdownOpen(null);
-            }
-        });
+    // Status update handler
+    const handleStatusUpdate = async (companyId, newStatus) => {
+        setUpdatingStatus(companyId);
         
-    } catch (error) {
-        // Fallback error handling
-        alert(t('companies.status_update_failed'));
-        setUpdatingStatus(null);
-        setStatusDropdownOpen(null);
-    }
-};
+        try {
+            router.patch(`/companies/${companyId}/status`, {
+                is_active: newStatus
+            }, {
+                preserveScroll: true,
+                preserveState: true,
+                onSuccess: () => {
+                    const event = new CustomEvent('show-toast', {
+                        detail: {
+                            type: 'success',
+                            message: t('companies.status_updated_successfully')
+                        }
+                    });
+                    window.dispatchEvent(event);
+                },
+                onError: (errors) => {
+                    const event = new CustomEvent('show-toast', {
+                        detail: {
+                            type: 'error',
+                            message: t('companies.status_update_failed')
+                        }
+                    });
+                    window.dispatchEvent(event);
+                },
+                onFinish: () => {
+                    setUpdatingStatus(null);
+                    setStatusDropdownOpen(null);
+                }
+            });
+            
+        } catch (error) {
+            alert(t('companies.status_update_failed'));
+            setUpdatingStatus(null);
+            setStatusDropdownOpen(null);
+        }
+    };
 
     // Handle search input with debounce
     useEffect(() => {
@@ -226,78 +291,53 @@ const handleStatusUpdate = async (companyId, newStatus) => {
         return () => clearTimeout(timer);
     }, [search]);
 
-    // Function to handle bulk actions
-    const handleBulkAction = (action) => {
-        if (selectedCompanies.length === 0) {
-            alert(t('companies.please_select_companies_first'));
-            return;
-        }
-        
-        alert(t('companies.bulk_action_coming_soon', { 
-            action: action, 
-            count: selectedCompanies.length 
-        }));
-    };
-
-    // Handle company selection for bulk actions
-    const handleCompanySelect = (companyId, isSelected) => {
-        if (isSelected) {
-            setSelectedCompanies(prev => [...prev, companyId]);
-        } else {
-            setSelectedCompanies(prev => prev.filter(id => id !== companyId));
-        }
-    };
-
-    // Handle select all companies
-    const handleSelectAll = (isSelected) => {
-        if (isSelected) {
-            const allIds = companies.data?.map(company => company.id) || [];
-            setSelectedCompanies(allIds);
-        } else {
-            setSelectedCompanies([]);
-        }
-    };
-
-    // Handle row click to show company details
-    const handleRowClick = (company) => {
-        router.visit(`/companies/${company.id}`);
-    };
-
-    // Toggle status dropdown
-    const toggleStatusDropdown = (companyId, event) => {
-        event.stopPropagation();
-        setStatusDropdownOpen(statusDropdownOpen === companyId ? null : companyId);
-    };
-
-    // Prepare columns for TableLayout
+    // Prepare columns untuk TableLayout - DIPERBAIKI
     const columns = [
         {
             key: "client_name",
             label: t('companies.table.client_name'),
-            render: (value, row) => (
-                <div className="flex items-center gap-2">
-                    <button 
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            handleRowClick(row);
-                        }}
-                        className="font-medium text-blue-600 hover:text-blue-800 hover:underline flex items-center gap-1 transition-colors"
-                    >
-                        {value || '-'}
-                        <ChevronRight className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
-                    </button>
-                </div>
-            )
+            render: (value, row) => {
+                // **PERBAIKAN: Ambil company_name dari lead atau client_code**
+                const displayName = row.company_name || 
+                                   row.lead?.company_name || 
+                                   row.client_code || 
+                                   row.name || 
+                                   '-';
+                
+                return (
+                    <div className="flex items-center gap-2">
+                        <button 
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                handleRowClick(row);
+                            }}
+                            className="font-medium text-blue-600 hover:text-blue-800 hover:underline flex items-center gap-1 transition-colors"
+                        >
+                            {displayName}
+                            <ChevronRight className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+                        </button>
+                        <span className="text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded">
+                            {row.client_code}
+                        </span>
+                    </div>
+                );
+            }
         },
         {
             key: "address",
             label: t('companies.table.address'),
             render: (value, row) => {
                 const isActive = row.is_active;
+                // Format alamat dari city, province, country
+                const addressParts = [row.city, row.province, row.country].filter(Boolean);
+                const displayAddress = addressParts.length > 0 
+                    ? addressParts.join(', ') 
+                    : (row.address || '-');
+                
                 return (
                     <div>
                         <span className={`font-medium ${isActive ? 'text-gray-900' : 'text-gray-500'}`}>
-                            {value || '-'}
+                            {displayAddress}
                         </span>
                         {!isActive && (
                             <div className="text-xs text-gray-400 mt-0.5">
@@ -311,6 +351,11 @@ const handleStatusUpdate = async (companyId, newStatus) => {
         {
             key: "contact_person",
             label: t('companies.table.contact_person'),
+            render: (value) => (
+                <span className="font-medium text-gray-900">
+                    {value || '-'}
+                </span>
+            )
         },
         {
             key: "contact_info",
@@ -390,26 +435,81 @@ const handleStatusUpdate = async (companyId, newStatus) => {
             label: t('companies.table.client_since'),
             render: (value) => (
                 <div className="text-sm text-gray-600">
-                    {value ? new Date(value).toLocaleDateString() : '-'}
+                    {value ? new Date(value).toLocaleDateString('id-ID', {
+                        year: 'numeric',
+                        month: 'short',
+                        day: 'numeric'
+                    }) : '-'}
                 </div>
             ),
         },
     ];
 
-    // Prepare data for TableLayout
-    const tableData = companies.data?.map((company, index) => ({
-        id: company.id,
-        client_name: company.client_name || company.name || '-',
-        address: company.address || '-',
-        client_type_name: company.client_type?.name || t('companies.unknown'),
-        contact_person: company.contact_person || '-',
-        email: company.email || '-',
-        phone: company.phone || '-',
-        is_active: company.is_active || false,
-        client_since: company.client_since || '-',
-        address: company.address || '',
-        created_at: company.created_at || ''
-    })) || [];
+    // Prepare data untuk TableLayout - DIPERBAIKI
+    const tableData = companies.data?.map((company, index) => {
+        // **PERBAIKAN: Ambil company_name dari lead atau client_code**
+        const companyName = company.company_name || 
+                          company.lead?.company_name || 
+                          company.client_code || 
+                          company.name || 
+                          '-';
+        
+        return {
+            id: company.id,
+            // **PERBAIKAN: Untuk display di tabel**
+            client_name: companyName,
+            
+            // **PERBAIKAN: Simpan untuk modal edit**
+            company_name: companyName,
+            
+            // Address components
+            address: company.address || '-',
+            city: company.city || '',
+            province: company.province || '',
+            country: company.country || '',
+            
+            // Contact info
+            contact_person: company.contact_person || '-',
+            email: company.email || '-',
+            phone: company.phone || '-',
+            contact_position: company.contact_position || '',
+            
+            // Company info
+            client_code: company.client_code || '',
+            client_type_name: company.client_type_name || t('companies.unknown'),
+            client_type_id: company.client_type_id || '',
+            
+            // Status dan dates
+            is_active: company.is_active || false,
+            client_since: company.client_since || '-',
+            created_at: company.created_at || '',
+            
+            // Business details
+            postal_code: company.postal_code || '',
+            vat_number: company.vat_number || '',
+            nib: company.nib || '',
+            website: company.website || '',
+            logo_url: company.logo_url || '',
+            
+            // Relations
+            primary_contact: company.primary_contact,
+            lead: company.lead,
+            
+            // Original data untuk fallback
+            name: company.name
+        };
+    }) || [];
+
+    // Handle row click untuk melihat detail company
+    const handleRowClick = (company) => {
+        router.visit(`/companies/${company.id}`);
+    };
+
+    // Toggle status dropdown
+    const toggleStatusDropdown = (companyId, event) => {
+        event.stopPropagation();
+        setStatusDropdownOpen(statusDropdownOpen === companyId ? null : companyId);
+    };
 
     return (
         <>
@@ -425,6 +525,9 @@ const handleStatusUpdate = async (companyId, newStatus) => {
                         <h1 className="text-xl font-black uppercase tracking-widest text-gray-800">
                             {t('companies.title')}
                         </h1>
+                        <p className="text-sm text-gray-600 mt-1">
+                            {t('companies.subtitle')}
+                        </p>
                     </div>
 
                     {/* Quotation Notification Banner */}
@@ -469,6 +572,7 @@ const handleStatusUpdate = async (companyId, newStatus) => {
                     />
                 )}
                 
+                {/* Edit Modal dengan data yang benar */}
                 {isEditModalOpen && selectedCompany && (
                     <EditModal
                         isOpen={isEditModalOpen}
@@ -477,7 +581,7 @@ const handleStatusUpdate = async (companyId, newStatus) => {
                             setSelectedCompany(null);
                         }}
                         company={selectedCompany}
-                        clientTypes={types}
+                        clientTypes={clientTypes || types}
                         onUpdate={handleUpdateSuccess}
                     />
                 )}
@@ -496,9 +600,7 @@ const handleStatusUpdate = async (companyId, newStatus) => {
 
                 {/* Stat Cards */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 my-7">
-                    {/* Client Type Cards */}
                     {statistics.client_types?.map((typeData, index) => {
-                        // Pilih warna card berdasarkan index
                         const cardColors = [
                             'border-blue-200 bg-blue-100',
                             'border-green-200 bg-green-100',
@@ -524,17 +626,6 @@ const handleStatusUpdate = async (companyId, newStatus) => {
                                         <Building className="w-6 h-6 text-blue-600" />
                                     </div>
                                 </div>
-                                {/* <div className="mt-3 pt-3 border-t border-gray-200">
-                                    <button 
-                                        onClick={() => handleTypeFilter(typeData.id)}
-                                        className="text-sm font-medium text-blue-700 bg-blue-50 hover:opacity-90 px-4 py-1.5 rounded-full transition-colors duration-200 w-full text-center"
-                                    >
-                                        {selectedType === typeData.id 
-                                            ? t('companies.filter_applied') 
-                                            : t('companies.view_clients')
-                                        }
-                                    </button>
-                                </div> */}
                             </div>
                         );
                     })}
@@ -543,7 +634,6 @@ const handleStatusUpdate = async (companyId, newStatus) => {
                 {/* Search and Filter Bar */}
                 <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 md:p-6 mb-6">
                     <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
-                        {/* FILTERS SECTION */}
                         <div className="w-full">
                             <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
                                 {/* Search Input */}
@@ -656,49 +746,17 @@ const handleStatusUpdate = async (companyId, newStatus) => {
                     </div>
                 </div>
 
-                {/* Quick Summary */}
-                {/* <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                        {t('companies.quick_summary')}
-                    </h3>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                        <div className="text-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
-                            <div className="text-2xl font-bold text-gray-900">{statistics.total || 0}</div>
-                            <div className="text-sm text-gray-600">{t('companies.total_clients')}</div>
-                        </div>
-                        <div className="text-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
-                            <div className="text-2xl font-bold text-green-600">{statistics.active || 0}</div>
-                            <div className="text-sm text-gray-600">{t('companies.active')}</div>
-                        </div>
-                        <div className="text-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
-                            <div className="text-2xl font-bold text-red-600">{statistics.inactive || 0}</div>
-                            <div className="text-sm text-gray-600">{t('companies.inactive')}</div>
-                        </div>
-                        <div className="text-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
-                            <div className="text-2xl font-bold text-blue-600">{companies.data?.length || 0}</div>
-                            <div className="text-sm text-gray-600">{t('companies.currently_displayed')}</div>
-                        </div>
+                {/* Info Summary */}
+                <div className="mt-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                    <div className="flex items-center gap-2">
+                        <FileText className="w-4 h-4 text-gray-500" />
+                        <p className="text-sm text-gray-600">
+                            <strong>Total:</strong> {companies.total || 0} clients | 
+                            <strong> Active:</strong> {statistics.active || 0} | 
+                            <strong> Inactive:</strong> {statistics.inactive || 0}
+                        </p>
                     </div>
-                </div> */}
-
-                {/* Help Section */}
-                {/* <div className="bg-blue-50 border border-blue-200 rounded-xl p-6">
-                    <h3 className="text-lg font-semibold text-blue-900 mb-3 flex items-center gap-2">
-                        <FileText className="w-5 h-5" />
-                        {t('companies.need_help')}
-                    </h3>
-                    <p className="text-sm text-blue-800 mb-4">
-                        {t('companies.tips_for_managing_clients')}
-                    </p>
-                    <ul className="text-sm text-blue-700 space-y-2 list-disc pl-5">
-                        <li>{t('companies.tip_use_search_bar')}</li>
-                        <li>{t('companies.tip_filter_by_type')}</li>
-                        <li>{t('companies.tip_click_client_details')}</li>
-                        <li>{t('companies.tip_add_new_client')}</li>
-                        <li>{t('companies.tip_select_multiple_clients')}</li>
-                        <li>{t('companies.tip_click_status_to_update')}</li>
-                    </ul>
-                </div> */}
+                </div>
             </div>
         </>
     );
