@@ -12,6 +12,7 @@ export default function Preview({ html, css }) {
         </head>
         <body>
             ${html}
+            <script src="/templates/js/plugins/jquery.vide.min.js"></script>
         </body>
         </html>
     `;
