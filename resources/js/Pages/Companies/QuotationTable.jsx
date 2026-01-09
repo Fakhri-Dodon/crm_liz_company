@@ -661,7 +661,7 @@ const QuotationTable = ({ data, groupedData = [], companyId }) => {
                                 {t('quotation_table.total_value')}
                             </p>
                             <p 
-                                className="text-lg md:text-2xl font-bold text-gray-900 cursor-pointer transition-all duration-200 hover:bg-gray-100 rounded px-2 py-1"
+                                className="text-base md:text-lg font-bold text-gray-900 cursor-pointer transition-all duration-200 hover:bg-gray-100 rounded px-2 py-1"
                                 title={formatFullCurrency(data.reduce((sum, q) => sum + (q.total || 0), 0))}
                             >
                                 {formatFullCurrency(data.reduce((sum, q) => sum + (q.total || 0), 0))}
