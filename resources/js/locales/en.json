@@ -366,9 +366,9 @@
     "show_more": "Show All ({{count}} more)",
     "additional_info": "Additional Information",
     "created_at": "Created At",
-    "status": "Status",
     "status_active": "Active",
-    "status_inactive": "Inactive"
+    "status_inactive": "Inactive",
+    "status": "Status"
 },
 "invoice_table": {
     "currency_format": "Rp{{amount}}",
