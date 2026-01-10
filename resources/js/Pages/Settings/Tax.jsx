@@ -1,12 +1,12 @@
 import React from 'react';
-import QuotationSettings from '@/Components/Settings/QuotationSettings';
+import TaxSettings from '@/Components/Settings/TaxSettings';
 import SettingsLayout from '@/Layouts/SettingsLayout';
 
-export default function QuotationsPage() {
+export default function TaxsPage() {
     return (
         <SettingsLayout>
             <div className="bg-white rounded-lg shadow-sm p-8 min-h-screen">
-                <QuotationSettings />
+                <TaxSettings />
             </div>
         </SettingsLayout>
     );

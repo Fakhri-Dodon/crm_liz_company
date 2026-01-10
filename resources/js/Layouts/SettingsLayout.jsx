@@ -1,5 +1,5 @@
 import { Link, usePage } from '@inertiajs/react';
-import { Settings, Users, FileText, Mail, LayoutDashboard, Menu, PieChart, Quote, Receipt } from 'lucide-react';
+import { Settings, Users, FileText, Mail, LayoutDashboard, Menu, PieChart, Quote, Receipt, Percent } from 'lucide-react';
 import { useState } from 'react';
 
 export default function SettingsLayout({ children }) {
@@ -13,6 +13,7 @@ export default function SettingsLayout({ children }) {
     { label: 'Proposals', icon: FileText, href: '/setting/proposals' },
     { label: 'Quotations', icon: Quote, href: '/setting/quotations' },
     { label: 'Invoices', icon: Receipt, href: '/setting/invoices' },
+    { label: 'PPN & PPH', icon: Percent, href: '/setting/tax' },
     { label: 'Email', icon: Mail, href: '/setting/email' },
     { label: 'Dashboard', icon: PieChart, href: '/dashboard' },
   ];

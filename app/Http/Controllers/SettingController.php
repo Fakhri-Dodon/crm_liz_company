@@ -16,6 +16,8 @@ use App\Models\ProposalElementTemplate;
 use App\Models\QuotationStatuses;
 use App\Models\QuotationNumberFormated;
 use App\Models\ActivityLogs;
+use App\Models\Ppn;
+use App\Models\Pph;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
@@ -176,5 +178,13 @@ class SettingController extends Controller
             'templates' => EmailTemplates::where('deleted', 0)->get(),
             'emailLogs' => EmailLogs::where('deleted', 0)->get(),
         ]);
+    }
+
+    public function tax()
+    {
+        return Inertia::render('Settings/Tax', [
+            'ppn' => Ppn::active()->get(),
+            'pph' => Pph::active()->get(),
+        ]); 
     }
 }

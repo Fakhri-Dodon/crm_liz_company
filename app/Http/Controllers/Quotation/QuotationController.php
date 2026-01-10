@@ -120,7 +120,15 @@ class QuotationController extends Controller {
         $nextNumberPreview = "Config Missing";
 
         if ($setting) {
-            $nextNumberPreview = $setting->prefix .  str_pad($setting->next_number, $setting->padding, '0', STR_PAD_LEFT);
+            $totalExisting = Quotation::where('deleted', 0)->count();
+    
+            $currentNumber = $totalExisting + 1;
+
+            if ($setting->next_number > $currentNumber) {
+                $currentNumber = $setting->next_number;
+            }
+
+            $nextNumberPreview = $setting->prefix . str_pad($currentNumber, $setting->padding, '0', STR_PAD_LEFT);
         }
 
         // $nextNumber = Quotation::count() + 1;
