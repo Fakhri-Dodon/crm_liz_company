@@ -181,7 +181,7 @@ export default function GeneralSettings() {
                     <Button
                         onClick={handleSave}
                         disabled={processing}
-                        className="bg-red-700 hover:bg-red-800 text-white px-8 w-full sm:w-auto"
+                        className="bg-teal-800 hover:bg-teal-900 text-white px-8 w-full sm:w-auto"
                     >
                         {processing ? (
                             <Loader2 className="animate-spin mr-2" />

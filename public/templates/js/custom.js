@@ -121,7 +121,7 @@ $('.navbar-nav>li>a:not(#dLabel)').on('click', function(){
 /* ===========================================================
    VIDEO BACKGROUND
 ============================================================== */
-$('.video-play').vide("images/video/video", {
+$('.video-play').vide("/templates/images/video/video", {
     posterType: "jpg"
 });
 

@@ -21,6 +21,7 @@ use App\Http\Controllers\RolesController;
 use App\Http\Controllers\QuotationStatusesController;
 use App\Http\Controllers\QuotationNumberFormatted;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\TaxController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Artisan;
@@ -144,13 +145,25 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/proposal-element/editNama/{id}', [ProposalElementController::class, 'editNama'])->name('proposal-element.editNama');
         Route::resource('proposal-element', ProposalElementController::class);
 
+        // Quotation Settings
         Route::get('/quotations', [SettingController::class, 'quotations'])->name('quotations');
         Route::post('/quotation-status/store', [QuotationStatusesController::class, 'store'])->name('quotation-status.store');
         Route::put('/quotation-status/update/{id}', [QuotationStatusesController::class, 'update'])->name('quotation-status.update');
         Route::delete('/quotation-status/destroy/{id}', [QuotationStatusesController::class, 'destroy'])->name('quotation-status.delete');
         Route::post('/quotation_numbering/update/{id}', [QuotationNumberFormatted::class, 'update'])->name('quotation_numbering.update');
 
-        // Emails
+        // Tax (pph and ppn) Settings
+        Route::get('/tax', [SettingController::class, 'tax'])->name('tax');
+        // ppn
+        Route::post('/ppn/store', [TaxController::class, 'ppnStore'])->name('ppn.store');
+        Route::put('/ppn/update/{id}', [TaxController::class, 'ppnUpdate'])->name('ppn.update');
+        Route::delete('/ppn/destroy/{id}', [TaxController::class, 'ppnDestroy'])->name('ppn.delete');
+        //pph
+        Route::post('/pph/store', [TaxController::class, 'pphstore'])->name('pph.store');
+        Route::put('/pph/update/{id}', [TaxController::class, 'pphUpdate'])->name('pph.update');
+        Route::delete('/pph/destroy/{id}', [TaxController::class, 'pphDestroy'])->name('pph.delete');
+
+        // Email Settings
         Route::prefix('email')->name('email.')->group(function () {
             Route::get('/', [SettingController::class, 'email']);
             Route::post('/save', [EmailSettingsController::class, 'saveSettings'])->name('save');

@@ -33,7 +33,7 @@ export default function Preview({ html, css }) {
         <iframe
             srcDoc={srcDoc}
             className="w-full h-screen border rounded"
-            sandbox="allow-same-origin"
+            sandbox="allow-same-origin allow-scripts"
             title="Preview"
         />
     );

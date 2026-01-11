@@ -6,7 +6,7 @@ import html2pdf from 'html2pdf.js';
 import { Toaster, toast } from 'react-hot-toast';
 import { useTranslation } from "react-i18next";
 
-export default function Create({ nextNumber, leads = [], companies = [] }) {
+export default function Create({ nextNumber, leads = [], companies = [], ppn }) {
     const [showModal, setShowModal] = useState(false);
     const [newItem, setNewItem] = useState({
         name: "",
@@ -14,6 +14,7 @@ export default function Create({ nextNumber, leads = [], companies = [] }) {
         price: "",
     });
     const { t } = useTranslation();    
+    const { auth, app_config } = usePage().props;
 
     const builderAddItem = (newItem) => {
         const itemWithId = {
@@ -43,6 +44,11 @@ export default function Create({ nextNumber, leads = [], companies = [] }) {
         client_type: null,
         date: "",
         number: generateFormatNumber(nextNumber),
+
+        prepared_by_name: auth.user.name,
+        prepared_by_role: auth.user.role_name,
+        my_company_name: app_config.company_name,
+
         company_id: null,
         company_name: null,
         address: "",
@@ -429,7 +435,7 @@ export default function Create({ nextNumber, leads = [], companies = [] }) {
                 setData={setData}
                 onSave={handleSave}
                 onBack={handleBack}
-                renderEditor={({ updateField: builderUpdate }) => {
+                renderEditor={({ updateField: builderUpdate,  }) => {
                     const nameIsLocked = !data.client_type;
                     const calculateAndSyncTotals = (
                         currentServices,
@@ -967,7 +973,7 @@ export default function Create({ nextNumber, leads = [], companies = [] }) {
                                 )}
                                 <div className="flex flex-col">
                                     <label className="text-[10px] font-bold text-gray-400 uppercase">
-                                        {t("quotations.builder.tax")}<span className="text-red-600">*</span> 
+                                        {t("quotations.builder.tax")}
                                     </label>
                                     <select
                                         className="w-full border-gray-300 rounded text-sm"
@@ -979,12 +985,11 @@ export default function Create({ nextNumber, leads = [], companies = [] }) {
                                         }
                                     >
                                         <option value="|0">-- No Tax --</option>
-                                        <option value="PPN 11%|0.11">
-                                            PPN 11%
-                                        </option>
-                                        <option value="PPN 12%|0.12">
-                                            PPN 12%
-                                        </option>
+                                        {ppn.map((item) => (
+                                            <option key={item.id} value={`PPN ${item.name}|${item.rate}`}>
+                                                PPN {item.name} 
+                                            </option>
+                                        ))}
                                     </select>
                                 </div>
                                 <div className="flex flex-col justify-start">
@@ -1134,7 +1139,7 @@ export default function Create({ nextNumber, leads = [], companies = [] }) {
                                                 Email:
                                             </p>
                                             <p className="text-black">
-                                                {data.email}
+                                                {data.email || "---"}
                                             </p>
                                         </div>
                                         <div>
@@ -1142,7 +1147,7 @@ export default function Create({ nextNumber, leads = [], companies = [] }) {
                                                 Handphone:
                                             </p>
                                             <p className="text-black">
-                                                {data.phone}
+                                                {data.phone || "---"}
                                             </p>
                                         </div>
                                     </div>
@@ -1162,8 +1167,7 @@ export default function Create({ nextNumber, leads = [], companies = [] }) {
                                                 Address:
                                             </p>
                                             <p className="text-black leading-tight">
-                                                {data.address ||
-                                                    "No address provided."}
+                                                {data.address || "---"}
                                             </p>
                                         </div>
                                     </div>
@@ -1316,14 +1320,14 @@ export default function Create({ nextNumber, leads = [], companies = [] }) {
                                         </span>
                                     </div>
                                     <p className="text-[17px] uppercase font-black pt-[0.9rem] pb-[5.2rem]">
-                                        {data.company_name || "---"}
+                                        {data.my_company_name || "---"}
                                     </p>
                                     <div className="text-left">
                                         <p className="text-[15px] uppercase font-black pt-[0.9rem]">
-                                            {data.contact_person || "---"}
+                                            {data.prepared_by_name || "---"}
                                         </p>
                                         <p className="text-[15px] text-gray-400">
-                                            {data.position || "---"}
+                                            {data.prepared_by_role || "---"}
                                         </p>
                                     </div>
                                 </div>

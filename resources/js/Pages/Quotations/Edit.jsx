@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { useForm, router } from "@inertiajs/react";
+import { useForm, router, usePage } from "@inertiajs/react";
 import DocumentBuilder from "@/Components/PDF_Builder/Builder";
 import { Edit as EditIcon, Trash2, Loader2, Plus } from "lucide-react";
 import html2pdf from "html2pdf.js";
 import { useTranslation } from "react-i18next";
 
-export default function Edit({ leads = [], companies = [], auth, quotation }) {
+export default function Edit({ leads = [], companies = [], auth, quotation, ppn }) {
     const [showModal, setShowModal] = useState(false);
     const [newItem, setNewItem] = useState({
         name: "",
@@ -13,6 +13,7 @@ export default function Edit({ leads = [], companies = [], auth, quotation }) {
         price: "",
     });
 
+    const { app_config } = usePage().props;
     const { t } = useTranslation();    
 
     const builderAddItem = (newItem) => {
@@ -36,6 +37,10 @@ export default function Edit({ leads = [], companies = [], auth, quotation }) {
         document_type: "QUOTATION",
 
         client_type: quotation.is_client ? "Client" : "Lead",
+
+        prepared_by_name: quotation.creator?.name,
+        prepared_by_role: quotation.creator?.role?.name,
+        my_company_name: app_config.company_name,
 
         date: quotation.date || "",
         number: quotation.quotation_number || "",
@@ -992,16 +997,18 @@ export default function Edit({ leads = [], companies = [], auth, quotation }) {
                                 )}
                                 <div className="flex flex-col">
                                     <label className="text-[10px] font-bold text-gray-400 uppercase">
-                                        {t("quotations.builder.tax")}<span className="text-red-600">*</span>                                     
+                                        {t("quotations.builder.tax")}                                     
                                     </label>
                                     <select
                                         className="w-full border-gray-300 rounded text-sm"
-                                        value={(() => {
-                                            const t = Number(data.tax || 0);
-                                            if (isFinite(t)) {
-                                                if (Math.abs(t - 0.11) < 0.001) return "PPN 11%|0.11";
-                                                if (Math.abs(t - 0.12) < 0.001) return "PPN 12%|0.12";
+                                       value={(() => {
+                                            const currentTax = Number(data.tax || 0);
+                                            const matchedPpn = ppn.find(item => Math.abs(Number(item.rate) - currentTax) < 0.0001);
+                                            
+                                            if (matchedPpn) {
+                                                return `PPN ${matchedPpn.name}|${matchedPpn.rate}`;
                                             }
+                                            
                                             return "|0";
                                         })()}
                                         onChange={(e) =>
@@ -1009,12 +1016,11 @@ export default function Edit({ leads = [], companies = [], auth, quotation }) {
                                         }
                                     >
                                         <option value="|0">-- No Tax --</option>
-                                        <option value="PPN 11%|0.11">
-                                            PPN 11%
-                                        </option>
-                                        <option value="PPN 12%|0.12">
-                                            PPN 12%
-                                        </option>
+                                        {ppn.map((item) => (
+                                            <option key={item.id} value={`PPN ${item.name}|${item.rate}`}>
+                                                PPN {item.name} 
+                                            </option>
+                                        ))}
                                     </select>
                                 </div>
                                 <div className="flex flex-col justify-start">
@@ -1381,14 +1387,14 @@ export default function Edit({ leads = [], companies = [], auth, quotation }) {
                                         </span>
                                     </div>
                                     <p className="text-[17px] uppercase font-black pt-[0.9rem] pb-[5.2rem]">
-                                        {data.company_name || "---"}
+                                        {data.my_company_name || "---"}
                                     </p>
                                     <div className="text-left">
                                         <p className="text-[15px] uppercase font-black pt-[0.9rem]">
-                                            {data.contact_person || "---"}
+                                            {data.prepared_by_name || "---"}
                                         </p>
                                         <p className="text-[15px] text-gray-400">
-                                            {data.position || "---"}
+                                            {data.prepared_by_role || "---"}
                                         </p>
                                     </div>
                                 </div>
