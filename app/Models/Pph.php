@@ -10,12 +10,10 @@ use Illuminate\Support\Facades\Auth;
 
 class Pph extends Model
 {
-    use HasFactory, SoftDeletes;
+    use HasFactory;
 
-    // Menentukan nama tabel secara eksplisit
     protected $table = 'pph';
 
-    // Karena menggunakan UUID (bukan auto-increment integer)
     protected $keyType = 'string';
     public $incrementing = false;
 

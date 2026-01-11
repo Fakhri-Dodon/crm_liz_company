@@ -33,6 +33,7 @@ class DatabaseSeeder extends Seeder
             InvoiceNumberFormatedSeeder::class,
             QuotationStatusesSeeder::class,
             InvoiceStatusesSeeder::class,
+            TaxSeeder::class,
         ]);
     }
 }

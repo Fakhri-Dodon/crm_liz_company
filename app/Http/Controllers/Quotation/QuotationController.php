@@ -12,6 +12,7 @@ use App\Models\QuotationStatuses;
 use App\Models\QuotationNumberFormated;
 use App\Models\Company;
 use App\Models\ActivityLogs;
+use App\Models\Ppn;
 use App\Notifications\DocumentNotification;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -141,10 +142,13 @@ class QuotationController extends Controller {
             ->get();
         $companies = Company::where('deleted', 0)->with(['quotation', 'contacts' => function($query) {$query->where('deleted', 0);}, 'contactPersons.lead', 'lead'])->get();
         
+        $ppn = Ppn::where('deleted', 0)->get();
+        
         return Inertia::render('Quotations/Create', [
             'companies' => $companies,
             'leads' => $availableLeads,
-            'nextNumber' => $nextNumberPreview
+            'nextNumber' => $nextNumberPreview,
+            'ppn'   => $ppn,
         ]);
     }
 
@@ -317,7 +321,7 @@ class QuotationController extends Controller {
             ])->get();
 
         // Load data quotation dengan relationships yang benar
-        $quotation->load(['items', 'lead', 'company', 'company.contacts']);
+        $quotation->load(['items', 'lead', 'company', 'company.contacts', 'creator.role']);
         
         $isClient = false;
         if ($quotation->company) {
@@ -329,10 +333,13 @@ class QuotationController extends Controller {
 
         $quotation->is_client = $isClient;
 
+        $ppn = Ppn::where('deleted', 0)->get();
+
         return Inertia::render('Quotations/Edit', [
             'quotation'  => $quotation,
             'companies'  => $companies,
             'leads'      => $availableLeads,
+            'ppn'        => $ppn
         ]);
     }
 

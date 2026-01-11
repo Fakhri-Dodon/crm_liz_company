@@ -10,7 +10,7 @@ use Illuminate\Support\Facades\Auth;
 
 class Ppn extends Model
 {
-    use HasFactory, SoftDeletes;
+    use HasFactory;
 
     protected $table = 'ppn';
 
