@@ -50,7 +50,8 @@ class HandleInertiaRequests extends Middleware
                 'allow_language_change' => (bool) ($config->allow_language_change ?? true),
                 'logo_path'             => $config->logo_path ?? null,
                 'doc_logo_path'         => $config->doc_logo_path ?? null,
-                'company_name'          => $config->company_name ?? 'Liz Company',
+                'company_name'          => $config->company_name ?? null,
+                'address'               => $config->address ?? null,
             ],
             
             'csrf_token' => csrf_token(),

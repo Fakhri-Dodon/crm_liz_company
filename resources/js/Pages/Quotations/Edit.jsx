@@ -5,7 +5,13 @@ import { Edit as EditIcon, Trash2, Loader2, Plus } from "lucide-react";
 import html2pdf from "html2pdf.js";
 import { useTranslation } from "react-i18next";
 
-export default function Edit({ leads = [], companies = [], auth, quotation, ppn }) {
+export default function Edit({
+    leads = [],
+    companies = [],
+    auth,
+    quotation,
+    ppn,
+}) {
     const [showModal, setShowModal] = useState(false);
     const [newItem, setNewItem] = useState({
         name: "",
@@ -14,7 +20,7 @@ export default function Edit({ leads = [], companies = [], auth, quotation, ppn 
     });
 
     const { app_config } = usePage().props;
-    const { t } = useTranslation();    
+    const { t } = useTranslation();
 
     const builderAddItem = (newItem) => {
         const itemWithId = {
@@ -58,7 +64,10 @@ export default function Edit({ leads = [], companies = [], auth, quotation, ppn 
             : "",
         company_name: quotation.lead?.company_name || null,
         address: quotation.lead?.address || "",
-        contact_person: quotation.lead?.contact_person || quotation.company?.lead?.contact_person || "",
+        contact_person:
+            quotation.lead?.contact_person ||
+            quotation.company?.lead?.contact_person ||
+            "",
         position: quotation.lead?.position || "",
         email: quotation.lead?.email || "",
         phone: quotation.lead?.phone || "",
@@ -80,19 +89,29 @@ export default function Edit({ leads = [], companies = [], auth, quotation, ppn 
         // Compute initial subtotal from whichever field is available (sub_total, subtotal) or from items
         // then derive tax rate (data.tax holds tax amount from backend)
         sub_total: (() => {
-            const itemsSum = Array.isArray(quotation.items) && quotation.items.length
-                ? quotation.items.reduce((acc, it) => acc + (parseFloat(it.amount) || 0), 0)
-                : 0;
+            const itemsSum =
+                Array.isArray(quotation.items) && quotation.items.length
+                    ? quotation.items.reduce(
+                          (acc, it) => acc + (parseFloat(it.amount) || 0),
+                          0
+                      )
+                    : 0;
 
             // Prefer items sum when available (server subtotal may be "0.00")
             if (itemsSum > 0) return itemsSum;
 
-            if (quotation.sub_total !== undefined && quotation.sub_total !== null) {
+            if (
+                quotation.sub_total !== undefined &&
+                quotation.sub_total !== null
+            ) {
                 const v = parseFloat(quotation.sub_total) || 0;
                 if (v > 0) return v;
             }
 
-            if (quotation.subtotal !== undefined && quotation.subtotal !== null) {
+            if (
+                quotation.subtotal !== undefined &&
+                quotation.subtotal !== null
+            ) {
                 const v = parseFloat(quotation.subtotal) || 0;
                 if (v > 0) return v;
             }
@@ -104,14 +123,27 @@ export default function Edit({ leads = [], companies = [], auth, quotation, ppn 
 
         tax: (() => {
             const taxAmount = parseFloat(quotation.tax) || 0;
-            const itemsSum = Array.isArray(quotation.items) && quotation.items.length
-                ? quotation.items.reduce((acc, it) => acc + (parseFloat(it.amount) || 0), 0)
-                : 0;
+            const itemsSum =
+                Array.isArray(quotation.items) && quotation.items.length
+                    ? quotation.items.reduce(
+                          (acc, it) => acc + (parseFloat(it.amount) || 0),
+                          0
+                      )
+                    : 0;
 
             let subTotal = itemsSum;
             if (subTotal <= 0) {
-                if (quotation.sub_total !== undefined && quotation.sub_total !== null) subTotal = parseFloat(quotation.sub_total) || 0;
-                if (subTotal <= 0 && quotation.subtotal !== undefined && quotation.subtotal !== null) subTotal = parseFloat(quotation.subtotal) || 0;
+                if (
+                    quotation.sub_total !== undefined &&
+                    quotation.sub_total !== null
+                )
+                    subTotal = parseFloat(quotation.sub_total) || 0;
+                if (
+                    subTotal <= 0 &&
+                    quotation.subtotal !== undefined &&
+                    quotation.subtotal !== null
+                )
+                    subTotal = parseFloat(quotation.subtotal) || 0;
             }
 
             if (taxAmount <= 0 || subTotal <= 0) return 0;
@@ -122,14 +154,27 @@ export default function Edit({ leads = [], companies = [], auth, quotation, ppn 
 
         tax_type: (() => {
             const taxAmount = parseFloat(quotation.tax) || 0;
-            const itemsSum = Array.isArray(quotation.items) && quotation.items.length
-                ? quotation.items.reduce((acc, it) => acc + (parseFloat(it.amount) || 0), 0)
-                : 0;
+            const itemsSum =
+                Array.isArray(quotation.items) && quotation.items.length
+                    ? quotation.items.reduce(
+                          (acc, it) => acc + (parseFloat(it.amount) || 0),
+                          0
+                      )
+                    : 0;
 
             let subTotal = itemsSum;
             if (subTotal <= 0) {
-                if (quotation.sub_total !== undefined && quotation.sub_total !== null) subTotal = parseFloat(quotation.sub_total) || 0;
-                if (subTotal <= 0 && quotation.subtotal !== undefined && quotation.subtotal !== null) subTotal = parseFloat(quotation.subtotal) || 0;
+                if (
+                    quotation.sub_total !== undefined &&
+                    quotation.sub_total !== null
+                )
+                    subTotal = parseFloat(quotation.sub_total) || 0;
+                if (
+                    subTotal <= 0 &&
+                    quotation.subtotal !== undefined &&
+                    quotation.subtotal !== null
+                )
+                    subTotal = parseFloat(quotation.subtotal) || 0;
             }
 
             if (taxAmount <= 0 || subTotal <= 0) return null;
@@ -137,17 +182,34 @@ export default function Edit({ leads = [], companies = [], auth, quotation, ppn 
             return ratio >= 0.12 ? "PPN 12%" : "PPN 11%";
         })(),
 
-        total: parseFloat(quotation.total) || (function() {
-            const itemsSum = Array.isArray(quotation.items) && quotation.items.length ? quotation.items.reduce((acc, it) => acc + (parseFloat(it.amount) || 0), 0) : 0;
-            let s = itemsSum;
-            if (s <= 0) {
-                if (quotation.sub_total !== undefined && quotation.sub_total !== null) s = parseFloat(quotation.sub_total) || 0;
-                if (s <= 0 && quotation.subtotal !== undefined && quotation.subtotal !== null) s = parseFloat(quotation.subtotal) || 0;
-            }
-            const t = parseFloat(quotation.tax) || 0;
-            const d = parseFloat(quotation.discount) || 0;
-            return s + t - d;
-        })(),
+        total:
+            parseFloat(quotation.total) ||
+            (function () {
+                const itemsSum =
+                    Array.isArray(quotation.items) && quotation.items.length
+                        ? quotation.items.reduce(
+                              (acc, it) => acc + (parseFloat(it.amount) || 0),
+                              0
+                          )
+                        : 0;
+                let s = itemsSum;
+                if (s <= 0) {
+                    if (
+                        quotation.sub_total !== undefined &&
+                        quotation.sub_total !== null
+                    )
+                        s = parseFloat(quotation.sub_total) || 0;
+                    if (
+                        s <= 0 &&
+                        quotation.subtotal !== undefined &&
+                        quotation.subtotal !== null
+                    )
+                        s = parseFloat(quotation.subtotal) || 0;
+                }
+                const t = parseFloat(quotation.tax) || 0;
+                const d = parseFloat(quotation.discount) || 0;
+                return s + t - d;
+            })(),
     });
 
     console.log("full data :", data);
@@ -623,14 +685,34 @@ export default function Edit({ leads = [], companies = [], auth, quotation, ppn 
 
                         // Prefer explicit contacts arrays from company objects
                         const contactsArr =
-                            org.contacts || org.contact_persons || org.contactPersons;
+                            org.contacts ||
+                            org.contact_persons ||
+                            org.contactPersons;
 
-                        if (Array.isArray(contactsArr) && contactsArr.length > 0) {
+                        if (
+                            Array.isArray(contactsArr) &&
+                            contactsArr.length > 0
+                        ) {
                             return contactsArr.map((c) => ({
-                                id: c.id ?? c.contact_id ?? c.lead_id ?? c.email ?? "",
-                                name: c.name ?? c.contact_person ?? c.full_name ?? (c.lead && c.lead.contact_person) ?? "",
-                                email: c.email ?? (c.lead && c.lead.email) ?? "",
-                                phone: c.phone ?? (c.lead && c.lead.phone) ?? c.mobile ?? "",
+                                id:
+                                    c.id ??
+                                    c.contact_id ??
+                                    c.lead_id ??
+                                    c.email ??
+                                    "",
+                                name:
+                                    c.name ??
+                                    c.contact_person ??
+                                    c.full_name ??
+                                    (c.lead && c.lead.contact_person) ??
+                                    "",
+                                email:
+                                    c.email ?? (c.lead && c.lead.email) ?? "",
+                                phone:
+                                    c.phone ??
+                                    (c.lead && c.lead.phone) ??
+                                    c.mobile ??
+                                    "",
                                 position: c.position ?? c.job_title ?? "",
                                 raw: c,
                             }));
@@ -640,7 +722,11 @@ export default function Edit({ leads = [], companies = [], auth, quotation, ppn 
                         return [
                             {
                                 id: org.id,
-                                name: org.contact_person ?? org.name ?? org.company_name ?? "",
+                                name:
+                                    org.contact_person ??
+                                    org.name ??
+                                    org.company_name ??
+                                    "",
                                 email: org.email ?? "",
                                 phone: org.phone ?? "",
                                 position: org.position ?? "",
@@ -675,7 +761,8 @@ export default function Edit({ leads = [], companies = [], auth, quotation, ppn 
                         };
 
                         Object.entries(finalData).forEach(([f, v]) => {
-                            if (typeof builderUpdate === "function") builderUpdate(f, v);
+                            if (typeof builderUpdate === "function")
+                                builderUpdate(f, v);
                         });
 
                         setData((prev) => ({ ...prev, ...finalData }));
@@ -708,7 +795,8 @@ export default function Edit({ leads = [], companies = [], auth, quotation, ppn 
                         };
 
                         Object.entries(finalData).forEach(([f, v]) => {
-                            if (typeof builderUpdate === "function") builderUpdate(f, v);
+                            if (typeof builderUpdate === "function")
+                                builderUpdate(f, v);
                         });
 
                         setData((prev) => ({ ...prev, ...finalData }));
@@ -718,7 +806,8 @@ export default function Edit({ leads = [], companies = [], auth, quotation, ppn 
                     useEffect(() => {
                         if (typeof builderUpdate !== "function") return;
                         if (data.date) builderUpdate("date", data.date);
-                        if (data.valid_until) builderUpdate("valid_until", data.valid_until);
+                        if (data.valid_until)
+                            builderUpdate("valid_until", data.valid_until);
                     }, [data.date, data.valid_until]);
 
                     const handleDiscountChange = (value) => {
@@ -810,7 +899,8 @@ export default function Edit({ leads = [], companies = [], auth, quotation, ppn 
                         <div className="space-y-5">
                             <div className="flex flex-col">
                                 <label className="text-[10px] font-bold text-gray-400 uppercase">
-                                    {t("quotations.builder.date")}<span className="text-red-600">*</span>                                    
+                                    {t("quotations.builder.date")}
+                                    <span className="text-red-600">*</span>
                                 </label>
                                 <input
                                     type="date"
@@ -877,7 +967,8 @@ export default function Edit({ leads = [], companies = [], auth, quotation, ppn 
                                 }
                             >
                                 <label className="text-[10px] font-bold text-gray-400 uppercase">
-                                    {t("quotations.builder.select_company")}<span className="text-red-600">*</span>                                     
+                                    {t("quotations.builder.select_company")}
+                                    <span className="text-red-600">*</span>
                                 </label>
                                 <select
                                     className="w-full border-gray-300 rounded text-sm"
@@ -906,7 +997,8 @@ export default function Edit({ leads = [], companies = [], auth, quotation, ppn 
                                 }`}
                             >
                                 <label className="text-[10px] font-bold text-gray-400 uppercase">
-                                    {t("quotations.builder.select_contact")}<span className="text-red-600">*</span>                                 
+                                    {t("quotations.builder.select_contact")}
+                                    <span className="text-red-600">*</span>
                                 </label>
                                 <select
                                     className="w-full border-gray-300 rounded text-sm"
@@ -916,26 +1008,43 @@ export default function Edit({ leads = [], companies = [], auth, quotation, ppn 
                                     }
                                     disabled={!data.company_id}
                                 >
-                                    <option value="">-- Choose Person --</option>
+                                    <option value="">
+                                        -- Choose Person --
+                                    </option>
                                     {(() => {
-                                        const isClient = data.client_type === "Client";
-                                        const source = isClient ? companies : leads;
+                                        const isClient =
+                                            data.client_type === "Client";
+                                        const source = isClient
+                                            ? companies
+                                            : leads;
 
                                         const selectedOrg = source.find(
-                                            (c) => String(c.id) === String(data.company_id)
+                                            (c) =>
+                                                String(c.id) ===
+                                                String(data.company_id)
                                         );
 
                                         if (!selectedOrg) return null;
 
-                                        const list = getContactList(selectedOrg);
+                                        const list =
+                                            getContactList(selectedOrg);
 
-                                        if (!list || list.length === 0) return null;
+                                        if (!list || list.length === 0)
+                                            return null;
 
                                         return list.map((ct) => {
-                                            const labelName = ct.name || ct.contact_person || "No Name";
-                                            const positionDisplay = ct.position ? ` (${ct.position})` : "";
+                                            const labelName =
+                                                ct.name ||
+                                                ct.contact_person ||
+                                                "No Name";
+                                            const positionDisplay = ct.position
+                                                ? ` (${ct.position})`
+                                                : "";
                                             return (
-                                                <option key={ct.id} value={ct.id}>
+                                                <option
+                                                    key={ct.id}
+                                                    value={ct.id}
+                                                >
                                                     {labelName}
                                                     {positionDisplay}
                                                 </option>
@@ -947,7 +1056,8 @@ export default function Edit({ leads = [], companies = [], auth, quotation, ppn 
                             <div className="grid grid-cols-1 gap-3">
                                 <div className="flex flex-col justify-start">
                                     <label className="text-[10px] font-bold text-gray-400 uppercase">
-                                        {t("quotations.builder.subject")}<span className="text-red-600">*</span> 
+                                        {t("quotations.builder.subject")}
+                                        <span className="text-red-600">*</span>
                                     </label>
                                     <textarea
                                         rows="3"
@@ -981,7 +1091,9 @@ export default function Edit({ leads = [], companies = [], auth, quotation, ppn 
                                 {data.discount === "yes" && (
                                     <div className="flex flex-col">
                                         <label className="text-[10px] font-bold text-gray-400 uppercase">
-                                            {(t("quotations.builder.discount_amount"))}                                        
+                                            {t(
+                                                "quotations.builder.discount_amount"
+                                            )}
                                         </label>
                                         <input
                                             type="number"
@@ -997,18 +1109,26 @@ export default function Edit({ leads = [], companies = [], auth, quotation, ppn 
                                 )}
                                 <div className="flex flex-col">
                                     <label className="text-[10px] font-bold text-gray-400 uppercase">
-                                        {t("quotations.builder.tax")}                                     
+                                        {t("quotations.builder.tax")}
                                     </label>
                                     <select
                                         className="w-full border-gray-300 rounded text-sm"
-                                       value={(() => {
-                                            const currentTax = Number(data.tax || 0);
-                                            const matchedPpn = ppn.find(item => Math.abs(Number(item.rate) - currentTax) < 0.0001);
-                                            
+                                        value={(() => {
+                                            const currentTax = Number(
+                                                data.tax || 0
+                                            );
+                                            const matchedPpn = ppn.find(
+                                                (item) =>
+                                                    Math.abs(
+                                                        Number(item.rate) -
+                                                            currentTax
+                                                    ) < 0.0001
+                                            );
+
                                             if (matchedPpn) {
                                                 return `PPN ${matchedPpn.name}|${matchedPpn.rate}`;
                                             }
-                                            
+
                                             return "|0";
                                         })()}
                                         onChange={(e) =>
@@ -1017,15 +1137,22 @@ export default function Edit({ leads = [], companies = [], auth, quotation, ppn 
                                     >
                                         <option value="|0">-- No Tax --</option>
                                         {ppn.map((item) => (
-                                            <option key={item.id} value={`PPN ${item.name}|${item.rate}`}>
-                                                PPN {item.name} 
+                                            <option
+                                                key={item.id}
+                                                value={`PPN ${item.name}|${item.rate}`}
+                                            >
+                                                PPN {item.name}
                                             </option>
                                         ))}
                                     </select>
                                 </div>
                                 <div className="flex flex-col justify-start">
                                     <label className="text-[10px] font-bold text-gray-400 uppercase">
-                                        {t("quotations.builder.payment_terms")}<span className="text-red-600">*</span>                                         
+                                        {t("quotations.builder.payment_terms")}
+                                        <span className="text-red-600">* </span>
+                                        <span className={`text-[9px] font-bold ${data.payment_terms?.length >= 250 ? 'text-red-500' : 'text-gray-400'}`}>
+                                            {data.payment_terms?.length || 0} / 255
+                                        </span>
                                     </label>
                                     <textarea
                                         rows="3"
@@ -1033,14 +1160,20 @@ export default function Edit({ leads = [], companies = [], auth, quotation, ppn 
                                         value={data.payment_terms || ""}
                                         onChange={(e) => {
                                             const val = e.target.value;
-                                            builderUpdate("payment_terms", val);
-                                            setData("payment_terms", val);
+                                            if (val.length <= 255) {
+                                                builderUpdate("payment_terms", val);
+                                                setData("payment_terms", val);
+                                            }
                                         }}
                                     />
                                 </div>
                                 <div className="flex flex-col justify-start">
                                     <label className="text-[10px] font-bold text-gray-400 uppercase">
-                                        {t("quotations.builder.note")}<span className="text-red-600">*</span> 
+                                        {t("quotations.builder.note")}
+                                        <span className="text-red-600">* </span>
+                                        <span className={`text-[9px] font-bold ${data.note?.length >= 250 ? 'text-red-500' : 'text-gray-400'}`}>
+                                            {data.note?.length || 0} / 255
+                                        </span>
                                     </label>
                                     <textarea
                                         rows="3"
@@ -1048,14 +1181,17 @@ export default function Edit({ leads = [], companies = [], auth, quotation, ppn 
                                         value={data.note || ""}
                                         onChange={(e) => {
                                             const val = e.target.value;
-                                            builderUpdate("note", val);
-                                            setData("note", val);
+                                            if (val.length <= 255) {
+                                                builderUpdate("note", val);
+                                                setData("note", val);
+                                            }
                                         }}
                                     />
                                 </div>
                                 <div className="flex flex-col justify-start">
                                     <label className="text-[10px] font-bold text-gray-400 uppercase">
-                                        {t("quotations.builder.valid_until")}<span className="text-red-600">*</span>                                     
+                                        {t("quotations.builder.valid_until")}
+                                        <span className="text-red-600">*</span>
                                     </label>
                                     <input
                                         type="date"
@@ -1164,242 +1300,280 @@ export default function Edit({ leads = [], companies = [], auth, quotation, ppn 
                     //     }
                     // }, [data.contact_person_id]);
                     return (
-                        <div className="p-2 text-[12px]">
-                            {/* Preview Header */}
-                            <div className="flex justify-between pb-4 mb-6">
-                                <div className="text-left">
-                                    <p className="text-[10px] font-bold text-gray-400 uppercase">
-                                        Number
-                                    </p>
-                                    <p className="font-bold">
-                                        {data.number || "Q-2024-XXXX"}
-                                    </p>
-                                </div>
-                                <div className="text-left">
-                                    <p className="text-[10px] font-bold text-gray-400 uppercase">
-                                        Date
-                                    </p>
-                                    <p className="font-bold">
-                                        {data.date || "Date Not Set"}
-                                    </p>
-                                </div>
-                            </div>
-
-                            {/* Info Client */}
-                            <div className="grid grid-cols-2 gap-8 mb-8">
-                                <div className="border border-black p-5 rounded-sm">
-                                    <div className="grid gap-3">
-                                        <div>
-                                            <p className="text-[10px] font-bold text-gray-400 uppercase">
-                                                To:
-                                            </p>
-                                            <p className="font-bold text-emerald-800">
-                                                {data.contact_person || "---"}
-                                            </p>
-                                        </div>
-                                        <div>
-                                            <p className="text-[10px] font-bold text-gray-400 uppercase">
-                                                Email:
-                                            </p>
-                                            <p className="text-black">
-                                                {data.email}
-                                            </p>
-                                        </div>
-                                        <div>
-                                            <p className="text-[10px] font-bold text-gray-400 uppercase">
-                                                Handphone:
-                                            </p>
-                                            <p className="text-black">
-                                                {data.phone}
-                                            </p>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div className="border border-black p-5 rounded-sm">
-                                    <div className="grid gap-3">
-                                        <div>
-                                            <p className="text-[10px] font-bold text-gray-400 uppercase">
-                                                Company:
-                                            </p>
-                                            <p className="font-black">
-                                                {data.company_name || "---"}
-                                            </p>
-                                        </div>
-                                        <div>
-                                            <p className="text-[10px] font-bold text-gray-400 uppercase">
-                                                Address:
-                                            </p>
-                                            <p className="text-black leading-tight">
-                                                {data.address ||
-                                                    "No address provided."}
-                                            </p>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {/* Subject */}
-                                <div className="text-left">
-                                    <p className="text-[15px] font-bold text-black">
-                                        Subject
-                                    </p>
-                                    <p className="text-[13px] text-gray-600 font-medium">
-                                        {data.subject}
-                                    </p>
-                                </div>
-                            </div>
-
-                            {/* Table */}
-                            <p className="text-[15px] font-bold text-black mb-2">
-                                Quotation Detail
-                            </p>
-                            <table className="w-full border-collapse border border-black">
-                                <thead className="bg-gray-50 uppercase text-[10px] font-black border-b border-black">
-                                    <tr>
-                                        <th className="p-2 text-center w-8 border border-black">
-                                            No
-                                        </th>
-                                        <th className="p-2 text-left border border-black">
-                                            Description
-                                        </th>
-                                        <th className="p-2 text-center w-24 border border-black">
-                                            Processing
-                                        </th>
-                                        <th className="p-2 text-right w-32">
-                                            Amount
-                                        </th>
-                                        <th
-                                            data-html2canvas-ignore="true"
-                                            className="print:hidden p-2 w-10"
-                                        ></th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {data.services.map((s, i) => (
-                                        <tr
-                                            key={s.id || i}
-                                            className="border-b border-gray-100 relative group"
-                                        >
-                                            <td className="p-2 text-center font-bold text-gray-400 border border-black">
-                                                {/* Untuk nomor urut tetap pakai index dari map jika perlu */}
-                                                {data.services.indexOf(s) + 1}
-                                            </td>
-                                            <td className="p-2 font-bold uppercase border border-black">
-                                                {s.name}
-                                            </td>
-                                            <td className="p-2 text-center border border-black">
-                                                {s.processing}
-                                            </td>
-                                            <td className="p-2 text-right font-black border-b border-black">
-                                                {formatIDR(s.price)}
-                                            </td>
-                                            <td className="print:hidden p-2 text-center border-b border-black">
-                                                <button
-                                                    type="button"
-                                                    data-html2canvas-ignore="true"
-                                                    onClick={() => {
-                                                        console.log(
-                                                            "ID Item ini adalah:",
-                                                            s.id
-                                                        );
-                                                        removeItem(s.id);
-                                                    }}
-                                                    className="text-red-400 hover:text-red-600 transition-colors"
-                                                >
-                                                    <Trash2 size={14} />
-                                                </button>
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-
-                            {/* Add Button */}
-                            <div
-                                data-html2canvas-ignore="true"
-                                className="mt-4 flex justify-start print:hidden"
-                            >
-                                <button
-                                    data-html2canvas-ignore="true"
-                                    onClick={() => setShowModal(true)}
-                                    className="flex items-center gap-2 bg-[#065f46] text-white px-4 py-2 rounded-sm text-[10px] font-bold tracking-widest hover:scale-105 transition-all shadow-lg"
-                                >
-                                    ADD SERVICE
-                                </button>
-                            </div>
-
-                            <div className="mt-10 flex justify-between">
-                                <div className="w-1/2">
-                                    <div className="h-[6rem] mb-5">
-                                        <p className="text-[15px] font-black font-bold mb-1">
-                                            Payment Terms
-                                        </p>
-                                        <p className="text-red-600 text-[11px] font-medium leading-tight whitespace-pre-wrap">
-                                            {data.payment_terms ||
-                                                "50% initial payment upon service confirmation. Remaining 50% to be settled upon completion of the Business Entity Certificate (SBU) process."}
-                                        </p>
-                                    </div>
-                                    <div className="h-[3rem] mb-20">
-                                        <p className="text-[15px] font-black font-bold mb-1">
-                                            Note
-                                        </p>
-                                        <p className="text-red-600 text-[11px] font-medium leading-tight whitespace-pre-wrap">
-                                            {data.note ||
-                                                "The processing time excludes Saturdays, Sundays, and public holidays."}
-                                        </p>
-                                    </div>
-                                    <div>
-                                        <p className="text-[15px] font-black font-bold mb-1">
-                                            Valid Until
-                                        </p>
-                                        <p className="text-red-600 text-[11px] font-medium leading-tight">
-                                            {`This quotation is valid until (${data.valid_until})`}
-                                        </p>
-                                    </div>
-                                </div>
-                                <div className="w-1/3 space-y-1 font-bold">
-                                    <div className="flex justify-between">
-                                        <span>Discount</span>
-                                        <span>
-                                            {data.discount === "yes"
-                                                ? formatIDR(discountAmount)
-                                                : formatIDR(0)}
-                                        </span>
-                                    </div>
-
-                                    <div className="flex justify-between">
-                                        <span>Subtotal</span>
-                                        <span>
-                                            {formatIDR(calculatedSubTotal)}
-                                        </span>
-                                    </div>
-
-                                    <div className="flex justify-between border-b border-black pb-1">
-                                        <span>{data.tax_type || "Tax"}</span>
-                                        <span>
-                                            {formatIDR(calculatedTaxAmount)}
-                                        </span>
-                                    </div>
-
-                                    <div className="flex justify-between text-sm font-black pt-1">
-                                        <span>TOTAL</span>
-                                        <span>
-                                            {formatIDR(calculatedTotal)}
-                                        </span>
-                                    </div>
-                                    <p className="text-[17px] uppercase font-black pt-[0.9rem] pb-[5.2rem]">
-                                        {data.my_company_name || "---"}
-                                    </p>
+                        <>
+                            <div className="p-2 text-[12px]">
+                                {/* Preview Header */}
+                                <div className="flex justify-between pb-4 mb-6">
                                     <div className="text-left">
-                                        <p className="text-[15px] uppercase font-black pt-[0.9rem]">
-                                            {data.prepared_by_name || "---"}
+                                        <p className="text-[10px] font-bold text-gray-400 uppercase">
+                                            Number
                                         </p>
-                                        <p className="text-[15px] text-gray-400">
-                                            {data.prepared_by_role || "---"}
+                                        <p className="font-bold">
+                                            {data.number || "Q-2024-XXXX"}
+                                        </p>
+                                    </div>
+                                    <div className="text-left">
+                                        <p className="text-[10px] font-bold text-gray-400 uppercase">
+                                            Date
+                                        </p>
+                                        <p className="font-bold">
+                                            {data.date || "Date Not Set"}
+                                        </p>
+                                    </div>
+                                </div>
+
+                                {/* Info Client */}
+                                <div className="grid grid-cols-2 gap-8 mb-8">
+                                    <div className="border border-black p-5 rounded-sm">
+                                        <div className="grid gap-3">
+                                            <div>
+                                                <p className="text-[10px] font-bold text-gray-400 uppercase">
+                                                    To:
+                                                </p>
+                                                <p className="font-bold text-emerald-800">
+                                                    {data.contact_person ||
+                                                        "---"}
+                                                </p>
+                                            </div>
+                                            <div>
+                                                <p className="text-[10px] font-bold text-gray-400 uppercase">
+                                                    Email:
+                                                </p>
+                                                <p className="text-black">
+                                                    {data.email}
+                                                </p>
+                                            </div>
+                                            <div>
+                                                <p className="text-[10px] font-bold text-gray-400 uppercase">
+                                                    Handphone:
+                                                </p>
+                                                <p className="text-black">
+                                                    {data.phone}
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div className="border border-black p-5 rounded-sm">
+                                        <div className="grid gap-3">
+                                            <div>
+                                                <p className="text-[10px] font-bold text-gray-400 uppercase">
+                                                    Company:
+                                                </p>
+                                                <p className="font-black">
+                                                    {data.company_name || "---"}
+                                                </p>
+                                            </div>
+                                            <div>
+                                                <p className="text-[10px] font-bold text-gray-400 uppercase">
+                                                    Address:
+                                                </p>
+                                                <p className="text-black leading-tight">
+                                                    {data.address ||
+                                                        "No address provided."}
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Subject */}
+                                    <div className="text-left">
+                                        <p className="text-[15px] font-bold text-black">
+                                            Subject
+                                        </p>
+                                        <p className="text-[13px] text-gray-600 font-medium">
+                                            {data.subject}
+                                        </p>
+                                    </div>
+                                </div>
+
+                                {/* Table */}
+                                <p className="text-[15px] font-bold text-black mb-2">
+                                    Quotation Detail
+                                </p>
+                                <table className="w-full border-collapse border border-black">
+                                    <thead className="bg-gray-50 uppercase text-[10px] font-black border-b border-black">
+                                        <tr>
+                                            <th className="p-2 text-center w-8 border border-black">
+                                                No
+                                            </th>
+                                            <th className="p-2 text-left border border-black">
+                                                Description
+                                            </th>
+                                            <th className="p-2 text-center w-24 border border-black">
+                                                Processing
+                                            </th>
+                                            <th className="p-2 text-right w-32">
+                                                Amount
+                                            </th>
+                                            <th
+                                                data-html2canvas-ignore="true"
+                                                className="print:hidden p-2 w-10"
+                                            ></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {data.services.map((s, i) => (
+                                            <tr
+                                                key={s.id || i}
+                                                className="border-b border-gray-100 relative group"
+                                            >
+                                                <td className="p-2 text-center font-bold text-gray-400 border border-black">
+                                                    {/* Untuk nomor urut tetap pakai index dari map jika perlu */}
+                                                    {data.services.indexOf(s) +
+                                                        1}
+                                                </td>
+                                                <td className="p-2 font-bold uppercase border border-black">
+                                                    {s.name}
+                                                </td>
+                                                <td className="p-2 text-center border border-black">
+                                                    {s.processing}
+                                                </td>
+                                                <td className="p-2 text-right font-black border-b border-black">
+                                                    {formatIDR(s.price)}
+                                                </td>
+                                                <td className="print:hidden p-2 text-center border-b border-black">
+                                                    <button
+                                                        type="button"
+                                                        data-html2canvas-ignore="true"
+                                                        onClick={() => {
+                                                            console.log(
+                                                                "ID Item ini adalah:",
+                                                                s.id
+                                                            );
+                                                            removeItem(s.id);
+                                                        }}
+                                                        className="text-red-400 hover:text-red-600 transition-colors"
+                                                    >
+                                                        <Trash2 size={14} />
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+
+                                {/* Add Button */}
+                                <div
+                                    data-html2canvas-ignore="true"
+                                    className="mt-4 flex justify-start print:hidden"
+                                >
+                                    <button
+                                        data-html2canvas-ignore="true"
+                                        onClick={() => setShowModal(true)}
+                                        className="flex items-center gap-2 bg-[#065f46] text-white px-4 py-2 rounded-sm text-[10px] font-bold tracking-widest hover:scale-105 transition-all shadow-lg"
+                                    >
+                                        ADD SERVICE
+                                    </button>
+                                </div>
+
+                                <div className="mt-8">
+                                    <div className="flex justify-between items-stretch gap-10">
+                                        <div className="w-3/5 flex flex-col">
+                                            {/* Bagian atas (Terms & Note) */}
+                                            <div className="flex-grow space-y-6">
+                                                <div>
+                                                    <p className="text-[15px] font-bold mb-1">
+                                                        Payment Terms
+                                                    </p>
+                                                    <p className="text-red-600 text-[11px] font-medium leading-tight whitespace-pre-wrap break-words max-w-[300px]">
+                                                        {data.payment_terms ||
+                                                            "-"}
+                                                    </p>
+                                                </div>
+
+                                                <div>
+                                                    <p className="text-[15px] font-bold mb-1">
+                                                        Note
+                                                    </p>
+                                                    <p className="text-red-600 text-[11px] font-medium leading-tight whitespace-pre-wrap break-words max-w-[300px]">
+                                                        {data.note || "-"}
+                                                    </p>
+                                                </div>
+                                            </div>
+
+                                            <div className="mt-10">
+                                                <p className="text-[15px] font-bold mb-1">
+                                                    Valid Until
+                                                </p>
+                                                <p className="text-red-600 text-[11px] font-medium leading-tight">
+                                                    {`This quotation is valid until (${
+                                                        data.valid_until || ""
+                                                    })`}
+                                                </p>
+                                            </div>
+                                        </div>
+
+                                        <div className="w-2/5 flex flex-col justify-between">
+                                            <div className="space-y-1 font-bold mb-10">
+                                                <div className="flex justify-between">
+                                                    <span>Discount</span>
+                                                    <span>
+                                                        {data.discount === "yes"
+                                                            ? formatIDR(
+                                                                  data.discount_amount
+                                                              )
+                                                            : formatIDR(0)}
+                                                    </span>
+                                                </div>
+                                                <div className="flex justify-between">
+                                                    <span>Subtotal</span>
+                                                    <span>
+                                                        {formatIDR(
+                                                            data.sub_total || 0
+                                                        )}
+                                                    </span>
+                                                </div>
+                                                <div className="flex justify-between border-b border-black pb-1">
+                                                    <span>
+                                                        {data.tax_type || "Tax"}
+                                                    </span>
+                                                    <span>
+                                                        {formatIDR(
+                                                            data.tax_amount || 0
+                                                        )}
+                                                    </span>
+                                                </div>
+                                                <div className="flex justify-between text-sm font-black pt-1">
+                                                    <span>TOTAL</span>
+                                                    <span>
+                                                        {formatIDR(
+                                                            data.total || 0
+                                                        )}
+                                                    </span>
+                                                </div>
+                                            </div>
+
+                                            <div className="text-left">
+                                                <p className="text-[16px] uppercase font-black">
+                                                    {data.my_company_name ||
+                                                        "---"}
+                                                </p>
+
+                                                <div className="h-20"></div>
+
+                                                <div>
+                                                    <p className="text-[14px] uppercase font-black leading-tight">
+                                                        {data.prepared_by_name ||
+                                                            "---"}
+                                                    </p>
+                                                    <p className="text-[13px] text-gray-500 leading-tight">
+                                                        {data.prepared_by_role ||
+                                                            "---"}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Footer Alamat */}
+                                    <div className="mt-10 p-3 bg-slate-100 rounded-md border border-slate-200">
+                                        <p className="text-[12px] text-gray-600">
+                                            {app_config?.address}
                                         </p>
                                     </div>
                                 </div>
                             </div>
-                        </div>
+                        </>
                     );
                 }}
                 renderPDFPreview={quotationPDFPreview}
