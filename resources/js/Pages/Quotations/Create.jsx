@@ -2,28 +2,33 @@ import React, { useState, useEffect } from "react";
 import { useForm, router, usePage } from "@inertiajs/react";
 import DocumentBuilder from "@/Components/PDF_Builder/Builder";
 import { Edit, Trash2, Loader2, Plus } from "lucide-react";
-import html2pdf from 'html2pdf.js';
-import { Toaster, toast } from 'react-hot-toast';
+import html2pdf from "html2pdf.js";
+import { Toaster, toast } from "react-hot-toast";
 import { useTranslation } from "react-i18next";
 
-export default function Create({ nextNumber, leads = [], companies = [], ppn }) {
+export default function Create({
+    nextNumber,
+    leads = [],
+    companies = [],
+    ppn,
+}) {
     const [showModal, setShowModal] = useState(false);
     const [newItem, setNewItem] = useState({
         name: "",
         processing: "",
         price: "",
     });
-    const { t } = useTranslation();    
+    const { t } = useTranslation();
     const { auth, app_config } = usePage().props;
 
     const builderAddItem = (newItem) => {
         const itemWithId = {
             ...newItem,
             id: Date.now() + Math.random(),
-            price: Number(newItem.price) || 0
+            price: Number(newItem.price) || 0,
         };
 
-        setData('services', [...data.services, itemWithId]);
+        setData("services", [...data.services, itemWithId]);
     };
 
     const generateFormatNumber = (num) => {
@@ -97,7 +102,9 @@ export default function Create({ nextNumber, leads = [], companies = [], ppn }) 
 
     const handleSave = async () => {
         if (data.services.length === 0) {
-            alert("Peringatan: Anda harus menambahkan setidaknya satu jasa/layanan sebelum menyimpan.");
+            alert(
+                "Peringatan: Anda harus menambahkan setidaknya satu jasa/layanan sebelum menyimpan."
+            );
             return;
         }
 
@@ -107,53 +114,57 @@ export default function Create({ nextNumber, leads = [], companies = [], ppn }) 
         }
 
         try {
-            const element = document.getElementById('quotation-pdf');
+            const element = document.getElementById("quotation-pdf");
             const opt = {
                 margin: 0,
                 filename: `${data.number}.pdf`,
-                image: { type: 'jpeg', quality: 0.98 },
+                image: { type: "jpeg", quality: 0.98 },
                 html2canvas: { scale: 2, useCORS: true },
-                jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+                jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
             };
 
-            const pdfBlob = await html2pdf().set(opt).from(element).output('blob');
+            const pdfBlob = await html2pdf()
+                .set(opt)
+                .from(element)
+                .output("blob");
 
             const formData = new FormData();
-            
-            Object.keys(data).forEach(key => {
-                if (key === 'services') {
-                    const servicesData = Array.isArray(data.services) ? data.services : [];
-                    formData.append('services', JSON.stringify(servicesData));
+
+            Object.keys(data).forEach((key) => {
+                if (key === "services") {
+                    const servicesData = Array.isArray(data.services)
+                        ? data.services
+                        : [];
+                    formData.append("services", JSON.stringify(servicesData));
                 } else if (data[key] !== null && data[key] !== undefined) {
                     formData.append(key, data[key]);
                 }
             });
 
-            formData.append('pdf_file', pdfBlob, `${data.number}.pdf`);
+            formData.append("pdf_file", pdfBlob, `${data.number}.pdf`);
 
             router.post("/quotation/store", formData, {
                 forceFormData: true,
                 onSuccess: () => {
-                    toast.success('Berhasil disimpan!', {
+                    toast.success("Berhasil disimpan!", {
                         style: {
-                        border: '1px solid #4ade80',
-                        padding: '16px',
-                        color: '#166534',
+                            border: "1px solid #4ade80",
+                            padding: "16px",
+                            color: "#166534",
                         },
                         iconTheme: {
-                        primary: '#4ade80',
-                        secondary: '#FFFAEE',
+                            primary: "#4ade80",
+                            secondary: "#FFFAEE",
                         },
                     });
                 },
                 onError: (err) => {
                     console.error("Penyebab Gagal Simpan", err);
                     for (let pair of formData.entries()) {
-                        console.log(pair[0]+ ': ' + pair[1]); 
+                        console.log(pair[0] + ": " + pair[1]);
                     }
                 },
             });
-
         } catch (error) {
             console.error("Error:", error);
         }
@@ -333,9 +344,9 @@ export default function Create({ nextNumber, leads = [], companies = [], ppn }) 
     };
 
     const { props } = usePage();
-    const logoUrl = props.app_config?.doc_logo_path 
-                    ? `/storage/${props.app_config.doc_logo_path}` 
-                    : null;
+    const logoUrl = props.app_config?.doc_logo_path
+        ? `/storage/${props.app_config.doc_logo_path}`
+        : null;
 
     return (
         <>
@@ -411,11 +422,15 @@ export default function Create({ nextNumber, leads = [], companies = [], ppn }) 
                                     if (!newItem.name || !newItem.price) {
                                         return alert("Lengkapi data!");
                                     }
-                                    
-                                    builderAddItem(newItem); 
+
+                                    builderAddItem(newItem);
 
                                     setShowModal(false);
-                                    setNewItem({ name: "", processing: "", price: "" });
+                                    setNewItem({
+                                        name: "",
+                                        processing: "",
+                                        price: "",
+                                    });
                                 }}
                                 className="bg-[#2d6a4f] text-white px-6 py-2 rounded-lg font-bold text-sm shadow-lg"
                             >
@@ -435,7 +450,7 @@ export default function Create({ nextNumber, leads = [], companies = [], ppn }) 
                 setData={setData}
                 onSave={handleSave}
                 onBack={handleBack}
-                renderEditor={({ updateField: builderUpdate,  }) => {
+                renderEditor={({ updateField: builderUpdate }) => {
                     const nameIsLocked = !data.client_type;
                     const calculateAndSyncTotals = (
                         currentServices,
@@ -471,7 +486,7 @@ export default function Create({ nextNumber, leads = [], companies = [], ppn }) 
                     // const handleSelectionChange = (id) => {
                     //     const isClient = data.client_type === "Client";
                     //     const source = isClient ? companies : leads;
-                        
+
                     //     const selected = source.find(
                     //         (item) => String(item.id) === String(id)
                     //     );
@@ -484,8 +499,8 @@ export default function Create({ nextNumber, leads = [], companies = [], ppn }) 
                     //         const updateData = {
                     //             company_id: correctCompanyId,
                     //             lead_id: correctLeadId,
-                    //             company_name: isClient 
-                    //                 ? (selected.lead?.company_name || selected.client_code) 
+                    //             company_name: isClient
+                    //                 ? (selected.lead?.company_name || selected.client_code)
                     //                 : selected.company_name,
                     //             address: dataSource?.address || "",
                     //             contact_person_id: "",
@@ -543,8 +558,8 @@ export default function Create({ nextNumber, leads = [], companies = [], ppn }) 
                     //             : null;
 
                     //         if (personRow) {
-                    //             const dataSource = isClient 
-                    //                 ? personRow.lead 
+                    //             const dataSource = isClient
+                    //                 ? personRow.lead
                     //                 : selectedOrg;
 
                     //             const finalData = {
@@ -552,8 +567,8 @@ export default function Create({ nextNumber, leads = [], companies = [], ppn }) 
                     //                 contact_person: dataSource?.contact_person || "",
                     //                 email: dataSource?.email || "",
                     //                 phone: dataSource?.phone || "",
-                    //                 position: isClient 
-                    //                     ? personRow.position || "" 
+                    //                 position: isClient
+                    //                     ? personRow.position || ""
                     //                     : "",
                     //             };
                     //             Object.entries(finalData).forEach(([f, v]) =>
@@ -631,31 +646,42 @@ export default function Create({ nextNumber, leads = [], companies = [], ppn }) 
                             if (personRow) {
                                 const finalData = {
                                     contact_person_id: contactId,
-                                    contact_person: isClient 
-                                        ? (personRow.lead?.contact_person || selectedOrg.lead?.contact_person || "---") 
-                                        : (selectedOrg.contact_person || ""),
-                                    
-                                    email: isClient 
-                                        ? (personRow.lead?.email || selectedOrg.lead?.email || "") 
-                                        : (personRow.email || ""),
-                                    
-                                    phone: isClient 
-                                        ? (personRow.lead?.phone || selectedOrg.lead?.phone || "") 
-                                        : (personRow.phone || ""),
+                                    contact_person: isClient
+                                        ? personRow.lead?.contact_person ||
+                                          selectedOrg.lead?.contact_person ||
+                                          "---"
+                                        : selectedOrg.contact_person || "",
 
-                                    position: isClient 
-                                        ? (personRow.position || "") 
-                                        : (selectedOrg.job_title || selectedOrg.position || ""),
+                                    email: isClient
+                                        ? personRow.lead?.email ||
+                                          selectedOrg.lead?.email ||
+                                          ""
+                                        : personRow.email || "",
+
+                                    phone: isClient
+                                        ? personRow.lead?.phone ||
+                                          selectedOrg.lead?.phone ||
+                                          ""
+                                        : personRow.phone || "",
+
+                                    position: isClient
+                                        ? personRow.position || ""
+                                        : selectedOrg.job_title ||
+                                          selectedOrg.position ||
+                                          "",
                                 };
 
-                                console.log("Data yang dikirim ke builder:", finalData);
+                                console.log(
+                                    "Data yang dikirim ke builder:",
+                                    finalData
+                                );
 
                                 Object.entries(finalData).forEach(([f, v]) => {
-                                    if (typeof builderUpdate === 'function') {
+                                    if (typeof builderUpdate === "function") {
                                         builderUpdate(f, v);
                                     }
                                 });
-                                
+
                                 setData((prev) => ({ ...prev, ...finalData }));
                             }
                         }
@@ -745,7 +771,8 @@ export default function Create({ nextNumber, leads = [], companies = [], ppn }) 
                         <div className="space-y-5">
                             <div className="flex flex-col">
                                 <label className="text-[10px] font-bold text-gray-400 uppercase">
-                                    {t("quotations.builder.date")}<span className="text-red-600">*</span>
+                                    {t("quotations.builder.date")}
+                                    <span className="text-red-600">*</span>
                                 </label>
                                 <input
                                     type="date"
@@ -806,7 +833,8 @@ export default function Create({ nextNumber, leads = [], companies = [], ppn }) 
                                 }
                             >
                                 <label className="text-[10px] font-bold text-gray-400 uppercase">
-                                    {t("quotations.builder.select_company")}<span className="text-red-600">*</span> 
+                                    {t("quotations.builder.select_company")}
+                                    <span className="text-red-600">*</span>
                                 </label>
                                 <select
                                     className="w-full border-gray-300 rounded text-sm"
@@ -835,7 +863,8 @@ export default function Create({ nextNumber, leads = [], companies = [], ppn }) 
                                 }`}
                             >
                                 <label className="text-[10px] font-bold text-gray-400 uppercase">
-                                    {t("quotations.builder.select_contact")}<span className="text-red-600">*</span> 
+                                    {t("quotations.builder.select_contact")}
+                                    <span className="text-red-600">*</span>
                                 </label>
                                 <select
                                     className="w-full border-gray-300 rounded text-sm"
@@ -923,7 +952,8 @@ export default function Create({ nextNumber, leads = [], companies = [], ppn }) 
                             <div className="grid grid-cols-1 gap-3">
                                 <div className="flex flex-col justify-start">
                                     <label className="text-[10px] font-bold text-gray-400 uppercase">
-                                        {t("quotations.builder.subject")}<span className="text-red-600">*</span> 
+                                        {t("quotations.builder.subject")}
+                                        <span className="text-red-600">*</span>
                                     </label>
                                     <textarea
                                         rows="3"
@@ -957,7 +987,9 @@ export default function Create({ nextNumber, leads = [], companies = [], ppn }) 
                                 {data.discount === "yes" && (
                                     <div className="flex flex-col">
                                         <label className="text-[10px] font-bold text-gray-400 uppercase">
-                                            {(t("quotations.builder.discount_amount"))}
+                                            {t(
+                                                "quotations.builder.discount_amount"
+                                            )}
                                         </label>
                                         <input
                                             type="number"
@@ -986,15 +1018,22 @@ export default function Create({ nextNumber, leads = [], companies = [], ppn }) 
                                     >
                                         <option value="|0">-- No Tax --</option>
                                         {ppn.map((item) => (
-                                            <option key={item.id} value={`PPN ${item.name}|${item.rate}`}>
-                                                PPN {item.name} 
+                                            <option
+                                                key={item.id}
+                                                value={`PPN ${item.name}|${item.rate}`}
+                                            >
+                                                PPN {item.name}
                                             </option>
                                         ))}
                                     </select>
                                 </div>
                                 <div className="flex flex-col justify-start">
                                     <label className="text-[10px] font-bold text-gray-400 uppercase">
-                                        {t("quotations.builder.payment_terms")}<span className="text-red-600">*</span> 
+                                        {t("quotations.builder.payment_terms")}
+                                        <span className="text-red-600">* </span>
+                                        <span className={`text-[9px] font-bold ${data.payment_terms?.length >= 250 ? 'text-red-500' : 'text-gray-400'}`}>
+                                            {data.payment_terms?.length || 0} / 255
+                                        </span>
                                     </label>
                                     <textarea
                                         rows="3"
@@ -1002,14 +1041,20 @@ export default function Create({ nextNumber, leads = [], companies = [], ppn }) 
                                         value={data.payment_terms || ""}
                                         onChange={(e) => {
                                             const val = e.target.value;
-                                            builderUpdate("payment_terms", val);
-                                            setData("payment_terms", val);
+                                            if (val.length <= 255) {
+                                                builderUpdate("payment_terms", val);
+                                                setData("payment_terms", val);
+                                            }
                                         }}
                                     />
                                 </div>
                                 <div className="flex flex-col justify-start">
                                     <label className="text-[10px] font-bold text-gray-400 uppercase">
-                                        {t("quotations.builder.note")}<span className="text-red-600">*</span> 
+                                        {t("quotations.builder.note")}
+                                        <span className="text-red-600">* </span>
+                                        <span className={`text-[9px] font-bold ${data.note?.length >= 250 ? 'text-red-500' : 'text-gray-400'}`}>
+                                            {data.note?.length || 0} / 255
+                                        </span>
                                     </label>
                                     <textarea
                                         rows="3"
@@ -1017,14 +1062,17 @@ export default function Create({ nextNumber, leads = [], companies = [], ppn }) 
                                         value={data.note || ""}
                                         onChange={(e) => {
                                             const val = e.target.value;
-                                            builderUpdate("note", val);
-                                            setData("note", val);
+                                            if (val.length <= 255) {
+                                                builderUpdate("note", val);
+                                                setData("note", val);
+                                            }
                                         }}
                                     />
                                 </div>
                                 <div className="flex flex-col justify-start">
                                     <label className="text-[10px] font-bold text-gray-400 uppercase">
-                                        {t("quotations.builder.valid_until")}<span className="text-red-600">*</span> 
+                                        {t("quotations.builder.valid_until")}
+                                        <span className="text-red-600">*</span>
                                     </label>
                                     <input
                                         type="date"
@@ -1038,7 +1086,7 @@ export default function Create({ nextNumber, leads = [], companies = [], ppn }) 
                                             setData(
                                                 "valid_until",
                                                 e.target.value
-                                            )
+                                            );
                                         }}
                                     />
                                 </div>
@@ -1046,24 +1094,32 @@ export default function Create({ nextNumber, leads = [], companies = [], ppn }) 
                         </div>
                     );
                 }}
-                renderPreview={({ data, addItem, removeItem, updateField }) => {                
+                renderPreview={({ data, addItem, removeItem, updateField }) => {
                     if (!builderAddItem) setBuilderAddItem(() => addItem);
 
-                   useEffect(() => {
+                    useEffect(() => {
                         const calculatedSubTotal = data.services.reduce(
-                            (acc, curr) => acc + Number(curr.price || 0), 0
+                            (acc, curr) => acc + Number(curr.price || 0),
+                            0
                         );
 
                         const taxRate = Number(data.tax) || 0;
-                        const calculatedTaxAmount = calculatedSubTotal * taxRate;
-                        const calculatedTotal = calculatedSubTotal + calculatedTaxAmount - Number(data.discount_amount || 0);
+                        const calculatedTaxAmount =
+                            calculatedSubTotal * taxRate;
+                        const calculatedTotal =
+                            calculatedSubTotal +
+                            calculatedTaxAmount -
+                            Number(data.discount_amount || 0);
 
-                        if (data.sub_total !== calculatedSubTotal || data.total !== calculatedTotal) {
-                            setData(prev => ({
+                        if (
+                            data.sub_total !== calculatedSubTotal ||
+                            data.total !== calculatedTotal
+                        ) {
+                            setData((prev) => ({
                                 ...prev,
                                 sub_total: calculatedSubTotal,
                                 tax_amount: calculatedTaxAmount,
-                                total: calculatedTotal
+                                total: calculatedTotal,
                             }));
                         }
                     }, [data.services, data.tax, data.discount_amount]);
@@ -1101,238 +1157,279 @@ export default function Create({ nextNumber, leads = [], companies = [], ppn }) 
                     // }, [data.services, data.tax, data.discount_amount]);
 
                     return (
-                        <div className="p-2 text-[12px]">
-                            {/* Preview Header */}
-                            <div className="flex justify-between pb-4 mb-6">
-                                <div className="text-left">
-                                    <p className="text-[10px] font-bold text-gray-400 uppercase">
-                                        Number
-                                    </p>
-                                    <p className="font-bold">
-                                        {data.number || "Q-2024-XXXX"}
-                                    </p>
-                                </div>
-                                <div className="text-left">
-                                    <p className="text-[10px] font-bold text-gray-400 uppercase">
-                                        Date
-                                    </p>
-                                    <p className="font-bold">
-                                        {data.date || "Date Not Set"}
-                                    </p>
-                                </div>
-                            </div>
-
-                            {/* Info Client */}
-                            <div className="grid grid-cols-2 gap-8 mb-8">
-                                <div className="border border-black p-5 rounded-sm">
-                                    <div className="grid gap-3">
-                                        <div>
-                                            <p className="text-[10px] font-bold text-gray-400 uppercase">
-                                                To:
-                                            </p>
-                                            <p className="font-bold text-emerald-800">
-                                                {data.contact_person || "---"}
-                                            </p>
-                                        </div>
-                                        <div>
-                                            <p className="text-[10px] font-bold text-gray-400 uppercase">
-                                                Email:
-                                            </p>
-                                            <p className="text-black">
-                                                {data.email || "---"}
-                                            </p>
-                                        </div>
-                                        <div>
-                                            <p className="text-[10px] font-bold text-gray-400 uppercase">
-                                                Handphone:
-                                            </p>
-                                            <p className="text-black">
-                                                {data.phone || "---"}
-                                            </p>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div className="border border-black p-5 rounded-sm">
-                                    <div className="grid gap-3">
-                                        <div>
-                                            <p className="text-[10px] font-bold text-gray-400 uppercase">
-                                                Company:
-                                            </p>
-                                            <p className="font-black">
-                                                {data.company_name || "---"}
-                                            </p>
-                                        </div>
-                                        <div>
-                                            <p className="text-[10px] font-bold text-gray-400 uppercase">
-                                                Address:
-                                            </p>
-                                            <p className="text-black leading-tight">
-                                                {data.address || "---"}
-                                            </p>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {/* Subject */}
-                                <div className="text-left">
-                                    <p className="text-[15px] font-bold text-black">
-                                        Subject
-                                    </p>
-                                    <p className="text-[13px] text-gray-600 font-medium break-words">
-                                        {data.subject}
-                                    </p>
-                                </div>
-                            </div>
-
-                            {/* Table */}
-                            <p className="text-[15px] font-bold text-black mb-2">
-                                Quotation Detail
-                            </p>
-                            <table className="w-full border-collapse border border-black">
-                                <thead className="bg-gray-50 uppercase text-[10px] font-black border-b border-black">
-                                    <tr>
-                                        <th className="p-2 text-center w-8 border border-black">
-                                            No
-                                        </th>
-                                        <th className="p-2 text-left border border-black">
-                                            Description
-                                        </th>
-                                        <th className="p-2 text-center w-24 border border-black">
-                                            Processing
-                                        </th>
-                                        <th className="p-2 text-right w-32">
-                                            Amount
-                                        </th>
-                                        <th
-                                            data-html2canvas-ignore="true"
-                                            className="print:hidden p-2 w-10"
-                                        ></th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {data.services.map((s, i) => (
-                                        <tr
-                                            key={s.id || i}
-                                            className="border-b border-gray-100 relative group"
-                                        >
-                                            <td className="p-2 text-center font-bold text-gray-400 border border-black">
-                                                {/* Untuk nomor urut tetap pakai index dari map jika perlu */}
-                                                {data.services.indexOf(s) + 1}
-                                            </td>
-                                            <td className="p-2 font-bold uppercase border border-black">
-                                                {s.name}
-                                            </td>
-                                            <td className="p-2 text-center border border-black">
-                                                {s.processing}
-                                            </td>
-                                            <td className="p-2 text-right font-black border-b border-black">
-                                                {formatIDR(s.price)}
-                                            </td>
-                                            <td className="print:hidden p-2 text-center border-b border-black">
-                                                <button
-                                                    type="button"
-                                                    data-html2canvas-ignore="true"
-                                                    onClick={() => {
-                                                        console.log("ID Item ini adalah:", s.id); 
-                                                        removeItem(s.id)
-                                                    }}
-                                                    className="text-red-400 hover:text-red-600 transition-colors"
-                                                >
-                                                    <Trash2 size={14} />
-                                                </button>
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-
-                            {/* Add Button */}
-                            <div
-                                data-html2canvas-ignore="true"
-                                className="mt-4 flex justify-start print:hidden"
-                            >
-                                <button
-                                    data-html2canvas-ignore="true"
-                                    onClick={() => setShowModal(true)}
-                                    className="flex items-center gap-2 bg-[#065f46] text-white px-4 py-2 rounded-sm text-[10px] font-bold tracking-widest hover:scale-105 transition-all shadow-lg"
-                                >
-                                    ADD SERVICE
-                                </button>
-                            </div>
-
-                            <div className="mt-10 flex justify-between">
-                                <div className="w-1/2">
-                                    <div className="h-[6rem] mb-5">
-                                        <p className="text-[15px] font-black font-bold mb-1">
-                                            Payment Terms
-                                        </p>
-                                        <p className="text-red-600 text-[11px] font-medium leading-tight whitespace-pre-wrap">
-                                            {data.payment_terms}
-                                        </p>
-                                    </div>
-                                    <div className="h-[3rem] mb-20">
-                                        <p className="text-[15px] font-black font-bold mb-1">
-                                            Note
-                                        </p>
-                                        <p className="text-red-600 text-[11px] font-medium leading-tight whitespace-pre-wrap">
-                                            {data.note}
-                                        </p>
-                                    </div>
-                                    <div>
-                                        <p className="text-[15px] font-black font-bold mb-1">
-                                            Valid Until
-                                        </p>
-                                        <p className="text-red-600 text-[11px] font-medium leading-tight">
-                                            {`This quotation is valid until (${data.valid_until})`}
-                                        </p>
-                                    </div>
-                                </div>
-                                <div className="w-1/3 space-y-1 font-bold">
-                                    <div className="flex justify-between">
-                                        <span>Discount</span>
-                                        <span>
-                                            {data.discount === "yes"
-                                                ? formatIDR(
-                                                      data.discount_amount
-                                                  )
-                                                : formatIDR(0)}
-                                        </span>
-                                    </div>
-
-                                    <div className="flex justify-between">
-                                        <span>Subtotal</span>
-                                        <span>
-                                            {formatIDR(data.sub_total || 0)}
-                                        </span>
-                                    </div>
-
-                                    <div className="flex justify-between border-b border-black pb-1">
-                                        <span>{data.tax_type || "Tax"}</span>
-                                        <span>
-                                            {formatIDR(data.tax_amount || 0)}
-                                        </span>
-                                    </div>
-
-                                    <div className="flex justify-between text-sm font-black pt-1">
-                                        <span>TOTAL</span>
-                                        <span>
-                                            {formatIDR(data.total || 0)}
-                                        </span>
-                                    </div>
-                                    <p className="text-[17px] uppercase font-black pt-[0.9rem] pb-[5.2rem]">
-                                        {data.my_company_name || "---"}
-                                    </p>
+                        <>
+                            <div className="p-2 text-[12px]">
+                                {/* Preview Header */}
+                                <div className="flex justify-between pb-4 mb-6">
                                     <div className="text-left">
-                                        <p className="text-[15px] uppercase font-black pt-[0.9rem]">
-                                            {data.prepared_by_name || "---"}
+                                        <p className="text-[10px] font-bold text-gray-400 uppercase">
+                                            Number
                                         </p>
-                                        <p className="text-[15px] text-gray-400">
-                                            {data.prepared_by_role || "---"}
+                                        <p className="font-bold">
+                                            {data.number || "Q-2024-XXXX"}
+                                        </p>
+                                    </div>
+                                    <div className="text-left">
+                                        <p className="text-[10px] font-bold text-gray-400 uppercase">
+                                            Date
+                                        </p>
+                                        <p className="font-bold">
+                                            {data.date || "Date Not Set"}
+                                        </p>
+                                    </div>
+                                </div>
+
+                                {/* Info Client */}
+                                <div className="grid grid-cols-2 gap-8 mb-8">
+                                    <div className="border border-black p-5 rounded-sm">
+                                        <div className="grid gap-3">
+                                            <div>
+                                                <p className="text-[10px] font-bold text-gray-400 uppercase">
+                                                    To:
+                                                </p>
+                                                <p className="font-bold text-emerald-800">
+                                                    {data.contact_person ||
+                                                        "---"}
+                                                </p>
+                                            </div>
+                                            <div>
+                                                <p className="text-[10px] font-bold text-gray-400 uppercase">
+                                                    Email:
+                                                </p>
+                                                <p className="text-black">
+                                                    {data.email || "---"}
+                                                </p>
+                                            </div>
+                                            <div>
+                                                <p className="text-[10px] font-bold text-gray-400 uppercase">
+                                                    Handphone:
+                                                </p>
+                                                <p className="text-black">
+                                                    {data.phone || "---"}
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div className="border border-black p-5 rounded-sm">
+                                        <div className="grid gap-3">
+                                            <div>
+                                                <p className="text-[10px] font-bold text-gray-400 uppercase">
+                                                    Company:
+                                                </p>
+                                                <p className="font-black">
+                                                    {data.company_name || "---"}
+                                                </p>
+                                            </div>
+                                            <div>
+                                                <p className="text-[10px] font-bold text-gray-400 uppercase">
+                                                    Address:
+                                                </p>
+                                                <p className="text-black leading-tight">
+                                                    {data.address || "---"}
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Subject */}
+                                    <div className="text-left">
+                                        <p className="text-[15px] font-bold text-black">
+                                            Subject
+                                        </p>
+                                        <p className="text-[13px] text-gray-600 font-medium break-words">
+                                            {data.subject}
+                                        </p>
+                                    </div>
+                                </div>
+
+                                {/* Table */}
+                                <p className="text-[15px] font-bold text-black mb-2">
+                                    Quotation Detail
+                                </p>
+                                <table className="w-full border-collapse border border-black">
+                                    <thead className="bg-gray-50 uppercase text-[10px] font-black border-b border-black">
+                                        <tr>
+                                            <th className="p-2 text-center w-8 border border-black">
+                                                No
+                                            </th>
+                                            <th className="p-2 text-left border border-black">
+                                                Description
+                                            </th>
+                                            <th className="p-2 text-center w-24 border border-black">
+                                                Processing
+                                            </th>
+                                            <th className="p-2 text-right w-32">
+                                                Amount
+                                            </th>
+                                            <th
+                                                data-html2canvas-ignore="true"
+                                                className="print:hidden p-2 w-10"
+                                            ></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {data.services.map((s, i) => (
+                                            <tr
+                                                key={s.id || i}
+                                                className="border-b border-gray-100 relative group"
+                                            >
+                                                <td className="p-2 text-center font-bold text-gray-400 border border-black">
+                                                    {/* Untuk nomor urut tetap pakai index dari map jika perlu */}
+                                                    {data.services.indexOf(s) +
+                                                        1}
+                                                </td>
+                                                <td className="p-2 font-bold uppercase border border-black">
+                                                    {s.name}
+                                                </td>
+                                                <td className="p-2 text-center border border-black">
+                                                    {s.processing}
+                                                </td>
+                                                <td className="p-2 text-right font-black border-b border-black">
+                                                    {formatIDR(s.price)}
+                                                </td>
+                                                <td className="print:hidden p-2 text-center border-b border-black">
+                                                    <button
+                                                        type="button"
+                                                        data-html2canvas-ignore="true"
+                                                        onClick={() => {
+                                                            console.log(
+                                                                "ID Item ini adalah:",
+                                                                s.id
+                                                            );
+                                                            removeItem(s.id);
+                                                        }}
+                                                        className="text-red-400 hover:text-red-600 transition-colors"
+                                                    >
+                                                        <Trash2 size={14} />
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+
+                                {/* Add Button */}
+                                <div
+                                    data-html2canvas-ignore="true"
+                                    className="mt-4 flex justify-start print:hidden"
+                                >
+                                    <button
+                                        data-html2canvas-ignore="true"
+                                        onClick={() => setShowModal(true)}
+                                        className="flex items-center gap-2 bg-[#065f46] text-white px-4 py-2 rounded-sm text-[10px] font-bold tracking-widest hover:scale-105 transition-all shadow-lg"
+                                    >
+                                        ADD SERVICE
+                                    </button>
+                                </div>
+
+                                <div className="mt-8">
+                                    <div className="flex justify-between items-stretch gap-10">
+                                        <div className="w-3/5 flex flex-col">
+                                            {/* Bagian atas (Terms & Note) */}
+                                            <div className="flex-grow space-y-6">
+                                                <div>
+                                                    <p className="text-[15px] font-bold mb-1">
+                                                        Payment Terms
+                                                    </p>
+                                                    <p className="text-red-600 text-[11px] font-medium leading-tight whitespace-pre-wrap break-words max-w-[300px]">
+                                                        {data.payment_terms ||
+                                                            "-"}
+                                                    </p>
+                                                </div>
+
+                                                <div>
+                                                    <p className="text-[15px] font-bold mb-1">
+                                                        Note
+                                                    </p>
+                                                    <p className="text-red-600 text-[11px] font-medium leading-tight whitespace-pre-wrap break-words max-w-[300px]">
+                                                        {data.note || "-"}
+                                                    </p>
+                                                </div>
+                                            </div>
+
+                                            <div className="mt-10">
+                                                <p className="text-[15px] font-bold mb-1">
+                                                    Valid Until
+                                                </p>
+                                                <p className="text-red-600 text-[11px] font-medium leading-tight">
+                                                    {`This quotation is valid until (${
+                                                        data.valid_until || ""
+                                                    })`}
+                                                </p>
+                                            </div>
+                                        </div>
+
+                                        <div className="w-2/5 flex flex-col justify-between">
+                                            <div className="space-y-1 font-bold mb-10">
+                                                <div className="flex justify-between">
+                                                    <span>Discount</span>
+                                                    <span>
+                                                        {data.discount === "yes"
+                                                            ? formatIDR(
+                                                                  data.discount_amount
+                                                              )
+                                                            : formatIDR(0)}
+                                                    </span>
+                                                </div>
+                                                <div className="flex justify-between">
+                                                    <span>Subtotal</span>
+                                                    <span>
+                                                        {formatIDR(
+                                                            data.sub_total || 0
+                                                        )}
+                                                    </span>
+                                                </div>
+                                                <div className="flex justify-between border-b border-black pb-1">
+                                                    <span>
+                                                        {data.tax_type || "Tax"}
+                                                    </span>
+                                                    <span>
+                                                        {formatIDR(
+                                                            data.tax_amount || 0
+                                                        )}
+                                                    </span>
+                                                </div>
+                                                <div className="flex justify-between text-sm font-black pt-1">
+                                                    <span>TOTAL</span>
+                                                    <span>
+                                                        {formatIDR(
+                                                            data.total || 0
+                                                        )}
+                                                    </span>
+                                                </div>
+                                            </div>
+
+                                            <div className="text-left">
+                                                <p className="text-[16px] uppercase font-black">
+                                                    {data.my_company_name ||
+                                                        "---"}
+                                                </p>
+
+                                                <div className="h-20"></div>
+
+                                                <div>
+                                                    <p className="text-[14px] uppercase font-black leading-tight">
+                                                        {data.prepared_by_name ||
+                                                            "---"}
+                                                    </p>
+                                                    <p className="text-[13px] text-gray-500 leading-tight">
+                                                        {data.prepared_by_role ||
+                                                            "---"}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Footer Alamat */}
+                                    <div className="mt-10 p-3 bg-slate-100 rounded-md border border-slate-200">
+                                        <p className="text-[12px] text-gray-600">
+                                            {app_config?.address}
                                         </p>
                                     </div>
                                 </div>
                             </div>
-                        </div>
+                        </>
                     );
                 }}
                 renderPDFPreview={quotationPDFPreview}

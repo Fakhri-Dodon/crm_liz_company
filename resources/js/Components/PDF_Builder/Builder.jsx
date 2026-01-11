@@ -4,7 +4,7 @@ import PDFPreview from '@/Components/PDF_Builder/Preview';
 import { quotationPDFPreview } from '@/Components/PDF_Builder/PDFGenerator';
 import { useTranslation } from "react-i18next";
 
-export default function Builder({ title, data, setData, renderEditor, renderPreview, onSave, onBack }) {
+export default function Builder({ title, data, setData, renderEditor, renderPreview, onSave, onBack, app_config }) {
     const updateField = (name, value) => setData(prev => ({ ...prev, [name]: value }));
     
     const updateItem = (id, field, value) => {
@@ -91,7 +91,6 @@ export default function Builder({ title, data, setData, renderEditor, renderPrev
                             logoUrl,
                         })},
                     </PDFPreview>
-                    <div className="text-center bg-gray-100"></div>
                 </div>
             </div>
         </div>
