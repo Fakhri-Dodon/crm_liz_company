@@ -30,7 +30,7 @@ export default function Create({id, name, template}) {
 			    styles: [
 			    	'/templates/css/icons/iconfont.css',
 			    	'/templates/css/plugins/bootstrap.min.css',
-			      	'http://maxcdn.bootstrapcdn.com/font-awesome/4.3.0/css/font-awesome.min.css',
+			      	'/templates/css/font-awesome.min.css',
 			      	'http://fonts.googleapis.com/css?family=Lato:300,400,700,900,300italic,400italic,700italic,900italic',
 			    	'/templates/css/plugins/magnific-popup.css',
 			    	'/templates/css/plugins/owl.carousel.css',
