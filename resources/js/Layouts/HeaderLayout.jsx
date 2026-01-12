@@ -935,6 +935,9 @@ export default function HeaderLayout({ header, children, }) {
                                             method="post"
                                             href={route("logout")}
                                             as="button"
+                                            data={{
+                                                _token: document.head.querySelector('meta[name="csrf-token"]')?.content,
+                                            }}
                                             onClick={() =>
                                                 setIsHamburgerOpen(false)
                                             }
