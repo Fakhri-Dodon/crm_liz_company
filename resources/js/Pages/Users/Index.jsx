@@ -193,6 +193,8 @@ export default function UsersIndex({
 
     return (
         <>
+            <HeaderLayout title={t("users.title")} />
+
             <ModalAdd
                 isOpen={isModalOpen}
                 onClose={() => setIsModalOpen(false)}
@@ -473,8 +475,6 @@ export default function UsersIndex({
                     </div>
                 </div>
             )}
-
-            <HeaderLayout title={t("users.title")} />
 
             <div className="px-4 sm:px-8 py-6">
                 <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">

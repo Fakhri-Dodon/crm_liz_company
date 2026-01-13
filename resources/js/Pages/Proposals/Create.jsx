@@ -3,275 +3,283 @@ import grapesjs from "grapesjs";
 import { router } from "@inertiajs/react";
 import "grapesjs/dist/css/grapes.min.css";
 import "@/assets/css/grapes-custom.css";
-import presetWebpage from "grapesjs-preset-webpage";
-import * as htmlToImage from 'html-to-image';
 
-export default function Create({id, template}) {
-
+export default function Create({ id, template }) {
     const [loading, setLoading] = useState(false);
-	const editorRef = useRef(null);
-    const templatesDataRef = useRef([]);
-	const API_BASE_URL = import.meta.env.APP_URL;
+    const editorRef = useRef(null);
+    const activeModeRef = useRef("elements");
+    const [categories, setCategories] = useState([]);
+    const [activeCat, setActiveCat] = useState("All Blocks");
+    const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+    const [isCatSelected, setIsCatSelected] = useState(false);
+    const [activeMode, setActiveMode] = useState("elements");
 
     useEffect(() => {
-        
         setLoading(true);
-        
         const editor = grapesjs.init({
-        	container: "#gjs",
-            height: "100vh",
-            fromElement: false,
+            container: "#gjs",
+            height: "100%",
+            width: "100%",
             storageManager: false,
             allowScripts: 1,
-            blockManager: {
-                expandState: false,
-            },
+            // PENTING: Mencegah inline style GrapesJS yang merusak Bootstrap
+            avoidInlineStyle: true,
+            // PENTING: Pastikan komponen tidak dibungkus div tambahan yang aneh
+            forceClass: false,
+            draggableComponents: true,
+            blockManager: { appendTo: "#second-side" },
+            styleManager: { appendTo: "#style-editor-container" },
+            traitManager: { appendTo: "#style-editor-container" },
+            panels: { defaults: [] },
             canvas: {
-			    styles: [
-			    	'/templates/css/icons/iconfont.css',
-			    	'/templates/css/plugins/bootstrap.min.css',
-                    '/templates/css/font-awesome.min.css',
-			      	'http://fonts.googleapis.com/css?family=Lato:300,400,700,900,300italic,400italic,700italic,900italic',
-			    	'/templates/css/plugins/magnific-popup.css',
-			    	'/templates/css/plugins/owl.carousel.css',
-			    	'/templates/css/plugins/loaders.css',
-			    	'/templates/css/plugins/animate.css',
-			    	'/templates/css/style.css',
-			    	'/templates/css/responsive.css',
-			    ],
-    			scripts: [
-			    	'/templates/js/plugins/jquery1.11.2.min.js',
-			    	'/templates/js/plugins/bootstrap.min.js',
-			    	'/templates/js/plugins/jquery.easing.1.3.min.js',
-			    	'/templates/js/plugins/jquery.countTo.js',
-			    	'/templates/js/plugins/jquery.formchimp.min.js',
-			    	'/templates/js/plugins/jquery.jCounter-0.1.4.js',
-			    	'/templates/js/plugins/jquery.magnific-popup.min.js',
-			    	'/templates/js/plugins/jquery.vide.min.js',
-			    	'/templates/js/plugins/owl.carousel.min.js',
-			    	'/templates/js/plugins/twitterFetcher_min.js',
-			    	'/templates/js/plugins/wow.min.js',
-			    	'/templates/js/custom.js',
-    			]
-			}
-        });
-
-        // Contoh button save
-        editor.Panels.addButton("options", [
-            {
-                id: "save-page",
-                className: "fa fa-save",
-                command: () => {
-                    if (confirm("Apakah Anda yakin ingin menyimpan halaman ini?")) {
-                        savePage(editor);
-                    }
-                },
-                attributes: { title: "Save Page" },
+                styles: [
+                    "/templates/css/plugins/bootstrap.min.css",
+                    "/templates/css/style.css",
+                ],
             },
-            {
-                id: "go-back",
-                className: "fa fa-arrow-left",
-                command: () => {
-                    if (confirm("Perubahan yang belum disimpan akan hilang. Kembali?")) {
-                        router.visit(document.referrer || route("proposal.index"));
-                    }
-                },
-                attributes: { title: "Kembali" },
-            }
-        ]);
-
-        editor.on('load', () => {
-            if (template) {
-
-                if (template.html_output) {
-                    editor.setComponents(template.html_output);
-                }
-
-                if (template.css_output) {
-                    editor.setStyle(template.css_output);
-                }
-
-            }
-
-            const openBlocksBtn = editor.Panels.getButton('views', 'open-blocks');
-            if (openBlocksBtn) openBlocksBtn.set('active', true);
-
-            const categories = editor.BlockManager.getCategories();
-            categories.each(category => {
-                category.set('open', false);
-            });
         });
 
-		fetch(`/api/proposal/templates`)
-            .then(res => res.json())
-            .then(templates => {
-                templatesDataRef.current = templates;
-                templates.forEach((tpl, index) => {
-                    editor.BlockManager.add(`template-${index}`, {
-                        category: tpl.category || 'Templates',
-                        media: `<img src="${tpl.preview}" style="width: 100%; height: auto; display: block;" />`,
-                        content: `<input type="hidden" data-template-category="${tpl.category || 'Templates'}">${tpl.html}<style>${tpl.css}</style>`,
-                        attributes: { class: 'gjs-block-section' }
+        editor.DomComponents.addType("image", {
+            model: {
+                defaults: {
+                    traits: [
+                        {
+                            type: "text",
+                            label: "Alt Text",
+                            name: "alt",
+                        },
+                        {
+                            type: "file",
+                            label: "Image",
+                            name: "src",
+                            accept: "image/*",
+                        },
+                    ],
+                },
+            },
+        });
+
+
+        editorRef.current = editor;
+
+        editor.on("load", () => {
+            fetch(`/api/proposal/templates`)
+                .then((res) => res.json())
+                .then((templates) => {
+                    const cats = ["All Blocks", ...new Set(templates.map((t) => t.category))];
+                    setCategories(cats);
+                    templates.forEach((tpl, index) => {
+                        editor.BlockManager.add(`template-${index}`, {
+                            category: tpl.category || "Templates",
+                            media: `<img src="${tpl.preview}" style="width: 100%;" />`,
+                            // Gunakan format konten yang bersih tanpa wrapper tambahan
+                            content: `${tpl.html}<style>${tpl.css}</style>`,
+                        });
                     });
-                });
-            })
-            .finally(() => setLoading(false));
+                })
+                .finally(() => setLoading(false));
 
-       editorRef.current = editor;
-
-    }, []);
-
-    const savePage = async (editor) => {
-
-        const html = editor.getHtml();
-
-        const parser = new DOMParser();
-        const doc = parser.parseFromString(html, 'text/html');
-
-        const categoriesUsed = [
-            ...new Set(
-                [...doc.querySelectorAll('[data-template-category]')]
-                    .map(el => el.dataset.templateCategory)
-            )
-        ];
-
-        const canvasConfig = editor.getConfig().canvas;
-        
-        const getFilteredCss = async (url) => {
-            try {
-                const response = await fetch(url);
-                const text = await response.text();
-                return filterCssRules(text, doc);
-            } catch (err) {
-                console.error("Gagal mengambil CSS:", url);
-                return "";
+            if (template) {
+                if (template.html_output) editor.setComponents(template.html_output);
+                if (template.css_output) editor.setStyle(template.css_output);
             }
+
+            // REFRESH SETIAP KALI SELESAI DROP UNTUK FIX LAYOUT
+            editor.on('block:drag:stop', (model) => {
+                if (!model) return;
+                
+                // Pastikan elemen utama block memiliki display block agar tidak tumpuk ke samping
+                model.addStyle({ 
+                    display: 'block', 
+                    width: '100%',
+                    position: 'relative'
+                });
+                
+                // Jika elemen mengandung row Bootstrap, pastikan display flex tetap aktif
+                if (model.getAttributes().class?.includes('row')) {
+                    model.addStyle({ display: 'flex' });
+                }
+            });
+
+            editor.on("component:drag:end", () => {
+                editor.refresh();
+            });
+
+            editor.on("component:selected", (comp) => {
+                if (activeModeRef.current === "details" && comp.get("tagName") === "IMG") {
+                    comp.set({ draggable: false });
+                }
+            });
+
+
+            setTimeout(() => changeMode("elements"), 100);
+        });
+
+        const handleCanvasUpdate = () => {
+            const wrapper = document.getElementById("frameWrapper");
+            const hasContent = editor.getComponents().length > 0;
+            wrapper?.classList.toggle("not-empty", hasContent);
         };
 
-        const externalPromises = canvasConfig.styles.map(url => getFilteredCss(url));
-        const externalResults = await Promise.all(externalPromises);
-        
-        const internalCss = filterCssRules(editor.getCss(), doc);
-
-        const finalUsedCss = externalResults.join('\n') + '\n' + internalCss;
-
-        const iframe = editor.Canvas.getFrameEl();
-        const iframeBody = iframe.contentDocument.body;
-
-        const imageBlob = await htmlToImage.toBlob(iframeBody, {
-            backgroundColor: '#ffffff',
-            pixelRatio: 2, // HD thumbnail
+        editor.on("component:add", (component) => {
+            applyComponentSettings(component, activeModeRef.current);
+            handleCanvasUpdate();
         });
 
-        // Convert ke Base64 (untuk dikirim)
-        const imageBase64 = await new Promise((resolve) => {
-            const reader = new FileReader();
-            reader.onloadend = () => resolve(reader.result);
-            reader.readAsDataURL(imageBlob);
-        });
+        editor.on("component:remove", handleCanvasUpdate);
 
-        const res = await fetch("/proposal", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                "X-CSRF-TOKEN": document.querySelector('meta[name="csrf-token"]').getAttribute("content"),
-            },
-            body: JSON.stringify({
-                id: id,
-                html: html,
-                css: finalUsedCss,
-                categories: categoriesUsed,
-                image: imageBase64,
-            }),
-        });
+        return () => editor.destroy();
+    }, []);
 
-        const savePage = await res.json();
+    const applyComponentSettings = (comp, mode) => {
+        const type = comp.get("type");
+        const tagName = comp.get("tagName")?.toUpperCase();
 
-        if (savePage.success) {
-            alert("Simpan Berhasil!");
-            window.location.href = savePage.redirect;
+        const isText =
+            type === "text" ||
+            type === "textnode" ||
+            ["P", "H1", "H2", "H3", "H4", "H5", "H6", "SPAN", "A", "LI"].includes(tagName);
+
+        if (mode === "elements") {
+            const isLayout =
+                ["SECTION", "HEADER", "FOOTER", "MAIN", "DIV", "NAV"].includes(tagName);
+
+            comp.set({
+                draggable: true,
+                droppable: isLayout, // 🔥 INI KUNCI
+                selectable: true,
+                hoverable: true,
+                editable: false,
+                removable: true,
+                copyable: true,
+                badgable: true,
+            });
         }
 
+        if (mode === "content") {
+            comp.set({
+                draggable: false,
+                droppable: false,
+                selectable: isText,
+                hoverable: isText,
+                editable: isText,
+                removable: false,
+                copyable: false,
+                badgable: false,
+            });
+        }
+
+        if (mode === "details") {
+            const isImage = tagName === "IMG";
+
+            comp.set({
+                draggable: false,
+                droppable: false,
+                selectable: true,
+                hoverable: true,
+                editable: false,
+                removable: false,
+                copyable: false,
+                badgable: true,
+
+                // 🔥 INI KUNCI
+                traits: isImage ? comp.get("traits") : [],
+            });
+        }
     };
 
-    /**
-     * Fungsi untuk menyaring string CSS berdasarkan dokumen HTML
-     */
-    function filterCssRules(cssText, doc) {
-        if (!cssText) return "";
-        
-        const styleSheet = new CSSStyleSheet();
-        // Gunakan try-catch karena CSS mentah mungkin punya karakter yang tidak valid bagi parser browser
-        try {
-            // Catatan: replace ini untuk menangani karakter escape atau baris baru jika perlu
-            styleSheet.replaceSync(cssText);
-        } catch (e) {
-            return cssText; // Jika gagal parsing, kembalikan apa adanya agar aman
-        }
 
-        let filtered = "";
-        const rules = styleSheet.cssRules;
+    const changeMode = (mode) => {
+        setActiveMode(mode);
+        activeModeRef.current = mode;
+        const editor = editorRef.current;
+        if (!editor) return;
 
-        for (let i = 0; i < rules.length; i++) {
-            const rule = rules[i];
+        const wrapper = editor.getWrapper();
+        const isElem = mode === "elements";
 
-            // Jika aturan adalah Media Query (@media)
-            if (rule instanceof CSSMediaRule) {
-                let innerFiltered = "";
-                for (let j = 0; j < rule.cssRules.length; j++) {
-                    const subRule = rule.cssRules[j];
-                    if (isSelectorUsed(subRule.selectorText, doc)) {
-                        innerFiltered += subRule.cssText + "\n";
-                    }
-                }
-                if (innerFiltered) {
-                    filtered += `@media ${rule.conditionText} {\n${innerFiltered}}\n`;
-                }
-            } 
-            // Jika aturan CSS biasa
-            else if (rule.selectorText) {
-                if (isSelectorUsed(rule.selectorText, doc)) {
-                    filtered += rule.cssText + "\n";
-                }
-            }
-            // Tetap masukkan @font-face dan @keyframes agar desain tidak rusak
-            else {
-                filtered += rule.cssText + "\n";
-            }
-        }
-        return filtered;
-    }
+        wrapper.set({ draggable: false });
+        isElem ? editor.runCommand("core:component-outline") : editor.stopCommand("core:component-outline");
 
-    /**
-     * Cek apakah selector ada di dalam dokumen
-     */
-    function isSelectorUsed(selector, doc) {
-        if (!selector) return false;
-        
-        // Hapus pseudo-classes seperti :hover, :after agar querySelector tidak error
-        const cleanSelector = selector.split(':')[0]
-                                      .split(',')[0] // Ambil bagian pertama jika multiple selector
-                                      .trim();
-        
-        if (!cleanSelector) return true; // Biarkan selector kosong/universal lolos
+        wrapper.find("*").forEach((comp) => applyComponentSettings(comp, mode));
+        editor.runCommand("core:canvas-clear-selection");
+        editor.refresh();
+    };
 
-        try {
-            return doc.querySelector(cleanSelector) !== null;
-        } catch (e) {
-            // Jika selector kompleks (misal :nth-child), anggap saja digunakan agar aman
-            return true;
-        }
-    }
+    const filterCategory = (cat) => {
+        setIsCatSelected(true);
+        setActiveCat(cat);
+        setTimeout(() => {
+            const bm = editorRef.current.BlockManager;
+            const blocks = cat === "All Blocks" 
+                ? bm.getAll().models 
+                : bm.getAll().filter(b => (typeof b.get("category") === "object" ? b.get("category").id : b.get("category")) === cat);
+            bm.render(blocks);
+        }, 50);
+    };
 
     return (
-        <>
-            {loading && (
-                <div className="fixed inset-0 bg-white/70 flex items-center justify-center z-50">
-                    <span className="animate-spin h-8 w-8 border-4 border-blue-500 border-t-transparent rounded-full"></span>
+        <div className={`builder-body ${isSidebarOpen ? "sidebar-expanded" : "sidebar-collapsed"}`}>
+            <div 
+                className="menu-left" 
+                onMouseEnter={() => setIsSidebarOpen(true)} 
+                onMouseLeave={() => { setIsSidebarOpen(false); setIsCatSelected(false); }}
+                style={{ zIndex: 1000 }} // Pastikan sidebar di atas canvas
+            >
+                {/* ICON GEAR UNTUK MEMBUKA SIDEBAR */}
+                <div className="icon-trigger-area">
+                    <i className="fa fa-cog fa-lg"></i>
                 </div>
-            )}
 
-            <div id="gjs" className="ps-2 pb-4"></div>
-        </>
+                <div className="main-nav">
+                    <h3><i className="fa fa-th-large"></i> BLOCKS</h3>
+                    <ul className="elements-list">
+                        {categories.map((cat) => (
+                            <li key={cat} className={activeCat === cat ? "active" : ""}>
+                                <a href="#" onClick={(e) => { e.preventDefault(); filterCategory(cat); }}>{cat}</a>
+                            </li>
+                        ))}
+                    </ul>
+                </div>
+                <div className={`second-side ${isCatSelected ? "show" : ""}`} id="second-side">
+                    <div className="second-side-header" onClick={() => setIsCatSelected(false)}>
+                        <i className="fa fa-chevron-left"></i> HIDE
+                    </div>
+                </div>
+            </div>
+
+            <div className="container-main">
+                <header className="builder-header">
+                    <div className="modes">
+                        <span className="mode-label">BUILDING MODE:</span>
+                        {["elements", "content", "details"].map((m) => (
+                            <button key={m} className={`mode-btn ${activeMode === m ? "active" : ""}`} onClick={() => changeMode(m)}>
+                                <i className={activeMode === m ? "far fa-dot-circle" : "far fa-circle"}></i> {m.charAt(0).toUpperCase() + m.slice(1)}
+                            </button>
+                        ))}
+                    </div>
+                </header>
+
+                <div className="screen-area">
+                    <div className="screen" id="screen">
+                        <div className="toolbar">
+                            <div className="buttons clearfix"><span className="left red"></span><span className="left yellow"></span><span className="left green"></span></div>
+                            <div className="title"><span>index.html</span></div>
+                        </div>
+                        <div id="frameWrapper" className="frameWrapper empty">
+                            <div id="style-editor-container" style={{
+                                display: activeMode === "details" ? "block" : "none",
+                                position: "fixed", right: 0, top: "70px", width: "280px", height: "calc(100vh - 70px)",
+                                backgroundColor: "#2f4154", zIndex: 100, overflowY: "auto", padding: "15px", color: "white"
+                            }}>
+                                <h4 style={{ fontSize: "12px", marginBottom: "15px", borderBottom: "1px solid #444" }}>STYLE SETTINGS</h4>
+                            </div>
+                            <div id="gjs" style={{ position: "relative", zIndex: 10 }}></div>
+                            <div className="start" id="start"><span>Build your page by dragging elements onto the canvas</span></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
     );
 }
