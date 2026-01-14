@@ -197,6 +197,16 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/projects/{project}/edit', [ProjectController::class, 'edit']); 
     Route::put('/projects/{project}/status', [ProjectController::class, 'updateStatus'])
         ->name('projects.status.update');
+            // Update status route (important!)
+    Route::put('/projects/{project}/status', [ProjectController::class, 'updateStatus'])
+        ->name('projects.status.update');
+     // Projects routes
+    Route::resource('projects', ProjectController::class);
+    
+    // API untuk mendapatkan clients dengan nama dari leads
+    Route::get('/api/clients', [ProjectController::class, 'getClients']);
+    // Atau jika sudah ada route untuk companies, bisa dimodifikasi
+    Route::get('/api/companies', [CompanyController::class, 'getClientsForProjects']);
 });
 
 Route::middleware(['auth', 'verified'])->group(function () {

@@ -134,28 +134,52 @@ const QuotationTable = ({ data, groupedData = [], companyId }) => {
     };
 
     // Handle delete quotation
-    const handleDelete = async (id, quotationNumber) => {
-        if (!window.confirm(t('quotation_table.confirm_delete', { number: quotationNumber }))) {
-            return;
-        }
-        
-        setDeletingId(id);
-        
-        try {
-            const response = await router.delete(route('quotation.destroy', id));
-            
-            if (response.ok) {
-                // Refresh data setelah delete berhasil
-                window.location.reload();
-            } else {
-                throw new Error(t('quotation_table.delete_failed'));
+// Handle delete quotation - PERBAIKAN
+const handleDelete = async (id, quotationNumber) => {
+    if (!window.confirm(t('quotation_table.confirm_delete', { number: quotationNumber }))) {
+        return;
+    }
+    
+    setDeletingId(id);
+    
+    try {
+        // Gunakan Inertia router.delete dengan callback
+        router.delete(route('quotation.destroy', id), {
+            preserveScroll: true,
+            preserveState: true,
+            onSuccess: () => {
+                console.log('Delete successful');
+                setDeletingId(null);
+                
+                // Show success message if there's flash message
+                if (page.props.flash?.success) {
+                    // Optional: Show toast notification
+                    alert(page.props.flash.success);
+                }
+            },
+            onError: (errors) => {
+                console.error('Delete error:', errors);
+                setDeletingId(null);
+                
+                // Show error message
+                if (errors && errors.message) {
+                    alert(t('quotation_table.delete_error') + ': ' + errors.message);
+                } else {
+                    alert(t('quotation_table.delete_error'));
+                }
+            },
+            onFinish: () => {
+                // Optional: Any cleanup after request finishes
+                console.log('Delete request finished');
             }
-        } catch (error) {
-            console.error('Error deleting quotation:', error);
-            alert(t('quotation_table.delete_error'));
-            setDeletingId(null);
-        }
-    };
+        });
+        
+    } catch (error) {
+        console.error('Error in delete function:', error);
+        alert(t('quotation_table.delete_error'));
+        setDeletingId(null);
+    }
+};
 
     // Mobile Card View
     const MobileCardView = ({ quotation }) => {

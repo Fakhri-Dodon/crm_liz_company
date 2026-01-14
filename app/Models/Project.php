@@ -90,7 +90,8 @@ class Project extends Model
     // Relationship dengan Company - pakai client_id
     public function company()
     {
-        return $this->belongsTo(Company::class, 'client_id');
+        return $this->belongsTo(Company::class, 'client_id', 'id')
+                    ->with(['lead']); // Tambah with lead
     }
 
     public function quotation()

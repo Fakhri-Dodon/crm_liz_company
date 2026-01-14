@@ -1,9 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Head, usePage, router, useForm } from '@inertiajs/react';
 import HeaderLayout from '@/Layouts/HeaderLayout';
 import TableLayout from '@/Layouts/TableLayout';
 import ProjectModal from '@/Components/Project/ProjectModal';
-import StatusModal from '@/Components/Project/StatusModal';
 import DeleteModal from '@/Components/DeleteModal';
 import { Search, Filter, Plus, Calendar, Download, RefreshCw, FileText } from 'lucide-react';
 
@@ -22,16 +21,19 @@ export default function Index({
     
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [showEditModal, setShowEditModal] = useState(false);
-    const [showStatusModal, setShowStatusModal] = useState(false);
     const [showDeleteModal, setShowDeleteModal] = useState(false);
-    const [selectedProjectId, setSelectedProjectId] = useState(null); // Ubah ke ID saja
-    const [editingProject, setEditingProject] = useState(null); // Tambah state untuk menyimpan data project lengkap jika perlu
+    const [selectedProjectId, setSelectedProjectId] = useState(null);
+    const [editingProject, setEditingProject] = useState(null);
     const [localFilters, setLocalFilters] = useState({
         search: filters?.search || '',
         status: filters?.status || 'all',
         month: filters?.month || '',
         year: filters?.year || ''
     });
+
+    // State untuk dropdown status
+    const [openDropdownId, setOpenDropdownId] = useState(null);
+    const dropdownRefs = useRef({});
 
     const canRead = auth_permissions.can_read === 1;
     const canCreate = auth_permissions.can_create === 1;
@@ -45,29 +47,47 @@ export default function Index({
         year: localFilters.year
     });
 
-    // Status colors sesuai screenshot (4 status)
+    // Status colors
     const statusColors = {
         in_progress: { 
             bg: 'bg-blue-100', 
-            text: 'text-blue-800', 
-            border: 'border-blue-200',
+            text: 'text-blue-800',
+            border: 'border-blue-200'
         },
         completed: { 
             bg: 'bg-green-100', 
-            text: 'text-green-800', 
-            border: 'border-green-200',
+            text: 'text-green-800',
+            border: 'border-green-200'
         },
         pending: { 
             bg: 'bg-yellow-100', 
-            text: 'text-yellow-800', 
-            border: 'border-yellow-200',
+            text: 'text-yellow-800',
+            border: 'border-yellow-200'
         },
         cancelled: { 
             bg: 'bg-red-100', 
-            text: 'text-red-800', 
-            border: 'border-red-200',
+            text: 'text-red-800',
+            border: 'border-red-200'
         }
     };
+
+    // Handle click outside dropdown
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            const clickedOutside = Object.values(dropdownRefs.current).every(ref => 
+                ref && !ref.contains(event.target)
+            );
+            
+            if (clickedOutside) {
+                setOpenDropdownId(null);
+            }
+        };
+
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+        };
+    }, []);
 
     // Handle flash messages
     useEffect(() => {
@@ -140,16 +160,36 @@ export default function Index({
 
     const handleEdit = (project) => {
         console.log('Editing project ID:', project.id);
-        setSelectedProjectId(project.id); // Set ID saja
-        setEditingProject(project); // Simpan data project jika perlu untuk status modal
+        setSelectedProjectId(project.id);
+        setEditingProject(project);
         setShowEditModal(true);
     };
 
-    const handleStatusChange = (project) => {
-        setSelectedProjectId(project.id);
-        setEditingProject(project);
-        setShowStatusModal(true);
-    };
+const handleStatusChange = async (projectId, newStatus) => {
+    try {
+        // Close dropdown
+        setOpenDropdownId(null);
+        
+        // Update status via PUT method dengan reload otomatis
+        await router.put(route('projects.status.update', projectId), {
+            status: newStatus
+        }, {
+            preserveScroll: true,
+            onSuccess: () => {
+                console.log('Status updated successfully');
+                // Tidak perlu showToast karena flash message sudah dari controller
+            },
+            onError: (errors) => {
+                console.error('Status update error:', errors);
+                showToast('Failed to update status!', 'error');
+            }
+        });
+        
+    } catch (error) {
+        console.error('Error updating status:', error);
+        showToast('Error updating status!', 'error');
+    }
+};
 
     const handleDelete = (project) => {
         setSelectedProjectId(project.id);
@@ -190,8 +230,73 @@ export default function Index({
         { value: '12', label: 'Dec' }
     ];
 
-    // Status yang akan ditampilkan di summary cards (sesuai screenshot)
+    // Status yang akan ditampilkan di summary cards
     const statusesToShow = ['in_progress', 'completed', 'pending', 'cancelled'];
+
+    // Component untuk dropdown status sederhana
+    const StatusDropdown = ({ project }) => {
+        const isOpen = openDropdownId === project.id;
+        
+        if (!canUpdate) {
+            // Jika tidak punya permission, tampilkan badge saja
+            const statusLabel = statusOptions?.find(opt => opt.value === project.status)?.label || project.status;
+            const colors = statusColors[project.status] || statusColors.pending;
+            
+            return (
+                <span className={`px-3 py-1.5 rounded-full text-xs font-medium ${colors.bg} ${colors.text} ${colors.border} border`}>
+                    {statusLabel}
+                </span>
+            );
+        }
+
+        const currentStatus = statusOptions?.find(opt => opt.value === project.status);
+        const colors = statusColors[project.status] || statusColors.pending;
+
+        return (
+            <div 
+                className="relative inline-block"
+                ref={el => dropdownRefs.current[project.id] = el}
+            >
+                {/* Status Button */}
+                <button
+                    type="button"
+                    onClick={() => setOpenDropdownId(isOpen ? null : project.id)}
+                    className={`px-3 py-1.5 rounded text-sm font-medium ${colors.bg} ${colors.text} border ${colors.border} hover:opacity-90 transition-colors`}
+                >
+                    {currentStatus?.label || project.status}
+                    <span className="ml-1">▼</span>
+                </button>
+
+                {/* Dropdown Menu - Style sederhana */}
+                {isOpen && (
+                    <div className="absolute z-10 mt-1 bg-white border border-gray-300 rounded-md shadow-lg min-w-[140px]">
+                        <div className="py-1">
+                            {statusOptions?.map(option => {
+                                const optionColors = statusColors[option.value] || statusColors.pending;
+                                const isSelected = project.status === option.value;
+                                
+                                return (
+                                    <button
+                                        key={option.value}
+                                        type="button"
+                                        onClick={() => handleStatusChange(project.id, option.value)}
+                                        className={`block w-full text-left px-3 py-2 text-sm hover:bg-gray-100 transition-colors ${
+                                            isSelected ? 'bg-blue-50 text-blue-700' : 'text-gray-700'
+                                        }`}
+                                    >
+                                        <div className="flex items-center">
+                                            <div className={`w-2 h-2 rounded-full mr-2 ${optionColors.bg}`}></div>
+                                            {option.label}
+                                        </div>
+                                    </button>
+                                );
+                            })}
+                        </div>
+                    </div>
+                )}
+            </div>
+        );
+    };
 
     return (
         <HeaderLayout>
@@ -216,7 +321,7 @@ export default function Index({
                 </div>
             </div>
 
-            {/* Summary Cards - 4 cards sesuai screenshot */}
+            {/* Summary Cards */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-8">
                 {statusesToShow.map((status) => {
                     const colors = statusColors[status];
@@ -237,9 +342,6 @@ export default function Index({
                                         {summary[status] || 0}
                                     </p>
                                     <p className="text-xs text-gray-500 mt-2">Total Project</p>
-                                </div>
-                                <div className={`p-3 rounded-full ${colors.bg}`}>
-                                    <span className="text-lg">{colors.icon}</span>
                                 </div>
                             </div>
                         </div>
@@ -353,18 +455,106 @@ export default function Index({
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
                 <TableLayout
                     columns={[
-                        { key: 'project_description', label: 'Description' },
-                        { key: 'name', label: 'Client', render: (val, project) => {
-                            if (!project) return '-';
-                            return project.quotation?.lead?.company_name || 'N/A';
-                        }},
-                        { key: 'start_date', label: 'Start Date', render: (val) => val ? new Date(val).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }) : '-' },
-                        { key: 'deadline', label: 'Deadline', render: (val) => val ? new Date(val).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }) : '-' },
-                        { key: 'status', label: 'Status', render: (val, row) => {
-                            const statusLabel = statusOptions?.find(opt => opt.value === val)?.label || val;
-                            return <span>{statusLabel}</span>;
-                        } },
-                        { key: 'note', label: 'Note' },
+                        { 
+                            key: 'project_description', 
+                            label: 'Description',
+                            render: (val, project) => {
+                                return (
+                                    <div className="min-w-[200px] max-w-[300px]">
+                                        <div className="font-medium text-gray-900 truncate">
+                                            {val || '-'}
+                                        </div>
+                                        {project.note && (
+                                            <div className="text-xs text-gray-500 truncate mt-1">
+                                                {project.note}
+                                            </div>
+                                        )}
+                                    </div>
+                                );
+                            }
+                        },
+                        { 
+                            key: 'client', 
+                            label: 'Client', 
+                            render: (val, project) => {
+                                return (
+                                    <div className="min-w-[180px]">
+                                        {/* Tampilkan company name dari leads */}
+                                        {project.company?.lead?.company_name ? (
+                                            <>
+                                                <div className="font-medium text-gray-900">
+                                                    {project.company.lead.company_name}
+                                                </div>
+                                                {project.company?.client_code && (
+                                                    <div className="text-xs text-gray-500">
+                                                        Code: {project.company.client_code}
+                                                    </div>
+                                                )}
+                                            </>
+                                        ) : project.company?.client_code ? (
+                                            <>
+                                                <div className="font-medium text-gray-900">
+                                                    {project.company.client_code}
+                                                </div>
+                                                <div className="text-xs text-gray-400 italic">
+                                                    No company name
+                                                </div>
+                                            </>
+                                        ) : (
+                                            <div className="text-gray-400 italic">N/A</div>
+                                        )}
+                                        
+                                        {/* Tampilkan kota jika ada */}
+                                        {project.company?.city && (
+                                            <div className="text-xs text-gray-500 mt-1">
+                                                📍 {project.company.city}
+                                            </div>
+                                        )}
+                                    </div>
+                                );
+                            }
+                        },
+                        { 
+                            key: 'start_date', 
+                            label: 'Start Date', 
+                            render: (val) => val ? new Date(val).toLocaleDateString('id-ID', { 
+                                day: 'numeric', 
+                                month: 'short', 
+                                year: 'numeric' 
+                            }) : '-' 
+                        },
+                        { 
+                            key: 'deadline', 
+                            label: 'Deadline', 
+                            render: (val) => val ? new Date(val).toLocaleDateString('id-ID', { 
+                                day: 'numeric', 
+                                month: 'short', 
+                                year: 'numeric' 
+                            }) : '-' 
+                        },
+                        { 
+                            key: 'status', 
+                            label: 'Status', 
+                            render: (val, project) => (
+                                <StatusDropdown project={project} />
+                            ),
+                            className: "min-w-[140px]"
+                        },
+                        { 
+                            key: 'quotation', 
+                            label: 'Quotation', 
+                            render: (val, project) => (
+                                <div className="min-w-[120px]">
+                                    {project.quotation?.quotation_number ? (
+                                        <span className="text-sm text-gray-700">
+                                            {project.quotation.quotation_number}
+                                        </span>
+                                    ) : (
+                                        <span className="text-sm text-gray-400">No quotation</span>
+                                    )}
+                                </div>
+                            )
+                        },
                     ]}
                     data={projects.data || []}
                     onEdit={canUpdate ? handleEdit : null}
@@ -392,7 +582,7 @@ export default function Index({
 
             {selectedProjectId && (
                 <>
-                    {/* Edit Modal dengan projectId */}
+                    {/* Edit Modal */}
                     <ProjectModal
                         show={showEditModal}
                         onClose={() => {
@@ -400,28 +590,13 @@ export default function Index({
                             setSelectedProjectId(null);
                             setEditingProject(null);
                         }}
-                        projectId={selectedProjectId} // Kirim ID saja
+                        projectId={selectedProjectId}
                         companies={companies || []}
                         quotations={quotations || []}
                         statusOptions={statusOptions || []}
                         isEdit={true}
                         title="Edit Project"
                     />
-
-                    {/* Status Modal masih bisa pakai project object karena tidak perlu fetch data */}
-                    {editingProject && (
-                        <StatusModal
-                            show={showStatusModal}
-                            onClose={() => {
-                                setShowStatusModal(false);
-                                setSelectedProjectId(null);
-                                setEditingProject(null);
-                            }}
-                            project={editingProject}
-                            statusOptions={statusOptions || []}
-                            companies={companies || []}
-                        />
-                    )}
 
                     <DeleteModal
                         show={showDeleteModal}
