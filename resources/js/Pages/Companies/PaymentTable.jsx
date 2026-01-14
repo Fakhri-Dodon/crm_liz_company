@@ -285,6 +285,33 @@ const PaymentTable = ({ data, companyId, showInvoiceAmount = false }) => {
         );
     }
 
+    // ExpandableAmount component for long currency values
+    const ExpandableAmount = ({ amount, className = "" }) => {
+        const { t } = useTranslation();
+        const [expanded, setExpanded] = useState(false);
+        const formatted = new Intl.NumberFormat('id-ID', {
+            style: 'currency',
+            currency: 'IDR',
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 0
+        }).format(Number(amount) || 0);
+        // Show expand/collapse if formatted is long
+        const isLong = formatted.length > 12;
+        if (!isLong) return <span className={className}>{formatted}</span>;
+        return (
+            <span className={className}>
+                {expanded ? formatted : formatted.slice(0, 10) + '...'}
+                <button
+                    type="button"
+                    className="ml-1 text-blue-600 underline text-xs focus:outline-none"
+                    onClick={() => setExpanded(e => !e)}
+                >
+                    {expanded ? t('payment_table.collapse') : t('payment_table.expand')}
+                </button>
+            </span>
+        );
+    };
+
     // Mobile Card View - HANYA EDIT DAN DELETE
     const MobileCardView = ({ payment }) => {
         const invoiceNumber = getInvoiceNumber(payment);
@@ -323,7 +350,7 @@ const PaymentTable = ({ data, companyId, showInvoiceAmount = false }) => {
                                     onMouseEnter={(e) => handleTooltip(formatFullCurrency(invoiceAmount), e)}
                                     onMouseLeave={hideTooltip}
                                 >
-                                    {formatCurrency(invoiceAmount)}
+                                    <ExpandableAmount amount={invoiceAmount} />
                                 </p>
                             </div>
                         )}
@@ -334,7 +361,7 @@ const PaymentTable = ({ data, companyId, showInvoiceAmount = false }) => {
                                 onMouseEnter={(e) => handleTooltip(formatFullCurrency(paymentAmount), e)}
                                 onMouseLeave={hideTooltip}
                             >
-                                {formatCurrency(paymentAmount)}
+                                <ExpandableAmount amount={paymentAmount} />
                             </p>
                         </div>
                     </div>
@@ -517,7 +544,7 @@ const PaymentTable = ({ data, companyId, showInvoiceAmount = false }) => {
                                             </div>
                                             {showInvoiceAmount && (
                                                 <div className="text-xs text-gray-500">
-                                                    {t('payment_table.invoice_amount_short')}: {formatCurrency(invoiceAmount)}
+                                                    {t('payment_table.invoice_amount_short')}: <ExpandableAmount amount={invoiceAmount} />
                                                 </div>
                                             )}
                                         </td>
@@ -532,7 +559,7 @@ const PaymentTable = ({ data, companyId, showInvoiceAmount = false }) => {
                                                 onMouseEnter={(e) => handleTooltip(formatFullCurrency(paymentAmount), e)}
                                                 onMouseLeave={hideTooltip}
                                             >
-                                                {formatCurrency(paymentAmount)}
+                                                <ExpandableAmount amount={paymentAmount} />
                                             </div>
                                         </td>
                                         <td className="px-4 py-3">
@@ -625,7 +652,7 @@ const PaymentTable = ({ data, companyId, showInvoiceAmount = false }) => {
                             onMouseEnter={(e) => handleTooltip(formatFullCurrency(totalReceived), e)}
                             onMouseLeave={hideTooltip}
                         >
-                            {formatCurrency(totalReceived)}
+                            <ExpandableAmount amount={totalReceived} />
                         </p>
                     </div>
                     <div className="bg-purple-50 p-3 md:p-4 rounded-lg">
@@ -645,7 +672,7 @@ const PaymentTable = ({ data, companyId, showInvoiceAmount = false }) => {
                             onMouseEnter={(e) => handleTooltip(formatFullCurrency(averagePayment), e)}
                             onMouseLeave={hideTooltip}
                         >
-                            {formatCurrency(averagePayment)}
+                            <ExpandableAmount amount={averagePayment} />
                         </p>
                     </div>
                 </div>
@@ -677,7 +704,7 @@ const PaymentTable = ({ data, companyId, showInvoiceAmount = false }) => {
                             onMouseEnter={(e) => handleTooltip(formatFullCurrency(totalInvoiceValue), e)}
                             onMouseLeave={hideTooltip}
                         >
-                            {formatCurrency(totalInvoiceValue)}
+                            <ExpandableAmount amount={totalInvoiceValue} />
                         </p>
                     </div>
                     <div className="bg-cyan-50 p-3 md:p-4 rounded-lg">

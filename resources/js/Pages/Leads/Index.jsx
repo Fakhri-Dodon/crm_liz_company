@@ -272,7 +272,12 @@ export default function LeadsIndex({ leads = [], auth, auth_permissions }) {
         { 
             key: "contact_person", 
             label: t('leads.table.contact_person') || 'Contact Person',
-            sortable: true
+            render: (_, row) => (
+                <div>
+                    <div className="font-medium text-gray-900">{row.contact_person || '-'}</div>
+                    <div className="text-gray-500 text-sm mt-1">{row.position || '-'}</div>
+                </div>
+            ),
         },
         {
             key: "email",

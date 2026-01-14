@@ -10,7 +10,6 @@ import InvoiceTable from './InvoiceTable';
 import PaymentTable from './PaymentTable';
 import ProjectTable from './ProjectTable';
 import ContactTable from './ContactTable';
-import ProjectModal from '@/Components/Project/ProjectModal';
 import HeaderLayout from '@/Layouts/HeaderLayout';
 import { Trash2 } from 'lucide-react';
 import axios from 'axios';
@@ -20,7 +19,6 @@ const Show = ({ company, quotations, invoices, payments, projects, contacts, sta
     const { t } = useTranslation(); // Initialize translation hook
     const [activeTab, setActiveTab] = useState('profile');
     const [loading, setLoading] = useState(false);
-    const [showProjectModal, setShowProjectModal] = useState(false);
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [selectedProject, setSelectedProject] = useState(null);
     const [modalMode, setModalMode] = useState('create'); // 'create' atau 'edit'
@@ -129,7 +127,6 @@ const Show = ({ company, quotations, invoices, payments, projects, contacts, sta
         console.log('Editing project:', project);
         setSelectedProject(project);
         setModalMode('edit');
-        setShowProjectModal(true);
     };
 
     // Function untuk handle delete project
@@ -161,13 +158,6 @@ const Show = ({ company, quotations, invoices, payments, projects, contacts, sta
         console.log('Refreshing contacts data...');
         fetchContacts();
         showToast(t('companies_show.contacts_updated_successfully'), 'success');
-    };
-
-    // Function untuk menambah project baru
-    const handleAddProject = () => {
-        setSelectedProject(null);
-        setModalMode('create');
-        setShowProjectModal(true);
     };
 
     // Jika company tidak ada, tampilkan error message
@@ -269,7 +259,6 @@ const Show = ({ company, quotations, invoices, payments, projects, contacts, sta
                         data={displayData.projects} 
                         onEdit={handleProjectEdit}
                         onDelete={handleProjectDelete}
-                        onAdd={handleAddProject}
                     />
                 );
             case 'contact':
@@ -329,18 +318,6 @@ const Show = ({ company, quotations, invoices, payments, projects, contacts, sta
     // Fungsi untuk mendapatkan tombol tambah berdasarkan tab
     const renderAddButton = () => {
         switch (activeTab) {
-            case 'project':
-                return (
-                    <button
-                        onClick={handleAddProject}
-                        className="px-4 py-2 bg-[#054748] text-white rounded-lg hover:bg-[#0a5d5e] transition-colors font-medium flex items-center gap-2"
-                    >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4"></path>
-                        </svg>
-                        {t('companies_show.add_project_button')}
-                    </button>
-                );
             case 'contact':
                 // Tombol Add sudah ada di dalam ContactTable component
                 return null;
@@ -412,33 +389,6 @@ const Show = ({ company, quotations, invoices, payments, projects, contacts, sta
                     </div>
                 </div>
             </div>
-
-            {/* Project Modal */}
-            {showProjectModal && (
-                <ProjectModal
-                    show={showProjectModal}
-                    onClose={() => {
-                        setShowProjectModal(false);
-                        setSelectedProject(null);
-                    }}
-                    projectId={selectedProject?.id}
-                    companies={[{
-                        id: company.id,
-                        name: company.client_code,
-                        client_code: company.client_code,
-                        city: company.city || ''
-                    }]}
-                    quotations={quotations || []}
-                    statusOptions={[
-                        { value: 'in_progress', label: t('companies_show.status_in_progress') },
-                        { value: 'completed', label: t('companies_show.status_completed') },
-                        { value: 'pending', label: t('companies_show.status_pending') },
-                        { value: 'cancelled', label: t('companies_show.status_cancelled') }
-                    ]}
-                    isEdit={modalMode === 'edit'}
-                    title={modalMode === 'edit' ? t('companies_show.edit_project') : t('companies_show.add_project')}
-                />
-            )}
 
             {/* Delete Confirmation Modal */}
             {showDeleteModal && selectedProject && (

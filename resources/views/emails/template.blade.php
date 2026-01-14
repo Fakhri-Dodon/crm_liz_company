@@ -1,47 +1,95 @@
 <!DOCTYPE html>
-<html>
+<html lang="id">
 <head>
     <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ $subjectText ?? 'Notification' }}</title>
     <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; }
-        .wrapper { background-color: #f4f7f6; padding: 40px 10px; }
-        .container { max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
-        .header { background: #1a202c; padding: 25px; text-align: center; color: #ffffff; }
-        .content { padding: 30px; }
-        .footer { background: #f9fafb; padding: 20px; text-align: center; font-size: 12px; color: #718096; }
-        hr { border: 0; border-top: 1px solid #edf2f7; margin: 25px 0; }
-        .message-body { font-size: 16px; color: #2d3748; white-space: pre-line; }
+        /* Base Reset */
+        body { margin: 0; padding: 0; width: 100% !important; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; line-height: 1.6; background-color: #f8fafc; color: #334155; -webkit-font-smoothing: antialiased; }
+        
+        /* Layout */
+        .wrapper { width: 100%; background-color: #f8fafc; padding: 40px 0; }
+        .container { max-width: 600px; margin: 0 auto; background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; }
+        
+        /* Header */
+        .header { background-color: #ffffff; padding: 32px 40px; border-bottom: 1px solid #f1f5f9; text-align: left; }
+        .logo-text { font-size: 20px; font-weight: 700; color: #0f172a; text-decoration: none; display: inline-block; letter-spacing: -0.5px; }
+        
+        /* Content */
+        .content { padding: 40px; }
+        .subject-heading { font-size: 22px; font-weight: 600; color: #0f172a; margin: 0 0 24px 0; line-height: 1.3; }
+        
+        /* Message Body */
+        .message-body { font-size: 16px; color: #475569; }
+        .message-body p { margin-bottom: 16px; margin-top: 0; }
+        .message-body strong { color: #0f172a; font-weight: 600; }
+        .message-body a { color: #2563eb; text-decoration: none; font-weight: 500; }
+        .message-body a:hover { text-decoration: underline; }
+
+        /* Support Box */
+        .support-note { margin-top: 32px; padding-top: 24px; border-top: 1px solid #f1f5f9; font-size: 14px; color: #64748b; }
+
+        /* Footer */
+        .footer { background-color: #f8fafc; padding: 32px 20px; text-align: center; font-size: 12px; color: #94a3b8; }
+        .footer-links { margin-bottom: 16px; }
+        .footer-links a { color: #64748b; text-decoration: none; margin: 0 8px; font-weight: 500; }
+        .footer-links a:hover { text-decoration: underline; color: #475569; }
+        .address { margin-top: 8px; line-height: 1.5; }
+
+        /* Mobile Responsive */
+        @media only screen and (max-width: 600px) {
+            .wrapper { padding: 0; }
+            .container { border: none; border-radius: 0; }
+            .content, .header { padding: 24px; }
+        }
     </style>
 </head>
 <body>
+
     <div class="wrapper">
         <div class="container">
+            
             <div class="header">
-                {{-- Nama sistem bisa dibuat dinamis atau tetap --}}
-                <h1 style="margin:0; font-size: 20px; color: #ffffff;">AdminPanel Official</h1>
+                <a href="{{ url('/') }}" class="logo-text" style="text-decoration: none;">
+                    
+                    <!-- @if(!empty($companyInfo['logo']))
+                        {{-- Pastikan path gambarnya absolut (full URL) agar muncul di email --}}
+                        <img src="{{ asset('storage/' . $companyInfo['logo']) }}" 
+                             alt="{{ $companyInfo['name'] }}" 
+                             height="40" 
+                             style="display: block; border: 0;">
+                    @else -->
+                        <span style="font-size: 20px; font-weight: 700; color: #0f172a;">
+                            {{ $companyInfo['name'] }}
+                        </span>
+                    <!-- @endif -->
+
+                </a>
             </div>
+
             <div class="content">
-                {{-- Subjek sebagai Judul Pesan --}}
-                <h2 style="color: #2d3748; margin-top: 0; border-bottom: 2px solid #3182ce; display: inline-block; padding-bottom: 5px;">
+                <h1 class="subject-heading">
                     {{ $subjectText }}
-                </h2>
+                </h1>
                 
-                <div class="message-body" style="margin-top: 20px;">
-                    {{-- Menggunakan {!! !!} agar format HTML dari database seperti <br> atau <b> muncul --}}
+                <div class="message-body">
                     {!! $messageBody !!}
                 </div>
-                
-                <hr>
-                
-                <p style="font-size: 14px; color: #4a5568;">
-                    Email ini dikirim secara otomatis oleh sistem. Jika Anda memiliki pertanyaan, silakan hubungi tim kami melalui kontak resmi.
-                </p>
-            </div>
-            <div class="footer">
-                <p>&copy; {{ date('Y') }} AdminPanel. All rights reserved.</p>
-                <p style="margin-top: 5px;">Sentul, Jawa Barat, Indonesia</p>
+
+                <div class="support-note">
+                    <p style="margin: 0;">
+                        Butuh bantuan? Hubungi tim support kami di <a href="mailto:support@domainanda.com">support@domainanda.com</a>
+                    </p>
+                </div>
             </div>
         </div>
+
+        <div class="footer">
+            <p>&copy; {{ date('Y') }} {{ $companyInfo['name'] }}. All rights reserved.</p>
+            <p>{{ $companyInfo['address'] }}</p>
+        </div>
     </div>
+
 </body>
 </html>

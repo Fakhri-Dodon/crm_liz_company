@@ -244,33 +244,6 @@ const ProfileTable = ({ data }) => {
                     )}
                 </button>
             </div>
-            
-            {/* Additional Information */}
-            <div className="mt-6 md:mt-8 pt-4 md:pt-6 border-t border-gray-200">
-                <h3 className="text-base md:text-lg font-semibold text-gray-900 mb-3 md:mb-4">
-                    {t('profile_table.additional_info')}
-                </h3>
-                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 md:p-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
-                        <div>
-                            <p className="text-xs md:text-sm text-gray-600">
-                                {t('profile_table.created_at')}
-                            </p>
-                            <p className="text-sm md:text-base font-medium">
-                                {formatCreatedAt(data.created_at)}
-                            </p>
-                        </div>
-                        <div>
-                            <p className="text-xs md:text-sm text-gray-600">
-                                {t('profile_table.status')}
-                            </p>
-                            <span className={`inline-flex items-center px-2 py-1 md:px-3 md:py-1 rounded-full text-xs md:text-sm font-medium ${statusInfo.className}`}>
-                                {statusInfo.text}
-                            </span>
-                        </div>
-                    </div>
-                </div>
-            </div>
         </div>
     );
 };

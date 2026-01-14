@@ -556,7 +556,7 @@ class QuotationController extends Controller {
 
         $updateData = [
             'status' => $request->status, 
-            'quotation_statuses_id' => $statusRecord->id,
+            'quotation_statuses_id' => $status->id,
         ];
         if ($request->status === 'revised') {
             $updateData['revision_note'] = $request->revision_note;
@@ -636,9 +636,13 @@ class QuotationController extends Controller {
             ];
 
             $model = $modelMap[$docType];
-            
+
             // Load data beserta relasi lead
-            $document = $model::with(['lead'])->findOrFail($id);
+            if($request->type === 'invoice') {
+                $document = $model::with(['contactPerson'])->findOrFail($id);
+            }else {
+                $document = $model::with(['lead'])->findOrFail($id);
+            }
             $template = EmailTemplates::findOrFail($request->template_id);
 
             // 3. Tentukan Link & Attachment secara dinamis
@@ -654,18 +658,26 @@ class QuotationController extends Controller {
 
             // 4. Mapping Placeholder Dinamis
             $placeholders = [
-                '{name}'    => $document->lead->contact_person ?? '-',
-                '{company}' => $document->lead->company_name ?? '-',
-                '{id}'      => $document->quotation_number ?? $document->invoice_number ?? $document->number ?? '-',
+                '{name}'    => $document->lead?->contact_person 
+                            ?? $document->contactPerson?->name 
+                            ?? '-',
+                            
+                '{company}' => $document->lead?->company_name 
+                            ?? $document->company?->lead?->company_name 
+                            ?? '-',
+                '{id}'      => $document->quotation_number ?? $document->invoice_number ?? $document->proposal_number ?? '-',
                 '{total}'   => number_format($document->total ?? 0, 0, ',', '.'),
-                '{link}'    => '<a href="'.$link.'" style="color: #3182ce; font-weight: bold;">Klik di Sini</a>',
+                '{link}'    => '<a href="'.$link.'" target="_blank" style="color: #3182ce; font-weight: bold;">Klik di Sini</a>',
             ];
 
             $finalSubject = str_replace(array_keys($placeholders), array_values($placeholders), $template->subject);
             $finalContent = str_replace(array_keys($placeholders), array_values($placeholders), $template->content);
 
             // 5. Validasi Email Penerima
-            $recipientEmail = $document->lead->email ?? null;
+            $recipientEmail = $document->lead?->email 
+                              ?? $document->contactPerson?->email 
+                              ?? $document->company?->email 
+                              ?? null;
             if (!$recipientEmail) {
                 return back()->with('error', 'Gagal: Email tujuan tidak ditemukan.');
             }

@@ -18,6 +18,7 @@ use App\Models\QuotationNumberFormated;
 use App\Models\ActivityLogs;
 use App\Models\Ppn;
 use App\Models\Pph;
+use App\Models\PaymentType;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
@@ -168,6 +169,22 @@ class SettingController extends Controller
             'config'    => $config,
             'numbering' => $numbering,
             'statuses'  => $statuses,
+        ]);
+    }
+
+    public function invoices()
+    {
+        $config     = AppConfig::where('deleted', 0)->first();
+        
+        $numbering  = \App\Models\InvoiceNumberFormated::where('deleted', 0)->first();
+        
+        $statuses   = \App\Models\InvoiceStatuses::where('deleted', 0)->orderBy('order', 'asc')->get();
+
+        return Inertia::render('Settings/Invoices', [
+            'config'    => $config,
+            'numbering' => $numbering,
+            'statuses'  => $statuses,
+            'paymentTypes' => PaymentType::where('deleted', 0)->orderBy('order', 'asc')->get(),
         ]);
     }
 

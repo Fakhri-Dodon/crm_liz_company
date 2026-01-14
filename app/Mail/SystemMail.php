@@ -9,6 +9,7 @@ use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Mail\Mailables\Attachment;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Storage;
+use App\Models\AppConfig;
 
 class SystemMail extends Mailable
 {
@@ -16,7 +17,8 @@ class SystemMail extends Mailable
 
     public $subjectText;
     public $messageBody;
-    public $filePath; // Tambahkan properti untuk path file
+    public $filePath;
+    public $companyInfo;
 
     /**
      * Tambahkan parameter $filePath dengan default null
@@ -26,6 +28,14 @@ class SystemMail extends Mailable
         $this->subjectText = $subject;
         $this->messageBody = $body;
         $this->filePath = $filePath; 
+
+        $appConfig = AppConfig::where('deleted', 0)->first();
+
+        $this->companyInfo = [
+            'name' => $appConfig->company_name ?? config('app.name'),
+            'logo' => $appConfig->logo_path ?? null, // Asumsi ini path gambar
+            'address' => $appConfig->address ?? 'Alamat Default Perusahaan',
+        ];
     }
 
     public function envelope(): Envelope

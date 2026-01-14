@@ -176,7 +176,7 @@ const CompanyHeader = ({ company, activeTab, data, statistics }) => {
                     {/* Company Details */}
                     <div className="flex-1 text-center sm:text-left">
                         <h1 className="text-xl sm:text-2xl font-bold text-gray-900">
-                            <TruncatedText text={company.client_code} maxLength={25} />
+                            <TruncatedText text={company.lead?.company_name || company.company_name || '-'} maxLength={25} />
                         </h1>
                         
                         {/* Contact Info */}
@@ -211,28 +211,7 @@ const CompanyHeader = ({ company, activeTab, data, statistics }) => {
                         </div>
                         
                         {/* Badges */}
-                        <div className="mt-3 flex flex-wrap justify-center sm:justify-start gap-2">
-                            <span className="inline-block px-2 py-1 bg-blue-50 text-blue-700 rounded-full text-xs font-medium">
-                                <TruncatedText text={`Kode: ${company.client_code}`} maxLength={15} />
-                            </span>
-                            {company.client_type && (
-                                <span className="inline-block px-2 py-1 bg-green-50 text-green-700 rounded-full text-xs font-medium">
-                                    <TruncatedText text={company.client_type.name} maxLength={15} />
-                                </span>
-                            )}
-                            {company.nib && (
-                                <span className="inline-block px-2 py-1 bg-purple-50 text-purple-700 rounded-full text-xs font-medium">
-                                    <TruncatedText text={`NIB: ${company.nib}`} maxLength={15} />
-                                </span>
-                            )}
-                            <span className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${
-                                company.is_active 
-                                    ? 'bg-green-50 text-green-700' 
-                                    : 'bg-red-50 text-red-700'
-                            }`}>
-                                {company.is_active ? 'Aktif' : 'Non-Aktif'}
-                            </span>
-                        </div>
+                        {/* Bagian badge dihapus sesuai permintaan */}
                     </div>
                 </div>
                 
@@ -240,28 +219,37 @@ const CompanyHeader = ({ company, activeTab, data, statistics }) => {
                 <div className="text-center sm:text-right">
                     <p className="text-sm text-gray-500">Total Piutang</p>
                     <div className="relative inline-block">
-                        <p 
-                            className="text-2xl sm:text-3xl font-bold text-red-600 cursor-help"
-                            onMouseEnter={() => setShowTooltip(formatFullCurrency(totalOutstanding))}
-                            onMouseLeave={() => setShowTooltip(null)}
+                        <button
+                            className="text-2xl sm:text-3xl font-bold text-red-600 cursor-pointer transition-all duration-200 hover:bg-gray-100 rounded px-2 py-1 flex items-center gap-2"
+                            onClick={() => setShowTooltip(showTooltip === 'piutang' ? null : 'piutang')}
+                            title={formatFullCurrency(totalOutstanding)}
                         >
-                            {formatCurrency(totalOutstanding)}
-                        </p>
+                            {formatFullCurrency(totalOutstanding)}
+                            <span className="ml-1 text-xs text-gray-400">{showTooltip === 'piutang' ? '▲' : '▼'}</span>
+                        </button>
+                        {/* Expand/Collapse: tampilkan detail jika di-expand */}
+                        {showTooltip === 'piutang' && (
+                            <div className="absolute right-0 mt-2 w-64 bg-white border border-gray-200 rounded-lg shadow-lg z-50 p-4 text-left">
+                                <div className="mb-2 font-semibold text-gray-800">Detail Piutang</div>
+                                {data.invoices?.filter(inv => inv.status !== 'paid').length > 0 ? (
+                                    <ul className="text-sm text-gray-700 max-h-40 overflow-y-auto">
+                                        {data.invoices.filter(inv => inv.status !== 'paid').map((inv, idx) => (
+                                            <li key={inv.id || idx} className="mb-1 flex justify-between">
+                                                <span>{inv.invoice_number || '-'}</span>
+                                                <span>{formatFullCurrency(inv.amount_due || 0)}</span>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                ) : (
+                                    <div className="text-xs text-gray-500">Tidak ada invoice outstanding.</div>
+                                )}
+                            </div>
+                        )}
                     </div>
                     <p className="text-xs sm:text-sm text-gray-500 mt-1">
                         {data.invoices?.filter(inv => inv.status !== 'paid').length || 0} invoice belum dibayar
                     </p>
-                    {company.client_since && (
-                        <p className="text-xs sm:text-sm text-gray-500 mt-2 flex items-center justify-center sm:justify-end space-x-1">
-                            <Calendar className="w-4 h-4 flex-shrink-0" />
-                            <span>Klien sejak: {formatDate(company.client_since)}</span>
-                        </p>
-                    )}
-                    {company.created_at && (
-                        <p className="text-xs sm:text-sm text-gray-500 mt-1">
-                            Dibuat: {formatDate(company.created_at)}
-                        </p>
-                    )}
+                    {/* Bagian Klien sejak dan Dibuat dihapus sesuai permintaan */}
                 </div>
             </div>
 

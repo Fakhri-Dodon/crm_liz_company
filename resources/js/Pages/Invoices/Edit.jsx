@@ -636,29 +636,36 @@ export default function Edit({ leads = [], companies = [], quotations = [], invo
                                         }}
                                     >
                                         <option value="">-- Choose Payment --</option>
-                                        <option value="Down Payment">Down Payment</option>
-                                        <option value="Full Payment">Full Payment</option>
+                                        {(props.paymentTypes || []).map((pt) => (
+                                            <option key={pt.id} value={pt.name}>
+                                                {pt.name}
+                                            </option>
+                                        ))}
                                     </select>
                                 </div>
 
                                 <div className="flex flex-col">
                                     <label className="text-[10px] font-bold text-gray-400 uppercase">
-                                        Payment Percentage (10% = 0.1)
+                                        Payment Percentage (10 = 10%)
                                     </label>
                                     <input
                                         type="number"
-                                        step="0.01"
+                                        step="1"
+                                        min="0"
+                                        max="100"
                                         className="w-full border-gray-300 rounded text-sm font-bold"
-                                        value={data.payment_percentage || ""}
+                                        value={data.payment_percentage ? (data.payment_percentage * 100) : ""}
                                         onChange={(e) => {
-                                            const val = Number(e.target.value) || 0;
-                                            builderUpdate("payment_percentage", val);
-                                            setData("payment_percentage", val);
+                                            const raw = e.target.value;
+                                            const percent = raw === "" ? "" : Number(raw);
+                                            const decimal = percent === "" ? "" : Number(percent) / 100;
+                                            builderUpdate("payment_percentage", decimal);
+                                            setData("payment_percentage", decimal);
                                             calculateAndSyncTotals(
                                                 data.services,
                                                 data.ppn,
                                                 data.pph,
-                                                val
+                                                decimal
                                             );
                                         }}
                                     />
@@ -666,7 +673,7 @@ export default function Edit({ leads = [], companies = [], quotations = [], invo
 
                                 <div className="flex flex-col">
                                     <label className="text-[10px] font-bold text-gray-400 uppercase">
-                                        PPN (11% = 0.11)
+                                        PPN
                                     </label>
                                     <select
                                         className="w-full border-gray-300 rounded text-sm"
@@ -674,14 +681,17 @@ export default function Edit({ leads = [], companies = [], quotations = [], invo
                                         onChange={(e) => handlePpnChange(e.target.value)}
                                     >
                                         <option value="0">-- No PPN --</option>
-                                        <option value="0.11">PPN 11%</option>
-                                        <option value="0.12">PPN 12%</option>
+                                        {(props.ppn || []).map((p) => (
+                                            <option key={p.id} value={p.rate}>
+                                                {p.name}
+                                            </option>
+                                        ))}
                                     </select>
                                 </div>
 
                                 <div className="flex flex-col">
                                     <label className="text-[10px] font-bold text-gray-400 uppercase">
-                                        PPh (2% = 0.02)
+                                        PPh
                                     </label>
                                     <select
                                         className="w-full border-gray-300 rounded text-sm"
@@ -689,8 +699,11 @@ export default function Edit({ leads = [], companies = [], quotations = [], invo
                                         onChange={(e) => handlePphChange(e.target.value)}
                                     >
                                         <option value="0">-- No PPh --</option>
-                                        <option value="0.02">PPh 2%</option>
-                                        <option value="0.03">PPh 3%</option>
+                                        {(props.pph || []).map((p) => (
+                                            <option key={p.id} value={p.rate}>
+                                                {p.name}
+                                            </option>
+                                        ))}
                                     </select>
                                 </div>
 
@@ -949,14 +962,24 @@ export default function Edit({ leads = [], companies = [], quotations = [], invo
                                     </div>
 
                                     <div className="flex justify-between text-red-600">
-                                        <span>VAT (PPN) {data.ppn ? `${(data.ppn * 100).toFixed(0)}%` : ''}</span>
+                                        <span>VAT (PPN) {(() => {
+                                            const options = props.ppn || [];
+                                            const rate = Number(data.ppn || 0);
+                                            const found = options.find((p) => Number(p.rate) === rate);
+                                            return found ? found.name : (rate ? `${(rate * 100).toFixed(0)}%` : '');
+                                        })()}</span>
                                         <span>
                                             {formatIDR(data.tax_amount_ppn || 0)}
                                         </span>
                                     </div>
 
                                     <div className="flex justify-between text-red-600 border-b border-black pb-1">
-                                        <span>VAT (PPh) {data.pph ? `${(data.pph * 100).toFixed(0)}%` : ''}</span>
+                                        <span>VAT (PPh) {(() => {
+                                            const options = props.pph || [];
+                                            const rate = Number(data.pph || 0);
+                                            const found = options.find((p) => Number(p.rate) === rate);
+                                            return found ? found.name : (rate ? `${(rate * 100).toFixed(0)}%` : '');
+                                        })()}</span>
                                         <span>
                                             {formatIDR(data.tax_amount_pph || 0)}
                                         </span>

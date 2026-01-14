@@ -175,14 +175,8 @@ export default function Index({ auth_permissions }) {
         });
     };
 
-    // Columns and table data for TableLayout
-    const statusStyles = {
-        Paid: { bg: 'bg-green-100', text: 'text-green-800', border: 'border-green-200' },
-        Unpaid: { bg: 'bg-orange-100', text: 'text-orange-800', border: 'border-orange-200' },
-        Draft: { bg: 'bg-gray-100', text: 'text-gray-800', border: 'border-gray-200' },
-        Cancelled: { bg: 'bg-red-100', text: 'text-red-800', border: 'border-red-200' },
-        Partial: { bg: 'bg-yellow-100', text: 'text-yellow-800', border: 'border-yellow-200' }
-    };
+    // Use statuses from settings (passed via props)
+    const statusList = props.statuses ?? [];
 
     const columns = [
         {
@@ -204,23 +198,31 @@ export default function Index({ auth_permissions }) {
             key: 'status',
             label: t('invoices.table.status') || 'Status',
             render: (value, row) => {
-                const nonEditableStatuses = ['Cancelled'];
-                if (nonEditableStatuses.includes(value)) {
-                    const classes = `text-xs font-bold py-1 px-2 rounded-lg border-2 ${statusStyles[value] ? statusStyles[value].border : 'border-gray-300'}`;
-                    return <span className={classes}>{value}</span>;
+                const statusObj = statusList.find(s => s.name === value);
+                const isNonEditable = statusObj ? statusObj.is_system || value === 'Cancelled' : value === 'Cancelled';
+
+                if (isNonEditable) {
+                    const style = { borderColor: statusObj?.color || '#e5e7eb', color: statusObj?.color || '#374151' };
+                    return <span className="text-xs font-bold py-1 px-2 rounded-lg border-2" style={style}>{value}</span>;
                 }
 
                 return (
                     <select
                         value={value}
                         onChange={(e) => handleStatusChange(row.id, e.target.value)}
-                        className={`appearance-none text-xs font-bold py-1 px-2 rounded-lg border-2 focus:ring-0 cursor-pointer transition-all ${statusStyles[value] ? statusStyles[value].border + ' ' + statusStyles[value].text : 'border-gray-300'}`}
+                        className={`appearance-none text-xs font-bold py-1 px-2 rounded-lg border-2 focus:ring-0 cursor-pointer transition-all`}
+                        style={{ borderColor: statusObj?.color || undefined, color: statusObj?.color || undefined }}
                     >
-                        <option value="Draft">{t('invoices.stats.draft') || 'Draft'}</option>
-                        <option value="Unpaid">{t('invoices.stats.unpaid') || 'Unpaid'}</option>
-                      
-                        <option value="Paid">{t('invoices.stats.paid') || 'Paid'}</option>
-                        <option value="Cancelled">{t('invoices.stats.cancelled') || 'Cancelled'}</option>
+                        {statusList.length ? statusList.map(s => (
+                            <option key={s.id} value={s.name} style={{ color: s.color }}>{s.name}</option>
+                        )) : (
+                            <>
+                                <option value="Draft">{t('invoices.stats.draft') || 'Draft'}</option>
+                                <option value="Unpaid">{t('invoices.stats.unpaid') || 'Unpaid'}</option>
+                                <option value="Paid">{t('invoices.stats.paid') || 'Paid'}</option>
+                                <option value="Cancelled">{t('invoices.stats.cancelled') || 'Cancelled'}</option>
+                            </>
+                        )}
                     </select>
                 );
             }
@@ -373,11 +375,17 @@ export default function Index({ auth_permissions }) {
                                 className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#005954] focus:border-transparent bg-white text-sm"
                             >
                                 <option value="all">{t('invoices.filters.all_status')}</option>
-                                <option value="Paid">{t('invoices.stats.paid')}</option>
-                                <option value="Unpaid">{t('invoices.stats.unpaid')}</option>
-                                <option value="Draft">{t('invoices.stats.draft')}</option>
-                                <option value="Partial">{t('invoices.stats.partial')}</option>
-                                <option value="Cancelled">{t('invoices.stats.cancelled')}</option>
+                                {statusList.length ? statusList.map(s => (
+                                    <option key={s.id} value={s.name}>{s.name}</option>
+                                )) : (
+                                    <>
+                                        <option value="Paid">{t('invoices.stats.paid')}</option>
+                                        <option value="Unpaid">{t('invoices.stats.unpaid')}</option>
+                                        <option value="Draft">{t('invoices.stats.draft')}</option>
+                                        <option value="Partial">{t('invoices.stats.partial')}</option>
+                                        <option value="Cancelled">{t('invoices.stats.cancelled')}</option>
+                                    </>
+                                )}
                             </select>
                         </div>
 

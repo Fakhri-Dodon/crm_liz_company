@@ -20,6 +20,9 @@ use App\Http\Controllers\ProposalElementController;
 use App\Http\Controllers\RolesController;
 use App\Http\Controllers\QuotationStatusesController;
 use App\Http\Controllers\QuotationNumberFormatted;
+use App\Http\Controllers\InvoiceStatusesController;
+use App\Http\Controllers\PaymentTypeController;
+use App\Http\Controllers\InvoiceNumberFormatted;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\TaxController;
 use Illuminate\Foundation\Application;
@@ -78,6 +81,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('/invoice/{invoice}/approve', [InvoiceController::class, 'approve'])->name('invoice.approve');
     Route::post('/invoice/{invoice}/revise', [InvoiceController::class, 'revise'])->name('invoice.revise');
     Route::patch('/invoice/{invoice}/update-status', [InvoiceController::class, 'updateStatus'])->name('invoice.update-status');
+    Route::post('/invoice/status-notify/{id}', [InvoiceController::class, 'notificationUpdateStatus'])->name('invoice.notification-status');
     // notif send document(quotation/invoice)email
     Route::post('/send-email/{type}/{id}', [EmailController::class, 'sendDocument'])->name('email.send-document');
 
@@ -152,6 +156,17 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::delete('/quotation-status/destroy/{id}', [QuotationStatusesController::class, 'destroy'])->name('quotation-status.delete');
         Route::post('/quotation_numbering/update/{id}', [QuotationNumberFormatted::class, 'update'])->name('quotation_numbering.update');
 
+        // Invoice Settings
+        Route::get('/invoices', [SettingController::class, 'invoices'])->name('invoices');
+        Route::post('/invoice-status/store', [InvoiceStatusesController::class, 'store'])->name('invoice-status.store');
+        Route::put('/invoice-status/update/{id}', [InvoiceStatusesController::class, 'update'])->name('invoice-status.update');
+        Route::delete('/invoice-status/destroy/{id}', [InvoiceStatusesController::class, 'destroy'])->name('invoice-status.delete');
+        Route::post('/invoice_numbering/update/{id}', [InvoiceNumberFormatted::class, 'update'])->name('invoice_numbering.update');
+        // Payment Type Settings
+        Route::post('/payment-type/store', [PaymentTypeController::class, 'store'])->name('payment-type.store');
+        Route::put('/payment-type/update/{id}', [PaymentTypeController::class, 'update'])->name('payment-type.update');
+        Route::delete('/payment-type/destroy/{id}', [PaymentTypeController::class, 'destroy'])->name('payment-type.delete');
+
         // Tax (pph and ppn) Settings
         Route::get('/tax', [SettingController::class, 'tax'])->name('tax');
         // ppn
@@ -183,10 +198,22 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/projects/{project}/edit', [ProjectController::class, 'edit']); 
     Route::put('/projects/{project}/status', [ProjectController::class, 'updateStatus'])
         ->name('projects.status.update');
+            // Update status route (important!)
+    Route::put('/projects/{project}/status', [ProjectController::class, 'updateStatus'])
+        ->name('projects.status.update');
+     // Projects routes
+    Route::resource('projects', ProjectController::class);
+    
+    // API untuk mendapatkan clients dengan nama dari leads
+    Route::get('/api/clients', [ProjectController::class, 'getClients']);
+    // Atau jika sudah ada route untuk companies, bisa dimodifikasi
+    Route::get('/api/companies', [CompanyController::class, 'getClientsForProjects']);
 });
 
 Route::middleware(['auth', 'verified'])->group(function () {
-    // ====================== COMPANY ROUTES ======================
+    // Public endpoints used by front-end
+    Route::get('/payment-types', [PaymentTypeController::class, 'index'])->name('payment-types.index');
+
 
     // ====================== ADDITIONAL COMPANY ROUTES ======================
     Route::get('/companies/get-accepted-quotations', [CompanyController::class, 'getAcceptedQuotations']);

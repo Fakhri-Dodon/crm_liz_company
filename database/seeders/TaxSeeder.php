@@ -51,7 +51,7 @@ class TaxSeeder extends Seeder
             Pph::create([
                 'id' => Str::uuid()->toString(),
                 'name' => $pph['name'],
-                'rate' => $ppn['rate'],
+                'rate' => $pph['rate'],
                 'created_at' => now(),
                 'updated_at' => now(),
             ]);

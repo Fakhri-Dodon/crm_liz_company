@@ -3,29 +3,29 @@ import React, { useState, useEffect } from 'react';
 import { X, Upload, Building, User, Mail, Phone, MapPin, Globe, FileText, AlertCircle, Check, ChevronDown, Search } from 'lucide-react';
 import { router, usePage } from '@inertiajs/react';
 import axios from 'axios';
-import { useTranslation } from 'react-i18next'; // Import useTranslation
+import { useTranslation } from 'react-i18next';
 
 const Create = ({ isOpen, onClose, clientTypes, quotationId, onSuccess }) => {
     const { flash } = usePage().props;
-    const { t } = useTranslation(); // Initialize translation hook
+    const { t } = useTranslation();
     
-    // State untuk menyimpan data form - SESUAI DENGAN VALIDASI CONTROLLER
+    // State untuk menyimpan data form
     const [formData, setFormData] = useState({
-        company_name: '', // Wajib - akan jadi client_code
-        client_type_id: '', // Wajib
-        contact_person: '', // Wajib
-        contact_email: '', // Wajib
-        contact_phone: '', // Wajib
-        contact_position: '', // Opsional
+        company_name: '',
+        client_type_id: '',
+        contact_person: '',
+        contact_email: '',
+        contact_phone: '',
+        contact_position: '',
         city: '',
         province: '',
         country: '',
         postal_code: '',
-        vat_number: '',
-        nib: '',
-        website: '',
+        vat_number: '', // TIDAK WAJIB
+        nib: '', // TIDAK WAJIB
+        website: '', // TIDAK WAJIB
         logo: null,
-        status: 'active', // Wajib
+        status: 'active',
         quotation_id: quotationId || '',
         lead_id: ''
     });
@@ -44,15 +44,29 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId, onSuccess }) => {
     const [quotationLead, setQuotationLead] = useState(null);
     const [loadingLead, setLoadingLead] = useState(false);
 
-    // Setup axios defaults
+    // Fungsi untuk mendapatkan CSRF token dari Laravel
+    const getCsrfToken = () => {
+        const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+        console.log('CSRF Token found:', token ? 'Yes' : 'No');
+        return token;
+    };
+
+    // Setup axios defaults dengan CSRF token yang benar
     useEffect(() => {
+        const csrfToken = getCsrfToken();
+        
         axios.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest';
         axios.defaults.withCredentials = true;
         
-        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
         if (csrfToken) {
             axios.defaults.headers.common['X-CSRF-TOKEN'] = csrfToken;
+            console.log('CSRF Token set for axios');
+        } else {
+            console.warn('CSRF Token not found!');
         }
+        
+        // Juga tambahkan Accept header untuk JSON
+        axios.defaults.headers.common['Accept'] = 'application/json';
     }, []);
 
     // Reset form ketika modal dibuka
@@ -72,9 +86,9 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId, onSuccess }) => {
                 province: '',
                 country: '',
                 postal_code: '',
-                vat_number: '',
-                nib: '',
-                website: '',
+                vat_number: '', // TIDAK WAJIB
+                nib: '', // TIDAK WAJIB
+                website: '', // TIDAK WAJIB
                 logo: null,
                 status: 'active',
                 quotation_id: quotationId || '',
@@ -100,7 +114,13 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId, onSuccess }) => {
     const fetchAcceptedQuotations = async () => {
         setLoadingQuotations(true);
         try {
-            const response = await axios.get('/companies/get-accepted-quotations');
+            const csrfToken = getCsrfToken();
+            const response = await axios.get('/companies/get-accepted-quotations', {
+                headers: {
+                    'X-CSRF-TOKEN': csrfToken,
+                    'Accept': 'application/json'
+                }
+            });
             
             if (response && response.data && response.data.success) {
                 setQuotations(response.data.data || []);
@@ -108,7 +128,7 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId, onSuccess }) => {
                 setQuotations([]);
             }
         } catch (error) {
-            console.error('Error:', error);
+            console.error('Error fetching quotations:', error);
             setQuotations([]);
         } finally {
             setLoadingQuotations(false);
@@ -129,7 +149,10 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId, onSuccess }) => {
             contact_person: quotation.lead?.contact_person || prev.contact_person,
             contact_email: quotation.lead?.email || prev.contact_email,
             contact_phone: quotation.lead?.phone || prev.contact_phone,
-            contact_position: quotation.lead?.position || t('companies_create.contact_person')
+            contact_position: quotation.lead?.position || t('companies_create.contact_person'),
+            vat_number: quotation.lead?.vat_number || '', // TIDAK WAJIB
+            nib: quotation.lead?.nib || '', // TIDAK WAJIB
+            website: quotation.lead?.website || '' // TIDAK WAJIB
         }));
         
         // Set lead data
@@ -144,7 +167,13 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId, onSuccess }) => {
         
         setLoadingLead(true);
         try {
-            const response = await axios.get(`/companies/get-lead-from-quotation/${quotationId}`);
+            const csrfToken = getCsrfToken();
+            const response = await axios.get(`/companies/get-lead-from-quotation/${quotationId}`, {
+                headers: {
+                    'X-CSRF-TOKEN': csrfToken,
+                    'Accept': 'application/json'
+                }
+            });
             
             if (response && response.data && response.data.success) {
                 const leadData = response.data.data;
@@ -163,11 +192,14 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId, onSuccess }) => {
                     city: leadData.city || prev.city,
                     province: leadData.province || prev.province,
                     country: leadData.country || prev.country,
-                    postal_code: leadData.postal_code || prev.postal_code
+                    postal_code: leadData.postal_code || prev.postal_code,
+                    vat_number: leadData.vat_number || '', // TIDAK WAJIB
+                    nib: leadData.nib || '', // TIDAK WAJIB
+                    website: leadData.website || '' // TIDAK WAJIB
                 }));
             }
         } catch (error) {
-            console.error('Error:', error);
+            console.error('Error fetching lead:', error);
         } finally {
             setLoadingLead(false);
         }
@@ -185,6 +217,9 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId, onSuccess }) => {
             contact_person: '',
             contact_email: '',
             contact_phone: '',
+            vat_number: '', // TIDAK WAJIB
+            nib: '', // TIDAK WAJIB
+            website: '', // TIDAK WAJIB
             city: '',
             province: '',
             country: '',
@@ -237,144 +272,159 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId, onSuccess }) => {
         }
     };
 
-    // Handle submit
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-        setIsSubmitting(true);
-        setErrors({});
+    // Handle submit dengan CSRF token yang benar
+ const handleSubmit = async (e) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    setErrors({});
 
-        console.log('=== FORM SUBMISSION STARTED ===');
-        console.log('Form data before submit:', formData);
+    console.log('=== FORM SUBMISSION STARTED ===');
+    console.log('Form data before submit:', formData);
 
-        // Buat FormData untuk upload file
-        const formDataToSend = new FormData();
+    // Validasi field wajib
+    const requiredFields = [
+        'company_name',
+        'client_type_id',
+        'contact_person',
+        'contact_email',
+        'contact_phone',
+        'status'
+    ];
+
+    let hasError = false;
+    const newErrors = {};
+
+    requiredFields.forEach(field => {
+        if (!formData[field]) {
+            newErrors[field] = t('companies_create.field_required', { field: field.replace('_', ' ') });
+            hasError = true;
+        }
+    });
+
+    if (hasError) {
+        setErrors(newErrors);
+        setIsSubmitting(false);
+        return;
+    }
+
+    // Buat FormData untuk upload file
+    const formDataToSend = new FormData();
+    
+    // **TAMBAHKAN CSRF TOKEN KE FORMDATA SECARA MANUAL**
+    const csrfToken = getCsrfToken();
+    if (csrfToken) {
+        formDataToSend.append('_token', csrfToken);
+    }
+    
+    // Append semua data ke FormData
+    Object.entries(formData).forEach(([key, value]) => {
+        if (value !== null && value !== undefined && value !== '') {
+            if (key === 'logo' && value instanceof File) {
+                formDataToSend.append('logo', value);
+            } else {
+                formDataToSend.append(key, value.toString());
+            }
+        }
+    });
+
+    // Tambahkan name field dari contact_person
+    if (formData.contact_person) {
+        formDataToSend.append('name', formData.contact_person);
+    }
+
+    // Pastikan ada quotation_id jika dari prop
+    if (quotationId && !formData.quotation_id) {
+        formDataToSend.append('quotation_id', quotationId);
+    }
+
+    try {
+        console.log('Sending form data...');
+        console.log('CSRF Token to send:', csrfToken);
         
-        // Append semua field WAJIB sesuai validasi controller
-        const requiredFields = [
-            'company_name',
-            'client_type_id',
-            'contact_person',
-            'contact_email',
-            'contact_phone',
-            'status'
-        ];
-        
-        // Cek field wajib
-        requiredFields.forEach(field => {
-            if (!formData[field]) {
-                setErrors(prev => ({
-                    ...prev,
-                    [field]: t('companies_create.field_required', { field: field.replace('_', ' ') })
-                }));
+        // **GUNAKAN AXIOS DENGAN KONFIGURASI SEDERHANA**
+        const response = await axios.post('/companies', formDataToSend, {
+            headers: {
+                'Content-Type': 'multipart/form-data',
             }
         });
 
-        // Cek jika ada error validation manual
-        if (Object.keys(errors).length > 0) {
-            setIsSubmitting(false);
-            return;
-        }
+        console.log('Server response:', response);
 
-        // Append semua data ke FormData
-        Object.entries(formData).forEach(([key, value]) => {
-            if (value !== null && value !== undefined) {
-                if (key === 'logo' && value instanceof File) {
-                    formDataToSend.append('logo', value);
-                } else if (value !== '') {
-                    formDataToSend.append(key, value.toString());
-                }
-            }
-        });
-
-        if (formData.contact_person) {
-            formDataToSend.append('name', formData.contact_person);
-        }
-
-        // Pastikan ada quotation_id jika dari prop
-        if (quotationId && !formData.quotation_id) {
-            formDataToSend.append('quotation_id', quotationId);
-        }
-
-        try {
-            console.log('Sending form data...');
+        if (response && response.data && response.data.success) {
+            // Success message
+            alert(response.data.message || t('companies_create.client_created_successfully'));
             
-            const response = await axios.post('/companies', formDataToSend, {
-                headers: {
-                    'Content-Type': 'multipart/form-data',
-                },
+            // Tutup modal
+            onClose();
+            
+            // Reset form
+            setFormData({
+                company_name: '',
+                client_type_id: '',
+                contact_person: '',
+                contact_email: '',
+                contact_phone: '',
+                contact_position: '',
+                city: '',
+                province: '',
+                country: '',
+                postal_code: '',
+                vat_number: '',
+                nib: '',
+                website: '',
+                logo: null,
+                status: 'active',
+                quotation_id: '',
+                lead_id: ''
             });
-
-            console.log('Server response:', response);
-
-            if (response && response.data && response.data.success) {
-                // Success message
-                alert(response.data.message || t('companies_create.client_created_successfully'));
-                
-                // Tutup modal
-                onClose();
-                
-                // Reset form
-                setFormData({
-                    company_name: '',
-                    client_type_id: '',
-                    contact_person: '',
-                    contact_email: '',
-                    contact_phone: '',
-                    contact_position: '',
-                    city: '',
-                    province: '',
-                    country: '',
-                    postal_code: '',
-                    vat_number: '',
-                    nib: '',
-                    website: '',
-                    logo: null,
-                    status: 'active',
-                    quotation_id: '',
-                    lead_id: ''
-                });
-                setSelectedQuotation(null);
-                setQuotationLead(null);
-                setLogoPreview(null);
-                
-                // Panggil callback success jika ada
-                if (onSuccess) {
-                    onSuccess();
-                }
-                
-                // Refresh data
-                router.reload({
-                    only: ['companies', 'statistics'],
-                    preserveScroll: true,
-                });
-            } else {
-                setErrors(response?.data?.errors || {});
-                alert(response?.data?.message || t('companies_create.failed_to_create_client'));
-            }
-
-        } catch (error) {
-            console.error('Error creating client:', error);
-            console.error('Error details:', error.response?.data);
+            setSelectedQuotation(null);
+            setQuotationLead(null);
+            setLogoPreview(null);
             
-            if (error.response?.status === 422) {
-                // Set validation errors
-                setErrors(error.response.data.errors || {});
-                
-                // Show validation error summary
-                const errorMessages = Object.values(error.response.data.errors || {})
-                    .flat()
-                    .join('\n');
-                
-                if (errorMessages) {
-                    alert(t('companies_create.validation_errors') + '\n' + errorMessages);
-                }
-            } else {
-                alert(`${t('companies_create.error_creating_client')}: ${error.response?.data?.message || error.message}`);
+            // Panggil callback success jika ada
+            if (onSuccess) {
+                onSuccess();
             }
-        } finally {
-            setIsSubmitting(false);
+            
+            // Refresh data
+            router.reload({
+                only: ['companies', 'statistics'],
+                preserveScroll: true,
+            });
+        } else {
+            setErrors(response?.data?.errors || {});
+            alert(response?.data?.message || t('companies_create.failed_to_create_client'));
         }
-    };
+
+    } catch (error) {
+        console.error('Error creating client:', error);
+        console.error('Error details:', error.response?.data);
+        
+        if (error.response?.status === 419) {
+            // CSRF token error - refresh token
+            const newToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+            console.log('Current CSRF token:', newToken);
+            
+            alert('CSRF token expired. Please refresh the page and try again.');
+            window.location.reload();
+        } else if (error.response?.status === 422) {
+            // Validation errors
+            setErrors(error.response.data.errors || {});
+            
+            const errorMessages = Object.values(error.response.data.errors || {})
+                .flat()
+                .join('\n');
+            
+            if (errorMessages) {
+                alert(t('companies_create.validation_errors') + '\n' + errorMessages);
+            }
+        } else {
+            alert(`${t('companies_create.error_creating_client')}: ${error.response?.data?.message || error.message}`);
+        }
+    } finally {
+        setIsSubmitting(false);
+    }
+};
 
     if (!isOpen) return null;
 
@@ -412,9 +462,15 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId, onSuccess }) => {
                             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                                 <h3 className="font-medium text-blue-900 mb-3 flex items-center gap-2">
                                     <FileText className="w-5 h-5" />
-                                    {t('companies_create.select_from_quotation')}
+                                    {t('companies_create.select_from_quotation')}<span className="text-red-600">*</span>
                                 </h3>
-                                
+                                {/* Announcement wajib pilih quotation */}
+                                {/* {!selectedQuotation && (
+                                    <div className="mb-3 p-3 bg-yellow-100 border border-yellow-300 text-yellow-800 rounded text-sm font-semibold flex items-center gap-2">
+                                        <AlertCircle className="w-4 h-4" />
+                                        {t('companies_create.must_select_quotation')}
+                                    </div>
+                                )} */}
                                 {loadingQuotations ? (
                                     <div className="text-center py-4">
                                         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
@@ -521,7 +577,7 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId, onSuccess }) => {
                                 {/* Company Name - Wajib */}
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        {t('companies_create.company_name')} *
+                                        {t('companies_create.company_name')} <span className="text-red-600">*</span>
                                     </label>
                                     <input
                                         type="text"
@@ -533,6 +589,7 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId, onSuccess }) => {
                                         }`}
                                         required
                                         placeholder={t('companies_create.company_name_placeholder')}
+                                        disabled={!quotationId && !selectedQuotation}
                                     />
                                     {errors.company_name && (
                                         <p className="text-xs text-red-600 mt-1">{errors.company_name}</p>
@@ -542,7 +599,7 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId, onSuccess }) => {
                                 {/* Client Type - Wajib */}
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        {t('companies_create.client_type')} *
+                                        {t('companies_create.client_type')} <span className="text-red-600">*</span>
                                     </label>
                                     <select
                                         name="client_type_id"
@@ -552,6 +609,7 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId, onSuccess }) => {
                                             errors.client_type_id ? 'border-red-300' : 'border-gray-300'
                                         }`}
                                         required
+                                        disabled={!quotationId && !selectedQuotation}
                                     >
                                         <option value="">{t('companies_create.select_client_type')}</option>
                                         {clientTypes && clientTypes.map(type => (
@@ -566,78 +624,107 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId, onSuccess }) => {
                                 </div>
                             </div>
 
-                            {/* Address */}
+                            {/* Address - Wajib */}
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        {t('companies_create.city')}
+                                        {t('companies_create.city')} <span className="text-red-600">*</span>
                                     </label>
                                     <input
                                         type="text"
                                         name="city"
                                         value={formData.city}
                                         onChange={handleInputChange}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                                        className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 ${
+                                            errors.city ? 'border-red-300' : 'border-gray-300'
+                                        }`}
+                                        required
                                         placeholder={t('companies_create.city_placeholder')}
+                                        disabled={!quotationId && !selectedQuotation}
                                     />
+                                    {errors.city && (
+                                        <p className="text-xs text-red-600 mt-1">{errors.city}</p>
+                                    )}
                                 </div>
 
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        {t('companies_create.province')}
+                                        {t('companies_create.province')} <span className="text-red-600">*</span>
                                     </label>
                                     <input
                                         type="text"
                                         name="province"
                                         value={formData.province}
                                         onChange={handleInputChange}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                                        className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 ${
+                                            errors.province ? 'border-red-300' : 'border-gray-300'
+                                        }`}
+                                        required
                                         placeholder={t('companies_create.province_placeholder')}
+                                        disabled={!quotationId && !selectedQuotation}
                                     />
+                                    {errors.province && (
+                                        <p className="text-xs text-red-600 mt-1">{errors.province}</p>
+                                    )}
                                 </div>
 
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        {t('companies_create.country')}
+                                        {t('companies_create.country')} <span className="text-red-600">*</span>
                                     </label>
                                     <input
                                         type="text"
                                         name="country"
                                         value={formData.country}
                                         onChange={handleInputChange}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                                        className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 ${
+                                            errors.country ? 'border-red-300' : 'border-gray-300'
+                                        }`}
+                                        required
                                         placeholder={t('companies_create.country_placeholder')}
+                                        disabled={!quotationId && !selectedQuotation}
                                     />
+                                    {errors.country && (
+                                        <p className="text-xs text-red-600 mt-1">{errors.country}</p>
+                                    )}
                                 </div>
 
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        {t('companies_create.postal_code')}
+                                        {t('companies_create.postal_code')} <span className="text-red-600">*</span>
                                     </label>
                                     <input
-                                        type="number"
+                                        type="text" // Ubah dari number ke text untuk fleksibilitas
                                         name="postal_code"
                                         value={formData.postal_code}
                                         onChange={handleInputChange}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                                        className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 ${
+                                            errors.postal_code ? 'border-red-300' : 'border-gray-300'
+                                        }`}
+                                        required
                                         placeholder={t('companies_create.postal_code_placeholder')}
+                                        disabled={!quotationId && !selectedQuotation}
                                     />
+                                    {errors.postal_code && (
+                                        <p className="text-xs text-red-600 mt-1">{errors.postal_code}</p>
+                                    )}
                                 </div>
                             </div>
 
-                            {/* Business Details */}
+                            {/* Business Details - TIDAK WAJIB */}
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">
                                         {t('companies_create.vat_number')}
                                     </label>
                                     <input
-                                        type="number"
+                                        type="text" // Ubah dari number ke text
                                         name="vat_number"
                                         value={formData.vat_number}
                                         onChange={handleInputChange}
                                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
                                         placeholder={t('companies_create.vat_number_placeholder')}
+                                        disabled={!quotationId && !selectedQuotation}
                                     />
                                 </div>
 
@@ -652,10 +739,11 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId, onSuccess }) => {
                                         onChange={handleInputChange}
                                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
                                         placeholder={t('companies_create.nib_placeholder')}
+                                        disabled={!quotationId && !selectedQuotation}
                                     />
                                 </div>
 
-                                <div>
+                                <div className="md:col-span-2">
                                     <label className="block text-sm font-medium text-gray-700 mb-1">
                                         {t('companies_create.website')}
                                     </label>
@@ -666,6 +754,7 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId, onSuccess }) => {
                                         onChange={handleInputChange}
                                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
                                         placeholder={t('companies_create.website_placeholder')}
+                                        disabled={!quotationId && !selectedQuotation}
                                     />
                                 </div>
                             </div>
@@ -675,13 +764,13 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId, onSuccess }) => {
                         <div className="border-t pt-6">
                             <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2 mb-4">
                                 <User className="w-5 h-5" />
-                                {t('companies_create.contact_information')} *
+                                {t('companies_create.contact_information')}
                             </h3>
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        {t('companies_create.contact_person')} *
+                                        {t('companies_create.contact_person')} <span className="text-red-600">*</span>
                                     </label>
                                     <input
                                         type="text"
@@ -693,6 +782,7 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId, onSuccess }) => {
                                         }`}
                                         required
                                         placeholder={t('companies_create.contact_person_placeholder')}
+                                        disabled={!quotationId && !selectedQuotation}
                                     />
                                     {errors.contact_person && (
                                         <p className="text-xs text-red-600 mt-1">{errors.contact_person}</p>
@@ -701,21 +791,28 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId, onSuccess }) => {
 
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        {t('companies_create.position')}
+                                        {t('companies_create.position')} <span className="text-red-600">*</span>
                                     </label>
                                     <input
                                         type="text"
                                         name="contact_position"
                                         value={formData.contact_position}
                                         onChange={handleInputChange}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                                        className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 ${
+                                            errors.contact_position ? 'border-red-300' : 'border-gray-300'
+                                        }`}
+                                        required
                                         placeholder={t('companies_create.position_placeholder')}
+                                        disabled={!quotationId && !selectedQuotation}
                                     />
+                                    {errors.contact_position && (
+                                        <p className="text-xs text-red-600 mt-1">{errors.contact_position}</p>
+                                    )}
                                 </div>
 
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        {t('companies_create.email')} *
+                                        {t('companies_create.email')} <span className="text-red-600">*</span>
                                     </label>
                                     <input
                                         type="email"
@@ -727,6 +824,7 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId, onSuccess }) => {
                                         }`}
                                         required
                                         placeholder={t('companies_create.email_placeholder')}
+                                        disabled={!quotationId && !selectedQuotation}
                                     />
                                     {errors.contact_email && (
                                         <p className="text-xs text-red-600 mt-1">{errors.contact_email}</p>
@@ -735,7 +833,7 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId, onSuccess }) => {
 
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        {t('companies_create.phone')} *
+                                        {t('companies_create.phone')} <span className="text-red-600">*</span>
                                     </label>
                                     <input
                                         type="tel"
@@ -747,6 +845,7 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId, onSuccess }) => {
                                         }`}
                                         required
                                         placeholder={t('companies_create.phone_placeholder')}
+                                        disabled={!quotationId && !selectedQuotation}
                                     />
                                     {errors.contact_phone && (
                                         <p className="text-xs text-red-600 mt-1">{errors.contact_phone}</p>
@@ -755,46 +854,8 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId, onSuccess }) => {
                             </div>
                         </div>
 
-                        {/* Status & Logo Upload */}
+                        {/* Logo Upload - Opsional */}
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-6 border-t">
-                            <div>
-                                <h3 className="text-lg font-semibold text-gray-900 mb-3">
-                                    {t('companies_create.status')} *
-                                </h3>
-                                <div className="flex gap-4">
-                                    <label className="flex items-center">
-                                        <input
-                                            type="radio"
-                                            name="status"
-                                            value="active"
-                                            checked={formData.status === 'active'}
-                                            onChange={handleInputChange}
-                                            className="w-4 h-4 text-teal-600 focus:ring-teal-500"
-                                            required
-                                        />
-                                        <span className="ml-2 text-gray-700">
-                                            {t('companies_create.active')}
-                                        </span>
-                                    </label>
-                                    <label className="flex items-center">
-                                        <input
-                                            type="radio"
-                                            name="status"
-                                            value="inactive"
-                                            checked={formData.status === 'inactive'}
-                                            onChange={handleInputChange}
-                                            className="w-4 h-4 text-teal-600 focus:ring-teal-500"
-                                        />
-                                        <span className="ml-2 text-gray-700">
-                                            {t('companies_create.inactive')}
-                                        </span>
-                                    </label>
-                                </div>
-                                {errors.status && (
-                                    <p className="text-xs text-red-600 mt-1">{errors.status}</p>
-                                )}
-                            </div>
-
                             <div>
                                 <h3 className="text-lg font-semibold text-gray-900 mb-3">
                                     {t('companies_create.company_logo')}
@@ -808,6 +869,7 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId, onSuccess }) => {
                                                 onChange={handleInputChange}
                                                 accept="image/*"
                                                 className="w-full border border-gray-300 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                                disabled={!quotationId && !selectedQuotation}
                                             />
                                             <p className="text-xs text-gray-500 mt-1">
                                                 {t('companies_create.file_requirements')}
@@ -840,9 +902,9 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId, onSuccess }) => {
                         </button>
                         <button
                             type="submit"
-                            disabled={isSubmitting}
+                            disabled={isSubmitting || (!quotationId && !selectedQuotation)}
                             className={`px-6 py-2 font-medium rounded-lg flex items-center gap-2 ${
-                                isSubmitting
+                                isSubmitting || (!quotationId && !selectedQuotation)
                                     ? 'bg-gray-400 text-white cursor-not-allowed'
                                     : 'bg-teal-700 hover:bg-teal-800 text-white'
                             }`}
