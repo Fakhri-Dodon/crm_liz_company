@@ -645,7 +645,7 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId, onSuccess }) => {
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        {t('companies_create.vat_number')} <span className="text-red-600">*</span>
+                                        {t('companies_create.vat_number')}
                                     </label>
                                     <input
                                         type="number"
@@ -654,14 +654,13 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId, onSuccess }) => {
                                         onChange={handleInputChange}
                                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
                                         placeholder={t('companies_create.vat_number_placeholder')}
-                                        required
                                         disabled={!quotationId && !selectedQuotation}
                                     />
                                 </div>
 
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        {t('companies_create.nib')} <span className="text-red-600">*</span>
+                                        {t('companies_create.nib')}
                                     </label>
                                     <input
                                         type="text"
@@ -670,14 +669,13 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId, onSuccess }) => {
                                         onChange={handleInputChange}
                                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
                                         placeholder={t('companies_create.nib_placeholder')}
-                                        required
                                         disabled={!quotationId && !selectedQuotation}
                                     />
                                 </div>
 
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        {t('companies_create.website')} <span className="text-red-600">*</span>
+                                        {t('companies_create.website')}
                                     </label>
                                     <input
                                         type="url"
@@ -686,7 +684,6 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId, onSuccess }) => {
                                         onChange={handleInputChange}
                                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
                                         placeholder={t('companies_create.website_placeholder')}
-                                        required
                                         disabled={!quotationId && !selectedQuotation}
                                     />
                                 </div>
@@ -782,46 +779,8 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId, onSuccess }) => {
                             </div>
                         </div>
 
-                        {/* Status & Logo Upload */}
+                        {/* Logo Upload */}
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-6 border-t">
-                            <div>
-                                <h3 className="text-lg font-semibold text-gray-900 mb-3">
-                                    {t('companies_create.status')} *
-                                </h3>
-                                <div className="flex gap-4">
-                                    <label className="flex items-center">
-                                        <input
-                                            type="radio"
-                                            name="status"
-                                            value="active"
-                                            checked={formData.status === 'active'}
-                                            onChange={handleInputChange}
-                                            className="w-4 h-4 text-teal-600 focus:ring-teal-500"
-                                            required
-                                        />
-                                        <span className="ml-2 text-gray-700">
-                                            {t('companies_create.active')}
-                                        </span>
-                                    </label>
-                                    <label className="flex items-center">
-                                        <input
-                                            type="radio"
-                                            name="status"
-                                            value="inactive"
-                                            checked={formData.status === 'inactive'}
-                                            onChange={handleInputChange}
-                                            className="w-4 h-4 text-teal-600 focus:ring-teal-500"
-                                        />
-                                        <span className="ml-2 text-gray-700">
-                                            {t('companies_create.inactive')}
-                                        </span>
-                                    </label>
-                                </div>
-                                {errors.status && (
-                                    <p className="text-xs text-red-600 mt-1">{errors.status}</p>
-                                )}
-                            </div>
-
                             <div>
                                 <h3 className="text-lg font-semibold text-gray-900 mb-3">
                                     {t('companies_create.company_logo')}
