@@ -337,8 +337,11 @@ const CompaniesIndex = () => {
         {
             key: "contact_person",
             label: t('companies.table.contact_person'),
-            render: (value) => (
-                <span className="font-medium text-gray-900">{value || '-'}</span>
+            render: (value, row) => (
+                <div className="flex flex-col">
+                    <span className="font-medium text-gray-900">{value || '-'}</span>
+                    <span className="text-xs text-gray-500 font-normal">{row.contact_position || '-'}</span>
+                </div>
             )
         },
         {
@@ -437,7 +440,6 @@ const CompaniesIndex = () => {
         <>
             <HeaderLayout
                 title={t('companies.title')}
-                subtitle={t('companies.subtitle')}
             />
 
             <div className="px-8 py-6">
@@ -447,9 +449,6 @@ const CompaniesIndex = () => {
                         <h1 className="text-xl font-black uppercase tracking-widest text-gray-800">
                             {t('companies.title')}
                         </h1>
-                        <p className="text-sm text-gray-600 mt-1">
-                            {t('companies.subtitle')}
-                        </p>
                     </div>
 
                     {/* Quotation Notification Banner */}
