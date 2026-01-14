@@ -668,7 +668,7 @@ const CompaniesIndex = () => {
                 </div>
 
                 {/* Info Summary */}
-                <div className="mt-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                {/* <div className="mt-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
                     <div className="flex items-center gap-2">
                         <FileText className="w-4 h-4 text-gray-500" />
                         <p className="text-sm text-gray-600">
@@ -677,7 +677,7 @@ const CompaniesIndex = () => {
                             <strong> Inactive:</strong> {statistics.inactive || 0}
                         </p>
                     </div>
-                </div>
+                </div> */}
             </div>
         </>
     );

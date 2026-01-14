@@ -575,3 +575,145 @@ body, html {
     margin: 10px auto !important;
     box-shadow: 0 4px 6px rgba(0,0,0,0.1) !important;
 }
+
+/* --- SIDEBAR KANAN (DETAILS MODE) --- */
+.style-sidebar {
+    display: flex;
+    flex-direction: column;
+    position: absolute;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    width: 280px;
+    background-color: #2f4154;
+    z-index: 100;
+    overflow-y: auto;
+    color: white;
+    border-left: 1px solid #222;
+    
+    /* ANIMASI SLIDE-IN */
+    transform: translateX(100%); /* Default sembunyi di kanan */
+    transition: transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+
+/* Class ini ditambahkan via JS saat komponen dipilih di mode details */
+.style-sidebar.open {
+    transform: translateX(0); /* Muncul */
+}
+
+/* Header Judul (Settings / Style) */
+.gjs-sm-header {
+    background-color: #243342;
+    padding: 12px 15px;
+    font-size: 11px;
+    font-weight: 700;
+    color: #1abc9c; /* Hijau Tosca */
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+    border-top: 1px solid rgba(0,0,0,0.2);
+}
+
+/* Style Manager & Traits Overrides (Agar gelap) */
+.gjs-sm-sector .gjs-sm-title {
+    background-color: #2f4154;
+    color: #ecf0f1;
+    font-size: 11px;
+    padding: 10px 15px;
+    cursor: pointer;
+    border-top: 1px solid rgba(255,255,255,0.05);
+}
+
+.gjs-sm-sector .gjs-sm-title:hover {
+    background-color: #3d566e;
+}
+
+.gjs-field input, .gjs-field select {
+    background-color: #1e2831 !important;
+    color: #fff !important;
+    border: 1px solid #1a232b !important;
+    border-radius: 4px;
+    padding: 5px;
+    font-size: 12px;
+}
+
+.gjs-field input:focus {
+    border-color: #1abc9c !important;
+}
+
+/* Tombol Trait (Upload dll) */
+.gjs-btn-prim {
+    background-color: #1abc9c;
+    color: white;
+    width: 100%;
+    margin-top: 5px;
+}
+
+/* Sembunyikan caret bawaan */
+.gjs-sm-caret { display: none !important; }
+
+/* Scrollbar */
+.style-sidebar::-webkit-scrollbar { width: 6px; }
+.style-sidebar::-webkit-scrollbar-thumb { background: #1abc9c; border-radius: 3px; }
+
+/* --- SIDEBAR KIRI (DETAILS MODE) --- */
+.style-sidebar-left {
+    display: flex;
+    flex-direction: column;
+    position: absolute;
+    
+    /* POSISI KIRI (Sesuaikan dengan lebar menu ikon utama Anda) */
+    left: 80px; /* Asumsi lebar menu hitam paling kiri adalah sekitar 80px */
+    top: 0;
+    bottom: 0;
+    
+    width: 260px;
+    background-color: #2f4154;
+    z-index: 1000; /* Z-index tinggi agar di atas canvas */
+    border-right: 1px solid #222;
+    box-shadow: 4px 0 10px rgba(0,0,0,0.3);
+    
+    /* ANIMASI SLIDE DARI KIRI */
+    transform: translateX(-150%); 
+    transition: transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+
+/* KELAS AKTIF (DITAMBAHKAN VIA JS SAAT KLIK ELEMEN) */
+.style-sidebar-left.open {
+    transform: translateX(0);
+}
+
+/* Header Styling */
+.sidebar-header-custom {
+    padding: 15px;
+    background-color: #1abc9c; /* Warna aksen Flat UI */
+    color: white;
+    font-weight: bold;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 14px;
+    text-transform: uppercase;
+}
+
+.sidebar-section {
+    padding: 10px;
+    overflow-y: auto;
+}
+
+/* Override GrapesJS Fields agar pas di Sidebar Kiri */
+.gjs-sm-sector .gjs-sm-title {
+    background-color: #384b5e;
+    font-size: 12px;
+    border-bottom: 1px solid #444;
+}
+
+.gjs-field {
+    background-color: rgba(0,0,0,0.2);
+    border-radius: 3px;
+}
+
+.gjs-label {
+    color: #bdc3c7;
+    font-size: 11px;
+}
