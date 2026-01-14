@@ -488,7 +488,7 @@ const EditModal = ({ isOpen, onClose, company, clientTypes, onUpdate }) => {
                                 <div>
                                     <label className="block text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
                                         <Briefcase className="w-4 h-4 text-blue-500" />
-                                        {t('companies_edit.position')} <span className="text-red-600">*</span>
+                                        {t('companies_edit.position')}
                                     </label>
                                     <input
                                         type="text"
@@ -497,7 +497,6 @@ const EditModal = ({ isOpen, onClose, company, clientTypes, onUpdate }) => {
                                         onChange={handleInputChange}
                                         className="w-full px-4 py-3 border border-blue-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
                                         placeholder={t('companies_edit.position_placeholder')}
-                                        required
                                     />
                                 </div>
 
@@ -704,7 +703,7 @@ const EditModal = ({ isOpen, onClose, company, clientTypes, onUpdate }) => {
                                         </div>
                                         <div>
                                             <label className="block text-sm font-medium text-gray-700 mb-1">
-                                                {t('companies_edit.vat_number')} <span className="text-red-600">*</span>
+                                                {t('companies_edit.vat_number')}
                                             </label>
                                             <input
                                                 type="text"
@@ -713,12 +712,11 @@ const EditModal = ({ isOpen, onClose, company, clientTypes, onUpdate }) => {
                                                 onChange={handleInputChange}
                                                 className="w-full px-3 py-2 border border-teal-200 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
                                                 placeholder={t('companies_edit.vat_number_placeholder')}
-                                                required
                                             />
                                         </div>
                                         <div>
                                             <label className="block text-sm font-medium text-gray-700 mb-1">
-                                                {t('companies_edit.nib_number')} <span className="text-red-600">*</span>
+                                                {t('companies_edit.nib_number')}
                                             </label>
                                             <input
                                                 type="text"
@@ -727,12 +725,11 @@ const EditModal = ({ isOpen, onClose, company, clientTypes, onUpdate }) => {
                                                 onChange={handleInputChange}
                                                 className="w-full px-3 py-2 border border-teal-200 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
                                                 placeholder={t('companies_edit.nib_placeholder')}
-                                                required
                                             />
                                         </div>
                                         <div>
                                             <label className="block text-sm font-medium text-gray-700 mb-1">
-                                                {t('companies_edit.website')} <span className="text-red-600">*</span>
+                                                {t('companies_edit.website')}
                                             </label>
                                             <input
                                                 type="url"
@@ -741,7 +738,6 @@ const EditModal = ({ isOpen, onClose, company, clientTypes, onUpdate }) => {
                                                 onChange={handleInputChange}
                                                 className="w-full px-3 py-2 border border-teal-200 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
                                                 placeholder={t('companies_edit.website_placeholder')}
-                                                required
                                             />
                                         </div>
                                     </div>
@@ -749,61 +745,8 @@ const EditModal = ({ isOpen, onClose, company, clientTypes, onUpdate }) => {
                             </div>
                         </div>
 
-                        {/* Section 3: Status & Logo */}
+                        {/* Section 3: Logo */}
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                            {/* Status */}
-                            <div className="bg-white border border-gray-200 rounded-xl p-6">
-                                <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                                    {t('companies_edit.status')}
-                                </h3>
-                                <div className="flex flex-col sm:flex-row gap-4">
-                                    <label className={`flex items-center p-4 border rounded-lg cursor-pointer transition ${
-                                        formData.status === 'active' 
-                                            ? 'border-green-500 bg-green-50' 
-                                            : 'border-gray-200 hover:bg-gray-50'
-                                    }`}>
-                                        <input
-                                            type="radio"
-                                            name="status"
-                                            value="active"
-                                            checked={formData.status === 'active'}
-                                            onChange={handleInputChange}
-                                            className="w-5 h-5 text-green-600 focus:ring-green-500"
-                                        />
-                                        <div className="ml-3">
-                                            <span className="font-medium text-gray-900">
-                                                {t('companies_edit.active')}
-                                            </span>
-                                            <p className="text-sm text-gray-600 mt-1">
-                                                {t('companies_edit.active_description')}
-                                            </p>
-                                        </div>
-                                    </label>
-                                    <label className={`flex items-center p-4 border rounded-lg cursor-pointer transition ${
-                                        formData.status === 'inactive' 
-                                            ? 'border-gray-500 bg-gray-50' 
-                                            : 'border-gray-200 hover:bg-gray-50'
-                                    }`}>
-                                        <input
-                                            type="radio"
-                                            name="status"
-                                            value="inactive"
-                                            checked={formData.status === 'inactive'}
-                                            onChange={handleInputChange}
-                                            className="w-5 h-5 text-gray-600 focus:ring-gray-500"
-                                        />
-                                        <div className="ml-3">
-                                            <span className="font-medium text-gray-900">
-                                                {t('companies_edit.inactive')}
-                                            </span>
-                                            <p className="text-sm text-gray-600 mt-1">
-                                                {t('companies_edit.inactive_description')}
-                                            </p>
-                                        </div>
-                                    </label>
-                                </div>
-                            </div>
-
                             {/* Logo */}
                             <div className="bg-white border border-gray-200 rounded-xl p-6">
                                 <h3 className="text-lg font-semibold text-gray-900 mb-4">
