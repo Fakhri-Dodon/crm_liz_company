@@ -414,7 +414,13 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId, onSuccess }) => {
                                     <FileText className="w-5 h-5" />
                                     {t('companies_create.select_from_quotation')}
                                 </h3>
-                                
+                                {/* Announcement wajib pilih quotation */}
+                                {!selectedQuotation && (
+                                    <div className="mb-3 p-3 bg-yellow-100 border border-yellow-300 text-yellow-800 rounded text-sm font-semibold flex items-center gap-2">
+                                        <AlertCircle className="w-4 h-4" />
+                                        {t('companies_create.must_select_quotation', 'Silakan pilih quotation terlebih dahulu sebelum mengisi data perusahaan.')}
+                                    </div>
+                                )}
                                 {loadingQuotations ? (
                                     <div className="text-center py-4">
                                         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
@@ -533,6 +539,7 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId, onSuccess }) => {
                                         }`}
                                         required
                                         placeholder={t('companies_create.company_name_placeholder')}
+                                        disabled={!quotationId && !selectedQuotation}
                                     />
                                     {errors.company_name && (
                                         <p className="text-xs text-red-600 mt-1">{errors.company_name}</p>
@@ -552,6 +559,7 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId, onSuccess }) => {
                                             errors.client_type_id ? 'border-red-300' : 'border-gray-300'
                                         }`}
                                         required
+                                        disabled={!quotationId && !selectedQuotation}
                                     >
                                         <option value="">{t('companies_create.select_client_type')}</option>
                                         {clientTypes && clientTypes.map(type => (
@@ -579,6 +587,7 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId, onSuccess }) => {
                                         onChange={handleInputChange}
                                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
                                         placeholder={t('companies_create.city_placeholder')}
+                                        disabled={!quotationId && !selectedQuotation}
                                     />
                                 </div>
 
@@ -593,6 +602,7 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId, onSuccess }) => {
                                         onChange={handleInputChange}
                                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
                                         placeholder={t('companies_create.province_placeholder')}
+                                        disabled={!quotationId && !selectedQuotation}
                                     />
                                 </div>
 
@@ -607,6 +617,7 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId, onSuccess }) => {
                                         onChange={handleInputChange}
                                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
                                         placeholder={t('companies_create.country_placeholder')}
+                                        disabled={!quotationId && !selectedQuotation}
                                     />
                                 </div>
 
@@ -621,6 +632,7 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId, onSuccess }) => {
                                         onChange={handleInputChange}
                                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
                                         placeholder={t('companies_create.postal_code_placeholder')}
+                                        disabled={!quotationId && !selectedQuotation}
                                     />
                                 </div>
                             </div>
@@ -638,6 +650,7 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId, onSuccess }) => {
                                         onChange={handleInputChange}
                                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
                                         placeholder={t('companies_create.vat_number_placeholder')}
+                                        disabled={!quotationId && !selectedQuotation}
                                     />
                                 </div>
 
@@ -652,6 +665,7 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId, onSuccess }) => {
                                         onChange={handleInputChange}
                                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
                                         placeholder={t('companies_create.nib_placeholder')}
+                                        disabled={!quotationId && !selectedQuotation}
                                     />
                                 </div>
 
@@ -666,6 +680,7 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId, onSuccess }) => {
                                         onChange={handleInputChange}
                                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
                                         placeholder={t('companies_create.website_placeholder')}
+                                        disabled={!quotationId && !selectedQuotation}
                                     />
                                 </div>
                             </div>
@@ -693,6 +708,7 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId, onSuccess }) => {
                                         }`}
                                         required
                                         placeholder={t('companies_create.contact_person_placeholder')}
+                                        disabled={!quotationId && !selectedQuotation}
                                     />
                                     {errors.contact_person && (
                                         <p className="text-xs text-red-600 mt-1">{errors.contact_person}</p>
@@ -710,6 +726,7 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId, onSuccess }) => {
                                         onChange={handleInputChange}
                                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
                                         placeholder={t('companies_create.position_placeholder')}
+                                        disabled={!quotationId && !selectedQuotation}
                                     />
                                 </div>
 
@@ -727,6 +744,7 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId, onSuccess }) => {
                                         }`}
                                         required
                                         placeholder={t('companies_create.email_placeholder')}
+                                        disabled={!quotationId && !selectedQuotation}
                                     />
                                     {errors.contact_email && (
                                         <p className="text-xs text-red-600 mt-1">{errors.contact_email}</p>
@@ -747,6 +765,7 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId, onSuccess }) => {
                                         }`}
                                         required
                                         placeholder={t('companies_create.phone_placeholder')}
+                                        disabled={!quotationId && !selectedQuotation}
                                     />
                                     {errors.contact_phone && (
                                         <p className="text-xs text-red-600 mt-1">{errors.contact_phone}</p>
@@ -808,6 +827,7 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId, onSuccess }) => {
                                                 onChange={handleInputChange}
                                                 accept="image/*"
                                                 className="w-full border border-gray-300 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                                disabled={!quotationId && !selectedQuotation}
                                             />
                                             <p className="text-xs text-gray-500 mt-1">
                                                 {t('companies_create.file_requirements')}

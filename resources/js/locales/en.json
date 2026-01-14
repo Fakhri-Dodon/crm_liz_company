@@ -113,7 +113,7 @@
     "title": "Create New Client",
     "subtitle": "Add a new client to your portfolio",
     "creating_from_quotation": "Creating from quotation",
-    "select_from_quotation": "Select from Accepted Quotation (Optional)",
+    "select_from_quotation": "Select from Accepted Quotation",
     "loading_quotations": "Loading quotations...",
     "accepted": "Accepted",
     "search_quotations": "Search quotations...",

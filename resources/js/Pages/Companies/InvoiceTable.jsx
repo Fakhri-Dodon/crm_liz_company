@@ -37,6 +37,31 @@ const InvoiceTable = ({ data, companyId }) => {
 
     console.log('InvoiceTable data received:', data);
 
+    // Format currency full tanpa K/M/Jt
+    const formatCurrencyFull = (amount) => {
+        if (!amount && amount !== 0) return t('invoice_table.currency_format', { amount: 0 });
+        return new Intl.NumberFormat('id-ID', {
+            style: 'currency',
+            currency: 'IDR',
+            minimumFractionDigits: 0
+        }).format(amount);
+    };
+
+    // Komponen untuk expand/collapse angka besar
+    const ExpandableAmount = ({ amount, maxLength = 15 }) => {
+        const [expanded, setExpanded] = React.useState(false);
+        const full = formatCurrencyFull(amount);
+        if (full.length <= maxLength) return <span>{full}</span>;
+        return (
+            <span className="relative">
+                <span className="cursor-pointer" onClick={() => setExpanded(!expanded)}>
+                    {expanded ? full : full.slice(0, maxLength) + '...'}
+                    <span className="ml-1 text-xs text-blue-500 underline">{expanded ? 'Sembunyikan' : 'Lihat'}</span>
+                </span>
+            </span>
+        );
+    };
+
     // Filter dan sort data
     const filteredData = data
         .filter(invoice => {
@@ -707,20 +732,20 @@ const InvoiceTable = ({ data, companyId }) => {
                         <p className="text-xs text-gray-500">{t('invoice_table.amount')}</p>
                         <p 
                             className="text-sm font-bold text-gray-900 cursor-help"
-                            onMouseEnter={() => setTooltip(formatFullCurrency(invoice.invoice_amount))}
+                            onMouseEnter={() => setTooltip(formatCurrencyFull(invoice.invoice_amount))}
                             onMouseLeave={() => setTooltip(null)}
                         >
-                            {formatCurrency(invoice.invoice_amount)}
+                            <ExpandableAmount amount={invoice.invoice_amount} />
                         </p>
                     </div>
                     <div>
                         <p className="text-xs text-gray-500">{t('invoice_table.due')}</p>
                         <p 
                             className="text-sm font-bold text-red-600 cursor-help"
-                            onMouseEnter={() => setTooltip(formatFullCurrency(invoice.amount_due))}
+                            onMouseEnter={() => setTooltip(formatCurrencyFull(invoice.amount_due))}
                             onMouseLeave={() => setTooltip(null)}
                         >
-                            {formatCurrency(invoice.amount_due)}
+                            <ExpandableAmount amount={invoice.amount_due} />
                         </p>
                     </div>
                 </div>
@@ -759,17 +784,12 @@ const InvoiceTable = ({ data, companyId }) => {
 
     if (!data || data.length === 0) {
         return (
-            <div className="text-center py-12">
-                <FileText className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 mb-2">
-                    {t('invoice_table.no_invoices_found')}
-                </h3>
-                <p className="text-gray-500 max-w-md mx-auto mb-6">
-                    {t('invoice_table.no_invoices_message')}
-                </p>
-                <button className="px-4 py-2 bg-[#054748] text-white rounded-lg hover:bg-[#0a5d5e] transition-colors">
-                    {t('invoice_table.create_first_invoice')}
-                </button>
+            <div className="bg-white border border-gray-200 rounded-lg p-6 text-center text-gray-500">
+                <div className="mb-2">
+                    <FileText className="w-8 h-8 mx-auto text-gray-300" />
+                </div>
+                <div className="text-lg font-bold">No Invoices Found</div>
+                {/* Tombol Create First Invoice dihapus sesuai permintaan */}
             </div>
         );
     }
@@ -823,194 +843,191 @@ const InvoiceTable = ({ data, companyId }) => {
                                 <X className="w-5 h-5" />
                             </button>
                         </div>
-                        
-                        <div className="space-y-4">
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        {t('invoice_table.invoice_number')} *
-                                    </label>
-                                    <input
-                                        type="text"
-                                        name="invoice_number"
-                                        value={formData.invoice_number}
-                                        onChange={handleInputChange}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500"
-                                        required
-                                    />
+                        <form onSubmit={e => { e.preventDefault(); handleUpdateInvoice(); }}>
+                            <div className="space-y-4">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                                            Invoice Number *
+                                        </label>
+                                        <input
+                                            type="text"
+                                            name="invoice_number"
+                                            value={formData.invoice_number}
+                                            onChange={handleInputChange}
+                                            className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500"
+                                            required
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                                            Date *
+                                        </label>
+                                        <input
+                                            type="date"
+                                            name="date"
+                                            value={formData.date}
+                                            onChange={handleInputChange}
+                                            className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500"
+                                            required
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                                            Invoice Amount *
+                                        </label>
+                                        <input
+                                            type="number"
+                                            name="invoice_amount"
+                                            value={formData.invoice_amount}
+                                            onChange={handleInputChange}
+                                            className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500"
+                                            required
+                                            min="0"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                                            Amount Due *
+                                        </label>
+                                        <input
+                                            type="number"
+                                            name="amount_due"
+                                            value={formData.amount_due}
+                                            onChange={handleInputChange}
+                                            className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500"
+                                            required
+                                            min="0"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                                            Payment Terms
+                                        </label>
+                                        <input
+                                            type="text"
+                                            name="payment_terms"
+                                            value={formData.payment_terms}
+                                            onChange={handleInputChange}
+                                            className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                                            Payment Type
+                                        </label>
+                                        <input
+                                            type="text"
+                                            name="payment_type"
+                                            value={formData.payment_type}
+                                            onChange={handleInputChange}
+                                            className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                                            Payment Percentage
+                                        </label>
+                                        <input
+                                            type="number"
+                                            name="payment_percentage"
+                                            value={formData.payment_percentage || ''}
+                                            onChange={handleInputChange}
+                                            className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500"
+                                            min="0"
+                                            max="100"
+                                            step="0.01"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                                            Note
+                                        </label>
+                                        <input
+                                            type="text"
+                                            name="note"
+                                            value={formData.note}
+                                            onChange={handleInputChange}
+                                            className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                                            PPN
+                                        </label>
+                                        <input
+                                            type="number"
+                                            name="ppn"
+                                            value={formData.ppn || ''}
+                                            onChange={handleInputChange}
+                                            className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500"
+                                            min="0"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                                            PPH
+                                        </label>
+                                        <input
+                                            type="number"
+                                            name="pph"
+                                            value={formData.pph || ''}
+                                            onChange={handleInputChange}
+                                            className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500"
+                                            min="0"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                                            Total
+                                        </label>
+                                        <input
+                                            type="number"
+                                            name="total"
+                                            value={formData.total || ''}
+                                            onChange={handleInputChange}
+                                            className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500"
+                                            min="0"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                                            Status
+                                        </label>
+                                        <select
+                                            name="status"
+                                            value={formData.status}
+                                            onChange={handleInputChange}
+                                            className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500"
+                                        >
+                                            <option value="Draft">Draft</option>
+                                            <option value="Paid">Paid</option>
+                                            <option value="Invoice">Invoice</option>
+                                            <option value="Unpaid">Unpaid</option>
+                                            <option value="Partial">Partial</option>
+                                            <option value="Cancelled">Cancelled</option>
+                                        </select>
+                                    </div>
                                 </div>
-                                
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        {t('invoice_table.date')} *
-                                    </label>
-                                    <input
-                                        type="date"
-                                        name="date"
-                                        value={formData.date}
-                                        onChange={handleInputChange}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500"
-                                        required
-                                    />
-                                </div>
-                                
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        {t('invoice_table.invoice_amount')} *
-                                    </label>
-                                    <input
-                                        type="number"
-                                        name="invoice_amount"
-                                        value={formData.invoice_amount}
-                                        onChange={handleInputChange}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500"
-                                        required
-                                        min="0"
-                                        max="999999999999"
-                                        step="0.01"
-                                    />
-                                </div>
-
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        {t('invoice_table.amount_due')} *
-                                    </label>
-                                    <input
-                                        type="number"
-                                        name="amount_due"
-                                        value={formData.amount_due}
-                                        onChange={handleInputChange}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500"
-                                        required
-                                        min="0"
-                                        max="999999999999"
-                                        step="0.01"
-                                    />
-                                </div>
-                            </div>
-                            
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        {t('invoice_table.status')} *
-                                    </label>
-                                    <select
-                                        name="status"
-                                        value={formData.status}
-                                        onChange={handleInputChange}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500"
+                                <div className="flex justify-end space-x-3 mt-6">
+                                    <button
+                                        type="button"
+                                        onClick={closeEditModal}
+                                        className="px-4 py-2 border border-gray-300 text-gray-700 rounded hover:bg-gray-50"
                                     >
-                                        <option value="draft">{t('invoice_table.status_draft')}</option>
-                                        <option value="unpaid">{t('invoice_table.status_unpaid')}</option>
-                                        <option value="paid">{t('invoice_table.status_paid')}</option>
-                                        <option value="cancelled">{t('invoice_table.status_cancelled')}</option>
-                                        <option value="partial">{t('invoice_table.status_partial')}</option>
-                                    </select>
-                                </div>
-                                
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        {t('invoice_table.payment_terms')}
-                                    </label>
-                                    <input
-                                        type="text"
-                                        name="payment_terms"
-                                        value={formData.payment_terms}
-                                        onChange={handleInputChange}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500"
-                                    />
-                                </div>
-                                
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        {t('invoice_table.payment_type')}
-                                    </label>
-                                    <select
-                                        name="payment_type"
-                                        value={formData.payment_type}
-                                        onChange={handleInputChange}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500"
+                                        {t('invoice_table.cancel')}
+                                    </button>
+                                    <button
+                                        type="submit"
+                                        className="px-4 py-2 bg-[#054748] text-white rounded-lg hover:bg-[#0a5d5e] transition-colors flex items-center disabled:opacity-50 disabled:cursor-not-allowed"
+                                        disabled={loading}
                                     >
-                                        <option value="">{t('invoice_table.select_payment_type')}</option>
-                                        <option value="cash">Cash</option>
-                                        <option value="transfer">Transfer</option>
-                                        <option value="check">Check</option>
-                                        <option value="credit_card">Credit Card</option>
-                                    </select>
-                                </div>
-                                
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        {t('invoice_table.total')}
-                                    </label>
-                                    <input
-                                        type="number"
-                                        name="total"
-                                        value={formData.total}
-                                        onChange={handleInputChange}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500"
-                                    />
+                                        {loading ? <Loader className="w-4 h-4 animate-spin mr-2" /> : <Save className="w-4 h-4 mr-2" />}
+                                        {t('invoice_table.save')}
+                                    </button>
                                 </div>
                             </div>
-                            
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        PPN
-                                    </label>
-                                    <input
-                                        type="number"
-                                        name="ppn"
-                                        value={formData.ppn}
-                                        onChange={handleInputChange}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500"
-                                    />
-                                </div>
-                                
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        PPH
-                                    </label>
-                                    <input
-                                        type="number"
-                                        name="pph"
-                                        value={formData.pph}
-                                        onChange={handleInputChange}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500"
-                                    />
-                                </div>
-                            </div>
-                            
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">
-                                    {t('invoice_table.note')}
-                                </label>
-                                <textarea
-                                    name="note"
-                                    value={formData.note}
-                                    onChange={handleInputChange}
-                                    rows="3"
-                                    className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500"
-                                />
-                            </div>
-                        </div>
-                        
-                        <div className="mt-6 flex justify-end space-x-3">
-                            <button
-                                onClick={closeEditModal}
-                                className="px-4 py-2 border border-gray-300 text-gray-700 rounded hover:bg-gray-50"
-                            >
-                                {t('invoice_table.cancel')}
-                            </button>
-                            <button
-                                onClick={handleUpdateInvoice}
-                                className="px-4 py-2 bg-[#054748] text-white rounded-lg hover:bg-[#0a5d5e] transition-colors flex items-center disabled:opacity-50 disabled:cursor-not-allowed"
-                                disabled={loading}
-                            >
-                                {loading ? <Loader className="w-4 h-4 animate-spin mr-2" /> : <Save className="w-4 h-4 mr-2" />}
-                                {t('invoice_table.save')}
-                            </button>
-                        </div>
+                        </form>
                     </div>
                 </div>
             )}
@@ -1149,12 +1166,8 @@ const InvoiceTable = ({ data, companyId }) => {
                                         </td>
                                         {/* Invoice Amount */}
                                         <td className="px-4 py-3">
-                                            <div 
-                                                className="font-semibold text-gray-900 cursor-help"
-                                                onMouseEnter={() => setTooltip(formatFullCurrency(invoice.invoice_amount))}
-                                                onMouseLeave={() => setTooltip(null)}
-                                            >
-                                                {formatCurrency(invoice.invoice_amount)}
+                                            <div className="font-semibold text-gray-900">
+                                                <ExpandableAmount amount={invoice.invoice_amount} />
                                             </div>
                                         </td>
                                         {/* Payment Term */}
@@ -1172,12 +1185,8 @@ const InvoiceTable = ({ data, companyId }) => {
                                         </td>
                                         {/* Amount Due */}
                                         <td className="px-4 py-3">
-                                            <div 
-                                                className="font-bold text-red-600 cursor-help"
-                                                onMouseEnter={() => setTooltip(formatFullCurrency(invoice.amount_due))}
-                                                onMouseLeave={() => setTooltip(null)}
-                                            >
-                                                {formatCurrency(invoice.amount_due)}
+                                            <div className="font-bold text-red-600">
+                                                <ExpandableAmount amount={invoice.amount_due} />
                                             </div>
                                         </td>
                                         {/* Status */}
@@ -1233,22 +1242,23 @@ const InvoiceTable = ({ data, companyId }) => {
                             <FileText className="w-5 h-5 text-blue-600 mr-2" />
                             <p className="text-sm text-gray-600">{t('invoice_table.total_invoices')}</p>
                         </div>
-                        <p className="text-2xl font-bold text-gray-900 mt-2">{data.length}</p>
+                        <p className="text-2xl font-bold text-gray-900 mt-2 cursor-help">
+                            {data.length}
+                        </p>
                         <p className="text-xs text-gray-500 mt-1">
                             {t('invoice_table.match_filter', { count: filteredData.length })}
                         </p>
                     </div>
                     <div className="bg-green-50 p-4 rounded-lg">
                         <div className="flex items-center">
-                            <DollarSign className="w-5 h-5 text-green-600 mr-2" />
                             <p className="text-sm text-gray-600">{t('invoice_table.total_amount')}</p>
                         </div>
                         <p 
                             className="text-2xl font-bold text-gray-900 mt-2 cursor-help"
-                            onMouseEnter={() => setTooltip(formatFullCurrency(data.reduce((sum, i) => sum + (i.invoice_amount || 0), 0)))}
+                            onMouseEnter={() => setTooltip(formatCurrencyFull(data.reduce((sum, i) => sum + (i.invoice_amount || 0), 0)))}
                             onMouseLeave={() => setTooltip(null)}
                         >
-                            {formatCurrency(data.reduce((sum, i) => sum + (i.invoice_amount || 0), 0))}
+                            {formatCurrencyFull(data.reduce((sum, i) => sum + (i.invoice_amount || 0), 0))}
                         </p>
                         <p className="text-xs text-gray-500 mt-1">{t('invoice_table.all_invoices')}</p>
                     </div>
@@ -1259,10 +1269,10 @@ const InvoiceTable = ({ data, companyId }) => {
                         </div>
                         <p 
                             className="text-2xl font-bold text-red-600 mt-2 cursor-help"
-                            onMouseEnter={() => setTooltip(formatFullCurrency(data.reduce((sum, i) => sum + (i.amount_due || 0), 0)))}
+                            onMouseEnter={() => setTooltip(formatCurrencyFull(data.reduce((sum, i) => sum + (i.amount_due || 0), 0)))}
                             onMouseLeave={() => setTooltip(null)}
                         >
-                            {formatCurrency(data.reduce((sum, i) => sum + (i.amount_due || 0), 0))}
+                            {formatCurrencyFull(data.reduce((sum, i) => sum + (i.amount_due || 0), 0))}
                         </p>
                         <p className="text-xs text-gray-500 mt-1">{t('invoice_table.unpaid_balance')}</p>
                     </div>
@@ -1276,11 +1286,11 @@ const InvoiceTable = ({ data, companyId }) => {
                             onMouseEnter={() => {
                                 const totalPpn = data.reduce((sum, i) => sum + (i.ppn || 0), 0);
                                 const totalPph = data.reduce((sum, i) => sum + (i.pph || 0), 0);
-                                setTooltip(`${t('invoice_table.ppn')}: ${formatFullCurrency(totalPpn)}\n${t('invoice_table.pph')}: ${formatFullCurrency(totalPph)}`);
+                                setTooltip(`${t('invoice_table.ppn')}: ${formatCurrencyFull(totalPpn)}\n${t('invoice_table.pph')}: ${formatCurrencyFull(totalPph)}`);
                             }}
                             onMouseLeave={() => setTooltip(null)}
                         >
-                            {formatCurrency(data.reduce((sum, i) => sum + (i.ppn || 0), 0))}
+                            {formatCurrencyFull(data.reduce((sum, i) => sum + (i.ppn || 0), 0))}
                         </p>
                         <p className="text-xs text-gray-500 mt-1">{t('invoice_table.total_ppn')}</p>
                     </div>
@@ -1307,11 +1317,11 @@ const InvoiceTable = ({ data, companyId }) => {
                                 const avg = data.length > 0 
                                     ? data.reduce((sum, i) => sum + (i.invoice_amount || 0), 0) / data.length 
                                     : 0;
-                                setTooltip(formatFullCurrency(avg));
+                                setTooltip(formatCurrencyFull(avg));
                             }}
                             onMouseLeave={() => setTooltip(null)}
                         >
-                            {formatCurrency(data.length > 0 
+                            {formatCurrencyFull(data.length > 0 
                                 ? data.reduce((sum, i) => sum + (i.invoice_amount || 0), 0) / data.length 
                                 : 0)}
                         </p>
