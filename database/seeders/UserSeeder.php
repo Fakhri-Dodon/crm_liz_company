@@ -45,7 +45,10 @@ class UserSeeder extends Seeder
             ]);
         }
 
-        $adminRole = \App\Models\Roles::where('name', 'admin')->first();
+        $adminRole = \App\Models\Roles::where('name', 'Admin')->first();
+        if (! $adminRole) {
+            $adminRole = \App\Models\Roles::create(['name' => 'Admin', 'description' => 'Default admin role']);
+        }
 
         \App\Models\User::firstOrCreate([
             'email' => 'admin@example.com',

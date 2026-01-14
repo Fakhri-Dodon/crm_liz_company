@@ -34,6 +34,7 @@ class DatabaseSeeder extends Seeder
             QuotationStatusesSeeder::class,
             InvoiceStatusesSeeder::class,
             TaxSeeder::class,
+            PaymentTypeSeeder::class,
         ]);
     }
 }

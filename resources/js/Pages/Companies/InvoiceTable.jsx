@@ -35,9 +35,19 @@ const InvoiceTable = ({ data, companyId }) => {
         total: ''
     });
 
+    const [paymentTypes, setPaymentTypes] = useState([]);
+
     console.log('InvoiceTable data received:', data);
 
     // Filter dan sort data
+
+    useEffect(() => {
+        // Load payment types for payment_type select
+        fetch('/payment-types')
+            .then((res) => res.json())
+            .then((data) => setPaymentTypes(data))
+            .catch((err) => console.error('Failed to load payment types', err));
+    }, []);
     const filteredData = data
         .filter(invoice => {
             const matchesSearch = searchTerm === '' || 
@@ -931,11 +941,10 @@ const InvoiceTable = ({ data, companyId }) => {
                                         onChange={handleInputChange}
                                         className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500"
                                     >
-                                        <option value="">{t('invoice_table.select_payment_type')}</option>
-                                        <option value="cash">Cash</option>
-                                        <option value="transfer">Transfer</option>
-                                        <option value="check">Check</option>
-                                        <option value="credit_card">Credit Card</option>
+                                                <option value="">{t('invoice_table.select_payment_type')}</option>
+                                        {paymentTypes.map((pt) => (
+                                            <option key={pt.id} value={pt.slug}>{pt.name}</option>
+                                        ))}
                                     </select>
                                 </div>
                                 

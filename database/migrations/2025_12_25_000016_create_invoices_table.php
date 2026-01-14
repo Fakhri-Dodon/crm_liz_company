@@ -21,13 +21,16 @@ return new class extends Migration
             $table->integer('invoice_amout');
             $table->string('payment_terms');
             $table->string('payment_type', 100);
-            $table->decimal('payment_percentage', 10, 0)->nullable();
+            // Payment percentage stored as decimal (e.g., 0.10 for 10%)
+            $table->decimal('payment_percentage', 8, 4)->nullable();
             $table->string('note', 255);
-            $table->decimal('ppn', 10, 0)->nullable();
-            $table->decimal('pph', 10, 0)->nullable();
-            $table->decimal('total', 10, 0)->nullable();
+            // tax amounts and total use two decimals
+            $table->decimal('ppn', 12, 2)->nullable();
+            $table->decimal('pph', 12, 2)->nullable();
+            $table->decimal('total', 14, 2)->nullable();
             $table->integer('amount_due');
-            $table->enum('status', ['Draft', 'Paid', 'Invoice', 'Unpaid', 'Cancelled'])->default('Draft');
+            // Allowed statuses
+            $table->enum('status', ['Draft','Unpaid','Paid','Partial','Cancelled'])->default('Draft');
             $table->char('created_by', 36)->nullable();
             $table->char('updated_by', 36)->nullable();
             $table->char('deleted_by', 36)->nullable();
