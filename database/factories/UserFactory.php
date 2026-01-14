@@ -26,9 +26,10 @@ class UserFactory extends Factory
         return [
             'name' => fake()->name(),
             'email' => fake()->unique()->safeEmail(),
-            'email_verified_at' => now(),
             'password' => static::$password ??= Hash::make('password'),
             'remember_token' => Str::random(10),
+            // Ensure factory sets a valid role_id so tests/local creation won't fail
+            'role_id' => \App\Models\Roles::first()?->id ?? \App\Models\Roles::create(['name' => 'Default', 'description' => 'Default role'])->id,
         ];
     }
 

@@ -62,6 +62,7 @@ class LeadController extends Controller
                         'company_name'     => $lead->company_name,
                         'address'          => $lead->address,
                         'contact_person'   => $lead->contact_person,
+                        'position'         => $lead->position,
                         'email'            => $lead->email,
                         'phone'            => $lead->phone,
                         'assigned_to'      => $lead->assigned_to,

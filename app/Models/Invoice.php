@@ -70,6 +70,11 @@ class Invoice extends Model
         return $this->belongsTo(Company::class, 'company_id', 'id');
     }
 
+    public function invoiceStatus()
+    {
+        return $this->belongsTo(\App\Models\InvoiceStatuses::class, 'invoice_statuses_id');
+    }
+
     public function payments()
     {
         return $this->hasMany(Payment::class, 'invoice_id', 'id');

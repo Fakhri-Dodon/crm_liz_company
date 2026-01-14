@@ -20,10 +20,13 @@ class HandleInertiaRequests extends Middleware
     {
         // Create dummy user if none exists
         if (app()->environment('local') && User::count() === 0) {
+            // Ensure a role exists and attach it to the dummy user
+            $role = \App\Models\Roles::first() ?: \App\Models\Roles::create(['name' => 'Admin', 'description' => 'Default admin role']);
             User::create([
                 'name' => 'Admin User',
                 'email' => 'admin@lizcompany.com',
                 'password' => bcrypt('password123'),
+                'role_id' => $role->id,
             ]);
         }
 

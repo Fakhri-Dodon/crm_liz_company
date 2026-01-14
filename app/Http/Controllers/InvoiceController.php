@@ -13,6 +13,8 @@ use App\Models\EmailTemplates;
 use App\Models\User;
 use App\Models\ActivityLogs;
 use App\Models\InvoiceNumberFormated;
+use App\Models\InvoiceStatuses;
+use App\Models\PaymentType;
 use App\Notifications\DocumentNotification;
 use App\Mail\SystemMail;
 use Illuminate\Http\Request;
@@ -64,16 +66,31 @@ class InvoiceController extends Controller
         // Ambil semua contact person (bisa dioptimasi pagination jika data besar)
         $contacts = CompanyContactPerson::orderBy('id')->get();
 
+        // Ambil statuses dari setting agar bisa dipakai di page
+        $statuses = InvoiceStatuses::where('deleted', 0)->orderBy('order', 'asc')->get()->map(function($s) {
+            return [
+                'id' => $s->id,
+                'name' => $s->name,
+                'note' => $s->note,
+                'color' => $s->color,
+                'color_name' => $s->color_name,
+                'is_system' => (bool) $s->is_system,
+            ];
+        });
+
         return Inertia::render('Invoices/Index', [
             'invoices' => $data,
             'contacts' => $contacts,
             'auth_permissions' => auth()->user()->getPermissions('INVOICE'),
+            'statuses' => $statuses,
         ]);
     }
 
     public function create()
     {
-        $nextNumber = Invoice::count() + 1;
+        // Prefer using formatted invoice settings if available
+        $fmt = InvoiceNumberFormated::first();
+        $nextNumber = $fmt ? $fmt : Invoice::count() + 1;
         
         // Get leads that are not yet companies
         $existingLeadIds = Company::where('deleted', 0)
@@ -111,11 +128,30 @@ class InvoiceController extends Controller
                 ];
             });
         
+        // Load available payment types
+        $paymentTypes = PaymentType::where('deleted', 0)
+            ->orderBy('order', 'asc')
+            ->get()
+            ->map(function ($p) {
+                return [
+                    'id' => $p->id,
+                    'name' => $p->name,
+                    'slug' => $p->slug,
+                ];
+            });
+
+        // Load available tax settings
+        $ppnOptions = \App\Models\Ppn::active()->get()->map(function($t) { return ['id' => $t->id, 'name' => $t->name, 'rate' => (float)$t->rate]; });
+        $pphOptions = \App\Models\Pph::active()->get()->map(function($t) { return ['id' => $t->id, 'name' => $t->name, 'rate' => (float)$t->rate]; });
+        
         return Inertia::render('Invoices/Create', [
             'companies' => $companies,
             'leads' => $availableLeads,
             'quotations' => $quotations,
-            'nextNumber' => $nextNumber
+            'nextNumber' => $nextNumber,
+            'paymentTypes' => $paymentTypes,
+            'ppn' => $ppnOptions,
+            'pph' => $pphOptions,
         ]);
     }
 
@@ -415,11 +451,30 @@ class InvoiceController extends Controller
                 ];
             });
         
+        // Load available payment types
+        $paymentTypes = PaymentType::where('deleted', 0)
+            ->orderBy('order', 'asc')
+            ->get()
+            ->map(function ($p) {
+                return [
+                    'id' => $p->id,
+                    'name' => $p->name,
+                    'slug' => $p->slug,
+                ];
+            });
+
+        // Load available tax settings
+        $ppnOptions = \App\Models\Ppn::active()->get()->map(function($t) { return ['id' => $t->id, 'name' => $t->name, 'rate' => (float)$t->rate]; });
+        $pphOptions = \App\Models\Pph::active()->get()->map(function($t) { return ['id' => $t->id, 'name' => $t->name, 'rate' => (float)$t->rate]; });
+
         return Inertia::render('Invoices/Edit', [
             'invoice' => $invoiceData,
             'companies' => $companies,
             'leads' => $availableLeads,
-            'quotations' => $quotations
+            'quotations' => $quotations,
+            'paymentTypes' => $paymentTypes,
+            'ppn' => $ppnOptions,
+            'pph' => $pphOptions,
         ]);
     }
 
@@ -476,9 +531,10 @@ class InvoiceController extends Controller
                             'phone' => $lead ? ($lead->phone ?? '') : '',
                             'is_primary' => 1,
                             'is_active' => 1,
-                            'created_by' => auth()->id(),
+                            'created_by' => $invoice->created_by, // ✅ AMBIL DARI CREATOR
                         ]
                     );
+
                     
                     $contactPersonId = $contactPerson->id;
                 } else {
@@ -678,11 +734,28 @@ class InvoiceController extends Controller
 
     public function updateStatus(Request $request, Invoice $invoice)
     {
+        // Accept either a status name or a status_id (from InvoiceStatuses table).
         $validated = $request->validate([
-            'status' => 'required|string|in:Draft,Unpaid,Paid,Partial,Cancelled'
+            'status' => 'sometimes|string',
+            'status_id' => 'sometimes|exists:invoice_statuses,id'
         ]);
 
-        $invoice->status = $validated['status'];
+        $statusObj = null;
+
+        if (!empty($validated['status_id'])) {
+            $statusObj = InvoiceStatuses::find($validated['status_id']);
+        } elseif (!empty($validated['status'])) {
+            // Match by name (case-sensitive as stored in DB)
+            $statusObj = InvoiceStatuses::where('name', $validated['status'])->first();
+        }
+
+        if (!$statusObj) {
+            return back()->withErrors(['status' => 'Invalid status'])->withInput();
+        }
+
+        // Persist both the FK and the readable name
+        $invoice->invoice_statuses_id = $statusObj->id;
+        $invoice->status = $statusObj->name;
         $invoice->save();
 
         return redirect()->back()->with('success', 'Invoice status updated successfully.');

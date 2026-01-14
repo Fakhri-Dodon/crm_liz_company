@@ -462,15 +462,15 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId, onSuccess }) => {
                             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                                 <h3 className="font-medium text-blue-900 mb-3 flex items-center gap-2">
                                     <FileText className="w-5 h-5" />
-                                    {t('companies_create.select_from_quotation')}
+                                    {t('companies_create.select_from_quotation')}<span className="text-red-600">*</span>
                                 </h3>
                                 {/* Announcement wajib pilih quotation */}
-                                {!selectedQuotation && (
+                                {/* {!selectedQuotation && (
                                     <div className="mb-3 p-3 bg-yellow-100 border border-yellow-300 text-yellow-800 rounded text-sm font-semibold flex items-center gap-2">
                                         <AlertCircle className="w-4 h-4" />
                                         {t('companies_create.must_select_quotation')}
                                     </div>
-                                )}
+                                )} */}
                                 {loadingQuotations ? (
                                     <div className="text-center py-4">
                                         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
@@ -726,9 +726,6 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId, onSuccess }) => {
                                         placeholder={t('companies_create.vat_number_placeholder')}
                                         disabled={!quotationId && !selectedQuotation}
                                     />
-                                    <p className="text-xs text-gray-500 mt-1">
-                                        {t('companies_create.optional')}
-                                    </p>
                                 </div>
 
                                 <div>
@@ -744,9 +741,6 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId, onSuccess }) => {
                                         placeholder={t('companies_create.nib_placeholder')}
                                         disabled={!quotationId && !selectedQuotation}
                                     />
-                                    <p className="text-xs text-gray-500 mt-1">
-                                        {t('companies_create.optional')}
-                                    </p>
                                 </div>
 
                                 <div className="md:col-span-2">
@@ -762,9 +756,6 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId, onSuccess }) => {
                                         placeholder={t('companies_create.website_placeholder')}
                                         disabled={!quotationId && !selectedQuotation}
                                     />
-                                    <p className="text-xs text-gray-500 mt-1">
-                                        {t('companies_create.optional')}
-                                    </p>
                                 </div>
                             </div>
                         </div>
@@ -882,9 +873,6 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId, onSuccess }) => {
                                             />
                                             <p className="text-xs text-gray-500 mt-1">
                                                 {t('companies_create.file_requirements')}
-                                            </p>
-                                            <p className="text-xs text-gray-500 mt-1">
-                                                {t('companies_create.optional')}
                                             </p>
                                         </div>
                                         {logoPreview && (

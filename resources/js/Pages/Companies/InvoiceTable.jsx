@@ -35,6 +35,8 @@ const InvoiceTable = ({ data, companyId }) => {
         total: ''
     });
 
+    const [paymentTypes, setPaymentTypes] = useState([]);
+
     console.log('InvoiceTable data received:', data);
 
     // Format currency full tanpa K/M/Jt
@@ -63,6 +65,14 @@ const InvoiceTable = ({ data, companyId }) => {
     };
 
     // Filter dan sort data
+
+    useEffect(() => {
+        // Load payment types for payment_type select
+        fetch('/payment-types')
+            .then((res) => res.json())
+            .then((data) => setPaymentTypes(data))
+            .catch((err) => console.error('Failed to load payment types', err));
+    }, []);
     const filteredData = data
         .filter(invoice => {
             const matchesSearch = searchTerm === '' || 
@@ -786,10 +796,14 @@ const InvoiceTable = ({ data, companyId }) => {
         return (
             <div className="bg-white border border-gray-200 rounded-lg p-6 text-center text-gray-500">
                 <div className="mb-2">
-                    <FileText className="w-8 h-8 mx-auto text-gray-300" />
+                    <FileText className="w-16 h-16 text-gray-300 mx-auto mb-4" />
                 </div>
-                <div className="text-lg font-bold">No Invoices Found</div>
-                {/* Tombol Create First Invoice dihapus sesuai permintaan */}
+                <h3 className="text-lg font-medium text-gray-900 mb-2">
+                    {t('invoice_table.no_invoices_found')}
+                </h3>
+                <p className="text-gray-500 max-w-md mx-auto mb-6">
+                    {t('invoice_table.no_invoices_message')}
+                </p>
             </div>
         );
     }
