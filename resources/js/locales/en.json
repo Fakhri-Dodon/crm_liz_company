@@ -267,14 +267,14 @@
     "failed_to_delete_project": "Failed to delete project!",
     "contacts_updated_successfully": "Contacts updated successfully!",
     "loading_data": "Loading data...",
-    "tab_profile": "Company Profile",
+    "tab_profile": "Clients Profile",
     "tab_quotation": "Quotation List",
     "tab_invoice": "Invoice List",
     "tab_payment": "Payment History",
     "tab_project": "Projects",
     "tab_contact": "Company Contacts",
     "item": "{{count}} item(s)",
-    "success_loaded_company_data": "Successfully loaded company data",
+    "success_loaded_company_data": "Successfully loaded clients data",
     "viewing": "Viewing",
     "contacts": "Contacts",
     "projects": "Projects",
@@ -292,15 +292,15 @@
     "cancel": "Cancel"
 },
 "companies_sidebar": {
-    "company_profile": "Company Profile",
+    "company_profile": "Clients Profile",
     "quotations": "Quotations",
     "invoices": "Invoices",
     "payments": "Payments",
     "projects": "Projects",
     "contacts": "Contacts",
-    "company": "Company",
+    "company": "Clients",
     "dashboard": "Dashboard",
-    "back_to_companies": "Back to Companies"
+    "back_to_companies": "Back to Clients"
 },
 "quotation_table": {
     "currency_format": "Rp{{amount}}",
@@ -345,8 +345,8 @@
     "status_breakdown": "Status Breakdown"
 },
 "profile_table": {
-    "company_profile": "Company Profile",
-    "company_details": "Detailed company information",
+    "company_profile": "Clients Profile",
+    "company_details": "Detailed clients information",
     "client_code": "Client Code",
     "client_type": "Client Type",
     "nib": "NIB",

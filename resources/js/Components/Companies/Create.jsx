@@ -527,7 +527,7 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId, onSuccess }) => {
                                 {/* Company Name - Wajib */}
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        {t('companies_create.company_name')} *
+                                        {t('companies_create.company_name')} <span className="text-red-600">*</span>
                                     </label>
                                     <input
                                         type="text"
@@ -549,7 +549,7 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId, onSuccess }) => {
                                 {/* Client Type - Wajib */}
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        {t('companies_create.client_type')} *
+                                        {t('companies_create.client_type')} <span className="text-red-600">*</span>
                                     </label>
                                     <select
                                         name="client_type_id"
@@ -578,7 +578,7 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId, onSuccess }) => {
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        {t('companies_create.city')}
+                                        {t('companies_create.city')} <span className="text-red-600">*</span>
                                     </label>
                                     <input
                                         type="text"
@@ -587,13 +587,14 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId, onSuccess }) => {
                                         onChange={handleInputChange}
                                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
                                         placeholder={t('companies_create.city_placeholder')}
+                                        required
                                         disabled={!quotationId && !selectedQuotation}
                                     />
                                 </div>
 
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        {t('companies_create.province')}
+                                        {t('companies_create.province')} <span className="text-red-600">*</span>
                                     </label>
                                     <input
                                         type="text"
@@ -602,13 +603,14 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId, onSuccess }) => {
                                         onChange={handleInputChange}
                                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
                                         placeholder={t('companies_create.province_placeholder')}
+                                        required
                                         disabled={!quotationId && !selectedQuotation}
                                     />
                                 </div>
 
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        {t('companies_create.country')}
+                                        {t('companies_create.country')} <span className="text-red-600">*</span>
                                     </label>
                                     <input
                                         type="text"
@@ -617,13 +619,14 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId, onSuccess }) => {
                                         onChange={handleInputChange}
                                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
                                         placeholder={t('companies_create.country_placeholder')}
+                                        required
                                         disabled={!quotationId && !selectedQuotation}
                                     />
                                 </div>
 
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        {t('companies_create.postal_code')}
+                                        {t('companies_create.postal_code')} <span className="text-red-600">*</span>
                                     </label>
                                     <input
                                         type="number"
@@ -632,6 +635,7 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId, onSuccess }) => {
                                         onChange={handleInputChange}
                                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
                                         placeholder={t('companies_create.postal_code_placeholder')}
+                                        required
                                         disabled={!quotationId && !selectedQuotation}
                                     />
                                 </div>
@@ -641,7 +645,7 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId, onSuccess }) => {
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        {t('companies_create.vat_number')}
+                                        {t('companies_create.vat_number')} <span className="text-red-600">*</span>
                                     </label>
                                     <input
                                         type="number"
@@ -650,13 +654,14 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId, onSuccess }) => {
                                         onChange={handleInputChange}
                                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
                                         placeholder={t('companies_create.vat_number_placeholder')}
+                                        required
                                         disabled={!quotationId && !selectedQuotation}
                                     />
                                 </div>
 
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        {t('companies_create.nib')}
+                                        {t('companies_create.nib')} <span className="text-red-600">*</span>
                                     </label>
                                     <input
                                         type="text"
@@ -665,13 +670,14 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId, onSuccess }) => {
                                         onChange={handleInputChange}
                                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
                                         placeholder={t('companies_create.nib_placeholder')}
+                                        required
                                         disabled={!quotationId && !selectedQuotation}
                                     />
                                 </div>
 
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        {t('companies_create.website')}
+                                        {t('companies_create.website')} <span className="text-red-600">*</span>
                                     </label>
                                     <input
                                         type="url"
@@ -680,6 +686,7 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId, onSuccess }) => {
                                         onChange={handleInputChange}
                                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
                                         placeholder={t('companies_create.website_placeholder')}
+                                        required
                                         disabled={!quotationId && !selectedQuotation}
                                     />
                                 </div>
@@ -696,7 +703,7 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId, onSuccess }) => {
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        {t('companies_create.contact_person')} *
+                                        {t('companies_create.contact_person')} <span className="text-red-600">*</span>
                                     </label>
                                     <input
                                         type="text"
@@ -717,7 +724,7 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId, onSuccess }) => {
 
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        {t('companies_create.position')}
+                                        {t('companies_create.position')} <span className="text-red-600">*</span>
                                     </label>
                                     <input
                                         type="text"
@@ -726,6 +733,7 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId, onSuccess }) => {
                                         onChange={handleInputChange}
                                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
                                         placeholder={t('companies_create.position_placeholder')}
+                                        required
                                         disabled={!quotationId && !selectedQuotation}
                                     />
                                 </div>

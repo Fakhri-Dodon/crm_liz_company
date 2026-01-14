@@ -488,7 +488,7 @@ const EditModal = ({ isOpen, onClose, company, clientTypes, onUpdate }) => {
                                 <div>
                                     <label className="block text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
                                         <Briefcase className="w-4 h-4 text-blue-500" />
-                                        {t('companies_edit.position')}
+                                        {t('companies_edit.position')} <span className="text-red-600">*</span>
                                     </label>
                                     <input
                                         type="text"
@@ -497,6 +497,7 @@ const EditModal = ({ isOpen, onClose, company, clientTypes, onUpdate }) => {
                                         onChange={handleInputChange}
                                         className="w-full px-4 py-3 border border-blue-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
                                         placeholder={t('companies_edit.position_placeholder')}
+                                        required
                                     />
                                 </div>
 
@@ -570,7 +571,7 @@ const EditModal = ({ isOpen, onClose, company, clientTypes, onUpdate }) => {
                                 <div className="md:col-span-2">
                                     <label className="block text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
                                         <Building className="w-4 h-4 text-teal-500" />
-                                        {t('companies_edit.company_name')}
+                                        {t('companies_edit.company_name')} <span className="text-red-600">*</span>
                                         <span className="ml-2 text-xs text-blue-600 font-normal bg-blue-50 px-2 py-0.5 rounded">
                                             Read Only
                                         </span>
@@ -590,6 +591,7 @@ const EditModal = ({ isOpen, onClose, company, clientTypes, onUpdate }) => {
                                             type="hidden"
                                             name="company_name"
                                             value={formData.company_name}
+                                            required
                                         />
                                     </div>
                                     <div className="mt-2 flex items-start text-xs text-gray-500">
@@ -604,7 +606,7 @@ const EditModal = ({ isOpen, onClose, company, clientTypes, onUpdate }) => {
                                 {/* Client Type */}
                                 <div>
                                     <label className="block text-sm font-semibold text-gray-700 mb-2">
-                                        {t('companies_edit.client_type')} *
+                                        {t('companies_edit.client_type')} <span className="text-red-600">*</span>
                                     </label>
                                     <select
                                         name="client_type_id"
@@ -636,7 +638,7 @@ const EditModal = ({ isOpen, onClose, company, clientTypes, onUpdate }) => {
                                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                         <div>
                                             <label className="block text-sm font-medium text-gray-700 mb-1">
-                                                {t('companies_edit.city')}
+                                                {t('companies_edit.city')} <span className="text-red-600">*</span>
                                             </label>
                                             <input
                                                 type="text"
@@ -645,11 +647,12 @@ const EditModal = ({ isOpen, onClose, company, clientTypes, onUpdate }) => {
                                                 onChange={handleInputChange}
                                                 className="w-full px-3 py-2 border border-teal-200 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
                                                 placeholder={t('companies_edit.city_placeholder')}
+                                                required
                                             />
                                         </div>
                                         <div>
                                             <label className="block text-sm font-medium text-gray-700 mb-1">
-                                                {t('companies_edit.province')}
+                                                {t('companies_edit.province')} <span className="text-red-600">*</span>
                                             </label>
                                             <input
                                                 type="text"
@@ -658,11 +661,12 @@ const EditModal = ({ isOpen, onClose, company, clientTypes, onUpdate }) => {
                                                 onChange={handleInputChange}
                                                 className="w-full px-3 py-2 border border-teal-200 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
                                                 placeholder={t('companies_edit.province_placeholder')}
+                                                required
                                             />
                                         </div>
                                         <div>
                                             <label className="block text-sm font-medium text-gray-700 mb-1">
-                                                {t('companies_edit.country')}
+                                                {t('companies_edit.country')} <span className="text-red-600">*</span>
                                             </label>
                                             <input
                                                 type="text"
@@ -671,6 +675,7 @@ const EditModal = ({ isOpen, onClose, company, clientTypes, onUpdate }) => {
                                                 onChange={handleInputChange}
                                                 className="w-full px-3 py-2 border border-teal-200 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
                                                 placeholder={t('companies_edit.country_placeholder')}
+                                                required
                                             />
                                         </div>
                                     </div>
@@ -685,7 +690,7 @@ const EditModal = ({ isOpen, onClose, company, clientTypes, onUpdate }) => {
                                     <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                                         <div>
                                             <label className="block text-sm font-medium text-gray-700 mb-1">
-                                                {t('companies_edit.postal_code')}
+                                                {t('companies_edit.postal_code')} <span className="text-red-600">*</span>
                                             </label>
                                             <input
                                                 type="text"
@@ -694,11 +699,12 @@ const EditModal = ({ isOpen, onClose, company, clientTypes, onUpdate }) => {
                                                 onChange={handleInputChange}
                                                 className="w-full px-3 py-2 border border-teal-200 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
                                                 placeholder={t('companies_edit.postal_code_placeholder')}
+                                                required
                                             />
                                         </div>
                                         <div>
                                             <label className="block text-sm font-medium text-gray-700 mb-1">
-                                                {t('companies_edit.vat_number')}
+                                                {t('companies_edit.vat_number')} <span className="text-red-600">*</span>
                                             </label>
                                             <input
                                                 type="text"
@@ -707,11 +713,12 @@ const EditModal = ({ isOpen, onClose, company, clientTypes, onUpdate }) => {
                                                 onChange={handleInputChange}
                                                 className="w-full px-3 py-2 border border-teal-200 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
                                                 placeholder={t('companies_edit.vat_number_placeholder')}
+                                                required
                                             />
                                         </div>
                                         <div>
                                             <label className="block text-sm font-medium text-gray-700 mb-1">
-                                                {t('companies_edit.nib_number')}
+                                                {t('companies_edit.nib_number')} <span className="text-red-600">*</span>
                                             </label>
                                             <input
                                                 type="text"
@@ -720,11 +727,12 @@ const EditModal = ({ isOpen, onClose, company, clientTypes, onUpdate }) => {
                                                 onChange={handleInputChange}
                                                 className="w-full px-3 py-2 border border-teal-200 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
                                                 placeholder={t('companies_edit.nib_placeholder')}
+                                                required
                                             />
                                         </div>
                                         <div>
                                             <label className="block text-sm font-medium text-gray-700 mb-1">
-                                                {t('companies_edit.website')}
+                                                {t('companies_edit.website')} <span className="text-red-600">*</span>
                                             </label>
                                             <input
                                                 type="url"
@@ -733,6 +741,7 @@ const EditModal = ({ isOpen, onClose, company, clientTypes, onUpdate }) => {
                                                 onChange={handleInputChange}
                                                 className="w-full px-3 py-2 border border-teal-200 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
                                                 placeholder={t('companies_edit.website_placeholder')}
+                                                required
                                             />
                                         </div>
                                     </div>
