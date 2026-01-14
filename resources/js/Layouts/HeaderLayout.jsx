@@ -16,6 +16,7 @@ import { useState, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import Swal from "sweetalert2";
 import { FiEdit2 } from "react-icons/fi";
+import toast from "react-hot-toast";
 
 export default function HeaderLayout({ header, children, }) {
     const { url, props } = usePage();
@@ -549,7 +550,7 @@ export default function HeaderLayout({ header, children, }) {
                                                     {/* AKSI UNTUK MANAGER (APPROVE/REVISE) */}
                                                     {user.role_name ===
                                                         "Manager" &&
-                                                        status === "draft" && (
+                                                        (status === "draft" || status === "Unpaid") && (
                                                             <>
                                                                 <button
                                                                     onClick={() =>

@@ -105,14 +105,19 @@ export default function QoutationsIndex({
         {
             key: "total",
             label: t("quotations.table.total"),
-            render: (value) => (
-                <div>
-                    <div className="font-medium text-gray-900">{value}</div>
-                    <div className="text-red-500 text-xs font-semibold mt-0.5 text-right">
-                        {t("quotations.table.ppn_total")}
+            render: (value, row) => {
+                const taxValue = row.tax || 0;
+                return (
+                    <div>
+                        <div className="font-medium text-gray-900">{value}</div>
+                        {taxValue > 0 && (
+                            <div className="text-red-500 text-xs font-semibold mt-0.5 text-right">
+                                {t("quotations.table.ppn_total")}
+                            </div>
+                        )}
                     </div>
-                </div>
-            ),
+                );
+            },
         },
         {
             key: "status",
@@ -309,6 +314,7 @@ export default function QoutationsIndex({
         status: q.status,
         pdf_path: q.pdf_path,
         is_client: q.is_client,
+        tax: q.tax
     }));
 
     const { data, setData, get } = useForm({

@@ -251,7 +251,7 @@ class InvoiceController extends Controller
                     'pph'                   => $validated['tax_amount_pph'] ?? 0,
                     'total'                 => $validated['total'],
                     'amount_due'            => $validated['total'],
-                    'status'                => 'Draft',
+                    'status'                => 'draft',
                     'created_by'            => auth()->id(),
                 ]);
 
@@ -285,7 +285,7 @@ class InvoiceController extends Controller
                     $manager->notify(new DocumentNotification([
                         'id'               => $invoice->id,
                         'type'             => 'invoice',
-                        'status'           => 'Draft',
+                        'status'           => 'draft',
                         'url'              => "/storage/{$invoice->pdf_path}",
                         'message'          => "Invoice baru #{$invoice->invoice_number} menunggu persetujuan.",
                         'contact_person'   => $invoice->contactPerson && ($invoice->contactPerson->name ?? null) ? ($invoice->contactPerson->name ?? ($invoice->contactPerson->lead->contact_person ?? 'No Name')) : ($invoice->contactPerson && $invoice->contactPerson->lead ? $invoice->contactPerson->lead->contact_person : 'No Name'),
@@ -557,6 +557,7 @@ class InvoiceController extends Controller
                     'pph'                   => $validated['tax_amount_pph'] ?? 0,
                     'total'                 => $validated['total'],
                     'amount_due'            => $validated['total'],
+                    'status'                => 'draft',
                     'updated_by'            => auth()->id(),
                 ]);
 
@@ -822,5 +823,67 @@ class InvoiceController extends Controller
             \Log::error("Gagal kirim {$request->type}: " . $e->getMessage());
             return back()->with('error', 'Gagal mengirim email: ' . $e->getMessage());
         }
+    }
+
+    public function notificationUpdateStatus(Request $request, $id) 
+    {
+        // dd("notif", $request->all());
+
+        $request->validate([
+            'status' => 'required|in:draft,approved,revised,sent,accepted,expired,rejected',
+            'revision_note' => 'required_if:status,revised'
+        ]);
+
+        $status = InvoiceStatuses::where('name', $request->status)->first();
+
+        if (!$status) {
+            return back()->withErrors(['status' => 'Status tidak valid']);
+        }
+
+        $invoice = Invoice::where('id', $id)->where('deleted', 0)->firstOrFail();
+
+        $updateData = [
+            'status' => $request->status, 
+            'invoice_statuses_id' => $status->id,
+        ];
+        if ($request->status === 'revised') {
+            $updateData['revision_note'] = $request->revision_note;
+        }
+
+        $invoice->update($updateData);
+
+        auth()->user()->notifications()
+            ->where('data->id', $id)
+            ->delete();
+
+        $creator = $invoice->creator;
+
+        if($creator) {
+            $creator->notifications()
+                    ->where('data->id', (string)$id)
+                    ->delete();
+            $msg = "Invoice #{$invoice->invoice_number} telah di-{$request->status}";
+
+            if ($request->status === 'revised' && $request->revision_note) {
+                $msg .= ": " . $request->revision_note;
+
+            }
+
+            $contactPerson = $invoice->contactPerson->name ?? 'No Name';
+            $contactEmail = $invoice->contactPerson->email ?? null;
+
+            $creator->notify(new DocumentNotification([
+                'id'     => $invoice->id,
+                'message' => $msg,
+                'url' => "/Invoice/edit/{$id}",
+                'type' => 'invoice',
+                'revision_note' => $request->revision_note,
+                'status'  => $request->status,
+                'contact_person' => $contactPerson,
+                'email'          => $contactEmail,
+            ]));
+        }
+
+        return back();
     }
 }

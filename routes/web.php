@@ -81,6 +81,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('/invoice/{invoice}/approve', [InvoiceController::class, 'approve'])->name('invoice.approve');
     Route::post('/invoice/{invoice}/revise', [InvoiceController::class, 'revise'])->name('invoice.revise');
     Route::patch('/invoice/{invoice}/update-status', [InvoiceController::class, 'updateStatus'])->name('invoice.update-status');
+    Route::post('/invoice/status-notify/{id}', [InvoiceController::class, 'notificationUpdateStatus'])->name('invoice.notification-status');
     // notif send document(quotation/invoice)email
     Route::post('/send-email/{type}/{id}', [EmailController::class, 'sendDocument'])->name('email.send-document');
 

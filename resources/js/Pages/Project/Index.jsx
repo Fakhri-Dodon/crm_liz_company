@@ -503,13 +503,6 @@ const handleStatusChange = async (projectId, newStatus) => {
                                         ) : (
                                             <div className="text-gray-400 italic">N/A</div>
                                         )}
-                                        
-                                        {/* Tampilkan kota jika ada */}
-                                        {project.company?.city && (
-                                            <div className="text-xs text-gray-500 mt-1">
-                                                📍 {project.company.city}
-                                            </div>
-                                        )}
                                     </div>
                                 );
                             }
