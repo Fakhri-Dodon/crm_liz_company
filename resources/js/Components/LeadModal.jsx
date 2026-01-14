@@ -238,7 +238,7 @@ export default function LeadModal({ open, onClose, onSubmit, initialData, curren
 
                 {/* Email */}
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-1"> Email </label>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1"> Email <span className="text-red-500">*</span> </label>
                   <input
                     name="email"
                     type="email"
@@ -247,12 +247,13 @@ export default function LeadModal({ open, onClose, onSubmit, initialData, curren
                     disabled={isSubmitting}
                     placeholder="name@company.com"
                     className="w-full border border-gray-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-[#005954]/20 focus:border-[#005954] outline-none transition-all"
+                    required
                   />
                 </div>
 
                 {/* Phone */}
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-1"> Phone </label>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1"> Phone <span className="text-red-500">*</span> </label>
                   <input
                     name="phone"
                     value={form.phone}
@@ -260,6 +261,7 @@ export default function LeadModal({ open, onClose, onSubmit, initialData, curren
                     disabled={isSubmitting}
                     placeholder="+62..."
                     className="w-full border border-gray-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-[#005954]/20 focus:border-[#005954] outline-none transition-all"
+                    required
                   />
                 </div>
 

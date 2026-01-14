@@ -1,30 +1,55 @@
 import React, { useEffect, useState } from 'react';
 import { useForm, router } from '@inertiajs/react';
-import { X, Calendar, FileText, Clock, MessageSquare, ChevronDown, Building, Loader2 } from 'lucide-react';
+import { X, Calendar, FileText, Clock, MessageSquare, ChevronDown, Users, Loader2 } from 'lucide-react';
 import axios from 'axios';
 
 const ProjectModal = ({ 
     show, 
     onClose, 
     projectId,
-    companies,
+    companies: initialCompanies, // Rename prop untuk clarity
     quotations, 
     statusOptions, 
     isEdit = false,
     title = "Add Project"
 }) => {
     const [isLoading, setIsLoading] = useState(false);
+    const [clients, setClients] = useState([]); // Simpan sebagai clients
     const [projectData, setProjectData] = useState(null);
+    const [loadingClients, setLoadingClients] = useState(false);
     
     const { data, setData, post, put, processing, errors, reset } = useForm({
         quotation_id: '',
-        company_id: '',
+        company_id: '', // Tetap company_id untuk form submission
         project_description: '',
         start_date: '',
         deadline: '',
         note: '',
         status: 'in_progress'
     });
+
+    // Initialize clients dari prop atau fetch dari API
+    useEffect(() => {
+        if (show) {
+            if (initialCompanies && initialCompanies.length > 0) {
+                // Transform data dari prop
+                const transformedClients = initialCompanies.map(company => ({
+                    id: company.id,
+                    name: company.name || company.full_display || company.display_name,
+                    display_name: company.display_name || company.name,
+                    full_display: company.full_display || company.display_name || company.name,
+                    client_code: company.client_code,
+                    city: company.city,
+                    has_lead: company.has_lead
+                }));
+                setClients(transformedClients);
+                console.log('Clients loaded from props:', transformedClients.length);
+            } else {
+                // Fetch dari API
+                fetchClients();
+            }
+        }
+    }, [show, initialCompanies]);
 
     // Fetch project data saat modal edit dibuka
     useEffect(() => {
@@ -39,6 +64,40 @@ const ProjectModal = ({
             resetForm();
         }
     }, [show, isEdit]);
+
+    // Fetch clients dari API
+    const fetchClients = async () => {
+        setLoadingClients(true);
+        try {
+            const response = await axios.get('/api/clients');
+            console.log('Clients API Response:', response.data);
+            
+            if (response.data.success) {
+                setClients(response.data.data);
+                
+                // Debug log
+                if (response.data.data && response.data.data.length > 0) {
+                    console.log('Sample clients:');
+                    response.data.data.slice(0, 3).forEach((client, index) => {
+                        console.log(`Client ${index + 1}:`, {
+                            id: client.id,
+                            name: client.name,
+                            full_display: client.full_display,
+                            lead_company_name: client.lead_company_name,
+                            client_code: client.client_code
+                        });
+                    });
+                }
+            } else {
+                console.error('Failed to fetch clients:', response.data.message);
+            }
+        } catch (error) {
+            console.error('Error fetching clients:', error);
+            console.error('Error response:', error.response?.data);
+        } finally {
+            setLoadingClients(false);
+        }
+    };
 
     // Fetch data project dari API
     const fetchProjectData = async () => {
@@ -62,6 +121,13 @@ const ProjectModal = ({
             };
             
             setData(formData);
+            
+            // Debug log
+            console.log('Project data loaded:', {
+                company_id: project.company_id,
+                company_name: project.company?.name,
+                company_full_display: project.company?.full_display
+            });
             
         } catch (error) {
             console.error('Error fetching project data:', error);
@@ -211,37 +277,51 @@ const ProjectModal = ({
                                 </div>
                             </div>
 
-                            {/* Company and Quotation Row */}
+                            {/* Client and Quotation Row */}
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                {/* Company Selection */}
+                                {/* Client Selection */}
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
-                                        <Building className="w-4 h-4" />
-                                        Company *
+                                        <Users className="w-4 h-4" />
+                                        Client *
                                     </label>
                                     <div className="relative">
-                                        <select
-                                            value={data.company_id}
-                                            onChange={e => setData('company_id', e.target.value)}
-                                            className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-[#005954] focus:border-transparent appearance-none transition-colors ${
-                                                errors.company_id ? 'border-red-300' : 'border-gray-300'
-                                            }`}
-                                            required
-                                            disabled={processing}
-                                        >
-                                            <option value="" className="text-gray-400">Select a company</option>
-                                            {companies && companies.map(company => (
-                                                <option key={company.id} value={company.id}>
-                                                    {company.name}
-                                                </option>
-                                            ))}
-                                        </select>
-                                        <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
-                                            <ChevronDown className="w-4 h-4" />
-                                        </div>
+                                        {loadingClients && clients.length === 0 ? (
+                                            <div className="flex items-center justify-center py-3 border border-gray-300 rounded-xl">
+                                                <Loader2 className="w-4 h-4 animate-spin text-gray-500 mr-2" />
+                                                <span className="text-sm text-gray-500">Loading clients...</span>
+                                            </div>
+                                        ) : (
+                                            <>
+                                                <select
+                                                    value={data.company_id}
+                                                    onChange={e => setData('company_id', e.target.value)}
+                                                    className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-[#005954] focus:border-transparent appearance-none transition-colors ${
+                                                        errors.company_id ? 'border-red-300' : 'border-gray-300'
+                                                    }`}
+                                                    required
+                                                    disabled={processing || loadingClients}
+                                                >
+                                                    <option value="" className="text-gray-400">Select a client</option>
+                                                    {clients.map(client => (
+                                                        <option key={client.id} value={client.id}>
+                                                            {client.full_display || client.display_name || client.name}
+                                                        </option>
+                                                    ))}
+                                                </select>
+                                                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
+                                                    <ChevronDown className="w-4 h-4" />
+                                                </div>
+                                            </>
+                                        )}
                                     </div>
                                     {errors.company_id && (
                                         <p className="mt-1 text-sm text-red-600">{errors.company_id}</p>
+                                    )}
+                                    {clients.length > 0 && (
+                                        <div className="mt-1 text-xs text-gray-500">
+                                            {clients.length} clients available
+                                        </div>
                                     )}
                                 </div>
 
@@ -249,19 +329,20 @@ const ProjectModal = ({
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
                                         <FileText className="w-4 h-4" />
-                                        Quotation (Optional)
+                                        Quotation *
                                     </label>
                                     <div className="relative">
                                         <select
                                             value={data.quotation_id}
                                             onChange={e => setData('quotation_id', e.target.value)}
                                             className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#005954] focus:border-transparent appearance-none transition-colors"
+                                            required
                                             disabled={processing}
                                         >
                                             <option value="" className="text-gray-400">Select a quotation</option>
                                             {quotations && quotations.map(quote => (
                                                 <option key={quote.id} value={quote.id}>
-                                                    {quote.name}
+                                                    {quote.display_name || quote.name || quote.number}
                                                 </option>
                                             ))}
                                         </select>
@@ -390,7 +471,7 @@ const ProjectModal = ({
                                 <button
                                     type="submit"
                                     className="px-6 py-3 bg-[#005954] text-white rounded-xl hover:bg-[#004d47] transition-colors font-medium flex-1 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm hover:shadow-md"
-                                    disabled={processing || isLoading}
+                                    disabled={processing || isLoading || (clients.length === 0 && loadingClients)}
                                 >
                                     {(processing || isLoading) ? (
                                         <span className="flex items-center justify-center gap-2">
