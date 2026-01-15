@@ -17,15 +17,37 @@ class ProjectController extends Controller
 {
 public function index(Request $request)
 {
-    // Get summary statistics
-    $summary = Project::select('status', DB::raw('count(*) as count'))
-        ->where('deleted', 0)
+    // Get summary statistics with filters applied
+    $summaryQuery = Project::where('deleted', 0);
+
+    // Apply same filters for summary
+    if ($request->filled('search')) {
+        $search = $request->input('search');
+        $summaryQuery->where(function ($q) use ($search) {
+            $q->where('project_description', 'like', "%{$search}%")
+              ->orWhere('note', 'like', "%{$search}%")
+              ->orWhereHas('company', function ($q) use ($search) {
+                  $q->where('client_code', 'like', "%{$search}%")
+                    ->orWhere('city', 'like', "%{$search}%");
+              });
+        });
+    }
+
+    if ($request->filled('month')) {
+        $summaryQuery->whereMonth('start_date', $request->input('month'));
+    }
+
+    if ($request->filled('year')) {
+        $summaryQuery->whereYear('start_date', $request->input('year'));
+    }
+
+    $summary = $summaryQuery->select('status', DB::raw('count(*) as count'))
         ->groupBy('status')
         ->get()
         ->pluck('count', 'status')
         ->toArray();
 
-    // Prepare summary data dengan status yang sesuai screenshot
+    // Prepare summary data dengan status yang sesuai
     $summaryData = [
         'in_progress' => $summary['in_progress'] ?? 0,
         'completed' => $summary['completed'] ?? 0,
@@ -34,8 +56,12 @@ public function index(Request $request)
         'total' => array_sum($summary)
     ];
 
-    // Build query with filters
-    $query = Project::with(['company:id,client_code,city', 'quotation:id,quotation_number'])
+    // Build query with filters - HANYA SATU QUERY UNTUK DATA UTAMA
+    $query = Project::with([
+            'company.lead:id,company_name',
+            'assignedUser', 
+            'quotation.lead:id,company_name'
+        ])
         ->where('deleted', 0);
 
     // Apply search filter
@@ -46,7 +72,13 @@ public function index(Request $request)
               ->orWhere('note', 'like', "%{$search}%")
               ->orWhereHas('company', function ($q) use ($search) {
                   $q->where('client_code', 'like', "%{$search}%")
-                    ->orWhere('city', 'like', "%{$search}%");
+                    ->orWhere('city', 'like', "%{$search}%")
+                    ->orWhereHas('lead', function ($q) use ($search) {
+                        $q->where('company_name', 'like', "%{$search}%");
+                    });
+              })
+              ->orWhereHas('quotation', function ($q) use ($search) {
+                  $q->where('quotation_number', 'like', "%{$search}%");
               });
         });
     }
@@ -66,16 +98,17 @@ public function index(Request $request)
         $query->whereYear('start_date', $request->input('year'));
     }
 
-    // Get paginated results
-    $projects = Project::with([
-            'company.lead:id,company_name', // Tambah eager load untuk lead
-            'assignedUser', 
-            'quotation.lead:id,company_name'
-        ])
-        ->where('deleted', 0)
-        ->orderBy('created_at', 'desc')
+    // Get paginated results from the SAME query
+    $projects = $query->orderBy('created_at', 'desc')
         ->paginate(10)
         ->withQueryString();
+
+    // Debug logging
+    \Log::info('Project Filter Applied', [
+        'filters' => $request->only(['search', 'status', 'month', 'year']),
+        'total_results' => $projects->total(),
+        'current_count' => $projects->count()
+    ]);
 
     // Get filter options
     $years = Project::select(DB::raw('YEAR(start_date) as year'))
@@ -86,21 +119,20 @@ public function index(Request $request)
         ->filter()
         ->values();
 
-    // **DIUBAH: Get companies dengan company_name dari leads**
+    // Get companies dengan company_name dari leads
     $companies = Company::where('is_active', true)
         ->where('deleted', 0)
         ->whereNull('deleted_at')
-        ->with(['lead:id,company_name']) // Tambahkan eager load untuk lead
+        ->with(['lead:id,company_name'])
         ->select('id', 'client_code', 'city', 'client_since', 'lead_id')
         ->orderBy('client_code')
         ->get()
         ->map(function ($company) {
-            // Tentukan nama: utamakan company_name dari lead, fallback ke client_code
             $companyName = $company->lead?->company_name ?? $company->client_code;
             
             return [
                 'id' => $company->id,
-                'name' => $companyName, // Nama perusahaan dari leads
+                'name' => $companyName,
                 'display_name' => $companyName . ($company->city ? ' - ' . $company->city : ''),
                 'full_display' => $companyName . 
                                  ($company->city ? ' - ' . $company->city : '') . 

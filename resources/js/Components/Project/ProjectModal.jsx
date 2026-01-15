@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useForm, router } from '@inertiajs/react';
+import { useForm } from '@inertiajs/react';
 import { X, Calendar, FileText, Clock, MessageSquare, ChevronDown, Users, Loader2 } from 'lucide-react';
 import axios from 'axios';
 
@@ -119,10 +119,6 @@ const ProjectModal = ({
         });
         setProjectData(null);
     };
-
-    const filteredStatusOptions = statusOptions?.filter(option => 
-        ['in_progress', 'completed', 'pending', 'cancelled'].includes(option.value)
-    ) || [];
 
     const handleSubmit = (e) => {
         e.preventDefault();
@@ -407,21 +403,23 @@ const ProjectModal = ({
                                         Project Status
                                     </label>
                                     <div className="grid grid-cols-2 gap-2">
-                                        {filteredStatusOptions.map(option => {
+                                        {statusOptions?.filter(option => 
+                                            ['in_progress', 'completed', 'pending', 'cancelled'].includes(option.value)
+                                        ).map(option => {
                                             const colors = {
-                                                in_progress: 'bg-blue-50 text-blue-700 border-blue-200',
-                                                completed: 'bg-green-50 text-green-700 border-green-200',
-                                                pending: 'bg-yellow-50 text-yellow-700 border-yellow-200',
-                                                cancelled: 'bg-red-50 text-red-700 border-red-200'
+                                                in_progress: 'bg-blue-50 text-blue-700 border-blue-500',
+                                                completed: 'bg-green-50 text-green-700 border-green-500',
+                                                pending: 'bg-yellow-50 text-yellow-700 border-yellow-500',
+                                                cancelled: 'bg-red-50 text-red-700 border-red-500'
                                             };
-                                            const colorClass = colors[option.value] || 'bg-gray-50 text-gray-700 border-gray-200';
+                                            const colorClass = colors[option.value] || 'bg-gray-50 text-gray-700 border-gray-500';
                                             
                                             return (
                                                 <button
                                                     type="button"
                                                     key={option.value}
                                                     onClick={() => setData('status', option.value)}
-                                                    className={`p-3 border rounded-lg text-sm font-medium transition-all ${
+                                                    className={`p-3 border-2 rounded-lg text-sm font-medium transition-all ${
                                                         data.status === option.value 
                                                             ? `${colorClass} ring-2 ring-offset-1 ring-[#005954]` 
                                                             : `${colorClass} hover:opacity-90`
