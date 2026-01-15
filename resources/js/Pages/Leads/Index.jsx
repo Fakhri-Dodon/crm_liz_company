@@ -41,6 +41,7 @@ export default function LeadsIndex({ leads = [], auth, auth_permissions }) {
     // State untuk status dropdown
     const [statusDropdownOpen, setStatusDropdownOpen] = useState(null); // null = tidak ada yang terbuka, id lead = terbuka untuk lead tersebut
     const [leadStatuses, setLeadStatuses] = useState([]); // State untuk menyimpan data dari tabel lead_statuses
+    const [dropdownPosition, setDropdownPosition] = useState({ x: 0, y: 0 }); // Posisi dropdown
 
     // Get current user
     const currentUser = auth?.user || null;
@@ -228,8 +229,8 @@ export default function LeadsIndex({ leads = [], auth, auth_permissions }) {
         }
     };
 
-    // Toggle status dropdown
-    const toggleStatusDropdown = (leadId) => {
+    // Toggle status dropdown dengan mendapatkan posisi
+    const toggleStatusDropdown = (e, leadId) => {
         if (!currentUser) {
             showNotification('error', 'Authentication Required', 'Please login to update lead status');
             return;
@@ -241,6 +242,16 @@ export default function LeadsIndex({ leads = [], auth, auth_permissions }) {
             return;
         }
         
+        // Dapatkan posisi tombol
+        const buttonRect = e.currentTarget.getBoundingClientRect();
+        
+        // Hitung posisi untuk dropdown
+        const x = buttonRect.left;
+        const y = buttonRect.bottom + window.scrollY;
+        
+        setDropdownPosition({ x, y });
+        
+        // Toggle dropdown
         setStatusDropdownOpen(statusDropdownOpen === leadId ? null : leadId);
     };
 
@@ -365,7 +376,7 @@ export default function LeadsIndex({ leads = [], auth, auth_permissions }) {
                     <div className="relative status-dropdown-container">
                         <button
                             type="button"
-                            onClick={() => toggleStatusDropdown(row.id)}
+                            onClick={(e) => toggleStatusDropdown(e, row.id)}
                             className={`inline-flex items-center px-3 py-1.5 rounded-full text-xs font-semibold transition-all duration-200 hover:shadow-sm ${
                                 isDropdownOpen ? 'ring-2 ring-blue-300 ring-offset-1' : ''
                             }`}
@@ -389,49 +400,6 @@ export default function LeadsIndex({ leads = [], auth, auth_permissions }) {
                                 </svg>
                             )}
                         </button>
-                        
-                        {/* Status Dropdown - DIHAPUS STYLE */}
-                        {isDropdownOpen && currentUser && leadStatuses.length > 0 && (
-                            <div className="absolute z-50 mt-1 w-48 bg-white shadow-lg border border-gray-200 py-1">
-                                {leadStatuses.map((status) => {
-                                    const isCurrentStatus = currentStatus?.id === status.id || 
-                                                           displayName === status.name;
-                                    return (
-                                        <button
-                                            key={status.id}
-                                            type="button"
-                                            onClick={() => handleStatusChange(row.id, status.id)}
-                                            className={`w-full px-3 py-2.5 text-left hover:bg-gray-50 flex items-center justify-between ${
-                                                isCurrentStatus ? 'bg-blue-50' : ''
-                                            }`}
-                                        >
-                                            <div className="flex items-center">
-                                                <div 
-                                                    className="w-2.5 h-2.5 rounded-full mr-3"
-                                                    style={{ backgroundColor: status.color || '#3b82f6' }}
-                                                ></div>
-                                                <span className="text-sm font-medium text-gray-900">
-                                                    {status.name}
-                                                </span>
-                                            </div>
-                                            {isCurrentStatus && (
-                                                <svg className="h-4 w-4 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                                                </svg>
-                                            )}
-                                        </button>
-                                    );
-                                })}
-                                {loading && (
-                                    <div className="px-3 py-2 border-t border-gray-100">
-                                        <div className="flex items-center justify-center">
-                                            <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-                                            <span className="ml-2 text-xs text-gray-500">Updating...</span>
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
-                        )}
                     </div>
                 );
             },
@@ -450,6 +418,70 @@ export default function LeadsIndex({ leads = [], auth, auth_permissions }) {
             ),
         },
     ];
+
+    // Render dropdown secara terpisah di luar table
+    const renderStatusDropdown = () => {
+        if (!statusDropdownOpen || !currentUser || leadStatuses.length === 0) return null;
+        
+        // Temukan lead yang sedang dipilih
+        const currentLead = leadsData.find(lead => lead.id === statusDropdownOpen);
+        if (!currentLead) return null;
+        
+        // Cari status saat ini
+        const currentStatus = leadStatuses.find(status => 
+            status.id === currentLead.status_id || status.name === (currentLead.status_name || currentLead.status)
+        );
+        
+        const displayName = currentStatus?.name || currentLead.status_name || currentLead.status || 'New';
+        
+        return (
+            <div 
+                className="fixed z-[9999] min-w-[200px] bg-white shadow-lg border border-gray-200 rounded-lg py-1"
+                style={{
+                    left: `${dropdownPosition.x}px`,
+                    top: `${dropdownPosition.y + 5}px`, // Tambah sedikit jarak dari tombol
+                }}
+            >
+                {leadStatuses.map((status) => {
+                    const isCurrentStatus = currentStatus?.id === status.id || 
+                                           displayName === status.name;
+                    return (
+                        <button
+                            key={status.id}
+                            type="button"
+                            onClick={() => handleStatusChange(statusDropdownOpen, status.id)}
+                            className={`w-full px-3 py-2.5 text-left hover:bg-gray-50 flex items-center justify-between ${
+                                isCurrentStatus ? 'bg-blue-50' : ''
+                            }`}
+                        >
+                            <div className="flex items-center">
+                                <div 
+                                    className="w-2.5 h-2.5 rounded-full mr-3"
+                                    style={{ backgroundColor: status.color || '#3b82f6' }}
+                                ></div>
+                                <span className="text-sm font-medium text-gray-900">
+                                    {status.name}
+                                </span>
+                            </div>
+                            {isCurrentStatus && (
+                                <svg className="h-4 w-4 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                </svg>
+                            )}
+                        </button>
+                    );
+                })}
+                {loading && (
+                    <div className="px-3 py-2 border-t border-gray-100">
+                        <div className="flex items-center justify-center">
+                            <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                            <span className="ml-2 text-xs text-gray-500">Updating...</span>
+                        </div>
+                    </div>
+                )}
+            </div>
+        );
+    };
 
     // Show notification function
     const showNotification = (type, title, message) => {
@@ -780,27 +812,12 @@ export default function LeadsIndex({ leads = [], auth, auth_permissions }) {
                                 showAction={canUpdate || canDelete}
                             />
                         </div>
-                        
-                        {/* Table Footer */}
-                        {/* <div className="px-6 py-4 border-t border-gray-100 bg-gray-50">
-                            <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-                                <div className="text-sm text-gray-600">
-                                    {t("leads.table.showing_info", { count: filteredLeads.length })}
-                                </div>
-                                <div className="text-xs text-gray-500">
-                                    {t("leads.table.last_updated")}: {new Date().toLocaleDateString('en-US', {
-                                        month: 'long',
-                                        day: 'numeric',
-                                        year: 'numeric',
-                                        hour: '2-digit',
-                                        minute: '2-digit'
-                                    })}
-                                </div>
-                            </div>
-                        </div> */}
                     </div>
                 )}
             </div>
+
+            {/* RENDER STATUS DROPDOWN DI LUAR TABLE */}
+            {renderStatusDropdown()}
 
             {/* MODALS */}
             <LeadModal
