@@ -13,6 +13,9 @@ export default function Create({ nextNumber, leads = [], companies = [], quotati
         price: "",
     });
 
+    const { props } = usePage();
+    const { auth, app_config } = props;
+
     const builderAddItem = (newItem) => {
         const itemWithId = {
             ...newItem,
@@ -53,6 +56,11 @@ export default function Create({ nextNumber, leads = [], companies = [], quotati
         client_type: null,
         date: "",
         number: generateFormatNumber(nextNumber),
+
+        prepared_by_name: auth?.user?.name || '',
+        prepared_by_role: auth?.user?.role_name || '',
+        my_company_name: app_config?.company_name || '',
+
         company_id: null,
         company_name: null,
         address: "",
@@ -229,9 +237,8 @@ export default function Create({ nextNumber, leads = [], companies = [], quotati
             maximumFractionDigits: 0,
         }).format(num);
 
-    const { props } = usePage();
-    const logoUrl = props.app_config?.doc_logo_path 
-                    ? `/storage/${props.app_config.doc_logo_path}` 
+    const logoUrl = app_config?.doc_logo_path 
+                    ? `/storage/${app_config.doc_logo_path}` 
                     : null;
 
     return (
@@ -686,8 +693,50 @@ export default function Create({ nextNumber, leads = [], companies = [], quotati
                                         className="w-full border-gray-300 rounded text-sm"
                                         value={data.payment_type || ""}
                                         onChange={(e) => {
-                                            builderUpdate("payment_type", e.target.value);
-                                            setData("payment_type", e.target.value);
+                                            const val = e.target.value;
+                                            builderUpdate("payment_type", val);
+                                            setData("payment_type", val);
+
+                                            // If user selects a payment type that implies full payment,
+                                            // automatically set payment_percentage to 100% (1.0)
+                                            const selected = (props.paymentTypes || []).find(
+                                                (pt) => pt.name === val || pt.slug === val
+                                            );
+                                            // Debug: show selected payment type
+                                            console.log('Selected payment type:', selected);
+
+                                            // Accept common slug/name variants so "Full Payment" reliably sets 100%
+                                            const isFullPayment = !!selected && (
+                                                selected.slug === 'full_payment' ||
+                                                selected.slug === 'full-payment' ||
+                                                String(selected.name || '').toLowerCase().includes('full')
+                                            );
+
+                                            if (isFullPayment) {
+                                                builderUpdate("payment_percentage", 1);
+                                                setData("payment_percentage", 1);
+                                                // make sure totals recalc immediately
+                                                calculateAndSyncTotals(
+                                                    data.services,
+                                                    data.ppn,
+                                                    data.pph,
+                                                    1
+                                                );
+                                            } else if (selected && (selected.slug === 'down_payment' || selected.slug === 'down-payment' || String(selected.name || '').toLowerCase().includes('down')) ) {
+                                                // user selected a down payment type - reset percentage to 0 (user can input desired percent)
+                                                console.log('Selected Down Payment - resetting payment_percentage to 0');
+                                                builderUpdate("payment_percentage", 0);
+                                                setData("payment_percentage", 0);
+                                                calculateAndSyncTotals(
+                                                    data.services,
+                                                    data.ppn,
+                                                    data.pph,
+                                                    0
+                                                );
+                                            } else {
+                                                // Other payment type selected - keep current percentage or reset to 0
+                                                console.log('Other payment type selected - leaving payment_percentage unchanged');
+                                            }
                                         }}
                                     >
                                         <option value="">-- Choose Payment --</option>
@@ -1010,7 +1059,24 @@ export default function Create({ nextNumber, leads = [], companies = [], quotati
                                     </div>
 
                                     <div className="flex justify-between">
-                                        <span>Down Payment {data.payment_percentage ? `${(data.payment_percentage * 100).toFixed(0)}%` : ''}</span>
+                                        <span>
+                                            {(() => {
+                                                const percent = data.payment_percentage ? `${(data.payment_percentage * 100).toFixed(0)}%` : '';
+                                                const isFullPercent = Number(data.payment_percentage) === 1;
+                                                const selected = (props.paymentTypes || []).find(
+                                                    (pt) => pt.name === data.payment_type || pt.slug === data.payment_type || pt.name === (data.payment_type)
+                                                );
+                                                const isFullPayment = isFullPercent || (selected && (
+                                                    selected.slug === 'full_payment' ||
+                                                    selected.slug === 'full-payment' ||
+                                                    String(selected.name || '').toLowerCase().includes('full')
+                                                ));
+
+                                                return isFullPayment
+                                                    ? `Paid in Full ${percent ? `(${percent})` : ''}`
+                                                    : `Down Payment ${percent}`;
+                                            })()}
+                                        </span>
                                         <span>
                                             {formatIDR(data.down_payment || 0)}
                                         </span>
@@ -1047,16 +1113,21 @@ export default function Create({ nextNumber, leads = [], companies = [], quotati
                                         </span>
                                     </div>
                                     
-                                    <p className="text-[17px] uppercase font-black pt-[0.9rem] pb-[5.2rem]">
-                                        {data.company_name || "---"}
-                                    </p>
                                     <div className="text-left">
-                                        <p className="text-[15px] uppercase font-black pt-[0.9rem]">
-                                            {data.contact_person || "---"}
+                                        <p className="text-[16px] uppercase font-black">
+                                            {data.my_company_name || app_config?.company_name || "---"}
                                         </p>
-                                        <p className="text-[15px] text-gray-400">
-                                            {data.position || "---"}
-                                        </p>
+
+                                        <div className="h-20"></div>
+
+                                        <div>
+                                            <p className="text-[14px] uppercase font-black leading-tight">
+                                                {data.prepared_by_name || auth?.user?.name || "---"}
+                                            </p>
+                                            <p className="text-[13px] text-gray-500 leading-tight">
+                                                {data.prepared_by_role || auth?.user?.role_name || "---"}
+                                            </p>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
