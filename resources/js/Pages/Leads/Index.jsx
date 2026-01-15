@@ -9,6 +9,31 @@ import DeleteConfirmationModal from "@/Components/DeleteConfirmationModal";
 import NotificationModal from "@/Components/NotificationModal";
 import { useTranslation } from "react-i18next";
 
+// Helper functions untuk mengatur warna
+const hexToRgba = (hex, alpha) => {
+    if (!hex || hex.length < 7) return `rgba(59, 130, 246, ${alpha})`;
+    
+    const r = parseInt(hex.slice(1, 3), 16);
+    const g = parseInt(hex.slice(3, 5), 16);
+    const b = parseInt(hex.slice(5, 7), 16);
+    
+    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+};
+
+const darkenColor = (hex, percent) => {
+    if (!hex || hex.length < 7) return '#2563eb';
+    
+    let r = parseInt(hex.slice(1, 3), 16);
+    let g = parseInt(hex.slice(3, 5), 16);
+    let b = parseInt(hex.slice(5, 7), 16);
+
+    r = Math.floor(r * (100 - percent) / 100);
+    g = Math.floor(g * (100 - percent) / 100);
+    b = Math.floor(b * (100 - percent) / 100);
+
+    return `rgb(${r}, ${g}, ${b})`;
+};
+
 export default function LeadsIndex({ leads = [], auth, auth_permissions }) {
     // Gunakan SEMUA leads dari props
     const [leadsData, setLeadsData] = useState(leads);
@@ -39,9 +64,7 @@ export default function LeadsIndex({ leads = [], auth, auth_permissions }) {
     const [leadToDelete, setLeadToDelete] = useState(null);
 
     // State untuk status dropdown
-    const [statusDropdownOpen, setStatusDropdownOpen] = useState(null); // null = tidak ada yang terbuka, id lead = terbuka untuk lead tersebut
     const [leadStatuses, setLeadStatuses] = useState([]); // State untuk menyimpan data dari tabel lead_statuses
-    const [dropdownPosition, setDropdownPosition] = useState({ x: 0, y: 0 }); // Posisi dropdown
 
     // Get current user
     const currentUser = auth?.user || null;
@@ -198,9 +221,6 @@ export default function LeadsIndex({ leads = [], auth, auth_permissions }) {
                     return lead;
                 }));
                 
-                // Close dropdown
-                setStatusDropdownOpen(null);
-                
                 // Show notification
                 showNotification('success', 'Status Updated', `Lead status changed to ${statusObj.name}`);
                 
@@ -228,46 +248,6 @@ export default function LeadsIndex({ leads = [], auth, auth_permissions }) {
             setLoading(false);
         }
     };
-
-    // Toggle status dropdown dengan mendapatkan posisi
-    const toggleStatusDropdown = (e, leadId) => {
-        if (!currentUser) {
-            showNotification('error', 'Authentication Required', 'Please login to update lead status');
-            return;
-        }
-        
-        // Cek apakah ada data status
-        if (leadStatuses.length === 0) {
-            showNotification('error', 'No Status Available', 'Cannot update status: No status data available');
-            return;
-        }
-        
-        // Dapatkan posisi tombol
-        const buttonRect = e.currentTarget.getBoundingClientRect();
-        
-        // Hitung posisi untuk dropdown
-        const x = buttonRect.left;
-        const y = buttonRect.bottom + window.scrollY;
-        
-        setDropdownPosition({ x, y });
-        
-        // Toggle dropdown
-        setStatusDropdownOpen(statusDropdownOpen === leadId ? null : leadId);
-    };
-
-    // Close dropdown when clicking outside
-    useEffect(() => {
-        const handleClickOutside = (event) => {
-            if (statusDropdownOpen && !event.target.closest('.status-dropdown-container')) {
-                setStatusDropdownOpen(null);
-            }
-        };
-
-        document.addEventListener('mousedown', handleClickOutside);
-        return () => {
-            document.removeEventListener('mousedown', handleClickOutside);
-        };
-    }, [statusDropdownOpen]);
 
     // Columns definition - TAMPILKAN SEMUA DATA
     const columns = [
@@ -365,41 +345,82 @@ export default function LeadsIndex({ leads = [], auth, auth_permissions }) {
             render: (statusName, row) => {
                 // Cari status berdasarkan status_id atau status_name dari data lead_statuses
                 const currentStatus = leadStatuses.find(status => 
-                    status.id === row.status_id || status.name === (row.status_name || row.status)
+                    status.id === row.lead_statuses_id || status.id === row.status_id || status.name === (row.status_name || row.status)
                 );
                 
+                // Default colors jika tidak ada status
                 const statusColor = currentStatus?.color || row.status_color || '#3b82f6';
                 const displayName = currentStatus?.name || row.status_name || row.status || 'New';
-                const isDropdownOpen = statusDropdownOpen === row.id;
+                const statusId = currentStatus?.id || row.lead_statuses_id || row.status_id;
                 
-                return (
-                    <div className="relative status-dropdown-container">
-                        <button
-                            type="button"
-                            onClick={(e) => toggleStatusDropdown(e, row.id)}
-                            className={`inline-flex items-center px-3 py-1.5 rounded-full text-xs font-semibold transition-all duration-200 hover:shadow-sm ${
-                                isDropdownOpen ? 'ring-2 ring-blue-300 ring-offset-1' : ''
-                            }`}
+                // Warna background dan border berdasarkan warna status
+                const bgColor = hexToRgba(statusColor, 0.1);
+                const borderColor = darkenColor(statusColor, 20);
+                
+                // Jika tidak punya permission untuk update, tampilkan badge statis
+                if (!canUpdate) {
+                    return (
+                        <span 
+                            className="px-2 py-1 rounded-lg text-xs font-bold border-2 truncate max-w-[120px] inline-block"
                             style={{
-                                backgroundColor: `${statusColor}15`,
+                                backgroundColor: bgColor,
                                 color: statusColor,
-                                border: `1px solid ${statusColor}30`,
-                                cursor: currentUser ? 'pointer' : 'default'
+                                borderColor: borderColor
                             }}
-                            disabled={!currentUser || leadStatuses.length === 0}
                         >
-                            {displayName}
-                            {currentUser && leadStatuses.length > 0 && (
-                                <svg 
-                                    className={`ml-1.5 h-3.5 w-3.5 transition-transform duration-200 ${isDropdownOpen ? 'rotate-180' : ''}`}
-                                    fill="none" 
-                                    viewBox="0 0 24 24" 
-                                    stroke="currentColor"
-                                >
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                                </svg>
-                            )}
-                        </button>
+                            {displayName.toUpperCase()}
+                        </span>
+                    );
+                }
+
+                return (
+                    <div className="relative min-w-[100px] max-w-[150px]">
+                        <select
+                            value={statusId || ''}
+                            onChange={(e) => handleStatusChange(row.id, e.target.value)}
+                            className={`appearance-none text-xs font-bold py-1 px-2 rounded-lg border-2 focus:ring-0 cursor-pointer transition-all truncate w-full`}
+                            style={{
+                                backgroundColor: bgColor,
+                                color: statusColor,
+                                borderColor: borderColor,
+                                backgroundImage: 'none',
+                                appearance: 'none',
+                                MozAppearance: 'none',
+                                WebkitAppearance: 'none',
+                                paddingRight: '1.5rem'
+                            }}
+                            disabled={!currentUser || leadStatuses.length === 0 || loading}
+                        >
+                            <option value="" disabled>Select Status</option>
+                            {leadStatuses.map((status) => {
+                                const optionBgColor = hexToRgba(status.color || '#3b82f6', 0.1);
+                                const optionTextColor = status.color || '#3b82f6';
+                                return (
+                                    <option 
+                                        key={status.id} 
+                                        value={status.id}
+                                        className="py-1"
+                                        style={{
+                                            backgroundColor: optionBgColor,
+                                            color: optionTextColor,
+                                            fontWeight: 'bold'
+                                        }}
+                                    >
+                                        {status.name.toUpperCase()}
+                                    </option>
+                                );
+                            })}
+                        </select>
+                        <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-1">
+                            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M19 9l-7 7-7-7" />
+                            </svg>
+                        </div>
+                        {loading && (
+                            <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-white/50">
+                                <div className="w-3 h-3 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                            </div>
+                        )}
                     </div>
                 );
             },
@@ -418,70 +439,6 @@ export default function LeadsIndex({ leads = [], auth, auth_permissions }) {
             ),
         },
     ];
-
-    // Render dropdown secara terpisah di luar table
-    const renderStatusDropdown = () => {
-        if (!statusDropdownOpen || !currentUser || leadStatuses.length === 0) return null;
-        
-        // Temukan lead yang sedang dipilih
-        const currentLead = leadsData.find(lead => lead.id === statusDropdownOpen);
-        if (!currentLead) return null;
-        
-        // Cari status saat ini
-        const currentStatus = leadStatuses.find(status => 
-            status.id === currentLead.status_id || status.name === (currentLead.status_name || currentLead.status)
-        );
-        
-        const displayName = currentStatus?.name || currentLead.status_name || currentLead.status || 'New';
-        
-        return (
-            <div 
-                className="fixed z-[9999] min-w-[200px] bg-white shadow-lg border border-gray-200 rounded-lg py-1"
-                style={{
-                    left: `${dropdownPosition.x}px`,
-                    top: `${dropdownPosition.y + 5}px`, // Tambah sedikit jarak dari tombol
-                }}
-            >
-                {leadStatuses.map((status) => {
-                    const isCurrentStatus = currentStatus?.id === status.id || 
-                                           displayName === status.name;
-                    return (
-                        <button
-                            key={status.id}
-                            type="button"
-                            onClick={() => handleStatusChange(statusDropdownOpen, status.id)}
-                            className={`w-full px-3 py-2.5 text-left hover:bg-gray-50 flex items-center justify-between ${
-                                isCurrentStatus ? 'bg-blue-50' : ''
-                            }`}
-                        >
-                            <div className="flex items-center">
-                                <div 
-                                    className="w-2.5 h-2.5 rounded-full mr-3"
-                                    style={{ backgroundColor: status.color || '#3b82f6' }}
-                                ></div>
-                                <span className="text-sm font-medium text-gray-900">
-                                    {status.name}
-                                </span>
-                            </div>
-                            {isCurrentStatus && (
-                                <svg className="h-4 w-4 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                                </svg>
-                            )}
-                        </button>
-                    );
-                })}
-                {loading && (
-                    <div className="px-3 py-2 border-t border-gray-100">
-                        <div className="flex items-center justify-center">
-                            <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-                            <span className="ml-2 text-xs text-gray-500">Updating...</span>
-                        </div>
-                    </div>
-                )}
-            </div>
-        );
-    };
 
     // Show notification function
     const showNotification = (type, title, message) => {
@@ -815,9 +772,6 @@ export default function LeadsIndex({ leads = [], auth, auth_permissions }) {
                     </div>
                 )}
             </div>
-
-            {/* RENDER STATUS DROPDOWN DI LUAR TABLE */}
-            {renderStatusDropdown()}
 
             {/* MODALS */}
             <LeadModal
