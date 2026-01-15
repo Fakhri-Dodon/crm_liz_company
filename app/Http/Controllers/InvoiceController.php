@@ -19,6 +19,7 @@ use App\Notifications\DocumentNotification;
 use App\Mail\SystemMail;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\Mail;
 
@@ -194,6 +195,7 @@ class InvoiceController extends Controller
             return \DB::transaction(function () use ($request, $validated) {
                 // Store PDF
                 $path = $request->file('pdf_file')->store('invoices', 'public');
+                \Log::info('Invoice PDF stored at: ' . $path);
                 
                 // Get or create company_contact_persons record
                 $contactPersonId = null;
@@ -231,9 +233,10 @@ class InvoiceController extends Controller
                 $fmtId = $fmt ? $fmt->id : null;
                 $invoiceNumber = $fmt ? InvoiceNumberFormated::generate() : $validated['number'];
 
-                // find default invoice status (Draft)
-                $defaultStatus = \App\Models\InvoiceStatuses::where('name', 'Draft')->first();
-                $statusId = $defaultStatus ? $defaultStatus->id : null;
+                // Prefer 'Unpaid' status when creating invoices; fallback to 'Draft' when not available
+                $statusModel = \App\Models\InvoiceStatuses::where('name', 'Unpaid')->first() ?? \App\Models\InvoiceStatuses::where('name', 'Draft')->first();
+                $statusId = $statusModel ? $statusModel->id : null;
+                $statusName = $statusModel ? $statusModel->name : 'Draft';
 
                 $invoice = Invoice::create([
                     'company_contact_persons_id' => $contactPersonId,
@@ -251,7 +254,8 @@ class InvoiceController extends Controller
                     'pph'                   => $validated['tax_amount_pph'] ?? 0,
                     'total'                 => $validated['total'],
                     'amount_due'            => $validated['total'],
-                    'status'                => 'draft',
+                    'status'                => $statusName,
+                    'pdf_path'              => $path,
                     'created_by'            => auth()->id(),
                 ]);
 
@@ -285,7 +289,7 @@ class InvoiceController extends Controller
                     $manager->notify(new DocumentNotification([
                         'id'               => $invoice->id,
                         'type'             => 'invoice',
-                        'status'           => 'draft',
+                        'status'           => $statusName,
                         'url'              => "/storage/{$invoice->pdf_path}",
                         'message'          => "Invoice baru #{$invoice->invoice_number} menunggu persetujuan.",
                         'contact_person'   => $invoice->contactPerson && ($invoice->contactPerson->name ?? null) ? ($invoice->contactPerson->name ?? ($invoice->contactPerson->lead->contact_person ?? 'No Name')) : ($invoice->contactPerson && $invoice->contactPerson->lead ? $invoice->contactPerson->lead->contact_person : 'No Name'),
@@ -413,6 +417,7 @@ class InvoiceController extends Controller
             'tax_amount_pph' => (float) $invoice->pph,
             'total' => (float) $invoice->total,
             'down_payment' => (float) $invoice->invoice_amout * (float) $invoice->payment_percentage,
+            'pdf_path' => $invoice->pdf_path,
         ];
         
         // Get leads that are not yet companies
@@ -542,6 +547,29 @@ class InvoiceController extends Controller
                     $contactPersonId = $validated['contact_person_id'] ?? $validated['company_id'];
                 }
 
+                // If a new PDF is uploaded during update, store it and set pdf_path
+                if ($request->hasFile('pdf_file')) {
+                    $path = $request->file('pdf_file')->store('invoices', 'public');
+                    \Log::info('Updated invoice PDF stored at: ' . $path);
+
+                    // Delete old PDF file from storage if it exists and is different
+                    try {
+                        $oldPath = $invoice->pdf_path;
+                        if (!empty($oldPath) && Storage::disk('public')->exists($oldPath)) {
+                            Storage::disk('public')->delete($oldPath);
+                            \Log::info('Deleted old invoice PDF: ' . $oldPath);
+                        }
+                    } catch (\Exception $e) {
+                        \Log::warning('Failed to delete old invoice PDF: ' . $e->getMessage());
+                    }
+
+                    $validated['pdf_path'] = $path;
+                }
+
+                $statusModel = \App\Models\InvoiceStatuses::where('name', 'Unpaid')->first() ?? \App\Models\InvoiceStatuses::where('name', 'Draft')->first();
+                $statusId = $statusModel ? $statusModel->id : null;
+                $statusName = $statusModel ? $statusModel->name : 'Draft';
+
                 // Update invoice
                 $invoice->update([
                     'company_contact_persons_id' => $contactPersonId,
@@ -557,7 +585,8 @@ class InvoiceController extends Controller
                     'pph'                   => $validated['tax_amount_pph'] ?? 0,
                     'total'                 => $validated['total'],
                     'amount_due'            => $validated['total'],
-                    'status'                => 'draft',
+                    'status'                => $statuName,
+                    'pdf_path'              => $validated['pdf_path'] ?? $invoice->pdf_path,
                     'updated_by'            => auth()->id(),
                 ]);
 
@@ -620,6 +649,16 @@ class InvoiceController extends Controller
 
     public function destroy(Invoice $invoice)
     {
+        // Delete associated PDF file if exists
+        try {
+            if (!empty($invoice->pdf_path) && Storage::disk('public')->exists($invoice->pdf_path)) {
+                Storage::disk('public')->delete($invoice->pdf_path);
+                \Log::info('Deleted invoice PDF during destroy: ' . $invoice->pdf_path);
+            }
+        } catch (\Exception $e) {
+            \Log::warning('Failed to delete invoice PDF during destroy: ' . $e->getMessage());
+        }
+
         $invoice->delete();
         return redirect()->route('invoice.index')->with('success', 'Invoice deleted');
     }

@@ -191,6 +191,17 @@ export default function Index({ auth_permissions }) {
         },
         { key: 'company_name', label: t('invoices.table.company_name') || 'Company Name' },
         { key: 'amount', label: t('invoices.table.amount') || 'Invoice Amount' },
+        {
+            key: 'pdf',
+            label: 'PDF',
+            render: (value, row) => (
+                row.pdf_path ? (
+                    <a href={`/storage/${row.pdf_path}`} target="_blank" rel="noreferrer" className="text-sm font-bold text-teal-700 hover:text-teal-900">Open</a>
+                ) : (
+                    <span className="text-xs text-gray-400">—</span>
+                )
+            )
+        },
         { key: 'payment', label: t('invoices.table.payment') || 'Payment' },
         { key: 'tax', label: t('invoices.table.tax') || 'Tax' },
         { key: 'due_amount', label: t('invoices.table.due_amount') || 'Amount Due' },
@@ -236,6 +247,7 @@ export default function Index({ auth_permissions }) {
         date: inv.date,
         company_name: inv.company,
         amount: formatRp(inv.amount),
+        pdf_path: inv.pdf_path || null,
         payment: formatRp(inv.paid_amount || 0),
         tax: `PPN ${inv.tax?.ppn ? inv.tax.ppn.toLocaleString() : 0} / PPh ${inv.tax?.pph ? inv.tax.pph.toLocaleString() : 0}`,
         due_amount: formatRp(inv.due_amount),
