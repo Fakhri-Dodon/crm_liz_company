@@ -9,7 +9,6 @@ export default function LeadModal({ open, onClose, onSubmit, initialData, curren
     email: "",
     phone: "",
     position: "",
-    status: "",
     assigned_to: "",
   });
 
@@ -19,7 +18,7 @@ export default function LeadModal({ open, onClose, onSubmit, initialData, curren
   const [loadingUsers, setLoadingUsers] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // --- LOGIC (Tidak diubah) ---
+  // --- LOGIC (Diubah) ---
   useEffect(() => {
     if (open) {
       fetchStatuses();
@@ -36,16 +35,18 @@ export default function LeadModal({ open, onClose, onSubmit, initialData, curren
     return () => window.removeEventListener('keydown', handleEsc);
   }, [onClose]);
 
+  // Fungsi untuk mendapatkan ID status "new"
+  const getNewStatusId = () => {
+    const newStatus = statuses.find(s => s.name.toLowerCase() === 'new');
+    return newStatus ? newStatus.id : (statuses.length > 0 ? statuses[0].id : null);
+  };
+
   const fetchStatuses = async () => {
     try {
       setLoadingStatuses(true);
       const response = await fetch('/api/lead-statuses');
       const data = await response.json();
       setStatuses(data);
-      if (!initialData && data.length > 0 && !form.status) {
-        const defaultStatus = data.find(s => s.name.toLowerCase() === 'new') || data[0];
-        setForm(prev => ({ ...prev, status: defaultStatus.id }));
-      }
     } catch (err) {
       console.error('Failed to fetch statuses:', err);
       setStatuses([]);
@@ -102,13 +103,16 @@ export default function LeadModal({ open, onClose, onSubmit, initialData, curren
           email: initialData.email || "",
           phone: initialData.phone || "",
           position: initialData.position || "",
-          status: initialData.lead_statuses_id || "",
           assigned_to: initialData.assigned_to || "",
         });
       } else {
         setForm({
-          company_name: "", address: "", contact_person: "", email: "",
-          phone: "", position: "", status: "",
+          company_name: "", 
+          address: "", 
+          contact_person: "", 
+          email: "",
+          phone: "", 
+          position: "", 
           assigned_to: currentUser?.id || "",
         });
       }
@@ -125,17 +129,27 @@ export default function LeadModal({ open, onClose, onSubmit, initialData, curren
     if (isSubmitting) return;
     setIsSubmitting(true);
     try {
-      if (!form.company_name.trim() || !form.contact_person.trim() || !form.status) {
+      if (!form.company_name.trim() || !form.contact_person.trim()) {
         alert('Please fill required fields');
         setIsSubmitting(false);
         return;
       }
+      
+      // Selalu gunakan status "new" sebagai default
+      const newStatusId = getNewStatusId();
+      if (!newStatusId) {
+        alert('Status "new" not found. Please try again.');
+        setIsSubmitting(false);
+        return;
+      }
+
       const payload = {
         ...form,
-        lead_statuses_id: form.status,
+        // Selalu set lead_statuses_id ke status "new"
+        lead_statuses_id: newStatusId,
         assigned_to: form.assigned_to || (initialData ? form.assigned_to : (currentUser?.id || null)),
       };
-      delete payload.status;
+      
       await onSubmit(payload);
     } catch (error) {
       console.error('Error submitting form:', error);
@@ -265,23 +279,8 @@ export default function LeadModal({ open, onClose, onSubmit, initialData, curren
                   />
                 </div>
 
-                {/* Status */}
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-1"> Status <span className="text-red-500">*</span> </label>
-                  <select
-                    name="status"
-                    value={form.status}
-                    onChange={handleChange}
-                    disabled={isSubmitting || loadingStatuses}
-                    className="w-full border border-gray-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-[#005954]/20 focus:border-[#005954] outline-none transition-all appearance-none bg-white"
-                    required
-                  >
-                    <option value="">Select Status</option>
-                    {statuses.map((s) => (
-                      <option key={s.id} value={s.id}>{s.name}</option>
-                    ))}
-                  </select>
-                </div>
+                {/* Status - DIHAPUS DARI UI */}
+                {/* Dropdown status dihapus dari sini */}
 
                 {/* Assign To */}
                 <div>
@@ -340,7 +339,7 @@ export default function LeadModal({ open, onClose, onSubmit, initialData, curren
               </button>
               <button
                 type="submit"
-                disabled={isSubmitting || !form.company_name || !form.status}
+                disabled={isSubmitting || !form.company_name}
                 className="px-6 py-3 bg-[#005954] text-white rounded-xl hover:bg-[#004d48] transition-all font-medium flex-1 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isSubmitting ? (
