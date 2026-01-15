@@ -183,25 +183,20 @@ export default function Index({ auth_permissions }) {
             key: 'no',
             label: t('invoices.table.no_date') || 'Invoice',
             render: (value, row, idx) => (
+                console.log(row),
                 <div>
-                    <div className="text-teal-700 font-semibold hover:text-teal-900 cursor-pointer" onClick={() => handlePreview(row.original)}>{value}</div>
-                    <div className="text-xs text-gray-500">{row.date}</div>
+                    <a className="text-blue-600 font-semibold hover:underline flex items-center gap-1 cursor-pointer" 
+                        href={`/storage/${row.pdf_path}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        >{value}
+                    </a>
+                    <div className="text-xs text-gray-500">{new Date(row.date || "-").toLocaleDateString()}</div>
                 </div>
             )
         },
         { key: 'company_name', label: t('invoices.table.company_name') || 'Company Name' },
         { key: 'amount', label: t('invoices.table.amount') || 'Invoice Amount' },
-        {
-            key: 'pdf',
-            label: 'PDF',
-            render: (value, row) => (
-                row.pdf_path ? (
-                    <a href={`/storage/${row.pdf_path}`} target="_blank" rel="noreferrer" className="text-sm font-bold text-teal-700 hover:text-teal-900">Open</a>
-                ) : (
-                    <span className="text-xs text-gray-400">—</span>
-                )
-            )
-        },
         { key: 'payment', label: t('invoices.table.payment') || 'Payment' },
         { key: 'tax', label: t('invoices.table.tax') || 'Tax' },
         { key: 'due_amount', label: t('invoices.table.due_amount') || 'Amount Due' },
