@@ -46,6 +46,16 @@ class InvoiceStatusesSeeder extends Seeder
                 'color_name'    => 'Orange'
             ],
             [
+                'name'  => 'Paid',
+                'color' => '#22C55E',
+                'color_name'    => 'Green'
+            ],
+            [
+                'name'  => 'Unpaid',
+                'color' => '#ef4444',
+                'color_name'    => 'Red'
+            ],
+            [
                 'name'  => 'Draft',
                 'color' => '#6B7280',
                 'color_name'    => 'Grey'

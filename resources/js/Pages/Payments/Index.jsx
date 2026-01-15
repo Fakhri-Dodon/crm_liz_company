@@ -297,6 +297,7 @@ export default function PaymentIndex({ payments = [], stats = {}, filters = {}, 
                 onSuccess: () => {
                     setShowAddModal(false);
                     setProcessing(false);
+                    router.reload();
                 },
                 onError: () => {
                     setProcessing(false);
@@ -308,6 +309,7 @@ export default function PaymentIndex({ payments = [], stats = {}, filters = {}, 
                 onSuccess: () => {
                     setShowAddModal(false);
                     setProcessing(false);
+                    router.reload();
                 },
                 onError: () => {
                     setProcessing(false);
@@ -324,6 +326,7 @@ export default function PaymentIndex({ payments = [], stats = {}, filters = {}, 
                 setShowDeleteModal(false);
                 setDeletingPayment(null);
                 setProcessing(false);
+                router.reload();
             },
             onError: () => {
                 setProcessing(false);
