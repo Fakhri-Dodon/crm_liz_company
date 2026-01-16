@@ -233,10 +233,9 @@ class InvoiceController extends Controller
                 $fmtId = $fmt ? $fmt->id : null;
                 $invoiceNumber = $fmt ? InvoiceNumberFormated::generate() : $validated['number'];
 
-                // Prefer 'Unpaid' status when creating invoices; fallback to 'Draft' when not available
-                $statusModel = \App\Models\InvoiceStatuses::where('name', 'Unpaid')->first() ?? \App\Models\InvoiceStatuses::where('name', 'Draft')->first();
-                $statusId = $statusModel ? $statusModel->id : null;
-                $statusName = $statusModel ? $statusModel->name : 'Draft';
+                // find default invoice status (Draft)
+                $defaultStatus = \App\Models\InvoiceStatuses::where('name', 'Draft')->first();
+                $statusId = $defaultStatus ? $defaultStatus->id : null;
 
                 $invoice = Invoice::create([
                     'company_contact_persons_id' => $contactPersonId,
@@ -254,7 +253,7 @@ class InvoiceController extends Controller
                     'pph'                   => $validated['tax_amount_pph'] ?? 0,
                     'total'                 => $validated['total'],
                     'amount_due'            => $validated['total'],
-                    'status'                => $statusName,
+                    'status'                => 'Draft',
                     'pdf_path'              => $path,
                     'created_by'            => auth()->id(),
                 ]);
@@ -289,7 +288,7 @@ class InvoiceController extends Controller
                     $manager->notify(new DocumentNotification([
                         'id'               => $invoice->id,
                         'type'             => 'invoice',
-                        'status'           => $statusName,
+                        'status'           => 'Draft',
                         'url'              => "/storage/{$invoice->pdf_path}",
                         'message'          => "Invoice baru #{$invoice->invoice_number} menunggu persetujuan.",
                         'contact_person'   => $invoice->contactPerson && ($invoice->contactPerson->name ?? null) ? ($invoice->contactPerson->name ?? ($invoice->contactPerson->lead->contact_person ?? 'No Name')) : ($invoice->contactPerson && $invoice->contactPerson->lead ? $invoice->contactPerson->lead->contact_person : 'No Name'),
