@@ -701,10 +701,29 @@ class QuotationController extends Controller {
                 'description' => 'Send ' . $docType,
             ]);
 
+            \App\Models\EmailLogs::create([
+                'to' => $document->lead?->contact_person 
+                            ?? $document->contactPerson?->name 
+                            ?? '-',
+                'subject' => $finalSubject,
+                'body' => $finalContent,
+                'status' => 'success',
+                'sent_date' => now(),
+            ]);
+
             return back()->with('success', ucfirst($docType) . ' berhasil dikirim!');
 
         } catch (\Exception $e) {
             \Log::error("Gagal kirim {$request->type}: " . $e->getMessage());
+            \App\Models\EmailLogs::create([
+                'to' => $document->lead?->contact_person 
+                            ?? $document->contactPerson?->name 
+                            ?? '-',
+                'subject' => 'FAILED: Uji Coba SMTP',
+                'body' => $e->getMessage(),
+                'status' => 'failed',
+                'sent_date' => now(),
+            ]);
             return back()->with('error', 'Gagal mengirim email: ' . $e->getMessage());
         }
     }

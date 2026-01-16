@@ -70,7 +70,7 @@ class PaymentController extends Controller
                 'id' => $payment->id,
                 'invoice_id' => $payment->invoice_id,
                 'invoice_number' => $payment->invoice->invoice_number ?? 'N/A',
-                'payment_date' => $payment->date->format('d-m-Y'),
+                'payment_date' => $payment->date->format('d/m/Y'),
                 'company_name' => $companyName,
                 'company_id' => $companyId,
                 'amount' => (float) $payment->amount,

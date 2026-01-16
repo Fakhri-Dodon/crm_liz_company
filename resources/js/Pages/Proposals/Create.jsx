@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from "react";
-import { Head, usePage, router, useForm } from '@inertiajs/react';
+import { Head, usePage, router, useForm } from "@inertiajs/react";
 import grapesjs from "grapesjs";
 import "grapesjs/dist/css/grapes.min.css";
 import "@/assets/css/grapes-custom.css";
-import * as htmlToImage from 'html-to-image';
+import * as htmlToImage from "html-to-image";
 
 const TEXT_CANDIDATES = [
     "H1",
@@ -25,21 +25,31 @@ const TEXT_CANDIDATES = [
 ];
 
 const STYLE_GROUPS = {
+    // Teks Biasa: Warna, Font, Background
     text: [
         "color",
         "font-size",
         "background-color",
         "font-family",
         "font-weight",
+        "text-align",
+        "line-height",
+        "letter-spacing",
     ],
-    btn: ["font-weight", "font-size", "background-color", "color"], // Button biasanya butuh color text juga
-    link: [
+
+    // Link Navigasi: Font, Warna, Transform
+    linkNav: ["font-weight", "font-size", "text-transform", "color"],
+
+    // Tombol Navigasi: Font, Background, Radius
+    btnNav: [
         "font-weight",
         "font-size",
-        "text-transform",
+        "background-color",
         "color",
-        "text-decoration",
+        "border-radius",
     ],
+
+    // Gambar (General): Border & Radius
     img: [
         "border-top-left-radius",
         "border-top-right-radius",
@@ -48,14 +58,18 @@ const STYLE_GROUPS = {
         "border-color",
         "border-style",
         "border-width",
+        "width",
+        "height",
     ],
+
+    // Icon: Warna & Ukuran
     icon: ["color", "font-size"],
 };
 
 export default function Create({ id, template }) {
     const editorRef = useRef(null);
     const activeModeRef = useRef("elements");
-    
+
     const [categories, setCategories] = useState([]);
     const [activeCat, setActiveCat] = useState("All Blocks");
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -63,125 +77,58 @@ export default function Create({ id, template }) {
     const [isDirty, setIsDirty] = useState(false);
     const [loading, setLoading] = useState(false);
     const [activeMode, setActiveMode] = useState("elements");
+    const [showCode, setShowCode] = useState(false);
+    const [sourceCode, setSourceCode] = useState("");
 
     // =========================================================
-    // 1. LOGIKA UNTUK MENENTUKAN CSS & SETTINGS (TRAITS)
+    // BAGIAN 1: LOGIKA SKENARIO (Insert sebelum useEffect)
     // =========================================================
     const getConfigForElement = (comp) => {
         const el = comp.getEl();
-        if (!el) return { styles: [], traits: [] };
+        if (!el) return { title: "Settings", styles: [], traits: [] };
 
         const tagName = comp.get("tagName")?.toUpperCase();
         const classes = comp.getClasses();
-        const type = comp.get("type");
 
-        // Helper Checks
+        // Deteksi Lokasi & Tipe
         const isNav =
             el.closest("nav") !== null || el.closest(".navbar") !== null;
         const isFooter = el.closest("footer") !== null;
-        const isBtn = classes.includes("btn") || classes.includes("btn-nav");
+        const isBtn =
+            classes.includes("btn") ||
+            classes.includes("btn-nav") ||
+            tagName === "BUTTON";
         const isIcon =
             tagName === "I" ||
-            classes.some((c) => c.startsWith("fa-") || c === "fa");
+            classes.some((c) => c.startsWith("fa") || c.startsWith("icon-"));
 
-        // -----------------------------------------------------
-        // SKENARIO 1: IMAGE di dalam NAV
-        // -----------------------------------------------------
+        // ------------------------------------------------
+        // SKENARIO 1: IMAGE DI DALAM NAV
+        // ------------------------------------------------
         if (tagName === "IMG" && isNav) {
             return {
-                title: "Image Navigation",
-                styles: STYLE_GROUPS.img,
+                title: "NAVIGATION IMAGE",
+                styles: STYLE_GROUPS.img, // Bisa edit border
                 traits: [
-                    { type: "text", name: "src", label: "Image Source" }, // Ganti Gambar
-                    { type: "text", name: "href", label: "Link URL" }, // Tambah Link
+                    { type: "text", name: "src", label: "Image Source" },
+                    { type: "text", name: "href", label: "Link URL" }, // Bisa tambah link
                     {
-                        type: "select",
-                        name: "target",
-                        label: "Target",
-                        options: [
-                            { value: "", name: "Same Tab" },
-                            { value: "_blank", name: "New Tab" },
-                        ],
+                        type: "button",
+                        label: "Assets",
+                        text: "Change Image",
+                        command: (e) => e.runCommand("open-assets"),
                     },
                 ],
             };
         }
 
-        // -----------------------------------------------------
-        // SKENARIO 2: TAG A (Bukan Button) di dalam NAV
-        // -----------------------------------------------------
+        // ------------------------------------------------
+        // SKENARIO 2: LINK TEKS DI NAV (Bukan Tombol)
+        // ------------------------------------------------
         if (tagName === "A" && !isBtn && isNav) {
             return {
-                title: "Nav Link",
-                styles: STYLE_GROUPS.link,
-                traits: [
-                    { type: "text", name: "href", label: "Link URL" }, // Ganti Link
-                    { type: "text", name: "content", label: "Text" }, // Ganti Teks Link (opsional, via trait)
-                ],
-            };
-        }
-
-        // -----------------------------------------------------
-        // SKENARIO 3: TAG A.BTN (Button) di dalam NAV
-        // -----------------------------------------------------
-        if (tagName === "A" && isBtn && isNav) {
-            return {
-                title: "Nav Button",
-                styles: STYLE_GROUPS.btn,
-                traits: [
-                    { type: "text", name: "href", label: "Link URL" }, // Ganti Link
-                    { type: "text", name: "class", label: "Classes" }, // Opsional: edit class
-                ],
-            };
-        }
-
-        // -----------------------------------------------------
-        // SKENARIO 4: TEXT (H1-H6, P, SPAN, dll)
-        // -----------------------------------------------------
-        const TEXT_TAGS = [
-            "H1",
-            "H2",
-            "H3",
-            "H4",
-            "H5",
-            "H6",
-            "P",
-            "SPAN",
-            "STRONG",
-            "B",
-            "EM",
-            "SMALL",
-            "DIV",
-            "LI",
-        ];
-        // Cek apakah ini text node murni atau elemen pembungkus teks
-        // Kita anggap text jika dia masuk list di atas DAN bukan button DAN bukan icon
-        if (TEXT_TAGS.includes(tagName) && !isBtn && !isIcon) {
-            // Pastikan tidak punya anak elemen blok (agar tidak menyeleksi wrapper besar)
-            const hasBlockChildren = comp
-                .find("*")
-                .some(
-                    (c) =>
-                        c.get("type") === "default" ||
-                        c.get("tagName") === "DIV"
-                );
-
-            if (!hasBlockChildren) {
-                return {
-                    title: "Typography",
-                    styles: STYLE_GROUPS.text,
-                    traits: [], // User TIDAK BISA tambah image/link (Traits kosong)
-                };
-            }
-        }
-
-        // -----------------------------------------------------
-        // SKENARIO 5: BUTTON (Bukan di Nav)
-        // -----------------------------------------------------
-        if (isBtn && !isNav) {
-            return {
-                title: "Button Component",
-                styles: STYLE_GROUPS.btn,
+                title: "NAVIGATION LINK",
+                styles: STYLE_GROUPS.linkNav, // Font, Weight, Transform
                 traits: [
                     { type: "text", name: "href", label: "Link URL" },
                     {
@@ -197,40 +144,108 @@ export default function Create({ id, template }) {
             };
         }
 
-        // -----------------------------------------------------
-        // SKENARIO 6: IMAGE (Bukan di Nav)
-        // -----------------------------------------------------
+        // ------------------------------------------------
+        // SKENARIO 3: TOMBOL DI NAV (Class .btn / .btn-nav)
+        // ------------------------------------------------
+        if ((tagName === "A" || tagName === "BUTTON") && isBtn && isNav) {
+            return {
+                title: "NAVIGATION BUTTON",
+                styles: STYLE_GROUPS.btnNav, // Font, Bg, Radius
+                traits: [
+                    { type: "text", name: "href", label: "Link URL" },
+                    { type: "text", name: "class", label: "Classes" },
+                ],
+            };
+        }
+
+        // ------------------------------------------------
+        // SKENARIO 4: TEKS BIASA (Content)
+        // ------------------------------------------------
+        // Cek apakah ini teks murni (tidak punya anak elemen layout)
+        if (
+            TEXT_CANDIDATES.includes(tagName) &&
+            !isBtn &&
+            !isIcon &&
+            tagName !== "IMG"
+        ) {
+            const hasBlockChildren = comp
+                .find("*")
+                .some(
+                    (c) =>
+                        c.get("type") === "default" ||
+                        c.get("tagName") === "DIV"
+                );
+            if (!hasBlockChildren) {
+                return {
+                    title: "TYPOGRAPHY",
+                    styles: STYLE_GROUPS.text,
+                    traits: [], // TIDAK ADA TRAITS (Tidak bisa tambah link/img)
+                };
+            }
+        }
+
+        // ------------------------------------------------
+        // SKENARIO 5: TOMBOL BIASA (Di luar Nav)
+        // ------------------------------------------------
+        if (isBtn && !isNav) {
+            return {
+                title: "BUTTON STYLE",
+                styles: STYLE_GROUPS.btnNav,
+                traits: [
+                    { type: "text", name: "href", label: "Link URL" },
+                    {
+                        type: "select",
+                        name: "target",
+                        label: "Target",
+                        options: [
+                            { value: "", name: "Same Tab" },
+                            { value: "_blank", name: "New Tab" },
+                        ],
+                    },
+                ],
+            };
+        }
+
+        // ------------------------------------------------
+        // SKENARIO 6: IMAGE BIASA (Di luar Nav)
+        // ------------------------------------------------
         if (tagName === "IMG" && !isNav) {
             return {
-                title: "Image Component",
+                title: "IMAGE STYLE",
                 styles: STYLE_GROUPS.img,
                 traits: [
-                    { type: "text", name: "src", label: "Image Source" },
+                    { type: "text", name: "src", label: "Source" },
                     { type: "text", name: "alt", label: "Alt Text" },
+                    {
+                        type: "button",
+                        label: "Assets",
+                        text: "Change Image",
+                        command: (e) => e.runCommand("open-assets"),
+                    },
+                    // TIDAK ADA HREF (Sesuai request: tidak bisa tambah link)
                 ],
             };
         }
 
-        // Logicnya: Bisa ganti warna, size, link, dan icon class
+        // ------------------------------------------------
+        // SKENARIO 7 & 8: ICON
+        // ------------------------------------------------
         if (isIcon) {
             return {
-                title: isFooter ? "Footer Icon" : "Icon Component",
+                title: isFooter ? "FOOTER ICON" : "ICON STYLE",
                 styles: STYLE_GROUPS.icon,
                 traits: [
-                    { type: "text", name: "href", label: "Link URL" }, 
-                    {
-                        type: "text",
-                        name: "class",
-                        label: "Icon Class (fa fa-xxx)",
-                    }, 
+                    { type: "text", name: "href", label: "Link URL" },
+                    { type: "text", name: "class", label: "Icon Class (fa-*)" },
                 ],
             };
         }
 
+        // Fallback default
         return {
-            title: "Element Settings",
-            styles: ["padding", "margin", "background-color", "height"],
-            traits: [],
+            title: "ELEMENT SETTINGS",
+            styles: ["padding", "margin", "background-color", "display"],
+            traits: [{ type: "text", name: "id", label: "ID" }],
         };
     };
 
@@ -247,328 +262,189 @@ export default function Create({ id, template }) {
             forceClass: false,
             selectable: true,
             blockManager: { appendTo: "#second-side" },
-
             traitManager: { appendTo: "#trait-editor-container" },
-            styleManager: {
+            styleManager: { 
                 appendTo: "#style-manager-container",
                 clearProperties: true,
                 sectors: [
-                    {
-                        name: "Typography",
-                        open: false,
-                        buildProps: [
-                            "font-family",
-                            "font-size",
-                            "font-weight",
-                            "color",
-                            "text-align",
-                            "text-transform",
-                            "line-height",
-                            "letter-spacing",
-                        ],
-                    },
-                    {
-                        name: "Decorations",
-                        open: false,
-                        buildProps: [
-                            "background-color",
-                            "border-radius",
-                            "border-top-left-radius",
-                            "border-top-right-radius",
-                            "border-bottom-left-radius",
-                            "border-bottom-right-radius",
-                            "box-shadow",
-                            "background-image",
-                        ],
-                    },
-                    {
-                        name: "Dimensions",
-                        open: false,
-                        buildProps: [
-                            "width",
-                            "height",
-                            "min-height",
-                            "padding",
-                            "margin",
-                            "padding-top",
-                            "padding-bottom",
-                            "padding-left",
-                            "padding-right",
-                        ],
-                    },
-                    {
-                        name: "Borders",
-                        open: false,
-                        buildProps: [
-                            "border-width",
-                            "border-style",
-                            "border-color",
-                        ],
-                    },
-                ],
+                    { name: 'Typography', open: false, buildProps: ['font-family', 'font-size', 'font-weight', 'letter-spacing', 'color', 'line-height', 'text-align', 'text-decoration', 'text-transform'] },
+                    { name: 'Decorations', open: false, buildProps: ['background-color', 'border-radius', 'border-top-left-radius', 'border-top-right-radius', 'border-bottom-left-radius', 'border-bottom-right-radius', 'box-shadow', 'background-image', 'opacity'] },
+                    { name: 'Dimensions', open: false, buildProps: ['width', 'height', 'min-height', 'padding', 'margin', 'padding-top', 'padding-bottom', 'padding-left', 'padding-right'] },
+                    { name: 'Borders', open: false, buildProps: ['border-width', 'border-style', 'border-color'] }
+                ]
             },
             panels: { defaults: [] },
-            canvas: {
+            canvas: { 
                 styles: [
+                    "/templates/css/plugins/bootstrap.min.css", 
                     "/templates/css/style.css",
-                    "/templates/css/plugins/bootstrap.min.css",
-                    '/templates/css/font-awesome.min.css',
+                    "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css",
                 ],
+                scripts: [],
+                style: `
+                    /* Container Toolbar */
+                    .gjs-toolbar {
+                        background-color: #2c3e50 !important;
+                        border: 1px solid #fff !important;
+                        border-radius: 4px !important;
+                        box-shadow: 0 4px 10px rgba(0,0,0,0.3) !important;
+                        top: -35px !important; /* Geser ke atas elemen */
+                        left: 0 !important;
+                        z-index: 99999 !important; /* PASTI DI PALING ATAS */
+                        opacity: 1 !important;
+                        display: flex !important;
+                        visibility: visible !important;
+                    }
+                    
+                    /* Item/Ikon Toolbar */
+                    .gjs-toolbar-item {
+                        color: #ffffff !important;
+                        width: 35px !important;
+                        height: 35px !important;
+                        cursor: pointer !important;
+                    }
+
+                    /* Hover Effect */
+                    .gjs-toolbar-item:hover {
+                        background-color: #1abc9c !important; 
+                    }
+
+                    /* Garis Seleksi Biru */
+                    .gjs-cv-canvas .gjs-highlighter,
+                    .gjs-cv-canvas .gjs-comp-selected {
+                        border: 2px solid #3498db !important;
+                    }
+                `,
             },
         });
 
-        const defaultType = editor.DomComponents.getType("default");
-        const defaultModel = defaultType.model;
-
-        // override image agar traits-nya dinamis nanti
+        // Override Default Image
         editor.DomComponents.addType("image", {
-            model: {
-                defaults: {
-                    traits: [],
-                },
-            },
+            model: { defaults: { traits: [] } },
         });
 
         editorRef.current = editor;
 
         editor.on("load", () => {
-            const body = editor.Canvas.getBody();
-
-            if (!body.querySelector(".el-toolbar")) {
-                const toolbar = document.createElement("div");
-                toolbar.className = "el-toolbar";
-                toolbar.style.display = "none";
-
-                toolbar.innerHTML = `
-                    <button class="el-btn source"><i class="fa fa-code"></i></button>
-                    <button class="el-btn reset"><i class="fa fa-refresh"></i></button>
-                    <button class="el-btn remove"><i class="fa fa-trash"></i></button>
-                `;
-
-                body.appendChild(toolbar);
-            }
-            // CSS Injection (Pointer Events Locking)
+            // ... (Kode CSS Injection untuk content mode tetap sama) ...
             const canvasHead = editor.Canvas.getDocument().head;
-            const styleId = "mode-content-style";
+            const styleId = 'mode-content-style';
             if (!canvasHead.querySelector(`#${styleId}`)) {
-                const styleEl = document.createElement("style");
+                const styleEl = document.createElement('style');
                 styleEl.id = styleId;
                 styleEl.innerHTML = `
                     .mode-content-active * { pointer-events: none !important; cursor: default !important; }
-                    .mode-content-active [contenteditable="true"], 
-                    .mode-content-active [data-gjs-type="text"],
-                    .mode-content-active h1, .mode-content-active h2, .mode-content-active h3, 
-                    .mode-content-active h4, .mode-content-active h5, .mode-content-active h6, 
-                    .mode-content-active p, .mode-content-active span, .mode-content-active a, 
-                    .mode-content-active li, .mode-content-active b, .mode-content-active strong, 
-                    .mode-content-active i, .mode-content-active small { 
+                    .mode-content-active [contenteditable="true"], .mode-content-active [data-gjs-type="text"] { 
                         pointer-events: auto !important; cursor: text !important; outline: 2px dashed #4cd137 !important; 
-                    }
-                    .gjs-rte-toolbar, .gjs-rte-toolbar * { pointer-events: auto !important; }
-                    
-                    .fa,
-                    .fa:before {
-                        font-family: FontAwesome !important;
                     }
                 `;
                 canvasHead.appendChild(styleEl);
             }
 
-            editor.addStyle(`
-                .el-toolbar {
-                    position: absolute !important;
-                    top: -18px !important;
-                    right: 10px !important;
-                    display: inline-flex !important;
-                    border-radius: 6px !important;
-                    overflow: hidden !important;
-                    box-shadow: 0 4px 10px rgba(0,0,0,0.15) !important;
-                    z-index: 9999 !important;
-                    font-family: Arial, sans-serif;
+            // Command untuk Lihat Source Code per Element
+            editor.Commands.add('custom-view-code', {
+                run: (editor) => {
+                    const selected = editor.getSelected();
+                    if (selected) {
+                        const html = selected.toHTML();
+                        const css = editor.CodeManager.getCode(selected, 'css'); // Ambil CSS terkait (opsional)
+                        setSourceCode(`${html}`); // Tampilkan HTML elemen itu saja
+                        setShowCode(true);
+                    }
                 }
+            });
 
-                .el-toolbar .el-btn {
-                    border: none !important;
-                    padding: 6px 12px !important;
-                    font-size: 12px !important;
-                    color: #fff !important;
-                    cursor: pointer !important;
-                    display: flex !important;
-                    align-items: center !important;
-                    gap: 6px !important;
-                    background: #333 !important;
-                }
+            // Load Templates
+            fetch(`/api/proposal/templates`).then((res) => res.json()).then((templates) => {
+                const rawCats = templates.map((t) => t.category || "Templates");
+                const cats = ["All Blocks", ...new Set(rawCats)];
 
-                .el-toolbar .el-btn.source {
-                    background: #2c3e50 !important;
-                }
-
-                .el-toolbar .el-btn.reset {
-                    background: #f39c12 !important;
-                }
-
-                .el-toolbar .el-btn.remove {
-                    background: #e74c3c !important;
-                }
-
-                .el-toolbar .el-btn:hover {
-                    filter: brightness(1.1) !important;
-                }
-
-                .el-toolbar i {
-                    font-size: 12px !important;
-                }
-
-                section, header, footer {
-                    overflow: visible !important;
-                }
-            `);
-
-            fetch(`/api/proposal/templates`)
-                .then((res) => res.json())
-                .then((templates) => {
-                    const cats = [
-                        "All Blocks",
-                        ...new Set(templates.map((t) => t.category)),
-                    ];
-                    setCategories(cats);
-                    templates.forEach((tpl, index) => {
-                        editor.BlockManager.add(`template-${index}`, {
-                            category: tpl.category || "Templates",
-                            media: `<img src="${tpl.preview}" style="width: 100%;" />`,
-                            content: {
-                                content: `<input type="hidden" data-template-category="${tpl.category || 'Templates'}">${tpl.html}`,
-                                attributes: {
-                                    "data-gjs-section": "true",
-                                    "data-section-type": tpl.category
-                                }
-                            }
-                        });
+                setCategories(cats);
+                templates.forEach((tpl, index) => {
+                    editor.BlockManager.add(`template-${index}`, {
+                        category: tpl.category || "Templates",
+                        media: `<img src="${tpl.preview}" style="width: 100%;" />`,
+                        content: { content: tpl.html, style: tpl.css },
                     });
-                })
-                .finally(() => setLoading(false));
+                });
+            }).finally(() => setLoading(false));
 
             if (template) {
-                if (template.html_output)
-                    editor.setComponents(template.html_output);
+                if (template.html_output) editor.setComponents(template.html_output);
                 if (template.css_output) editor.setStyle(template.css_output);
             }
-
             setTimeout(() => changeMode("elements"), 500);
         });
 
-        editor.on("component:dblclick", (comp) => {
-            if (activeModeRef.current !== "content") return;
-
-            const tag = comp.get("tagName")?.toUpperCase();
-            const isText =
-                TEXT_CANDIDATES.includes(tag) || comp.get("type") === "text";
-
-            if (!isText) return;
-
-            editor.Modal.setTitle("Edit Content");
-            editor.Modal.setContent(`
-                <textarea id="content-editor"
-                    style="width:100%;height:200px;">
-                    ${comp.view.el.innerText}
-                </textarea>
-                <button id="save-content">Save</button>
-            `);
-            editor.Modal.open();
-
-            setTimeout(() => {
-                document.getElementById("save-content").onclick = () => {
-                    const val =
-                        document.getElementById("content-editor").value;
-                    comp.components(val);
-                    editor.Modal.close();
-                };
-            }, 0);
-        });
-
-        // =========================================================
-        // LOGIC UTAMA: SAAT ELEMEN DIKLIK
-        // =========================================================
+        // ===============================================
+        // PERBAIKAN UTAMA DISINI (EVENT LISTENER)
+        // ===============================================
+        
+        // 1. SAAT ELEMEN DIPILIH
         editor.on("component:selected", (comp) => {
             if (!comp) return;
             const mode = activeModeRef.current;
 
             if (mode === "details") {
-                const sidebar = document.getElementById(
-                    "style-editor-container"
-                );
-                const sidebarTitle =
-                    document.getElementById("sidebar-title-text");
+                const sidebar = document.getElementById("style-editor-container");
+                const sidebarTitle = document.getElementById("sidebar-title-text");
+                const traitHeader = document.getElementById("trait-header");
 
-                // 1. Buka Sidebar Kiri
-                if (sidebar) sidebar.classList.add("open");
+                // A. Tampilkan Sidebar
+                if (sidebar) sidebar.style.display = 'flex';
 
-                // 2. Ambil Config
+                // B. Ambil Config & Update Judul
                 const config = getConfigForElement(comp);
-
-                // Update Judul Sidebar
                 if (sidebarTitle) sidebarTitle.innerText = config.title;
 
-                // 3. Set Traits (Settings)
-                comp.set("traits", config.traits);
+                // C. Update Traits (Settings)
+                comp.set('traits', config.traits);
+                // Sembunyikan header "ATTRIBUTES" jika traits kosong
+                if (traitHeader) {
+                    traitHeader.style.display = config.traits.length > 0 ? 'block' : 'none';
+                }
 
-                // 4. Set Styles (CSS)
+                // D. Filter Style CSS
                 const sm = editor.StyleManager;
                 const sectors = sm.getSectors();
-
-                sectors.forEach((sector) => {
+                sectors.forEach(sector => {
                     let hasVisibleProps = false;
-                    sector.get("properties").forEach((prop) => {
-                        const propName = prop.get("property");
-
-                        // Logic pencocokan style yang lebih longgar untuk properti compound
-                        const isAllowed = config.styles.some((allowed) => {
+                    sector.get('properties').forEach(prop => {
+                        const propName = prop.get('property');
+                        const isAllowed = config.styles.some(allowed => {
                             if (allowed === propName) return true;
-                            if (
-                                allowed === "padding" &&
-                                propName.startsWith("padding")
-                            )
-                                return true;
-                            if (
-                                allowed === "margin" &&
-                                propName.startsWith("margin")
-                            )
-                                return true;
+                            if (allowed === 'padding' && propName.startsWith('padding')) return true;
+                            if (allowed === 'margin' && propName.startsWith('margin')) return true;
+                            if (allowed === 'border-width' && propName === 'border-width') return true;
+                            if (allowed === 'border-style' && propName === 'border-style') return true;
+                            if (allowed === 'border-color' && propName === 'border-color') return true;
                             return false;
                         });
-
-                        prop.set("visible", isAllowed);
+                        prop.set('visible', isAllowed);
                         if (isAllowed) hasVisibleProps = true;
                     });
-
-                    sector.set("visible", hasVisibleProps);
-                    sector.set("open", hasVisibleProps); // Buka sector jika ada isinya
+                    sector.set('visible', hasVisibleProps);
+                    sector.set('open', hasVisibleProps);
                 });
+            } else if (mode === "content") {
+                // Logic content mode (biarkan seperti sebelumnya)
+                const view = comp.getView();
+                if(view?.el && comp.get('editable')) {
+                    view.el.setAttribute('contenteditable', 'true');
+                    view.el.focus();
+                }
             }
         });
 
-        // Tutup sidebar jika deselect
+        // 2. SAAT KLIK RUANG KOSONG (DESELECT) -> TUTUP SIDEBAR
         editor.on("component:deselected", () => {
             const sidebar = document.getElementById("style-editor-container");
-            if (sidebar) sidebar.classList.remove("open");
+            if (sidebar) sidebar.style.display = 'none';
         });
 
         editor.on("component:add", (component) => {
-            component.set("initialContent", component.toHTML());
-            setTimeout(
-                () => applyComponentSettings(component, activeModeRef.current),
-                10
-            );
+            setTimeout(() => applyComponentSettings(component, activeModeRef.current), 50);
         });
-
-        const markDirty = () => setIsDirty(true);
-
-        editor.on("component:add", markDirty);
-        editor.on("component:remove", markDirty);
-        editor.on("component:update", markDirty);
-        editor.on("style:property:update", markDirty);
-        editor.on("component:styleUpdate", markDirty);
-        editor.on("trait:value:update", markDirty);
 
         return () => editor.destroy();
     }, []);
@@ -585,7 +461,6 @@ export default function Create({ id, template }) {
     }, [isDirty]);
 
     const savePage = async () => {
-
         if (!editorRef.current) return;
 
         const editor = editorRef.current;
@@ -593,17 +468,18 @@ export default function Create({ id, template }) {
         const html = editor.getHtml();
 
         const parser = new DOMParser();
-        const doc = parser.parseFromString(html, 'text/html');
+        const doc = parser.parseFromString(html, "text/html");
 
         const categoriesUsed = [
             ...new Set(
-                [...doc.querySelectorAll('[data-template-category]')]
-                    .map(el => el.dataset.templateCategory)
-            )
+                [...doc.querySelectorAll("[data-template-category]")].map(
+                    (el) => el.dataset.templateCategory
+                )
+            ),
         ];
 
         const canvasConfig = editor.getConfig().canvas;
-        
+
         const getFilteredCss = async (url) => {
             try {
                 const response = await fetch(url);
@@ -613,7 +489,7 @@ export default function Create({ id, template }) {
                 if (url.includes("font-awesome")) {
                     return text;
                 }
-                
+
                 return filterCssRules(text, doc);
             } catch (err) {
                 console.error("Gagal mengambil CSS:", url);
@@ -621,18 +497,20 @@ export default function Create({ id, template }) {
             }
         };
 
-        const externalPromises = canvasConfig.styles.map(url => getFilteredCss(url));
+        const externalPromises = canvasConfig.styles.map((url) =>
+            getFilteredCss(url)
+        );
         const externalResults = await Promise.all(externalPromises);
-        
+
         const internalCss = filterCssRules(editor.getCss(), doc);
 
-        const finalUsedCss = externalResults.join('\n') + '\n' + internalCss;
+        const finalUsedCss = externalResults.join("\n") + "\n" + internalCss;
 
         const iframe = editor.Canvas.getFrameEl();
         const iframeBody = iframe.contentDocument.body;
 
         const imageBlob = await htmlToImage.toBlob(iframeBody, {
-            backgroundColor: '#ffffff',
+            backgroundColor: "#ffffff",
             pixelRatio: 2, // HD thumbnail
         });
 
@@ -647,8 +525,10 @@ export default function Create({ id, template }) {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
-                "Accept": "application/json",
-                "X-CSRF-TOKEN": document.querySelector('meta[name="csrf-token"]').getAttribute("content"),
+                Accept: "application/json",
+                "X-CSRF-TOKEN": document
+                    .querySelector('meta[name="csrf-token"]')
+                    .getAttribute("content"),
             },
             body: JSON.stringify({
                 id: id,
@@ -665,68 +545,106 @@ export default function Create({ id, template }) {
             alert("Simpan Berhasil!");
             window.location.href = savePage.redirect;
         }
-
     };
 
+    const handleViewCode = () => {
+        const editor = editorRef.current;
+        if (!editor) return;
+        
+        const html = editor.getHtml();
+        const css = editor.getCss();
+        
+        const fullCode = `\n${html}\n\n/* CSS */\n<style>\n${css}\n</style>`;
+        
+        setSourceCode(fullCode);
+        setShowCode(true);
+    };
+
+    // =========================================================
+    // BAGIAN 3: UPDATE COMPONENT SETTINGS
+    // =========================================================
     const applyComponentSettings = (comp, mode) => {
         if (!comp || typeof comp.get !== "function") return;
-        const tagName = comp.get("tagName")?.toUpperCase();
+
+        // const tagName = comp.get("tagName")?.toUpperCase();
         const type = comp.get("type");
         const isWrapper = type === "wrapper";
-        const isCandidate =
-            TEXT_CANDIDATES.includes(tagName) ||
-            type === "text" ||
-            type === "textnode";
-        const hasBlockChildren = comp
-            .find("*")
-            .some(
-                (c) => c.get("type") === "default" || c.get("tagName") === "DIV"
-            );
-        const isText = isCandidate && !hasBlockChildren;
+
+        const parent = comp.parent();
+        const isRootBlock = (parent && parent.get('type') === 'wrapper') || (!parent && !isWrapper);
+
+        const view = comp.getView();
+        if (view?.el && typeof view.el.removeAttribute === 'function') {
+            view.el.removeAttribute('contenteditable');
+        }
 
         let props = {};
-        const view = comp.getView();
-        if (view?.el) view.el.removeAttribute("contenteditable");
 
         if (mode === "elements") {
-            if (isSectionRoot(comp)) {
+            const customToolbar = [
+                { attributes: { class: 'fa fa-arrows', title: 'Drag Element' }, command: 'tlb-move' },
+                { attributes: { class: 'fa fa-code', title: 'View Source' }, command: 'custom-view-code' },
+                { attributes: { class: 'fa fa-undo', title: 'Reset' }, command: (e) => e.runCommand('core:undo') },
+                { attributes: { class: 'fa fa-trash', title: 'Remove' }, command: 'tlb-delete' }
+            ];
+
+            if (isWrapper) {
+                // Wrapper (Kanvas Putih)
                 props = {
-                    selectable: true,
+                    selectable: false, // Jangan seleksi kanvasnya
+                    draggable: false,  // Kanvas tidak bisa digeser
+                    droppable: true,   // TAPI harus bisa menerima drop elemen
+                    hoverable: false,
+                };
+            } else if (isRootBlock) {
+                // ELEMEN UTAMA (Contoh: Section, Container besar)
+                props = {
+                    draggable: true,   // BISA DIGESER (Penting!)
+                    droppable: true,   // Bisa terima elemen lain (opsional)
+                    selectable: true,  // Bisa diklik untuk muncul toolbar
+                    removable: true,   // Bisa dihapus
                     hoverable: true,
-                    draggable: true,
-                    droppable: false,
-                    removable: true,
                     highlightable: true,
-                    editable: false,
+                    editable: false,   // Teks tidak bisa diedit
+                    badgable: true,    // Muncul label nama elemen
+                    toolbar: customToolbar // Toolbar muncul DI SINI
                 };
             } else {
+                // ANAK ELEMEN (Teks, Tombol kecil di dalam box)
                 props = {
-                    selectable: false,
-                    hoverable: false,
-                    draggable: false,
-                    droppable: false,
-                    removable: false,
-                    highlightable: false,
+                    draggable: false,  // TIDAK BISA DIGESER keluar induknya
+                    droppable: false, 
+                    selectable: true,  // Masih bisa diklik (agar user sadar ini bagian dari grup)
+                    removable: false,  // Tidak bisa dihapus satuan
+                    hoverable: true,
                     editable: false,
+                    toolbar: []        // Toolbar KOSONG (User harus klik induknya jika mau hapus/geser)
                 };
             }
         } else if (mode === "content") {
-            if (isText || comp.get("tagName") === "IMG" || comp.get("tagName") === "A") {
-                props = {
-                    selectable: true,
-                    hoverable: true,
-                    editable: true,
-                    draggable: false,
-                    droppable: false,
-                };
-            } else {
-                props = {
-                    selectable: false,
-                    hoverable: false,
-                    editable: false,
-                    draggable: false,
-                    droppable: false,
-                };
+            if (view?.el && typeof view.el.setAttribute === 'function' && (comp.is('text') || type === 'text')) {
+                view.el.setAttribute('contenteditable', 'true');
+            }
+
+            props = {
+                // KUNCI STRUKTUR:
+                draggable: false, 
+                droppable: false, 
+                removable: false, 
+                copyable: false,
+                
+                // IZINKAN EDIT KONTEN
+                selectable: true, 
+                hoverable: true,
+                editable: true,   // Boleh edit teks
+                
+                // Toolbar Hilang (Agar user fokus konten)
+                toolbar: []
+            };
+
+            // Khusus Gambar: Izinkan upload saat didouble-click
+            if (type === 'image') {
+                props.editable = true; // Double click memicu Asset Manager
             }
         } else if (mode === "details") {
             props = {
@@ -734,12 +652,12 @@ export default function Create({ id, template }) {
                 droppable: false,
                 removable: false,
                 copyable: false,
-                selectable: true,
+                selectable: true, // Wajib TRUE agar event 'selected' jalan
                 hoverable: true,
-                editable: false,
+                editable: false, // Matikan edit teks (biar gak tabrakan sama klik)
                 highlightable: true,
                 toolbar: [],
-                stylable: true,
+                stylable: true, // Wajib TRUE agar CSS bisa diedit
             };
         }
         comp.set(props);
@@ -768,8 +686,7 @@ export default function Create({ id, template }) {
             const act = e.target.dataset.act;
 
             if (act === "source") {
-                editor.Modal
-                    .setTitle("Source Code")
+                editor.Modal.setTitle("Source Code")
                     .setContent(`<pre>${comp.toHTML()}</pre>`)
                     .open();
             }
@@ -782,10 +699,7 @@ export default function Create({ id, template }) {
             if (act === "remove") comp.remove();
         };
         el.addEventListener("mouseenter", () => {
-            if (
-                activeModeRef.current === "elements" &&
-                isSectionRoot(comp)
-            ) {
+            if (activeModeRef.current === "elements" && isSectionRoot(comp)) {
                 injectElementToolbar(editor, comp);
             }
         });
@@ -811,54 +725,66 @@ export default function Create({ id, template }) {
     };
 
     const changeMode = (mode) => {
+        // 1. Update State React
         setActiveMode(mode);
         activeModeRef.current = mode;
+        
         const editor = editorRef.current;
         if (!editor) return;
 
-        // Tutup Sidebar & Deselect
+        // 2. Reset Seleksi & Sidebar UI
+        editor.select(null); 
         const sidebar = document.getElementById("style-editor-container");
-        if (sidebar) sidebar.classList.remove("open");
-        editor.select(null);
+        if (sidebar) sidebar.style.display = 'none';
 
-        const canvasBody = editor.Canvas.getBody();
-        if (canvasBody) {
-            if (mode === "content") {
-                canvasBody.classList.add("mode-content-active");
-                editor.stopCommand("core:component-outline");
-            } else {
-                canvasBody.classList.remove("mode-content-active");
-                if (mode === "elements")
-                    editor.runCommand("core:component-outline");
-            }
-        }
-
+        // 3. Terapkan Aturan ke Wrapper (Canvas Utama)
         const wrapper = editor.getWrapper();
         if (wrapper) {
-            const updateRecursively = (component) => {
-                applyComponentSettings(component, mode);
-                const children = component.get("components");
-                if (children)
-                    children.forEach((child) => updateRecursively(child));
-            };
-            if (mode === "content")
-                wrapper.set({
-                    selectable: false,
-                    hoverable: false,
+            // Tentukan aturan Wrapper berdasarkan mode
+            if (mode === "content" || mode === "details") {
+                // Di mode Content/Details, Canvas tidak boleh terima drop elemen baru
+                wrapper.set({ 
+                    selectable: false, 
+                    hoverable: false, 
                     droppable: false,
+                    draggable: false
                 });
-            else wrapper.set({ droppable: true });
-
-            wrapper
-                .get("components")
-                .forEach((child) => updateRecursively(child));
+            } else {
+                // Di mode Elements, Canvas boleh terima drop
+                wrapper.set({ 
+                    droppable: true,
+                    selectable: false,
+                    draggable: false
+                }); 
+            }
+            
+            // 4. Update Anak Elemen secara Rekursif
+            // Fungsi helper untuk loop ke dalam
+            const updateRecursively = (component) => {
+                applyComponentSettings(component, mode); // Terapkan logic (editable/draggable)
+                
+                // Cek apakah punya anak
+                const children = component.get("components");
+                if (children) {
+                    children.forEach(child => updateRecursively(child));
+                }
+            };
+            
+            // Jalankan loop mulai dari komponen di dalam wrapper
+            const components = wrapper.get("components");
+            if(components) {
+                components.forEach(child => updateRecursively(child));
+            }
+        }
+        
+        // 5. Visual Helper (Garis Putus-putus)
+        if (mode === "elements") {
+            try { editor.runCommand("core:component-outline"); } catch(e){}
+        } else {
+            try { editor.stopCommand("core:component-outline"); } catch(e){}
         }
 
-        if (mode === "details") {
-            editor.runCommand("core:component-select");
-            editor.runCommand("core:component-hover");
-        }
-
+        // 6. Refresh Canvas
         editor.refresh();
     };
 
@@ -867,7 +793,7 @@ export default function Create({ id, template }) {
         return (
             cls.includes("container") ||
             cls.includes("row") ||
-            cls.some(c => c.startsWith("col-"))
+            cls.some((c) => c.startsWith("col-"))
         );
     };
 
@@ -891,7 +817,7 @@ export default function Create({ id, template }) {
 
     function filterCssRules(cssText, doc) {
         if (!cssText) return "";
-        
+
         const styleSheet = new CSSStyleSheet();
         // Gunakan try-catch karena CSS mentah mungkin punya karakter yang tidak valid bagi parser browser
         try {
@@ -919,7 +845,7 @@ export default function Create({ id, template }) {
                 if (innerFiltered) {
                     filtered += `@media ${rule.conditionText} {\n${innerFiltered}}\n`;
                 }
-            } 
+            }
             // Jika aturan CSS biasa
             else if (rule.selectorText) {
                 if (isSelectorUsed(rule.selectorText, doc)) {
@@ -936,12 +862,13 @@ export default function Create({ id, template }) {
 
     function isSelectorUsed(selector, doc) {
         if (!selector) return false;
-        
+
         // Hapus pseudo-classes seperti :hover, :after agar querySelector tidak error
-        const cleanSelector = selector.split(':')[0]
-                                      .split(',')[0] // Ambil bagian pertama jika multiple selector
-                                      .trim();
-        
+        const cleanSelector = selector
+            .split(":")[0]
+            .split(",")[0] // Ambil bagian pertama jika multiple selector
+            .trim();
+
         if (!cleanSelector) return true; // Biarkan selector kosong/universal lolos
 
         try {
@@ -972,7 +899,7 @@ export default function Create({ id, template }) {
                 if (url.includes("font-awesome")) {
                     return text;
                 }
-                
+
                 return filterCssRules(text, doc);
             } catch {
                 return "";
@@ -980,7 +907,7 @@ export default function Create({ id, template }) {
         };
 
         const externalCss = await Promise.all(
-            canvasConfig.styles.map(url => getFilteredCss(url))
+            canvasConfig.styles.map((url) => getFilteredCss(url))
         );
 
         const internalCss = filterCssRules(editor.getCss(), doc);
@@ -1049,7 +976,7 @@ export default function Create({ id, template }) {
                 if (url.includes("font-awesome")) {
                     return text;
                 }
-                
+
                 return filterCssRules(text, doc);
             } catch {
                 return "";
@@ -1057,7 +984,7 @@ export default function Create({ id, template }) {
         };
 
         const externalCss = await Promise.all(
-            canvasConfig.styles.map(url => getFilteredCss(url))
+            canvasConfig.styles.map((url) => getFilteredCss(url))
         );
 
         const internalCss = filterCssRules(editor.getCss(), doc);
@@ -1187,45 +1114,47 @@ export default function Create({ id, template }) {
                         ))}
                     </div>
                     <div className="flex items-center gap-2">
-                    {/* SAVE */}
-                    <button
-                        onClick={savePage}
-                        disabled={!isDirty}
-                        className={`
+                        {/* SAVE */}
+                        <button
+                            onClick={savePage}
+                            disabled={!isDirty}
+                            className={`
                             inline-flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium
                             transition
-                            ${isDirty
-                                ? "bg-emerald-600 text-white hover:bg-emerald-700"
-                                : "cursor-not-allowed bg-emerald-200 text-emerald-700"}
+                            ${
+                                isDirty
+                                    ? "bg-emerald-600 text-white hover:bg-emerald-700"
+                                    : "cursor-not-allowed bg-emerald-200 text-emerald-700"
+                            }
                         `}
-                    >
-                        ✓ {isDirty ? "Save Page" : "Nothing new to save"}
-                    </button>
+                        >
+                            ✓ {isDirty ? "Save Page" : "Nothing new to save"}
+                        </button>
 
-                    {/* EXPORT */}
-                    <button
-                        onClick={exportPage}
-                        className="inline-flex items-center rounded-md bg-blue-600 px-3 py-2 text-sm font-medium text-white hover:bg-blue-700 transition"
-                    >
-                        Export
-                    </button>
+                        {/* EXPORT */}
+                        <button
+                            onClick={exportPage}
+                            className="inline-flex items-center rounded-md bg-blue-600 px-3 py-2 text-sm font-medium text-white hover:bg-blue-700 transition"
+                        >
+                            Export
+                        </button>
 
-                    {/* PREVIEW */}
-                    <button
-                        onClick={togglePreview}
-                        className="inline-flex items-center rounded-md bg-zinc-800 px-3 py-2 text-sm font-medium text-white hover:bg-zinc-900 transition"
-                    >
-                        Preview
-                    </button>
+                        {/* PREVIEW */}
+                        <button
+                            onClick={togglePreview}
+                            className="inline-flex items-center rounded-md bg-zinc-800 px-3 py-2 text-sm font-medium text-white hover:bg-zinc-900 transition"
+                        >
+                            Preview
+                        </button>
 
-                    {/* EMPTY */}
-                    <button
-                        onClick={emptyPage}
-                        className="inline-flex items-center rounded-md bg-red-600 px-3 py-2 text-sm font-medium text-white hover:bg-red-700 transition"
-                    >
-                        Empty Page
-                    </button>
-                </div>
+                        {/* EMPTY */}
+                        <button
+                            onClick={emptyPage}
+                            className="inline-flex items-center rounded-md bg-red-600 px-3 py-2 text-sm font-medium text-white hover:bg-red-700 transition"
+                        >
+                            Empty Page
+                        </button>
+                    </div>
                 </header>
 
                 <div className="screen-area">
@@ -1244,38 +1173,88 @@ export default function Create({ id, template }) {
                             {/* === SIDEBAR (DETAILS MODE) === */}
                             <div
                                 id="style-editor-container"
-                                className="style-sidebar-left"
+                                style={{
+                                    display: 'none',
+                                    flexDirection: "column",
+                                    position: "absolute",
+                                    left: 0, // Menempel di kiri
+                                    top: 0,
+                                    bottom: 0,
+                                    width: "240px", // Lebar panel standar flat ui
+                                    backgroundColor: "#2f4154", // Warna gelap Flat UI
+                                    zIndex: 100, // Di atas canvas
+                                    borderRight: "1px solid #222",
+                                    padding: "0",
+                                    overflowY: "auto",
+                                }}
                             >
-                                {/* Header Custom */}
-                                <div className="sidebar-header-custom">
+                                {/* Header Panel */}
+                                <div
+                                    style={{
+                                        padding: "15px",
+                                        background: "#1abc9c", // Warna Hijau Tosca Flat UI
+                                        color: "white",
+                                        fontWeight: "bold",
+                                        fontSize: "13px",
+                                        textTransform: "uppercase",
+                                        display: "flex",
+                                        justifyContent: "space-between",
+                                        alignItems: "center",
+                                    }}
+                                >
                                     <span id="sidebar-title-text">
                                         SETTINGS
                                     </span>
-                                    <button
+                                    {/* Tombol Close kecil */}
+                                    <i
+                                        className="fa fa-times"
+                                        style={{ cursor: "pointer" }}
                                         onClick={() =>
-                                            document
-                                                .getElementById(
-                                                    "style-editor-container"
-                                                )
-                                                .classList.remove("open")
+                                            (document.getElementById(
+                                                "style-editor-container"
+                                            ).style.display = "none")
                                         }
-                                        style={{
-                                            background: "none",
-                                            border: "none",
-                                            color: "white",
-                                        }}
-                                    >
-                                        <i className="fa fa-times"></i>
-                                    </button>
+                                    ></i>
                                 </div>
 
+                                {/* Area Settings (Link, Image Src, dll) */}
+                                {/* Header kecil: ATTRIBUTES */}
+                                <div
+                                    id="trait-header"
+                                    style={{
+                                        padding: "10px 15px",
+                                        fontSize: "11px",
+                                        fontWeight: "bold",
+                                        color: "#bdc3c7",
+                                        background: "#34495e",
+                                        marginTop: "0",
+                                    }}
+                                >
+                                    ATTRIBUTES
+                                </div>
                                 <div
                                     id="trait-editor-container"
-                                    className="sidebar-section"
+                                    style={{ padding: "5px" }}
                                 ></div>
+
+                                {/* Area Style (CSS) */}
+                                {/* Header kecil: STYLE */}
+                                <div
+                                    style={{
+                                        padding: "10px 15px",
+                                        fontSize: "11px",
+                                        fontWeight: "bold",
+                                        color: "#bdc3c7",
+                                        background: "#34495e",
+                                        marginTop: "10px",
+                                        borderTop: "1px solid #2c3e50",
+                                    }}
+                                >
+                                    STYLE
+                                </div>
                                 <div
                                     id="style-manager-container"
-                                    className="sidebar-section"
+                                    style={{ padding: "5px" }}
                                 ></div>
                             </div>
 
@@ -1293,6 +1272,35 @@ export default function Create({ id, template }) {
                     </div>
                 </div>
             </div>
+
+            {/* MODAL SOURCE CODE */}
+            {showCode && (
+                <div style={{
+                    position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+                    backgroundColor: 'rgba(0,0,0,0.8)', zIndex: 9999,
+                    display: 'flex', justifyContent: 'center', alignItems: 'center'
+                }}>
+                    <div style={{
+                        background: '#2c3e50', padding: '20px', borderRadius: '5px',
+                        width: '80%', height: '80%', display: 'flex', flexDirection: 'column'
+                    }}>
+                        <div style={{display:'flex', justifyContent:'space-between', marginBottom:'10px', color:'white'}}>
+                            <h3>Source Code</h3>
+                            <button onClick={() => setShowCode(false)} style={{background:'none', border:'none', color:'white', fontSize:'20px', cursor:'pointer'}}>
+                                <i className="fa fa-times"></i>
+                            </button>
+                        </div>
+                        <textarea 
+                            value={sourceCode} 
+                            readOnly 
+                            style={{
+                                flex: 1, width: '100%', backgroundColor: '#34495e', 
+                                color: '#ecf0f1', border: 'none', padding: '10px', fontFamily: 'monospace'
+                            }}
+                        />
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

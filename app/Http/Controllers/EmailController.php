@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\EmailTemplates;
 use App\Models\ActivityLogs;
+use App\Models\EmailLogs;
 
 class EmailController extends Controller
 {
@@ -13,6 +14,7 @@ class EmailController extends Controller
         return inertia('Email/Index', [
             'templates' => EmailTemplates::where('deleted', 0)->get(),
             'auth_permissions' => auth()->user()->getPermissions('EMAIL'),
+            'emailLogs' => EmailLogs::where('deleted', 0)->get(),
         ]);
     }
 

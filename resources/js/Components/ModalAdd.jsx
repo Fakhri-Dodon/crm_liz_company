@@ -49,20 +49,19 @@ const ModalAdd = ({ isOpen, onClose, title, subtitle, children, footer, icon: Ic
                     </div>
 
                     {/* Footer */}
-                    {footer ? (
+                    {footer !== null && (
                         <div className="p-6 border-t border-gray-100 flex flex-col-reverse sm:flex-row gap-3">
-                            {footer}
-                        </div>
-                    ) : (
-                        // Default Footer jika tidak ada prop footer yang dikirim
-                        <div className="p-6 border-t border-gray-100 flex flex-col-reverse sm:flex-row gap-3">
-                            <button
-                                type="button"
-                                onClick={onClose}
-                                className="px-6 py-3 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 transition-colors font-medium flex-1"
-                            >
-                                Cancel
-                            </button>
+                            {footer ? (
+                                footer
+                            ) : (
+                                <button
+                                    type="button"
+                                    onClick={onClose}
+                                    className="px-6 py-3 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 transition-colors font-medium flex-1"
+                                >
+                                    Cancel
+                                </button>
+                            )}
                         </div>
                     )}
                 </div>

@@ -789,21 +789,42 @@
 
     "emails": {
         "title": "EMAIL TEMPLATES",
+        "title_history": "EMAIL HISTORY",
         "button_add": "ADD EMAIL TEMPLATE",
         "table": {
             "name": "NAME",
             "subject": "SUBJECT",
-            "actions": "ACTIONS"
+            "actions": "ACTIONS",
+            "date": "DATE",
+            "to": "TO"
         },
         "modals": {
-            "add_title": "Add New Email Template",
+            "add_title": "Add Email Template",
             "edit_title": "Edit Email Template",
+            "subtitle": "Manage automated email content with dynamic tags like {name}",
+            "internal_name": "Internal Name",
+            "placeholder_name": "Example: Welcome User",
+            "subject": "Email Subject",
+            "placeholder_subject": "Subject that the recipient sees",
+            "content_email": "Email Content",
+            "placeholder_content": "Placeholder",
             "label_name": "Template Name*",
             "label_subject": "Subject*",
             "label_body": "Body*",
             "btn_cancel": "Cancel",
-            "btn_add": "Add",
-            "btn_update": "Update" 
+            "btn_add": "Save Template",
+            "btn_update": "Update Template" 
+        },
+        "modal_histories": {
+            "title": "Email History Details",
+            "subtitle": "Complete details of email delivery status",
+            "recipient": "Recipient (To)",
+            "sent_at": "Sent Date",
+            "subject": "Subject",
+            "status": "Status",
+            "body_log": "Message Body / Log",
+            "no_content": "No content available",
+            "close": "Close"
         }
     },
     "proposals": {
@@ -905,7 +926,7 @@
         },
         "table": {
             "no": "NO",
-            "no_date": "NO & DATE",
+            "no_date": "DATE",
             "no_data": "No Payments Found",
             "date": "DATE",
             "company_name": "COMPANY NAME",

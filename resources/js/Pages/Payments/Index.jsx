@@ -145,12 +145,12 @@ export default function PaymentIndex({ payments = [], stats = {}, filters = {}, 
     };
 
     const columns = [
-        { key: 'no', label: t('payments.table.no_date') || 'No & Date', render: (value, row) => (
-            <div>
-                <div className="text-blue-600 font-semibold">{value}</div>
-                <div className="text-xs text-gray-500">{row.date}</div>
-            </div>
-        ) },
+        // { key: 'no', label: t('payments.table.no_date') || 'No & Date', render: (value, row) => (
+        //     <div>
+        //         <div className="text-blue-600 font-semibold">{value}</div>
+        //         <div className="text-xs text-gray-500">{row.date}</div>
+        //     </div>
+        // ) },
         { key: 'invoice', label: t('payments.table.invoice') },
         { key: 'date', label: t('payments.table.date') },
         { key: 'company_name', label: t('payments.table.company_name') },

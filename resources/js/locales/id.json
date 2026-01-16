@@ -807,21 +807,42 @@
 
     "emails": {
         "title": "TEMPLATE EMAIL",
+        "title_history": "SEJARAH EMAIL",
         "button_add": "TAMBAH TEMPLATE EMAIL",
         "table": {
             "name": "NAMA",
             "subject": "SUBJEK",
-            "actions": "AKSI"
+            "actions": "AKSI",
+            "date": "TANGGAL",
+            "to": "KEPADA"
         },
         "modals": {
             "add_title": "Tambah Template Email",
             "edit_title": "Edit Template Email",
+            "subtitle": "Kelola konten email otomatis dengan tag dinamis seperti {name}",
+            "internal_name": "Nama Internal",
+            "placeholder_name": "Misal: Welcome User",
+            "subject": "Subjek Email",
+            "placeholder_subject": "Subject yang dilihat penerima",
+            "content_email": "Kontent Email",
+            "placeholder_content": "Placeholder",
             "label_name": "Nama Template*",
             "label_subject": "Subjek*",
             "label_body": "Isi*",
             "btn_cancel": "Batal",
-            "btn_add": "Tambah",
-            "btn_update": "Perbarui"
+            "btn_add": "Simpan Template",
+            "btn_update": "Perbarui Template"
+        },
+        "modal_histories": {
+            "title": "Detail Riwayat Email",
+            "subtitle": "Rincian lengkap status pengiriman email",
+            "recipient": "Penerima (To)",
+            "sent_at": "Waktu Kirim",
+            "subject": "Subjek",
+            "status": "Status",
+            "body_log": "Isi Pesan / Log",
+            "no_content": "Tidak ada konten",
+            "close": "Tutup"
         }
     },
     "proposals": {
@@ -923,7 +944,7 @@
         },
         "table": {
             "no": "NO",
-            "no_date": "NO & TANGGAL",
+            "no_date": "TANGGAL",
             "no_data": "Tidak Ada Pembayaran Ditemukan",
             "date": "TANGGAL",
             "company_name": "NAMA PERUSAHAAN",
