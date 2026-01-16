@@ -255,6 +255,34 @@ export default function Index({
         }
     };
 
+    // Handler untuk auto close modal create dan refresh data
+    const handleCreateSuccess = useCallback(() => {
+        console.log('Create modal success callback called');
+        // Tutup modal create
+        setShowCreateModal(false);
+        
+        // Refresh data
+        applyFilters();
+        
+        // Tampilkan toast success
+        showToast('Project created successfully!', 'success');
+    }, [applyFilters]);
+
+    // Handler untuk auto close modal edit dan refresh data
+    const handleEditSuccess = useCallback(() => {
+        console.log('Edit modal success callback called');
+        // Tutup modal edit
+        setShowEditModal(false);
+        setSelectedProjectId(null);
+        setEditingProject(null);
+        
+        // Refresh data
+        applyFilters();
+        
+        // Tampilkan toast success
+        showToast('Project updated successfully!', 'success');
+    }, [applyFilters]);
+
     const months = [
         { value: '', label: 'All Months' },
         { value: '1', label: 'Jan' },
@@ -646,6 +674,7 @@ export default function Index({
                     quotations={quotations || []}
                     statusOptions={statusOptions || []}
                     title="Add Project"
+                    onSuccess={handleCreateSuccess}  // Gunakan handleCreateSuccess khusus
                 />
 
                 {selectedProjectId && (
@@ -664,6 +693,7 @@ export default function Index({
                             statusOptions={statusOptions || []}
                             isEdit={true}
                             title="Edit Project"
+                            onSuccess={handleEditSuccess}  // Gunakan handleEditSuccess khusus
                         />
 
                         {/* Delete Modal */}
