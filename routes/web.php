@@ -295,45 +295,16 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::prefix('companies/{company}/invoices')->group(function () {
         Route::get('/{invoice}/get', [CompanyController::class, 'getInvoice'])->name('companies.invoices.get');
         Route::put('/{invoice}', [CompanyController::class, 'updateInvoice'])->name('companies.invoices.update');
-        Route::put('/{invoice}/mark-paid', [CompanyController::class, 'markInvoiceAsPaid'])->name('companies.invoices.mark-paid');
+        
+        // TAMBAHKAN ROUTE INI
+        Route::get('/{invoice}/edit', [CompanyController::class, 'editInvoice'])->name('companies.invoices.edit');        
         Route::delete('/{invoice}', [CompanyController::class, 'deleteInvoice'])->name('companies.invoices.delete');
         Route::post('/bulk-delete', [CompanyController::class, 'bulkDeleteInvoices'])->name('companies.invoices.bulk-delete');
-        Route::post('/bulk-mark-paid', [CompanyController::class, 'bulkMarkInvoicesAsPaid'])->name('companies.invoices.bulk-mark-paid');
     });
 
-    // Company payment routes
-    Route::prefix('companies/{company}')->group(function () {
-        // Payment actions
-        Route::put('/payments/{payment}', [CompanyController::class, 'updatePayment'])->name('companies.payments.update');
-        Route::delete('/payments/{payment}', [CompanyController::class, 'destroyPayment'])->name('companies.payments.destroy');
-        Route::get('/payments/{payment}/receipt', [CompanyController::class, 'generateReceipt'])->name('companies.payments.receipt');
-        Route::get('/payments/{payment}/export', [CompanyController::class, 'exportPayment'])->name('companies.payments.export');
-    });
-
-    // Company Contact Routes
-    Route::prefix('companies/{company}')->group(function () {
-        Route::get('/contacts', [CompanyController::class, 'getContacts'])->name('companies.contacts.index');
-        Route::post('/contacts', [CompanyController::class, 'addContact'])->name('companies.contacts.store');
-        Route::put('/contacts/{contact}', [CompanyController::class, 'updateContact'])->name('companies.contacts.update');
-        Route::delete('/contacts/{contact}', [CompanyController::class, 'deleteContact'])->name('companies.contacts.destroy');
-        Route::post('/contacts/{contact}/toggle-primary', [CompanyController::class, 'togglePrimary'])->name('companies.contacts.toggle-primary');
-    });
-    
-    // ====================== TRASH/ARCHIVE ROUTES ======================
-    Route::prefix('companies')->group(function () {
-        Route::get('/trash', [CompanyController::class, 'trash'])->name('companies.trash.index');
-        Route::get('/trash/{company}', [CompanyController::class, 'showTrashed'])
-            ->name('companies.trash.show');
-    });
-    
-    // ====================== EXPORT/IMPORT ROUTES ======================
-    Route::prefix('companies')->group(function () {
-        Route::get('/export', [CompanyController::class, 'export'])->name('companies.export');
-        Route::post('/import', [CompanyController::class, 'import'])->name('companies.import');
-        Route::get('/template', [CompanyController::class, 'downloadTemplate'])
-            ->name('companies.download-template');
-    });
-});
+    // Route untuk edit invoice
+Route::get('/invoices/{invoice}/edit', [InvoiceController::class, 'edit'])->name('invoices.edit');
+Route::put('/invoices/{invoice}', [InvoiceController::class, 'update'])->name('invoices.update');});
 
 // Route untuk halaman tambah proposal
 Route::post('/proposal/add', [ProposalController::class, 'add'])->name('proposal.add');

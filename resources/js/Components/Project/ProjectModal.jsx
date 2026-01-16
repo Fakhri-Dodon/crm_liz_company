@@ -11,7 +11,8 @@ const ProjectModal = ({
     quotations, 
     statusOptions, 
     isEdit = false,
-    title = "Add Project"
+    title = "Add Project",
+    onSuccess
 }) => {
     const [isLoading, setIsLoading] = useState(false);
     const [clients, setClients] = useState([]);
@@ -130,9 +131,10 @@ const ProjectModal = ({
                 onSuccess: () => {
                     reset();
                     resetForm();
-                    // Panggil onClose yang diberikan dari parent
-                    if (onClose && typeof onClose === 'function') {
-                        onClose();
+                    
+                    // Panggil onSuccess untuk auto close modal
+                    if (onSuccess && typeof onSuccess === 'function') {
+                        onSuccess();
                     }
                 },
                 onError: (errors) => {
@@ -151,9 +153,10 @@ const ProjectModal = ({
                 onSuccess: () => {
                     resetForm();
                     reset();
-                    // Panggil onClose yang diberikan dari parent
-                    if (onClose && typeof onClose === 'function') {
-                        onClose();
+                    
+                    // Panggil onSuccess untuk auto close modal
+                    if (onSuccess && typeof onSuccess === 'function') {
+                        onSuccess();
                     }
                 },
                 onError: (errors) => {

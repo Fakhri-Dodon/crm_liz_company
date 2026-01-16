@@ -539,7 +539,6 @@ class InvoiceController extends Controller
                             'created_by' => $invoice->created_by, // ✅ AMBIL DARI CREATOR
                         ]
                     );
-
                     
                     $contactPersonId = $contactPerson->id;
                 } else {
@@ -566,9 +565,10 @@ class InvoiceController extends Controller
                     $validated['pdf_path'] = $path;
                 }
 
+                // Get status
                 $statusModel = \App\Models\InvoiceStatuses::where('name', 'Unpaid')->first() ?? \App\Models\InvoiceStatuses::where('name', 'Draft')->first();
                 $statusId = $statusModel ? $statusModel->id : null;
-                $statusName = $statusModel ? $statusModel->name : 'Draft';
+                $statusName = $statusModel ? $statusModel->name : 'Draft'; // ✅ VARIABLE YANG BENAR
 
                 // Update invoice
                 $invoice->update([
@@ -585,7 +585,7 @@ class InvoiceController extends Controller
                     'pph'                   => $validated['tax_amount_pph'] ?? 0,
                     'total'                 => $validated['total'],
                     'amount_due'            => $validated['total'],
-                    'status'                => $statuName,
+                    'status'                => $statusName, // ✅ PERBAIKI TYPO DI SINI: $statuName → $statusName
                     'pdf_path'              => $validated['pdf_path'] ?? $invoice->pdf_path,
                     'updated_by'            => auth()->id(),
                 ]);
