@@ -218,8 +218,57 @@ export default function PaymentIndex({ payments = [], stats = {}, filters = {}, 
         }
     };
 
-    const handleEditPayment = async (payment) => {
+    const handleEditPayment = async (row) => {
+        // TableLayout passes the row object; prefer original if available
+        const payment = row.original ? row.original : row;
         setEditingPayment(payment);
+
+        // Helper untuk mengurai amount dari berbagai format (number atau string seperti "Rp 1.000,00")
+        const parseAmount = (val) => {
+            if (val === null || val === undefined) return "";
+            if (typeof val === 'number') return String(val);
+            let s = String(val).replace(/[^0-9,\.\-]/g, '').trim();
+
+            // Jika ada kedua pemisah '.' dan ',', tentukan mana yang decimal
+            if (s.indexOf(',') > -1 && s.indexOf('.') > -1) {
+                // Jika koma muncul setelah titik, anggap koma sebagai decimal separator
+                if (s.lastIndexOf(',') > s.lastIndexOf('.')) {
+                    s = s.replace(/\./g, '').replace(/,/g, '.');
+                } else {
+                    // sebaliknya, hapus koma (ribuan)
+                    s = s.replace(/,/g, '');
+                }
+            } else {
+                // Hanya hapus tanda ribuan jika ada
+                s = s.replace(/,/g, '');
+            }
+
+            return s;
+        };
+
+        // Normalize tanggal ke format yyyy-mm-dd untuk input[type=date]
+        const normalizeDate = (val) => {
+            if (!val) return "";
+            // Jika format dd-mm-yyyy
+            if (/^\d{2}-\d{2}-\d{4}$/.test(val)) {
+                return val.split('-').reverse().join('-');
+            }
+            // Jika format mm/dd/yyyy (misalnya dari browser)
+            if (/^\d{2}\/\d{2}\/\d{4}$/.test(val)) {
+                const [m, d, y] = val.split('/');
+                return `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
+            }
+            // Jika sudah yyyy-mm-dd atau lainnya, coba buat Date dan format
+            const dt = new Date(val);
+            if (!isNaN(dt)) {
+                const y = dt.getFullYear();
+                const m = String(dt.getMonth() + 1).padStart(2, '0');
+                const d = String(dt.getDate()).padStart(2, '0');
+                return `${y}-${m}-${d}`;
+            }
+            return "";
+        };
+
         // Helper untuk memastikan invoice yang diedit ada di list
         const syncInvoiceData = (invoicesList) => {
             let invoice = invoicesList.find(inv => inv.id === payment.invoice_id);
@@ -227,24 +276,25 @@ export default function PaymentIndex({ payments = [], stats = {}, filters = {}, 
             if (!invoice && payment.invoice_id) {
                 invoice = {
                     id: payment.invoice_id,
-                    invoice_number: payment.invoice_number,
-                    company_name: payment.company_name,
-                    remaining_amount: payment.amount,
-                    total_amount: payment.amount,
+                    invoice_number: payment.invoice_number || row.invoice || null,
+                    company_name: payment.company_name || row.company_name || 'No Company',
+                    remaining_amount: payment.amount || 0,
+                    total_amount: payment.amount || 0,
                     paid_amount: 0
                 };
                 invoicesList = [...invoicesList, invoice];
                 setInvoices(invoicesList);
             }
             setSelectedInvoice(invoice || null);
+
             setFormData({
-                invoice_id: payment.invoice_id || "",
-                company_name: invoice ? invoice.company_name : payment.company_name,
-                amount: payment.amount,
-                method: payment.methode ? payment.methode.toLowerCase() : "transfer",
-                date: payment.payment_date ? payment.payment_date.split('-').reverse().join('-') : "", // Convert from dd-mm-yyyy to yyyy-mm-dd
-                bank: payment.bank || "",
-                note: payment.note || ""
+                invoice_id: payment.invoice_id || row.invoice_id || "",
+                company_name: invoice ? invoice.company_name : (payment.company_name || row.company_name || ""),
+                amount: parseAmount(payment.amount ?? row.amount ?? ""),
+                method: (payment.methode ?? payment.method ?? row.method ?? 'transfer').toString().toLowerCase(),
+                date: normalizeDate(payment.payment_date ?? row.payment_date ?? row.date ?? ""),
+                bank: payment.bank || row.bank || "",
+                note: payment.note || row.note || ""
             });
         };
 
@@ -260,13 +310,13 @@ export default function PaymentIndex({ payments = [], stats = {}, filters = {}, 
             } catch (error) {
                 // fallback: gunakan data payment saja
                 setFormData({
-                    invoice_id: payment.invoice_id || "",
-                    company_name: payment.company_name,
-                    amount: payment.amount,
-                    method: payment.methode ? payment.methode.toLowerCase() : "transfer",
-                    date: payment.payment_date ? payment.payment_date.split('-').reverse().join('-') : "",
-                    bank: payment.bank || "",
-                    note: payment.note || ""
+                    invoice_id: payment.invoice_id || row.invoice_id || "",
+                    company_name: payment.company_name || row.company_name || "",
+                    amount: parseAmount(payment.amount ?? row.amount ?? ""),
+                    method: (payment.methode ?? payment.method ?? row.method ?? 'transfer').toString().toLowerCase(),
+                    date: normalizeDate(payment.payment_date ?? row.payment_date ?? row.date ?? ""),
+                    bank: payment.bank || row.bank || "",
+                    note: payment.note || row.note || ""
                 });
                 setShowAddModal(true);
             }

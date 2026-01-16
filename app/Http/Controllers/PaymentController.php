@@ -68,6 +68,7 @@ class PaymentController extends Controller
 
             return [
                 'id' => $payment->id,
+                'invoice_id' => $payment->invoice_id,
                 'invoice_number' => $payment->invoice->invoice_number ?? 'N/A',
                 'payment_date' => $payment->date->format('d-m-Y'),
                 'company_name' => $companyName,
