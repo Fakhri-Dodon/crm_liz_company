@@ -1,6 +1,6 @@
 // resources/js/Components/Companies/Create.jsx
 import React, { useState, useEffect } from 'react';
-import { X, Upload, Building, User, Mail, Phone, MapPin, Globe, FileText, AlertCircle, Check, ChevronDown, Search } from 'lucide-react';
+import { X, Upload, Building, User, Mail, Phone, MapPin, Globe, FileText, AlertCircle, Check, ChevronDown, Search, AlertTriangle } from 'lucide-react';
 import { router, usePage } from '@inertiajs/react';
 import axios from 'axios';
 import { useTranslation } from 'react-i18next';
@@ -43,6 +43,9 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId, onSuccess }) => {
     // State untuk lead dari quotation yang dipilih
     const [quotationLead, setQuotationLead] = useState(null);
     const [loadingLead, setLoadingLead] = useState(false);
+    
+    // State untuk error quotation yang sudah digunakan
+    const [quotationUsedError, setQuotationUsedError] = useState(null);
 
     // Fungsi untuk mendapatkan CSRF token dari Laravel
     const getCsrfToken = () => {
@@ -100,6 +103,7 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId, onSuccess }) => {
             setQuotationSearch('');
             setLogoPreview(null);
             setErrors({});
+            setQuotationUsedError(null);
             
             // Fetch quotations jika tidak ada quotationId
             if (!quotationId) {
@@ -123,7 +127,16 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId, onSuccess }) => {
             });
             
             if (response && response.data && response.data.success) {
+                // Data dari backend sudah difilter yang belum digunakan
                 setQuotations(response.data.data || []);
+                
+                // Jika tidak ada quotations yang tersedia
+                if (response.data.data && response.data.data.length === 0) {
+                    setQuotationUsedError({
+                        type: 'info',
+                        message: t('companies_create.no_available_quotations')
+                    });
+                }
             } else {
                 setQuotations([]);
             }
@@ -137,6 +150,8 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId, onSuccess }) => {
 
     // Handle quotation selection
     const handleQuotationSelect = async (quotation) => {
+        // Reset error sebelumnya
+        setQuotationUsedError(null);
         setSelectedQuotation(quotation);
         setQuotationLead(null);
         
@@ -166,6 +181,7 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId, onSuccess }) => {
         if (!quotationId) return;
         
         setLoadingLead(true);
+        setQuotationUsedError(null);
         try {
             const csrfToken = getCsrfToken();
             const response = await axios.get(`/companies/get-lead-from-quotation/${quotationId}`, {
@@ -175,31 +191,77 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId, onSuccess }) => {
                 }
             });
             
-            if (response && response.data && response.data.success) {
-                const leadData = response.data.data;
-                setQuotationLead(leadData);
-                
-                // Auto-fill form dengan data lead
-                setFormData(prev => ({
-                    ...prev,
-                    quotation_id: quotationId,
-                    lead_id: leadData.id || '',
-                    company_name: leadData.company_name || prev.company_name,
-                    contact_person: leadData.contact_person || prev.contact_person,
-                    contact_email: leadData.email || prev.contact_email,
-                    contact_phone: leadData.phone || prev.contact_phone,
-                    contact_position: leadData.position || t('companies_create.contact_person'),
-                    city: leadData.city || prev.city,
-                    province: leadData.province || prev.province,
-                    country: leadData.country || prev.country,
-                    postal_code: leadData.postal_code || prev.postal_code,
-                    vat_number: leadData.vat_number || '', // TIDAK WAJIB
-                    nib: leadData.nib || '', // TIDAK WAJIB
-                    website: leadData.website || '' // TIDAK WAJIB
-                }));
+            if (response && response.data) {
+                if (response.data.success) {
+                    const leadData = response.data.data;
+                    setQuotationLead(leadData);
+                    
+                    // Auto-fill form dengan data lead
+                    setFormData(prev => ({
+                        ...prev,
+                        quotation_id: quotationId,
+                        lead_id: leadData.id || '',
+                        company_name: leadData.company_name || prev.company_name,
+                        contact_person: leadData.contact_person || prev.contact_person,
+                        contact_email: leadData.email || prev.contact_email,
+                        contact_phone: leadData.phone || prev.contact_phone,
+                        contact_position: leadData.position || t('companies_create.contact_person'),
+                        city: leadData.city || prev.city,
+                        province: leadData.province || prev.province,
+                        country: leadData.country || prev.country,
+                        postal_code: leadData.postal_code || prev.postal_code,
+                        vat_number: leadData.vat_number || '', // TIDAK WAJIB
+                        nib: leadData.nib || '', // TIDAK WAJIB
+                        website: leadData.website || '' // TIDAK WAJIB
+                    }));
+                } else {
+                    // Error dari server (misal: quotation sudah digunakan)
+                    if (response.data.message && (
+                        response.data.message.includes('sudah digunakan') || 
+                        response.data.message.includes('already used')
+                    )) {
+                        setQuotationUsedError({
+                            type: 'error',
+                            message: response.data.message,
+                            company_name: response.data.company_name,
+                            company_id: response.data.company_id
+                        });
+                        
+                        // Reset form
+                        setFormData(prev => ({
+                            ...prev,
+                            quotation_id: '',
+                            lead_id: ''
+                        }));
+                    } else {
+                        alert(response.data.message || t('companies_create.error_fetching_lead'));
+                    }
+                }
             }
         } catch (error) {
             console.error('Error fetching lead:', error);
+            
+            // Handle specific error untuk quotation yang sudah digunakan
+            if (error.response?.status === 400 && error.response?.data?.message) {
+                if (error.response.data.message.includes('sudah digunakan') || 
+                    error.response.data.message.includes('already used')) {
+                    setQuotationUsedError({
+                        type: 'error',
+                        message: error.response.data.message,
+                        company_name: error.response.data.company_name,
+                        company_id: error.response.data.company_id
+                    });
+                    
+                    // Reset form
+                    setFormData(prev => ({
+                        ...prev,
+                        quotation_id: '',
+                        lead_id: ''
+                    }));
+                }
+            } else {
+                alert(t('companies_create.error_fetching_lead'));
+            }
         } finally {
             setLoadingLead(false);
         }
@@ -209,6 +271,7 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId, onSuccess }) => {
     const clearQuotationSelection = () => {
         setSelectedQuotation(null);
         setQuotationLead(null);
+        setQuotationUsedError(null);
         setFormData(prev => ({
             ...prev,
             quotation_id: '',
@@ -273,158 +336,174 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId, onSuccess }) => {
     };
 
     // Handle submit dengan CSRF token yang benar
- const handleSubmit = async (e) => {
-    e.preventDefault();
-    setIsSubmitting(true);
-    setErrors({});
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        setIsSubmitting(true);
+        setErrors({});
 
-    console.log('=== FORM SUBMISSION STARTED ===');
-    console.log('Form data before submit:', formData);
+        console.log('=== FORM SUBMISSION STARTED ===');
+        console.log('Form data before submit:', formData);
 
-    // Validasi field wajib
-    const requiredFields = [
-        'company_name',
-        'client_type_id',
-        'contact_person',
-        'contact_email',
-        'contact_phone',
-        'status'
-    ];
+        // Validasi field wajib
+        const requiredFields = [
+            'company_name',
+            'client_type_id',
+            'contact_person',
+            'contact_email',
+            'contact_phone',
+            'status'
+        ];
 
-    let hasError = false;
-    const newErrors = {};
+        let hasError = false;
+        const newErrors = {};
 
-    requiredFields.forEach(field => {
-        if (!formData[field]) {
-            newErrors[field] = t('companies_create.field_required', { field: field.replace('_', ' ') });
-            hasError = true;
-        }
-    });
-
-    if (hasError) {
-        setErrors(newErrors);
-        setIsSubmitting(false);
-        return;
-    }
-
-    // Buat FormData untuk upload file
-    const formDataToSend = new FormData();
-    
-    // **TAMBAHKAN CSRF TOKEN KE FORMDATA SECARA MANUAL**
-    const csrfToken = getCsrfToken();
-    if (csrfToken) {
-        formDataToSend.append('_token', csrfToken);
-    }
-    
-    // Append semua data ke FormData
-    Object.entries(formData).forEach(([key, value]) => {
-        if (value !== null && value !== undefined && value !== '') {
-            if (key === 'logo' && value instanceof File) {
-                formDataToSend.append('logo', value);
-            } else {
-                formDataToSend.append(key, value.toString());
-            }
-        }
-    });
-
-    // Tambahkan name field dari contact_person
-    if (formData.contact_person) {
-        formDataToSend.append('name', formData.contact_person);
-    }
-
-    // Pastikan ada quotation_id jika dari prop
-    if (quotationId && !formData.quotation_id) {
-        formDataToSend.append('quotation_id', quotationId);
-    }
-
-    try {
-        console.log('Sending form data...');
-        console.log('CSRF Token to send:', csrfToken);
-        
-        // **GUNAKAN AXIOS DENGAN KONFIGURASI SEDERHANA**
-        const response = await axios.post('/companies', formDataToSend, {
-            headers: {
-                'Content-Type': 'multipart/form-data',
+        requiredFields.forEach(field => {
+            if (!formData[field]) {
+                newErrors[field] = t('companies_create.field_required', { field: field.replace('_', ' ') });
+                hasError = true;
             }
         });
 
-        console.log('Server response:', response);
-
-        if (response && response.data && response.data.success) {
-            // Success message
-            alert(response.data.message || t('companies_create.client_created_successfully'));
-            
-            // Tutup modal
-            onClose();
-            
-            // Reset form
-            setFormData({
-                company_name: '',
-                client_type_id: '',
-                contact_person: '',
-                contact_email: '',
-                contact_phone: '',
-                contact_position: '',
-                city: '',
-                province: '',
-                country: '',
-                postal_code: '',
-                vat_number: '',
-                nib: '',
-                website: '',
-                logo: null,
-                status: 'active',
-                quotation_id: '',
-                lead_id: ''
-            });
-            setSelectedQuotation(null);
-            setQuotationLead(null);
-            setLogoPreview(null);
-            
-            // Panggil callback success jika ada
-            if (onSuccess) {
-                onSuccess();
-            }
-            
-            // Refresh data
-            router.reload({
-                only: ['companies', 'statistics'],
-                preserveScroll: true,
-            });
-        } else {
-            setErrors(response?.data?.errors || {});
-            alert(response?.data?.message || t('companies_create.failed_to_create_client'));
+        if (hasError) {
+            setErrors(newErrors);
+            setIsSubmitting(false);
+            return;
         }
 
-    } catch (error) {
-        console.error('Error creating client:', error);
-        console.error('Error details:', error.response?.data);
+        // Buat FormData untuk upload file
+        const formDataToSend = new FormData();
         
-        if (error.response?.status === 419) {
-            // CSRF token error - refresh token
-            const newToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
-            console.log('Current CSRF token:', newToken);
-            
-            alert('CSRF token expired. Please refresh the page and try again.');
-            window.location.reload();
-        } else if (error.response?.status === 422) {
-            // Validation errors
-            setErrors(error.response.data.errors || {});
-            
-            const errorMessages = Object.values(error.response.data.errors || {})
-                .flat()
-                .join('\n');
-            
-            if (errorMessages) {
-                alert(t('companies_create.validation_errors') + '\n' + errorMessages);
-            }
-        } else {
-            alert(`${t('companies_create.error_creating_client')}: ${error.response?.data?.message || error.message}`);
+        // **TAMBAHKAN CSRF TOKEN KE FORMDATA SECARA MANUAL**
+        const csrfToken = getCsrfToken();
+        if (csrfToken) {
+            formDataToSend.append('_token', csrfToken);
         }
-    } finally {
-        setIsSubmitting(false);
-    }
-};
+        
+        // Append semua data ke FormData
+        Object.entries(formData).forEach(([key, value]) => {
+            if (value !== null && value !== undefined && value !== '') {
+                if (key === 'logo' && value instanceof File) {
+                    formDataToSend.append('logo', value);
+                } else {
+                    formDataToSend.append(key, value.toString());
+                }
+            }
+        });
+
+        // Tambahkan name field dari contact_person
+        if (formData.contact_person) {
+            formDataToSend.append('name', formData.contact_person);
+        }
+
+        // Pastikan ada quotation_id jika dari prop
+        if (quotationId && !formData.quotation_id) {
+            formDataToSend.append('quotation_id', quotationId);
+        }
+
+        try {
+            console.log('Sending form data...');
+            console.log('CSRF Token to send:', csrfToken);
+            
+            // **GUNAKAN AXIOS DENGAN KONFIGURASI SEDERHANA**
+            const response = await axios.post('/companies', formDataToSend, {
+                headers: {
+                    'Content-Type': 'multipart/form-data',
+                }
+            });
+
+            console.log('Server response:', response);
+
+            if (response && response.data && response.data.success) {
+                // Success message
+                alert(response.data.message || t('companies_create.client_created_successfully'));
+                
+                // Tutup modal
+                onClose();
+                
+                // Reset form
+                setFormData({
+                    company_name: '',
+                    client_type_id: '',
+                    contact_person: '',
+                    contact_email: '',
+                    contact_phone: '',
+                    contact_position: '',
+                    city: '',
+                    province: '',
+                    country: '',
+                    postal_code: '',
+                    vat_number: '',
+                    nib: '',
+                    website: '',
+                    logo: null,
+                    status: 'active',
+                    quotation_id: '',
+                    lead_id: ''
+                });
+                setSelectedQuotation(null);
+                setQuotationLead(null);
+                setQuotationUsedError(null);
+                setLogoPreview(null);
+                
+                // Panggil callback success jika ada
+                if (onSuccess) {
+                    onSuccess();
+                }
+                
+                // Refresh data
+                router.reload({
+                    only: ['companies', 'statistics'],
+                    preserveScroll: true,
+                });
+            } else {
+                setErrors(response?.data?.errors || {});
+                alert(response?.data?.message || t('companies_create.failed_to_create_client'));
+            }
+
+        } catch (error) {
+            console.error('Error creating client:', error);
+            console.error('Error details:', error.response?.data);
+            
+            if (error.response?.status === 419) {
+                // CSRF token error - refresh token
+                const newToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+                console.log('Current CSRF token:', newToken);
+                
+                alert('CSRF token expired. Please refresh the page and try again.');
+                window.location.reload();
+            } else if (error.response?.status === 422) {
+                // Validation errors
+                setErrors(error.response.data.errors || {});
+                
+                const errorMessages = Object.values(error.response.data.errors || {})
+                    .flat()
+                    .join('\n');
+                
+                if (errorMessages) {
+                    alert(t('companies_create.validation_errors') + '\n' + errorMessages);
+                }
+            } else if (error.response?.status === 400 && error.response?.data?.message) {
+                // Handle quotation already used error
+                if (error.response.data.message.includes('already used') || 
+                    error.response.data.message.includes('sudah digunakan')) {
+                    setQuotationUsedError({
+                        type: 'error',
+                        message: error.response.data.message,
+                        company_name: error.response.data.company_name,
+                        company_id: error.response.data.company_id
+                    });
+                    
+                    alert(t('companies_create.quotation_already_used'));
+                } else {
+                    alert(error.response.data.message || t('companies_create.error_creating_client'));
+                }
+            } else {
+                alert(`${t('companies_create.error_creating_client')}: ${error.response?.data?.message || error.message}`);
+            }
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
 
     if (!isOpen) return null;
 
@@ -462,15 +541,36 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId, onSuccess }) => {
                             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                                 <h3 className="font-medium text-blue-900 mb-3 flex items-center gap-2">
                                     <FileText className="w-5 h-5" />
-                                    {t('companies_create.select_from_quotation')}<span className="text-red-600">*</span>
+                                    {t('companies_create.select_from_quotation')}
                                 </h3>
-                                {/* Announcement wajib pilih quotation */}
-                                {/* {!selectedQuotation && (
-                                    <div className="mb-3 p-3 bg-yellow-100 border border-yellow-300 text-yellow-800 rounded text-sm font-semibold flex items-center gap-2">
-                                        <AlertCircle className="w-4 h-4" />
-                                        {t('companies_create.must_select_quotation')}
+                                
+                                {/* Error message untuk quotation yang sudah digunakan */}
+                                {quotationUsedError && (
+                                    <div className={`mb-4 p-3 rounded-lg flex items-start gap-2 ${
+                                        quotationUsedError.type === 'error' 
+                                            ? 'bg-red-100 border border-red-300 text-red-800'
+                                            : 'bg-yellow-100 border border-yellow-300 text-yellow-800'
+                                    }`}>
+                                        {quotationUsedError.type === 'error' ? (
+                                            <AlertTriangle className="w-5 h-5 flex-shrink-0 mt-0.5" />
+                                        ) : (
+                                            <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
+                                        )}
+                                        <div className="flex-1">
+                                            <p className="font-medium">{quotationUsedError.message}</p>
+                                            {quotationUsedError.company_name && (
+                                                <p className="text-sm mt-1">
+                                                    {t('companies_create.already_has_company')}: 
+                                                    <strong className="ml-1">{quotationUsedError.company_name}</strong>
+                                                    {quotationUsedError.company_id && (
+                                                        <span className="ml-2 text-xs">(ID: {quotationUsedError.company_id})</span>
+                                                    )}
+                                                </p>
+                                            )}
+                                        </div>
                                     </div>
-                                )} */}
+                                )}
+
                                 {loadingQuotations ? (
                                     <div className="text-center py-4">
                                         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
@@ -490,6 +590,9 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId, onSuccess }) => {
                                                             </span>
                                                             <span className="px-2 py-1 text-xs bg-green-100 text-green-800 rounded">
                                                                 {t('companies_create.accepted')}
+                                                            </span>
+                                                            <span className="px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded">
+                                                                {t('companies_create.unused')}
                                                             </span>
                                                         </div>
                                                         <div className="text-sm text-gray-600 mt-1">
@@ -535,15 +638,23 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId, onSuccess }) => {
                                                             >
                                                                 <div className="flex justify-between items-start">
                                                                     <div>
-                                                                        <div className="font-medium text-gray-900">
-                                                                            {quotation.quotation_number}
+                                                                        <div className="flex items-center gap-2 mb-1">
+                                                                            <span className="font-medium text-gray-900">
+                                                                                {quotation.quotation_number}
+                                                                            </span>
+                                                                            <span className="px-2 py-0.5 text-xs bg-green-100 text-green-800 rounded">
+                                                                                {t('companies_create.accepted')}
+                                                                            </span>
+                                                                            <span className="px-2 py-0.5 text-xs bg-blue-100 text-blue-800 rounded">
+                                                                                {t('companies_create.unused')}
+                                                                            </span>
                                                                         </div>
-                                                                        <div className="text-sm text-gray-600 mt-1">
+                                                                        <div className="text-sm text-gray-600 mb-1">
                                                                             {quotation.subject}
                                                                         </div>
                                                                         {quotation.lead && (
-                                                                            <div className="text-xs text-gray-500 mt-1">
-                                                                                {quotation.lead.company_name}
+                                                                            <div className="text-xs text-gray-500">
+                                                                                {quotation.lead.company_name} • {quotation.lead.contact_person}
                                                                             </div>
                                                                         )}
                                                                     </div>
@@ -553,16 +664,74 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId, onSuccess }) => {
                                                         ))
                                                     ) : (
                                                         <div className="text-center py-8">
+                                                            <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-gray-100 mb-3">
+                                                                <FileText className="w-6 h-6 text-gray-400" />
+                                                            </div>
                                                             <p className="text-sm text-gray-600 font-medium">
-                                                                {t('companies_create.no_quotations_found')}
+                                                                {quotationSearch
+                                                                    ? t('companies_create.no_quotations_found_search')
+                                                                    : t('companies_create.no_available_quotations')
+                                                                }
                                                             </p>
+                                                            {!quotationSearch && (
+                                                                <p className="text-xs text-gray-500 mt-1">
+                                                                    {t('companies_create.all_quotations_used')}
+                                                                </p>
+                                                            )}
                                                         </div>
                                                     )}
+                                                </div>
+                                                
+                                                {/* Info tentang quotations yang sudah digunakan */}
+                                                <div className="mt-3 p-2 bg-gray-50 border border-gray-200 rounded text-xs text-gray-600">
+                                                    <div className="flex items-center gap-2">
+                                                        <div className="flex items-center gap-1">
+                                                            <div className="w-2 h-2 rounded-full bg-blue-500"></div>
+                                                            <span>{t('companies_create.available_quotations')}</span>
+                                                        </div>
+                                                        <div className="flex items-center gap-1">
+                                                            <div className="w-2 h-2 rounded-full bg-gray-400"></div>
+                                                            <span>{t('companies_create.used_quotations_hidden')}</span>
+                                                        </div>
+                                                    </div>
+                                                    <p className="mt-1">
+                                                        {t('companies_create.only_unused_quotations_shown')}
+                                                    </p>
                                                 </div>
                                             </>
                                         )}
                                     </div>
                                 )}
+                            </div>
+                        )}
+                        
+                        {/* Error jika quotation dari prop sudah digunakan */}
+                        {quotationId && quotationUsedError && (
+                            <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
+                                <div className="flex items-start gap-3">
+                                    <AlertTriangle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+                                    <div>
+                                        <h4 className="font-medium text-red-800">
+                                            {t('companies_create.quotation_unavailable')}
+                                        </h4>
+                                        <p className="text-sm text-red-700 mt-1">
+                                            {quotationUsedError.message}
+                                        </p>
+                                        {quotationUsedError.company_name && (
+                                            <div className="mt-2 p-2 bg-red-100 rounded">
+                                                <p className="text-sm font-medium">
+                                                    {t('companies_create.quotation_already_used_by')}
+                                                </p>
+                                                <p className="text-sm">
+                                                    {quotationUsedError.company_name}
+                                                    {quotationUsedError.company_id && (
+                                                        <span className="ml-2 text-xs">(ID: {quotationUsedError.company_id})</span>
+                                                    )}
+                                                </p>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
                             </div>
                         )}
 
@@ -902,9 +1071,9 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId, onSuccess }) => {
                         </button>
                         <button
                             type="submit"
-                            disabled={isSubmitting || (!quotationId && !selectedQuotation)}
+                            disabled={isSubmitting || (!quotationId && !selectedQuotation) || quotationUsedError}
                             className={`px-6 py-2 font-medium rounded-lg flex items-center gap-2 ${
-                                isSubmitting || (!quotationId && !selectedQuotation)
+                                isSubmitting || (!quotationId && !selectedQuotation) || quotationUsedError
                                     ? 'bg-gray-400 text-white cursor-not-allowed'
                                     : 'bg-teal-700 hover:bg-teal-800 text-white'
                             }`}
