@@ -2253,147 +2253,154 @@ private function getCompanyProjects($company)
         }
     }
 
-    /**
-     * Get accepted quotations for company creation - SIMPLE FIX
-     */
-    public function getAcceptedQuotations(Request $request)
-    {
-        try {
-            // Cek semua kemungkinan status
-            $quotations = Quotation::with(['lead'])
-                ->where(function($query) {
-                    // Coba semua kemungkinan penulisan "accepted"
-                    $query->where('status', 'accepted')
-                        ->orWhere('status', 'Accepted')
-                        ->orWhere('status', 'ACCEPTED')
-                        ->orWhere('status', 'Accepté') // Jika ada special character
-                        ->orWhereRaw('LOWER(status) LIKE ?', ['%accept%']);
-                })
-                ->where('deleted', 0)
-                ->orderBy('date', 'desc')
-                ->get()
-                ->map(function($quotation) {
-                    return [
-                        'id' => $quotation->id,
-                        'quotation_number' => $quotation->quotation_number,
-                        'date' => $quotation->date ? $quotation->date->format('Y-m-d') : null,
-                        'subject' => $quotation->subject,
-                        'total' => (float) $quotation->total,
-                        'status' => $quotation->status,
-                        'lead' => $quotation->lead ? [
-                            'id' => $quotation->lead->id,
-                            'company_name' => $quotation->lead->company_name,
-                            'contact_person' => $quotation->lead->contact_person,
-                            'email' => $quotation->lead->email,
-                            'phone' => $quotation->lead->phone,
-                            'position' => $quotation->lead->position
-                        ] : null
-                    ];
-                });
-            
-            return response()->json([
-                'success' => true,
-                'message' => 'Data berhasil diambil',
-                'data' => $quotations,
-                'total' => $quotations->count()
-            ]);
-            
-        } catch (\Exception $e) {
+// app/Http/Controllers/CompanyController.php
+
+/**
+ * Get accepted quotations for company creation - ONLY UNUSED QUOTATIONS
+ */
+public function getAcceptedQuotations(Request $request)
+{
+    try {
+        // Ambil semua quotations yang accepted dan belum memiliki client
+        $quotations = Quotation::with(['lead', 'company'])
+            ->where(function($query) {
+                // Filter untuk status accepted (dalam berbagai format)
+                $query->where('status', 'accepted')
+                    ->orWhere('status', 'Accepted')
+                    ->orWhere('status', 'ACCEPTED')
+                    ->orWhere('status', 'Accepté')
+                    ->orWhereRaw('LOWER(status) LIKE ?', ['%accept%']);
+            })
+            ->where('deleted', 0)
+            ->whereDoesntHave('company') // HANYA quotations yang belum memiliki client
+            ->orderBy('date', 'desc')
+            ->get()
+            ->map(function($quotation) {
+                return [
+                    'id' => $quotation->id,
+                    'quotation_number' => $quotation->quotation_number,
+                    'date' => $quotation->date ? $quotation->date->format('Y-m-d') : null,
+                    'subject' => $quotation->subject,
+                    'total' => (float) $quotation->total,
+                    'status' => $quotation->status,
+                    'has_company' => $quotation->company ? true : false, // Flag untuk UI
+                    'lead' => $quotation->lead ? [
+                        'id' => $quotation->lead->id,
+                        'company_name' => $quotation->lead->company_name,
+                        'contact_person' => $quotation->lead->contact_person,
+                        'email' => $quotation->lead->email,
+                        'phone' => $quotation->lead->phone,
+                        'position' => $quotation->lead->position
+                    ] : null
+                ];
+            });
+        
+        return response()->json([
+            'success' => true,
+            'message' => 'Data quotations yang belum digunakan berhasil diambil',
+            'data' => $quotations,
+            'total' => $quotations->count()
+        ]);
+        
+    } catch (\Exception $e) {
+        \Log::error('Error fetching accepted quotations: ' . $e->getMessage());
+        return response()->json([
+            'success' => false,
+            'message' => 'Gagal mengambil data quotations',
+            'data' => []
+        ], 500);
+    }
+}
+
+/**
+ * Get lead data from quotation for company creation
+ * - Tambahkan validasi bahwa quotation belum memiliki client
+ */
+public function getLeadFromQuotation($quotationId)
+{
+    try {
+        \Log::info('Fetching lead from quotation ID: ' . $quotationId);
+        
+        // Ambil quotation dengan lead data
+        $quotation = Quotation::with(['lead', 'company'])
+            ->where('id', $quotationId)
+            ->where('deleted', 0)
+            ->first();
+        
+        if (!$quotation) {
             return response()->json([
                 'success' => false,
-                'message' => 'Gagal mengambil data',
-                'data' => []
-            ], 500);
+                'message' => 'Quotation tidak ditemukan'
+            ], 404);
         }
-    }
-
-    // app/Http/Controllers/CompanyController.php
-
-    /**
-     * Get lead data from quotation for company creation
-     */
-    public function getLeadFromQuotation($quotationId)
-    {
-        try {
-            Log::info('Fetching lead from quotation ID: ' . $quotationId);
-            
-            // Ambil quotation dengan lead data
-            $quotation = Quotation::with(['lead'])
-                ->where('id', $quotationId)
-                ->where('deleted', 0)
-                ->first();
-            
-            if (!$quotation) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Quotation not found'
-                ], 404);
-            }
-            
-            // Cek apakah quotation sudah accepted
-            if ($quotation->status !== 'accepted') {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Quotation is not accepted'
-                ], 400);
-            }
-            
-            // Cek apakah quotation sudah memiliki company
-            if ($quotation->company) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'This quotation already has a company'
-                ], 400);
-            }
-            
-            $lead = $quotation->lead;
-            
-            if (!$lead) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Lead not found for this quotation'
-                ], 404);
-            }
-            
-            // Format lead data
-            $leadData = [
-                'id' => $lead->id,
-                'company_name' => $lead->company_name,
-                'contact_person' => $lead->contact_person,
-                'email' => $lead->email,
-                'phone' => $lead->phone,
-                'position' => $lead->position,
-                'address' => $lead->address,
-                'city' => $lead->city,
-                'province' => $lead->province,
-                'country' => $lead->country,
-                'postal_code' => $lead->postal_code,
-                'website' => $lead->website,
-                'industry' => $lead->industry,
-                'source' => $lead->source,
-                'status' => $lead->status,
-                'created_at' => $lead->created_at ? $lead->created_at->format('Y-m-d H:i:s') : null
-            ];
-            
-            Log::info('Lead data found for quotation ' . $quotationId);
-            
-            return response()->json([
-                'success' => true,
-                'message' => 'Lead data retrieved successfully',
-                'data' => $leadData
-            ]);
-            
-        } catch (\Exception $e) {
-            Log::error('Error fetching lead from quotation: ' . $e->getMessage());
-            Log::error('Stack trace: ' . $e->getTraceAsString());
-            
+        
+        // Cek apakah quotation sudah accepted
+        if (!in_array(strtolower($quotation->status), ['accepted', 'accepté'])) {
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to fetch lead data',
-                'error' => $e->getMessage()
-            ], 500);
+                'message' => 'Quotation belum di-accept'
+            ], 400);
         }
+        
+        // CEK PENTING: Quotation sudah memiliki client?
+        if ($quotation->company) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Quotation ini sudah digunakan untuk membuat client',
+                'company_name' => $quotation->company->company_name,
+                'company_id' => $quotation->company->id
+            ], 400);
+        }
+        
+        $lead = $quotation->lead;
+        
+        if (!$lead) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Lead tidak ditemukan untuk quotation ini'
+            ], 404);
+        }
+        
+        // Format lead data
+        $leadData = [
+            'id' => $lead->id,
+            'company_name' => $lead->company_name,
+            'contact_person' => $lead->contact_person,
+            'email' => $lead->email,
+            'phone' => $lead->phone,
+            'position' => $lead->position,
+            'address' => $lead->address,
+            'city' => $lead->city,
+            'province' => $lead->province,
+            'country' => $lead->country,
+            'postal_code' => $lead->postal_code,
+            'website' => $lead->website,
+            'vat_number' => $lead->vat_number ?? '',
+            'nib' => $lead->nib ?? '',
+            'industry' => $lead->industry,
+            'source' => $lead->source,
+            'status' => $lead->status,
+            'created_at' => $lead->created_at ? $lead->created_at->format('Y-m-d H:i:s') : null
+        ];
+        
+        \Log::info('Lead data found for quotation ' . $quotationId);
+        
+        return response()->json([
+            'success' => true,
+            'message' => 'Data lead berhasil diambil',
+            'data' => $leadData
+        ]);
+        
+    } catch (\Exception $e) {
+        \Log::error('Error fetching lead from quotation: ' . $e->getMessage());
+        
+        return response()->json([
+            'success' => false,
+            'message' => 'Gagal mengambil data lead',
+            'error' => $e->getMessage()
+        ], 500);
     }
+}
         
 /**
  * Update company.
