@@ -4,7 +4,8 @@ import { router, usePage } from '@inertiajs/react';
 import { 
     CreditCard, Calendar, DollarSign, Building, 
     FileText, Landmark, MessageSquare, Receipt, Edit,
-    Download, Eye, Trash2, CheckCircle, X, Save, AlertCircle
+    Download, Eye, Trash2, CheckCircle, X, Save, AlertCircle,
+    Loader, Search, Filter, ChevronDown, TrendingUp, Percent
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
@@ -26,6 +27,21 @@ const PaymentTable = ({ data, companyId, showInvoiceAmount = false }) => {
     });
     const [loading, setLoading] = useState(false);
     const [errors, setErrors] = useState({});
+    const [searchTerm, setSearchTerm] = useState('');
+    const [methodFilter, setMethodFilter] = useState('all');
+    const [sortBy, setSortBy] = useState('date');
+    const [sortOrder, setSortOrder] = useState('desc');
+    const [selectedPayments, setSelectedPayments] = useState([]);
+
+    // State untuk announcement
+    const [announcement, setAnnouncement] = useState({
+        show: false,
+        type: 'info',
+        title: '',
+        message: '',
+        autoClose: true,
+        duration: 5000
+    });
 
     // Debug effect
     useEffect(() => {
@@ -35,6 +51,81 @@ const PaymentTable = ({ data, companyId, showInvoiceAmount = false }) => {
             hasCompanyId: !!companyId 
         });
     }, [companyId, data]);
+
+    // Fungsi untuk menampilkan announcement
+    const showAnnouncement = (type, title, message, autoClose = true) => {
+        setAnnouncement({
+            show: true,
+            type,
+            title,
+            message,
+            autoClose,
+            duration: 5000
+        });
+        
+        if (autoClose) {
+            setTimeout(() => {
+                setAnnouncement(prev => ({ ...prev, show: false }));
+            }, 5000);
+        }
+    };
+
+    // Komponen Announcement
+    const AnnouncementModal = () => {
+        if (!announcement.show) return null;
+        
+        const bgColor = {
+            info: 'bg-blue-50 border-blue-200',
+            warning: 'bg-yellow-50 border-yellow-200',
+            error: 'bg-red-50 border-red-200',
+            success: 'bg-green-50 border-green-200'
+        }[announcement.type];
+        
+        const textColor = {
+            info: 'text-blue-800',
+            warning: 'text-yellow-800',
+            error: 'text-red-800',
+            success: 'text-green-800'
+        }[announcement.type];
+        
+        const icon = {
+            info: <AlertCircle className="w-5 h-5" />,
+            warning: <AlertCircle className="w-5 h-5" />,
+            error: <AlertCircle className="w-5 h-5" />,
+            success: <CheckCircle className="w-5 h-5" />
+        }[announcement.type];
+        
+        return (
+            <div className="fixed inset-0 z-[100] flex items-start justify-center p-4 pointer-events-none">
+                <div className={`max-w-md w-full border rounded-lg shadow-lg p-4 pointer-events-auto ${bgColor}`}>
+                    <div className="flex items-start">
+                        <div className={`flex-shrink-0 ${textColor}`}>
+                            {icon}
+                        </div>
+                        <div className="ml-3 w-0 flex-1">
+                            <h3 className={`text-sm font-medium ${textColor}`}>
+                                {announcement.title}
+                            </h3>
+                            <div className="mt-1 text-sm">
+                                <p className={textColor}>
+                                    {announcement.message}
+                                </p>
+                            </div>
+                        </div>
+                        <div className="ml-4 flex-shrink-0 flex">
+                            <button
+                                className={`rounded-md inline-flex ${textColor} hover:opacity-80 focus:outline-none`}
+                                onClick={() => setAnnouncement(prev => ({ ...prev, show: false }))}
+                            >
+                                <span className="sr-only">Close</span>
+                                <X className="h-5 w-5" />
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        );
+    };
 
     // Format currency untuk mobile - FIXED
     const formatCurrency = (amount) => {
@@ -71,6 +162,31 @@ const PaymentTable = ({ data, companyId, showInvoiceAmount = false }) => {
         }).format(numAmount);
     };
 
+    // Format currency full untuk tooltip
+    const formatCurrencyFull = (amount) => {
+        if (!amount && amount !== 0) return t('payment_table.currency_format', { amount: 0 });
+        return new Intl.NumberFormat('id-ID', {
+            style: 'currency',
+            currency: 'IDR',
+            minimumFractionDigits: 0
+        }).format(amount);
+    };
+
+    // Komponen untuk expand/collapse angka besar
+    const ExpandableAmount = ({ amount, maxLength = 15 }) => {
+        const [expanded, setExpanded] = React.useState(false);
+        const full = formatCurrencyFull(amount);
+        if (full.length <= maxLength) return <span>{full}</span>;
+        return (
+            <span className="relative">
+                <span className="cursor-pointer" onClick={() => setExpanded(!expanded)}>
+                    {expanded ? full : full.slice(0, maxLength) + '...'}
+                    <span className="ml-1 text-xs text-blue-500 underline">{expanded ? 'Sembunyikan' : 'Lihat'}</span>
+                </span>
+            </span>
+        );
+    };
+
     const formatDate = (dateString) => {
         if (!dateString) return t('payment_table.not_available');
         
@@ -92,6 +208,66 @@ const PaymentTable = ({ data, companyId, showInvoiceAmount = false }) => {
         }
     };
 
+    // Filter dan sort data
+    const filteredData = data
+        .filter(payment => {
+            const matchesSearch = searchTerm === '' || 
+                (payment.invoice_number && payment.invoice_number.toLowerCase().includes(searchTerm.toLowerCase())) ||
+                (payment.invoice?.invoice_number && payment.invoice.invoice_number.toLowerCase().includes(searchTerm.toLowerCase())) ||
+                (payment.bank && payment.bank.toLowerCase().includes(searchTerm.toLowerCase())) ||
+                (payment.note && payment.note.toLowerCase().includes(searchTerm.toLowerCase())) ||
+                (payment.method && payment.method.toLowerCase().includes(searchTerm.toLowerCase()));
+            
+            const paymentMethod = (payment.method || '').toLowerCase();
+            let matchesMethod = false;
+            
+            if (methodFilter === 'all') {
+                matchesMethod = true;
+            } else {
+                const methodMap = {
+                    'transfer': ['transfer', 'bank_transfer'],
+                    'cash': ['cash'],
+                    'check': ['check']
+                };
+                
+                if (methodMap[methodFilter]) {
+                    matchesMethod = methodMap[methodFilter].includes(paymentMethod);
+                } else {
+                    matchesMethod = paymentMethod === methodFilter;
+                }
+            }
+            
+            return matchesSearch && matchesMethod;
+        })
+        .sort((a, b) => {
+            try {
+                if (sortBy === 'date') {
+                    const dateA = a.date ? new Date(a.date) : new Date(0);
+                    const dateB = b.date ? new Date(b.date) : new Date(0);
+                    
+                    if (isNaN(dateA.getTime()) && isNaN(dateB.getTime())) return 0;
+                    if (isNaN(dateA.getTime())) return sortOrder === 'desc' ? 1 : -1;
+                    if (isNaN(dateB.getTime())) return sortOrder === 'desc' ? -1 : 1;
+                    
+                    return sortOrder === 'desc' ? dateB - dateA : dateA - dateB;
+                }
+                
+                if (sortBy === 'amount') {
+                    const amountA = getPaymentAmount(a);
+                    const amountB = getPaymentAmount(b);
+                    return sortOrder === 'desc' ? amountB - amountA : amountA - amountB;
+                }
+                
+                const dateA = a.date ? new Date(a.date) : new Date(0);
+                const dateB = b.date ? new Date(b.date) : new Date(0);
+                return dateB - dateA;
+                
+            } catch (error) {
+                console.error('Sorting error:', error);
+                return 0;
+            }
+        });
+
     // Get invoice number - safely handle different data structures
     const getInvoiceNumber = (payment) => {
         // Check multiple possible properties
@@ -111,6 +287,9 @@ const PaymentTable = ({ data, companyId, showInvoiceAmount = false }) => {
         }
         if (payment.invoice?.total !== undefined && payment.invoice.total !== null) {
             return Number(payment.invoice.total);
+        }
+        if (payment.invoice?.invoice_amount !== undefined && payment.invoice.invoice_amount !== null) {
+            return Number(payment.invoice.invoice_amount);
         }
         return 0;
     };
@@ -164,6 +343,31 @@ const PaymentTable = ({ data, companyId, showInvoiceAmount = false }) => {
         }
     };
 
+    const handleSort = (column) => {
+        if (sortBy === column) {
+            setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+        } else {
+            setSortBy(column);
+            setSortOrder('desc');
+        }
+    };
+
+    const handleSelectAll = () => {
+        if (selectedPayments.length === filteredData.length) {
+            setSelectedPayments([]);
+        } else {
+            setSelectedPayments(filteredData.map(payment => payment.id));
+        }
+    };
+
+    const handleSelectPayment = (id) => {
+        setSelectedPayments(prev => 
+            prev.includes(id) 
+                ? prev.filter(paymentId => paymentId !== id)
+                : [...prev, id]
+        );
+    };
+
     // Toggle expanded note
     const toggleNote = (paymentId) => {
         setExpandedNote(expandedNote === paymentId ? null : paymentId);
@@ -182,18 +386,18 @@ const PaymentTable = ({ data, companyId, showInvoiceAmount = false }) => {
         setTooltip({ text: '', x: 0, y: 0 });
     };
 
-    // Action Handlers - HANYA EDIT DAN DELETE
+    // Action Handlers
     const openEditModal = (payment) => {
         if (!companyId) {
-            console.error('Company ID is required for edit');
+            showAnnouncement('error', 'Error', 'Company ID is required for edit');
             return;
         }
         
         setSelectedPayment(payment);
         setFormData({
-            amount: payment.amount,
-            method: payment.method,
-            date: payment.date || new Date().toISOString().split('T')[0],
+            amount: payment.amount || '',
+            method: payment.method || 'transfer',
+            date: payment.date ? payment.date.split('T')[0] : new Date().toISOString().split('T')[0],
             bank: payment.bank || '',
             note: payment.note || '',
         });
@@ -203,7 +407,7 @@ const PaymentTable = ({ data, companyId, showInvoiceAmount = false }) => {
 
     const openDeleteModal = (payment) => {
         if (!companyId) {
-            console.error('Company ID is required for delete');
+            showAnnouncement('error', 'Error', 'Company ID is required for delete');
             return;
         }
         
@@ -211,21 +415,66 @@ const PaymentTable = ({ data, companyId, showInvoiceAmount = false }) => {
         setShowDeleteModal(true);
     };
 
-    const handleEditPayment = () => {
+    // ==================== PERBAIKAN: handleEditPayment ====================
+    const handleEditPayment = async () => {
         if (!selectedPayment || !companyId) {
-            console.error('Company ID or selected payment is missing');
+            showAnnouncement('error', 'Error', 'Company ID or payment data is missing');
             return;
         }
 
         setLoading(true);
         setErrors({});
         
-        router.put(route('companies.payments.update', { 
-            company: companyId, 
-            payment: selectedPayment.id 
-        }), formData, {
-            preserveScroll: true,
-            onSuccess: () => {
+        // PERBAIKAN: Gunakan URL yang benar sesuai route Laravel
+        const url = `/companies/${companyId}/payments/${selectedPayment.id}`;
+        console.log('Update payment URL:', url);
+        console.log('Update data:', formData);
+        
+        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+        
+        try {
+            const response = await fetch(url, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': csrfToken,
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Accept': 'application/json'
+                },
+                credentials: 'include',
+                body: JSON.stringify(formData)
+            });
+            
+            console.log('Update payment response status:', response.status);
+            
+            const responseText = await response.text();
+            let result;
+            try {
+                result = JSON.parse(responseText);
+            } catch (e) {
+                console.error('Failed to parse JSON:', e);
+                throw new Error('Invalid server response');
+            }
+            
+            console.log('Update payment result:', result);
+            
+            if (!response.ok) {
+                // Handle 403 Forbidden
+                if (response.status === 403) {
+                    showAnnouncement('error', 'Akses Ditolak', 'Payment tidak dapat diperbarui karena tidak termasuk dalam perusahaan ini.', false);
+                    return;
+                }
+                
+                if (response.status === 404) {
+                    showAnnouncement('error', 'Data Tidak Ditemukan', 'Payment tidak ditemukan.', false);
+                    return;
+                }
+                
+                throw new Error(result.message || `Server error: ${response.status}`);
+            }
+            
+            if (result.success) {
+                showAnnouncement('success', 'Berhasil!', 'Payment berhasil diperbarui!');
                 setShowEditModal(false);
                 setSelectedPayment(null);
                 setFormData({
@@ -235,45 +484,178 @@ const PaymentTable = ({ data, companyId, showInvoiceAmount = false }) => {
                     bank: '',
                     note: '',
                 });
-                setLoading(false);
-            },
-            onError: (errors) => {
-                console.error('Error updating payment:', errors);
-                setErrors(errors);
-                setLoading(false);
+                // Refresh data menggunakan Inertia
+                router.reload({ 
+                    only: ['payments'], 
+                    preserveScroll: true 
+                });
+            } else {
+                setErrors({ general: result.message || 'Failed to update payment' });
+                showAnnouncement('error', 'Gagal', 'Gagal memperbarui payment: ' + result.message, false);
             }
-        });
+        } catch (error) {
+            console.error('Error updating payment:', error);
+            showAnnouncement('error', 'Kesalahan Sistem', 'Failed to update payment: ' + error.message, false);
+            setErrors({ 
+                general: error.message || 'Failed to update payment. Please check console for details.' 
+            });
+        } finally {
+            setLoading(false);
+        }
     };
 
-    const handleDeletePayment = () => {
+    // ==================== PERBAIKAN: handleDeletePayment ====================
+    const handleDeletePayment = async () => {
         if (!selectedPayment || !companyId) {
-            console.error('Company ID or selected payment is missing');
+            showAnnouncement('error', 'Error', 'Company ID or payment data is missing');
             return;
         }
 
         setLoading(true);
         
-        router.delete(route('companies.payments.destroy', { 
-            company: companyId, 
-            payment: selectedPayment.id 
-        }), {
-            preserveScroll: true,
-            onSuccess: () => {
+        // PERBAIKAN: Gunakan URL yang benar sesuai route Laravel
+        const url = `/companies/${companyId}/payments/${selectedPayment.id}`;
+        console.log('Delete payment URL:', url);
+        
+        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+        
+        try {
+            const response = await fetch(url, {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': csrfToken,
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Accept': 'application/json'
+                },
+                credentials: 'include'
+            });
+            
+            console.log('Delete payment response status:', response.status);
+            
+            const responseText = await response.text();
+            let result;
+            try {
+                result = JSON.parse(responseText);
+            } catch (e) {
+                console.error('Failed to parse JSON:', e);
+                throw new Error('Invalid server response');
+            }
+            
+            console.log('Delete payment result:', result);
+            
+            if (!response.ok) {
+                // Handle 403 Forbidden
+                if (response.status === 403) {
+                    showAnnouncement('error', 'Akses Ditolak', 'Payment tidak dapat dihapus karena tidak termasuk dalam perusahaan ini.', false);
+                    return;
+                }
+                
+                if (response.status === 404) {
+                    showAnnouncement('error', 'Data Tidak Ditemukan', 'Payment tidak ditemukan.', false);
+                    return;
+                }
+                
+                throw new Error(result.message || `Server error: ${response.status}`);
+            }
+            
+            if (result.success) {
+                showAnnouncement('success', 'Berhasil!', 'Payment berhasil dihapus!');
                 setShowDeleteModal(false);
                 setSelectedPayment(null);
-                setLoading(false);
-            },
-            onError: (errors) => {
-                console.error('Error deleting payment:', errors);
-                setLoading(false);
+                // Refresh data menggunakan Inertia
+                router.reload({ 
+                    only: ['payments'], 
+                    preserveScroll: true 
+                });
+            } else {
+                showAnnouncement('error', 'Gagal', 'Gagal menghapus payment: ' + result.message, false);
             }
-        });
+        } catch (error) {
+            console.error('Error deleting payment:', error);
+            showAnnouncement('error', 'Kesalahan Sistem', 'Failed to delete payment: ' + error.message, false);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    // ==================== Bulk Delete ====================
+    const handleBulkDelete = async () => {
+        if (selectedPayments.length === 0 || !companyId) {
+            showAnnouncement('warning', 'Peringatan', 'Tidak ada payment yang dipilih atau Company ID tidak ada');
+            return;
+        }
+        
+        const confirmDelete = window.confirm(
+            `Anda yakin ingin menghapus ${selectedPayments.length} payment?`
+        );
+        
+        if (!confirmDelete) return;
+        
+        try {
+            setLoading(true);
+            
+            const url = `/companies/${companyId}/payments/bulk-delete`;
+            console.log('Bulk delete URL:', url);
+            
+            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+            
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': csrfToken,
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Accept': 'application/json'
+                },
+                credentials: 'include',
+                body: JSON.stringify({ payment_ids: selectedPayments })
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.error('Error response:', errorText);
+                
+                // Handle 403 error
+                if (response.status === 403) {
+                    showAnnouncement('error', 'Akses Ditolak', 'Salah satu payment tidak dapat dihapus karena tidak termasuk dalam perusahaan ini.', false);
+                    return;
+                }
+                
+                throw new Error(`Failed to delete payments: ${response.status} ${response.statusText}`);
+            }
+
+            const result = await response.json();
+            console.log('Bulk delete result:', result);
+            
+            if (result.success) {
+                showAnnouncement('success', 'Berhasil!', `Berhasil menghapus ${result.deleted_count} payment!`);
+                setSelectedPayments([]);
+                // Refresh data
+                router.reload({ 
+                    only: ['payments'], 
+                    preserveScroll: true,
+                    onSuccess: () => {
+                        showAnnouncement('success', 'Berhasil!', `${result.deleted_count} payment telah dihapus.`);
+                    }
+                });
+            } else {
+                showAnnouncement('error', 'Gagal', 'Gagal menghapus payments: ' + result.message, false);
+            }
+            
+        } catch (error) {
+            console.error('Error deleting payments:', error);
+            showAnnouncement('error', 'Kesalahan Sistem', 'Failed to delete payments: ' + error.message, false);
+        } finally {
+            setLoading(false);
+        }
     };
 
     // Empty State
     if (!data || data.length === 0) {
         return (
             <div className="text-center py-12">
+                <AnnouncementModal />
                 <CreditCard className="w-16 h-16 text-gray-300 mx-auto mb-4" />
                 <h3 className="text-lg font-medium text-gray-900 mb-2">
                     {t('payment_table.no_payments_found')}
@@ -285,34 +667,7 @@ const PaymentTable = ({ data, companyId, showInvoiceAmount = false }) => {
         );
     }
 
-    // ExpandableAmount component for long currency values
-    const ExpandableAmount = ({ amount, className = "" }) => {
-        const { t } = useTranslation();
-        const [expanded, setExpanded] = useState(false);
-        const formatted = new Intl.NumberFormat('id-ID', {
-            style: 'currency',
-            currency: 'IDR',
-            minimumFractionDigits: 0,
-            maximumFractionDigits: 0
-        }).format(Number(amount) || 0);
-        // Show expand/collapse if formatted is long
-        const isLong = formatted.length > 12;
-        if (!isLong) return <span className={className}>{formatted}</span>;
-        return (
-            <span className={className}>
-                {expanded ? formatted : formatted.slice(0, 10) + '...'}
-                <button
-                    type="button"
-                    className="ml-1 text-blue-600 underline text-xs focus:outline-none"
-                    onClick={() => setExpanded(e => !e)}
-                >
-                    {expanded ? t('payment_table.collapse') : t('payment_table.expand')}
-                </button>
-            </span>
-        );
-    };
-
-    // Mobile Card View - HANYA EDIT DAN DELETE
+    // Mobile Card View
     const MobileCardView = ({ payment }) => {
         const invoiceNumber = getInvoiceNumber(payment);
         const invoiceAmount = getInvoiceAmount(payment);
@@ -324,17 +679,22 @@ const PaymentTable = ({ data, companyId, showInvoiceAmount = false }) => {
         return (
             <div className="bg-white border border-gray-200 rounded-lg p-4 mb-3 hover:shadow-sm transition-shadow">
                 <div className="flex justify-between items-start mb-3">
-                    <div>
-                        <div className="flex items-center space-x-2 mb-1">
-                            <FileText className="w-4 h-4 text-blue-600" />
-                            <div>
-                                <h3 className="font-semibold text-gray-900 text-sm">
-                                    {invoiceNumber}
-                                </h3>
-                                <p className="text-xs text-gray-500">
-                                    {formatDate(payment.date)}
-                                </p>
-                            </div>
+                    <div className="flex items-center space-x-2">
+                        <input
+                            type="checkbox"
+                            checked={selectedPayments.includes(payment.id)}
+                            onChange={() => handleSelectPayment(payment.id)}
+                            className="h-4 w-4 text-blue-600 rounded disabled:opacity-50 disabled:cursor-not-allowed"
+                            disabled={loading}
+                        />
+                        <FileText className="w-4 h-4 text-blue-600" />
+                        <div>
+                            <h3 className="font-semibold text-gray-900 text-sm">
+                                {invoiceNumber}
+                            </h3>
+                            <p className="text-xs text-gray-500">
+                                {formatDate(payment.date)}
+                            </p>
                         </div>
                     </div>
                     {getMethodBadge(paymentMethod)}
@@ -350,7 +710,7 @@ const PaymentTable = ({ data, companyId, showInvoiceAmount = false }) => {
                                     onMouseEnter={(e) => handleTooltip(formatFullCurrency(invoiceAmount), e)}
                                     onMouseLeave={hideTooltip}
                                 >
-                                    <ExpandableAmount amount={invoiceAmount} />
+                                    <ExpandableAmount amount={invoiceAmount} maxLength={12} />
                                 </p>
                             </div>
                         )}
@@ -361,7 +721,7 @@ const PaymentTable = ({ data, companyId, showInvoiceAmount = false }) => {
                                 onMouseEnter={(e) => handleTooltip(formatFullCurrency(paymentAmount), e)}
                                 onMouseLeave={hideTooltip}
                             >
-                                <ExpandableAmount amount={paymentAmount} />
+                                <ExpandableAmount amount={paymentAmount} maxLength={12} />
                             </p>
                         </div>
                     </div>
@@ -409,12 +769,12 @@ const PaymentTable = ({ data, companyId, showInvoiceAmount = false }) => {
                     </div>
                 )}
                 
-                {/* HANYA TOMBOL EDIT DAN DELETE */}
+                {/* Action buttons */}
                 <div className="flex space-x-2 pt-2 border-t border-gray-100">
                     <button 
                         onClick={() => openEditModal(payment)}
                         className="flex-1 flex items-center justify-center space-x-1 px-2 py-2 bg-gray-50 text-gray-700 rounded-lg text-xs hover:bg-gray-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                        disabled={!companyId}
+                        disabled={loading || !companyId}
                         title={!companyId ? "Company ID missing" : "Edit Payment"}
                     >
                         <Edit className="w-3 h-3" />
@@ -423,7 +783,7 @@ const PaymentTable = ({ data, companyId, showInvoiceAmount = false }) => {
                     <button 
                         onClick={() => openDeleteModal(payment)}
                         className="flex-1 flex items-center justify-center space-x-1 px-2 py-2 bg-red-50 text-red-700 rounded-lg text-xs hover:bg-red-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                        disabled={!companyId}
+                        disabled={loading || !companyId}
                         title={!companyId ? "Company ID missing" : "Delete Payment"}
                     >
                         <Trash2 className="w-3 h-3" />
@@ -432,17 +792,15 @@ const PaymentTable = ({ data, companyId, showInvoiceAmount = false }) => {
                 </div>
                 
                 {/* Created/Updated info */}
-                {payment.created_by && (
+                {(payment.created_by || payment.created_at) && (
                     <div className="mt-3 pt-3 border-t border-gray-100">
                         <div className="flex justify-between">
                             <div className="text-xs text-gray-500">
-                                {t('payment_table.created_by')}: {payment.created_by?.name || 'System'}
+                                {payment.created_at ? `${formatDate(payment.created_at)}` : ''}
                             </div>
-                            {payment.updated_by && (
-                                <div className="text-xs text-gray-500">
-                                    {t('payment_table.updated_by')}: {payment.updated_by?.name}
-                                </div>
-                            )}
+                            <div className="text-xs text-gray-500">
+                                {payment.created_by?.name || 'System'}
+                            </div>
                         </div>
                     </div>
                 )}
@@ -462,6 +820,8 @@ const PaymentTable = ({ data, companyId, showInvoiceAmount = false }) => {
 
     return (
         <div className="relative">
+            <AnnouncementModal />
+            
             {/* Tooltip */}
             {tooltip.text && (
                 <div 
@@ -488,47 +848,112 @@ const PaymentTable = ({ data, companyId, showInvoiceAmount = false }) => {
                 </p>
             </div>
 
+            {/* Search and Filter Section */}
+            <div className="mb-6 space-y-4">
+                <div className="flex flex-col sm:flex-row gap-3">
+                    <div className="flex-1">
+                        <div className="relative">
+                            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                            <input
+                                type="text"
+                                placeholder="Cari berdasarkan invoice, bank, atau catatan..."
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                                disabled={loading}
+                            />
+                        </div>
+                    </div>
+                    
+                    <div className="w-full sm:w-48">
+                        <div className="relative">
+                            <select
+                                value={methodFilter}
+                                onChange={(e) => setMethodFilter(e.target.value)}
+                                className="w-full pl-3 pr-10 py-2 border border-gray-300 rounded-lg appearance-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                                disabled={loading}
+                            >
+                                <option value="all">Semua Metode</option>
+                                <option value="transfer">Transfer Bank</option>
+                                <option value="cash">Cash</option>
+                                <option value="check">Check</option>
+                            </select>
+                            <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5 pointer-events-none" />
+                        </div>
+                    </div>
+                </div>
+                
+                {selectedPayments.length > 0 && (
+                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center">
+                                <CheckCircle className="w-5 h-5 text-blue-600 mr-2" />
+                                <span className="font-medium text-blue-800">
+                                    {selectedPayments.length} payment dipilih
+                                </span>
+                            </div>
+                            <div className="flex space-x-2">
+                                <button 
+                                    className="px-3 py-1 bg-red-600 text-white rounded text-sm hover:bg-red-700 flex items-center disabled:opacity-50 disabled:cursor-not-allowed"
+                                    onClick={handleBulkDelete}
+                                    disabled={loading}
+                                >
+                                    <Trash2 className="w-4 h-4 inline mr-1" />
+                                    Hapus yang dipilih
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
+            </div>
+
             {/* Mobile View */}
             <div className="sm:hidden">
-                {data.map((payment) => (
+                {filteredData.map((payment) => (
                     <MobileCardView key={payment.id} payment={payment} />
                 ))}
             </div>
 
-            {/* Desktop Table View - HANYA EDIT DAN DELETE */}
+            {/* Desktop Table View */}
             <div className="hidden sm:block">
-                <div className="overflow-x-auto -mx-2">
-                    <table className="min-w-full divide-y divide-gray-200 text-sm">
-                        <thead className="bg-[#e2e8f0]">
-                            <tr>
-                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
-                                    {t('payment_table.invoice_number')}
+                <div className="overflow-x-auto border border-gray-200 rounded-lg">
+                    <table className="min-w-full divide-y divide-gray-200">
+                        <thead>
+                            <tr className="bg-[#eaf6f6]">
+                                <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase border-r border-gray-200">
+                                    <input
+                                        type="checkbox"
+                                        checked={selectedPayments.length === filteredData.length}
+                                        onChange={handleSelectAll}
+                                        className="h-4 w-4 text-blue-600 rounded"
+                                        disabled={loading}
+                                    />
                                 </th>
-                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
-                                    {t('payment_table.date')}
+                                <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase border-r border-gray-200">
+                                    Invoice
                                 </th>
-                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
-                                    {t('payment_table.amount')}
+                                <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase border-r border-gray-200">
+                                    Tanggal
                                 </th>
-                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
-                                    {t('payment_table.method')}
+                                <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase border-r border-gray-200">
+                                    Jumlah
                                 </th>
-                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
-                                    {t('payment_table.bank')}
+                                <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase border-r border-gray-200">
+                                    Metode
                                 </th>
-                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
-                                    {t('payment_table.notes')}
+                                <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase border-r border-gray-200">
+                                    Bank
                                 </th>
-                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
-                                    {t('payment_table.created_by')}
+                                <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase border-r border-gray-200">
+                                    Catatan
                                 </th>
-                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
-                                    {t('payment_table.actions')}
+                                <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase">
+                                    Aksi
                                 </th>
                             </tr>
                         </thead>
                         <tbody className="bg-white divide-y divide-gray-200">
-                            {data.map((payment) => {
+                            {filteredData.map((payment) => {
                                 const invoiceNumber = getInvoiceNumber(payment);
                                 const invoiceAmount = getInvoiceAmount(payment);
                                 const paymentAmount = getPaymentAmount(payment);
@@ -537,14 +962,23 @@ const PaymentTable = ({ data, companyId, showInvoiceAmount = false }) => {
                                 const note = payment.note || payment.notes || payment.description || '';
                                 
                                 return (
-                                    <tr key={payment.id} className="hover:bg-gray-50 transition-colors">
+                                    <tr key={payment.id} className={`hover:bg-gray-50 ${selectedPayments.includes(payment.id) ? 'bg-blue-50' : ''}`}>
+                                        <td className="px-4 py-3">
+                                            <input
+                                                type="checkbox"
+                                                checked={selectedPayments.includes(payment.id)}
+                                                onChange={() => handleSelectPayment(payment.id)}
+                                                className="h-4 w-4 text-blue-600 rounded disabled:opacity-50 disabled:cursor-not-allowed"
+                                                disabled={loading}
+                                            />
+                                        </td>
                                         <td className="px-4 py-3">
                                             <div className="font-medium text-blue-900">
                                                 {invoiceNumber}
                                             </div>
                                             {showInvoiceAmount && (
                                                 <div className="text-xs text-gray-500">
-                                                    {t('payment_table.invoice_amount_short')}: <ExpandableAmount amount={invoiceAmount} />
+                                                    Invoice: <ExpandableAmount amount={invoiceAmount} maxLength={12} />
                                                 </div>
                                             )}
                                         </td>
@@ -559,7 +993,7 @@ const PaymentTable = ({ data, companyId, showInvoiceAmount = false }) => {
                                                 onMouseEnter={(e) => handleTooltip(formatFullCurrency(paymentAmount), e)}
                                                 onMouseLeave={hideTooltip}
                                             >
-                                                <ExpandableAmount amount={paymentAmount} />
+                                                <ExpandableAmount amount={paymentAmount} maxLength={12} />
                                             </div>
                                         </td>
                                         <td className="px-4 py-3">
@@ -569,21 +1003,18 @@ const PaymentTable = ({ data, companyId, showInvoiceAmount = false }) => {
                                             <div className="text-gray-900">
                                                 {bank}
                                             </div>
-                                            <div className="text-xs text-gray-500 capitalize">
-                                                {paymentMethod}
-                                            </div>
                                         </td>
-                                        <td className="px-4 py-3 max-w-[180px]">
+                                        <td className="px-4 py-3 max-w-[200px]">
                                             <div 
-                                                className={`text-gray-900 ${note.length > 50 ? 'cursor-pointer' : ''}`}
+                                                className={`text-gray-900 text-sm ${note.length > 50 ? 'cursor-pointer' : ''}`}
                                                 onClick={() => note.length > 50 && toggleNote(payment.id)}
-                                                title={note.length > 50 ? t('payment_table.click_to_expand') : ""}
+                                                title={note.length > 50 ? "Klik untuk melihat lengkap" : ""}
                                             >
                                                 {expandedNote === payment.id ? 
-                                                    note || t('payment_table.no_notes') : 
+                                                    note || '-' : 
                                                     (note.length > 50 ? 
                                                         `${note.substring(0, 50)}...` : 
-                                                        note || t('payment_table.no_notes')
+                                                        note || '-'
                                                     )
                                                 }
                                                 {note.length > 50 && expandedNote !== payment.id && (
@@ -592,35 +1023,20 @@ const PaymentTable = ({ data, companyId, showInvoiceAmount = false }) => {
                                             </div>
                                         </td>
                                         <td className="px-4 py-3">
-                                            {payment.created_by ? (
-                                                <div>
-                                                    <div className="font-medium text-gray-900">
-                                                        {payment.created_by.name || payment.created_by}
-                                                    </div>
-                                                    <div className="text-xs text-gray-500">
-                                                        {payment.created_at ? formatDate(payment.created_at) : ''}
-                                                    </div>
-                                                </div>
-                                            ) : (
-                                                <span className="text-gray-400">-</span>
-                                            )}
-                                        </td>
-                                        {/* HANYA TOMBOL EDIT DAN DELETE */}
-                                        <td className="px-4 py-3">
                                             <div className="flex space-x-2">
                                                 <button 
                                                     onClick={() => openEditModal(payment)}
-                                                    className="p-1 text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                                                    title={!companyId ? "Company ID missing" : t('payment_table.edit')}
-                                                    disabled={!companyId}
+                                                    className="p-1 text-blue-600 hover:text-blue-900 hover:bg-blue-50 rounded disabled:opacity-50 disabled:cursor-not-allowed"
+                                                    title="Edit Payment"
+                                                    disabled={loading || !companyId}
                                                 >
                                                     <Edit className="w-4 h-4" />
                                                 </button>
                                                 <button 
                                                     onClick={() => openDeleteModal(payment)}
-                                                    className="p-1 text-red-600 hover:text-red-900 hover:bg-red-50 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                                                    title={!companyId ? "Company ID missing" : t('payment_table.delete')}
-                                                    disabled={!companyId}
+                                                    className="p-1 text-red-600 hover:text-red-900 hover:bg-red-50 rounded disabled:opacity-50 disabled:cursor-not-allowed"
+                                                    title="Delete Payment"
+                                                    disabled={loading || !companyId}
                                                 >
                                                     <Trash2 className="w-4 h-4" />
                                                 </button>
@@ -636,95 +1052,82 @@ const PaymentTable = ({ data, companyId, showInvoiceAmount = false }) => {
 
             {/* Summary Statistics */}
             <div className="mt-6 pt-6 border-t border-gray-200">
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                    <div className="bg-blue-50 p-3 md:p-4 rounded-lg">
-                        <p className="text-xs md:text-sm text-gray-600">
-                            {t('payment_table.total_payments')}
+                <h3 className="text-lg font-bold text-gray-900 mb-4">
+                    Ringkasan Payment
+                </h3>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div className="bg-blue-50 p-4 rounded-lg">
+                        <div className="flex items-center">
+                            <CreditCard className="w-5 h-5 text-blue-600 mr-2" />
+                            <p className="text-sm text-gray-600">Total Payment</p>
+                        </div>
+                        <p className="text-2xl font-bold text-gray-900 mt-2">{totalPayments}</p>
+                        <p className="text-xs text-gray-500 mt-1">
+                            Cocok filter: {filteredData.length}
                         </p>
-                        <p className="text-lg md:text-2xl font-bold text-gray-900">{totalPayments}</p>
                     </div>
-                    <div className="bg-green-50 p-3 md:p-4 rounded-lg">
-                        <p className="text-xs md:text-sm text-gray-600">
-                            {t('payment_table.total_received')}
-                        </p>
+                    <div className="bg-green-50 p-4 rounded-lg">
+                        <div className="flex items-center">
+                            <DollarSign className="w-5 h-5 text-green-600 mr-2" />
+                            <p className="text-sm text-gray-600">Total Diterima</p>
+                        </div>
                         <p 
-                            className="text-lg md:text-2xl font-bold text-gray-900 cursor-help"
-                            onMouseEnter={(e) => handleTooltip(formatFullCurrency(totalReceived), e)}
+                            className="text-2xl font-bold text-gray-900 mt-2 cursor-help"
+                            onMouseEnter={(e) => handleTooltip(formatCurrencyFull(totalReceived), e)}
                             onMouseLeave={hideTooltip}
                         >
                             <ExpandableAmount amount={totalReceived} />
                         </p>
+                        <p className="text-xs text-gray-500 mt-1">Semua payment</p>
                     </div>
-                    <div className="bg-purple-50 p-3 md:p-4 rounded-lg">
-                        <p className="text-xs md:text-sm text-gray-600">
-                            {t('payment_table.bank_transfers')}
-                        </p>
-                        <p className="text-lg md:text-2xl font-bold text-gray-900">
-                            {transferCount}
-                        </p>
+                    <div className="bg-purple-50 p-4 rounded-lg">
+                        <div className="flex items-center">
+                            <TrendingUp className="w-5 h-5 text-purple-600 mr-2" />
+                            <p className="text-sm text-gray-600">Transfer Bank</p>
+                        </div>
+                        <p className="text-2xl font-bold text-gray-900 mt-2">{transferCount}</p>
+                        <p className="text-xs text-gray-500 mt-1">{Math.round((transferCount / totalPayments) * 100) || 0}% dari total</p>
                     </div>
-                    <div className="bg-yellow-50 p-3 md:p-4 rounded-lg">
-                        <p className="text-xs md:text-sm text-gray-600">
-                            {t('payment_table.average_payment')}
-                        </p>
+                    <div className="bg-yellow-50 p-4 rounded-lg">
+                        <div className="flex items-center">
+                            <Percent className="w-5 h-5 text-yellow-600 mr-2" />
+                            <p className="text-sm text-gray-600">Rata-rata Payment</p>
+                        </div>
                         <p 
-                            className="text-lg md:text-2xl font-bold text-gray-900 cursor-help"
-                            onMouseEnter={(e) => handleTooltip(formatFullCurrency(averagePayment), e)}
+                            className="text-2xl font-bold text-gray-900 mt-2 cursor-help"
+                            onMouseEnter={(e) => handleTooltip(formatCurrencyFull(averagePayment), e)}
                             onMouseLeave={hideTooltip}
                         >
                             <ExpandableAmount amount={averagePayment} />
                         </p>
+                        <p className="text-xs text-gray-500 mt-1">Per payment</p>
                     </div>
                 </div>
                 
                 {/* Additional Statistics Row */}
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-3">
-                    <div className="bg-red-50 p-3 md:p-4 rounded-lg">
-                        <p className="text-xs md:text-sm text-gray-600">
-                            {t('payment_table.cash_payments')}
-                        </p>
-                        <p className="text-lg md:text-2xl font-bold text-gray-900">
-                            {cashCount}
-                        </p>
+                <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="p-3 bg-gray-50 rounded-lg">
+                        <p className="text-sm text-gray-600">Payment Cash</p>
+                        <p className="text-xl font-bold text-green-600">{cashCount}</p>
                     </div>
-                    <div className="bg-indigo-50 p-3 md:p-4 rounded-lg">
-                        <p className="text-xs md:text-sm text-gray-600">
-                            {t('payment_table.check_payments')}
-                        </p>
-                        <p className="text-lg md:text-2xl font-bold text-gray-900">
-                            {checkCount}
-                        </p>
+                    <div className="p-3 bg-gray-50 rounded-lg">
+                        <p className="text-sm text-gray-600">Payment Check</p>
+                        <p className="text-xl font-bold text-purple-600">{checkCount}</p>
                     </div>
-                    <div className="bg-pink-50 p-3 md:p-4 rounded-lg">
-                        <p className="text-xs md:text-sm text-gray-600">
-                            {t('payment_table.total_invoice_value')}
-                        </p>
-                        <p 
-                            className="text-lg md:text-2xl font-bold text-gray-900 cursor-help"
-                            onMouseEnter={(e) => handleTooltip(formatFullCurrency(totalInvoiceValue), e)}
-                            onMouseLeave={hideTooltip}
-                        >
-                            <ExpandableAmount amount={totalInvoiceValue} />
-                        </p>
-                    </div>
-                    <div className="bg-cyan-50 p-3 md:p-4 rounded-lg">
-                        <p className="text-xs md:text-sm text-gray-600">
-                            {t('payment_table.payment_ratio')}
-                        </p>
-                        <p className="text-lg md:text-2xl font-bold text-gray-900">
-                            {Math.round(paymentRatio)}%
-                        </p>
+                    <div className="p-3 bg-gray-50 rounded-lg">
+                        <p className="text-sm text-gray-600">Rasio Pembayaran</p>
+                        <p className="text-xl font-bold text-blue-600">{Math.round(paymentRatio)}%</p>
                     </div>
                 </div>
             </div>
 
             {/* Edit Payment Modal */}
             {showEditModal && selectedPayment && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-                    <div className="bg-white rounded-lg shadow-xl w-full max-w-md max-h-[90vh] overflow-y-auto">
-                        <div className="flex justify-between items-center p-6 border-b">
-                            <h3 className="text-lg font-semibold text-gray-900">
-                                {t('payment_table.edit_payment')}
+                <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50 flex items-center justify-center p-4">
+                    <div className="bg-white p-6 rounded-lg shadow-xl max-w-md w-full mx-4">
+                        <div className="flex justify-between items-center mb-6">
+                            <h3 className="text-lg font-bold text-gray-900">
+                                Edit Payment
                             </h3>
                             <button
                                 onClick={() => {
@@ -732,27 +1135,27 @@ const PaymentTable = ({ data, companyId, showInvoiceAmount = false }) => {
                                     setSelectedPayment(null);
                                     setErrors({});
                                 }}
-                                className="text-gray-400 hover:text-gray-500"
+                                className="p-1 hover:bg-gray-100 rounded-full disabled:opacity-50 disabled:cursor-not-allowed"
                                 disabled={loading}
                             >
                                 <X className="w-5 h-5" />
                             </button>
                         </div>
                         
-                        <div className="p-6">
-                            <div className="mb-4 p-3 bg-blue-50 rounded-lg">
-                                <div className="text-sm font-medium text-blue-900">
-                                    {getInvoiceNumber(selectedPayment)}
-                                </div>
-                                <div className="text-xs text-blue-700">
-                                    {formatDate(selectedPayment.date)} • {formatCurrency(selectedPayment.amount)}
-                                </div>
+                        <div className="mb-4 p-3 bg-blue-50 rounded-lg">
+                            <div className="text-sm font-medium text-blue-900">
+                                {getInvoiceNumber(selectedPayment)}
                             </div>
-                            
+                            <div className="text-xs text-blue-700">
+                                {formatDate(selectedPayment.date)} • {formatCurrency(selectedPayment.amount)}
+                            </div>
+                        </div>
+                        
+                        <form onSubmit={e => { e.preventDefault(); handleEditPayment(); }}>
                             <div className="space-y-4">
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        {t('payment_table.amount')} *
+                                        Jumlah *
                                     </label>
                                     <div className="relative">
                                         <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">
@@ -762,7 +1165,7 @@ const PaymentTable = ({ data, companyId, showInvoiceAmount = false }) => {
                                             type="number"
                                             value={formData.amount}
                                             onChange={(e) => setFormData({...formData, amount: e.target.value})}
-                                            className={`w-full pl-10 pr-3 py-2 border ${errors.amount ? 'border-red-300' : 'border-gray-300'} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500`}
+                                            className={`w-full pl-10 pr-3 py-2 border ${errors.amount ? 'border-red-300' : 'border-gray-300'} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50 disabled:cursor-not-allowed`}
                                             placeholder="0"
                                             required
                                             disabled={loading}
@@ -775,17 +1178,17 @@ const PaymentTable = ({ data, companyId, showInvoiceAmount = false }) => {
                                 
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        {t('payment_table.method')} *
+                                        Metode *
                                     </label>
                                     <select
                                         value={formData.method}
                                         onChange={(e) => setFormData({...formData, method: e.target.value})}
-                                        className={`w-full px-3 py-2 border ${errors.method ? 'border-red-300' : 'border-gray-300'} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500`}
+                                        className={`w-full px-3 py-2 border ${errors.method ? 'border-red-300' : 'border-gray-300'} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50 disabled:cursor-not-allowed`}
                                         disabled={loading}
                                     >
-                                        <option value="transfer">{t('payment_table.method_transfer')}</option>
-                                        <option value="cash">{t('payment_table.method_cash')}</option>
-                                        <option value="check">{t('payment_table.method_check')}</option>
+                                        <option value="transfer">Transfer Bank</option>
+                                        <option value="cash">Cash</option>
+                                        <option value="check">Check</option>
                                     </select>
                                     {errors.method && (
                                         <p className="mt-1 text-xs text-red-600">{errors.method}</p>
@@ -794,13 +1197,13 @@ const PaymentTable = ({ data, companyId, showInvoiceAmount = false }) => {
                                 
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        {t('payment_table.date')} *
+                                        Tanggal *
                                     </label>
                                     <input
                                         type="date"
                                         value={formData.date}
                                         onChange={(e) => setFormData({...formData, date: e.target.value})}
-                                        className={`w-full px-3 py-2 border ${errors.date ? 'border-red-300' : 'border-gray-300'} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500`}
+                                        className={`w-full px-3 py-2 border ${errors.date ? 'border-red-300' : 'border-gray-300'} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50 disabled:cursor-not-allowed`}
                                         required
                                         disabled={loading}
                                     />
@@ -811,14 +1214,14 @@ const PaymentTable = ({ data, companyId, showInvoiceAmount = false }) => {
                                 
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        {t('payment_table.bank')}
+                                        Bank
                                     </label>
                                     <input
                                         type="text"
                                         value={formData.bank}
                                         onChange={(e) => setFormData({...formData, bank: e.target.value})}
-                                        className={`w-full px-3 py-2 border ${errors.bank ? 'border-red-300' : 'border-gray-300'} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500`}
-                                        placeholder="e.g., BCA, Mandiri"
+                                        className={`w-full px-3 py-2 border ${errors.bank ? 'border-red-300' : 'border-gray-300'} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50 disabled:cursor-not-allowed`}
+                                        placeholder="Contoh: BCA, Mandiri"
                                         disabled={loading}
                                     />
                                     {errors.bank && (
@@ -828,14 +1231,14 @@ const PaymentTable = ({ data, companyId, showInvoiceAmount = false }) => {
                                 
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        {t('payment_table.notes')}
+                                        Catatan
                                     </label>
                                     <textarea
                                         value={formData.note}
                                         onChange={(e) => setFormData({...formData, note: e.target.value})}
-                                        className={`w-full px-3 py-2 border ${errors.note ? 'border-red-300' : 'border-gray-300'} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500`}
+                                        className={`w-full px-3 py-2 border ${errors.note ? 'border-red-300' : 'border-gray-300'} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50 disabled:cursor-not-allowed`}
                                         rows="3"
-                                        placeholder={t('payment_table.notes_placeholder')}
+                                        placeholder="Catatan tambahan..."
                                         disabled={loading}
                                     />
                                     {errors.note && (
@@ -843,111 +1246,112 @@ const PaymentTable = ({ data, companyId, showInvoiceAmount = false }) => {
                                     )}
                                 </div>
                             </div>
-                        </div>
-                        
-                        <div className="flex justify-end space-x-3 p-6 border-t">
-                            <button
-                                onClick={() => {
-                                    setShowEditModal(false);
-                                    setSelectedPayment(null);
-                                    setErrors({});
-                                }}
-                                className="px-4 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-                                disabled={loading}
-                            >
-                                {t('payment_table.cancel')}
-                            </button>
-                            <button
-                                onClick={handleEditPayment}
-                                disabled={loading || !companyId}
-                                className="px-4 py-2 bg-[#054748] text-white rounded-lg hover:bg-[#0a5d5e] transition-colors flex items-center disabled:opacity-50 disabled:cursor-not-allowed"
-                            >
-                                {loading ? (
-                                    <>
-                                        <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                        </svg>
-                                        {t('payment_table.saving')}
-                                    </>
-                                ) : (
-                                    <>
-                                        <Save className="w-4 h-4 mr-2" />
-                                        {t('payment_table.update_payment')}
-                                    </>
-                                )}
-                            </button>
-                        </div>
+                            
+                            <div className="flex justify-end space-x-3 mt-6 pt-6 border-t border-gray-200">
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setShowEditModal(false);
+                                        setSelectedPayment(null);
+                                        setErrors({});
+                                    }}
+                                    className="px-4 py-2 border border-gray-300 text-gray-700 rounded hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                    disabled={loading}
+                                >
+                                    Batal
+                                </button>
+                                <button
+                                    type="submit"
+                                    disabled={loading || !companyId}
+                                    className="px-4 py-2 bg-[#054748] text-white rounded-lg hover:bg-[#0a5d5e] transition-colors flex items-center justify-center min-w-[100px] disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                    {loading ? (
+                                        <>
+                                            <Loader className="w-4 h-4 animate-spin mr-2" />
+                                            Menyimpan...
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Save className="w-4 h-4 mr-2" />
+                                            Update
+                                        </>
+                                    )}
+                                </button>
+                            </div>
+                        </form>
                     </div>
                 </div>
             )}
 
             {/* Delete Confirmation Modal */}
             {showDeleteModal && selectedPayment && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-                    <div className="bg-white rounded-lg shadow-xl w-full max-w-md">
-                        <div className="p-6">
-                            <div className="flex items-center mb-4">
-                                <div className="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-red-100">
-                                    <AlertCircle className="h-6 w-6 text-red-600" />
-                                </div>
-                            </div>
-                            <div className="text-center">
-                                <h3 className="text-lg font-medium text-gray-900 mb-2">
-                                    {t('payment_table.delete_confirmation')}
-                                </h3>
-                                <p className="text-sm text-gray-500 mb-4">
-                                    {t('payment_table.delete_message')}
-                                </p>
-                                <div className="bg-gray-50 p-3 rounded mb-4">
-                                    <p className="text-sm font-medium text-gray-900">
-                                        {getInvoiceNumber(selectedPayment)}
-                                    </p>
-                                    <p className="text-sm text-gray-500">
-                                        {formatDate(selectedPayment.date)} • {formatCurrency(selectedPayment.amount)}
-                                    </p>
-                                </div>
-                                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4">
-                                    <p className="text-sm text-yellow-800">
-                                        ⚠️ {t('payment_table.delete_warning')}
-                                    </p>
-                                </div>
-                            </div>
+                <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50 flex items-center justify-center p-4">
+                    <div className="bg-white p-6 rounded-lg shadow-xl max-w-md w-full mx-4">
+                        <div className="flex items-center mb-4">
+                            <AlertCircle className="w-8 h-8 text-red-600 mr-3" />
+                            <h3 className="text-lg font-bold text-gray-900">
+                                Konfirmasi Hapus
+                            </h3>
+                        </div>
+                        <p className="text-gray-600 mb-6">
+                            Anda yakin ingin menghapus payment ini?
+                        </p>
+                        
+                        <div className="bg-gray-50 p-3 rounded mb-4">
+                            <p className="text-sm font-medium text-gray-900">
+                                {getInvoiceNumber(selectedPayment)}
+                            </p>
+                            <p className="text-sm text-gray-500">
+                                {formatDate(selectedPayment.date)} • {formatCurrency(selectedPayment.amount)}
+                            </p>
                         </div>
                         
-                        <div className="flex justify-end space-x-3 p-6 border-t">
+                        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-6">
+                            <p className="text-sm text-yellow-800">
+                                ⚠️ Tindakan ini tidak dapat dibatalkan. Data payment akan dihapus permanen.
+                            </p>
+                        </div>
+                        
+                        <div className="flex justify-end space-x-3">
                             <button
                                 onClick={() => {
                                     setShowDeleteModal(false);
                                     setSelectedPayment(null);
                                 }}
-                                className="px-4 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                                className="px-4 py-2 border border-gray-300 text-gray-700 rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
                                 disabled={loading}
                             >
-                                {t('payment_table.cancel')}
+                                Batal
                             </button>
                             <button
                                 onClick={handleDeletePayment}
                                 disabled={loading || !companyId}
-                                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors flex items-center disabled:opacity-50 disabled:cursor-not-allowed"
+                                className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 flex items-center justify-center min-w-[80px] disabled:opacity-50 disabled:cursor-not-allowed"
                             >
-                                {loading ? (
-                                    <>
-                                        <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                        </svg>
-                                        {t('payment_table.deleting')}
-                                    </>
-                                ) : (
-                                    <>
-                                        <Trash2 className="w-4 h-4 mr-2" />
-                                        {t('payment_table.delete')}
-                                    </>
-                                )}
+                                {loading ? <Loader className="w-4 h-4 animate-spin" /> : 'Hapus'}
                             </button>
                         </div>
                     </div>
+                </div>
+            )}
+
+            {/* Debug Info */}
+            {process.env.NODE_ENV === 'development' && (
+                <div className="mt-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                    <details>
+                        <summary className="text-sm font-medium text-gray-700 cursor-pointer">
+                            Debug Info
+                        </summary>
+                        <div className="mt-2 text-xs text-gray-600 space-y-2">
+                            <div>Total dari API: {data.length}</div>
+                            <div>Filtered payments: {filteredData.length}</div>
+                            <div>Company ID: {companyId}</div>
+                            <div>Loading: {loading ? 'Yes' : 'No'}</div>
+                            <pre className="bg-white p-2 rounded border overflow-auto max-h-40">
+                                {JSON.stringify(data[0] || {}, null, 2)}
+                            </pre>
+                        </div>
+                    </details>
                 </div>
             )}
         </div>

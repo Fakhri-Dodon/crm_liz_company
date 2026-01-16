@@ -35,9 +35,92 @@ const InvoiceTable = ({ data, companyId }) => {
         total: ''
     });
 
-    const [paymentTypes, setPaymentTypes] = useState([]);
+    // State untuk announcement
+    const [announcement, setAnnouncement] = useState({
+        show: false,
+        type: 'info',
+        title: '',
+        message: '',
+        autoClose: true,
+        duration: 5000
+    });
 
     console.log('InvoiceTable data received:', data);
+
+    // Fungsi untuk menampilkan announcement
+    const showAnnouncement = (type, title, message, autoClose = true) => {
+        setAnnouncement({
+            show: true,
+            type,
+            title,
+            message,
+            autoClose,
+            duration: 5000
+        });
+        
+        if (autoClose) {
+            setTimeout(() => {
+                setAnnouncement(prev => ({ ...prev, show: false }));
+            }, 5000);
+        }
+    };
+
+    // Komponen Announcement
+    const AnnouncementModal = () => {
+        if (!announcement.show) return null;
+        
+        const bgColor = {
+            info: 'bg-blue-50 border-blue-200',
+            warning: 'bg-yellow-50 border-yellow-200',
+            error: 'bg-red-50 border-red-200',
+            success: 'bg-green-50 border-green-200'
+        }[announcement.type];
+        
+        const textColor = {
+            info: 'text-blue-800',
+            warning: 'text-yellow-800',
+            error: 'text-red-800',
+            success: 'text-green-800'
+        }[announcement.type];
+        
+        const icon = {
+            info: <AlertCircle className="w-5 h-5" />,
+            warning: <AlertCircle className="w-5 h-5" />,
+            error: <AlertCircle className="w-5 h-5" />,
+            success: <CheckCircle className="w-5 h-5" />
+        }[announcement.type];
+        
+        return (
+            <div className="fixed inset-0 z-[100] flex items-start justify-center p-4 pointer-events-none">
+                <div className={`max-w-md w-full border rounded-lg shadow-lg p-4 pointer-events-auto ${bgColor}`}>
+                    <div className="flex items-start">
+                        <div className={`flex-shrink-0 ${textColor}`}>
+                            {icon}
+                        </div>
+                        <div className="ml-3 w-0 flex-1">
+                            <h3 className={`text-sm font-medium ${textColor}`}>
+                                {announcement.title}
+                            </h3>
+                            <div className="mt-1 text-sm">
+                                <p className={textColor}>
+                                    {announcement.message}
+                                </p>
+                            </div>
+                        </div>
+                        <div className="ml-4 flex-shrink-0 flex">
+                            <button
+                                className={`rounded-md inline-flex ${textColor} hover:opacity-80 focus:outline-none`}
+                                onClick={() => setAnnouncement(prev => ({ ...prev, show: false }))}
+                            >
+                                <span className="sr-only">Close</span>
+                                <X className="h-5 w-5" />
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        );
+    };
 
     // Format currency full tanpa K/M/Jt
     const formatCurrencyFull = (amount) => {
@@ -65,14 +148,6 @@ const InvoiceTable = ({ data, companyId }) => {
     };
 
     // Filter dan sort data
-
-    useEffect(() => {
-        // Load payment types for payment_type select
-        fetch('/payment-types')
-            .then((res) => res.json())
-            .then((data) => setPaymentTypes(data))
-            .catch((err) => console.error('Failed to load payment types', err));
-    }, []);
     const filteredData = data
         .filter(invoice => {
             const matchesSearch = searchTerm === '' || 
@@ -326,78 +401,76 @@ const InvoiceTable = ({ data, companyId }) => {
         );
     };
 
+    // ==================== PERBAIKAN: openEditModal ====================
     const openEditModal = async (invoice) => {
         try {
             setFetchingInvoice(true);
             
-            const response = await fetch(`/companies/${companyId}/invoices/${invoice.id}/get`);
+            // PERBAIKAN: Gunakan URL yang benar
+            const url = `/companies/${companyId}/invoices/${invoice.id}/get`;
+            console.log('Fetching invoice from:', url);
             
-            if (response.ok) {
-                const result = await response.json();
-                if (result.success) {
-                    const freshInvoice = result.data;
-                    setEditModal(freshInvoice);
-                    setFormData({
-                        invoice_number: freshInvoice.invoice_number || '',
-                        date: freshInvoice.date ? freshInvoice.date.split('T')[0] : '',
-                        invoice_amount: freshInvoice.invoice_amount || '',
-                        amount_due: freshInvoice.amount_due || '',
-                        status: freshInvoice.status || 'draft',
-                        payment_terms: freshInvoice.payment_terms || '',
-                        payment_type: freshInvoice.payment_type || '',
-                        note: freshInvoice.note || '',
-                        ppn: freshInvoice.ppn || '',
-                        pph: freshInvoice.pph || '',
-                        total: freshInvoice.total || ''
-                    });
-                } else {
-                    setEditModal(invoice);
-                    setFormData({
-                        invoice_number: invoice.invoice_number || '',
-                        date: invoice.date ? invoice.date.split('T')[0] : '',
-                        invoice_amount: invoice.invoice_amount || '',
-                        amount_due: invoice.amount_due || '',
-                        status: invoice.status || 'draft',
-                        payment_terms: invoice.payment_terms || '',
-                        payment_type: invoice.payment_type || '',
-                        note: invoice.note || '',
-                        ppn: invoice.ppn || '',
-                        pph: invoice.pph || '',
-                        total: invoice.total || ''
-                    });
+            const response = await fetch(url, {
+                headers: {
+                    'Accept': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                credentials: 'include' // TAMBAHKAN INI
+            });
+            
+            const responseText = await response.text();
+            console.log('Response status:', response.status);
+            console.log('Response text:', responseText);
+            
+            let result;
+            try {
+                result = JSON.parse(responseText);
+            } catch (e) {
+                console.error('Failed to parse JSON:', e);
+                throw new Error('Invalid server response');
+            }
+            
+            if (!response.ok) {
+                // Handle 403 Forbidden
+                if (response.status === 403) {
+                    showAnnouncement('error', 'Akses Ditolak', 'Anda tidak memiliki akses untuk mengedit invoice ini atau invoice tidak termasuk dalam perusahaan ini.', false);
+                    return;
                 }
-            } else {
-                setEditModal(invoice);
+                
+                // Handle 404 Not Found
+                if (response.status === 404) {
+                    showAnnouncement('error', 'Data Tidak Ditemukan', 'Invoice tidak ditemukan.', false);
+                    return;
+                }
+                
+                throw new Error(result.message || `Server error: ${response.status}`);
+            }
+            
+            if (result.success) {
+                const freshInvoice = result.data;
+                console.log('Fresh invoice data:', freshInvoice);
+                
+                setEditModal(freshInvoice);
                 setFormData({
-                    invoice_number: invoice.invoice_number || '',
-                    date: invoice.date ? invoice.date.split('T')[0] : '',
-                    invoice_amount: invoice.invoice_amount || '',
-                    amount_due: invoice.amount_due || '',
-                    status: invoice.status || 'draft',
-                    payment_terms: invoice.payment_terms || '',
-                    payment_type: invoice.payment_type || '',
-                    note: invoice.note || '',
-                    ppn: invoice.ppn || '',
-                    pph: invoice.pph || '',
-                    total: invoice.total || ''
+                    invoice_number: freshInvoice.invoice_number || '',
+                    date: freshInvoice.date ? freshInvoice.date.split('T')[0] : '',
+                    invoice_amount: freshInvoice.invoice_amount || freshInvoice.invoice_amout || '', // Handle kedua kemungkinan
+                    amount_due: freshInvoice.amount_due || '',
+                    status: freshInvoice.status || 'Draft',
+                    payment_terms: freshInvoice.payment_terms || '',
+                    payment_type: freshInvoice.payment_type || '',
+                    note: freshInvoice.note || '',
+                    ppn: freshInvoice.ppn || '',
+                    pph: freshInvoice.pph || '',
+                    total: freshInvoice.total || ''
                 });
+            } else {
+                console.warn('API returned success false:', result.message);
+                showAnnouncement('error', 'Gagal Memuat Data', 'Gagal memuat data invoice: ' + (result.message || 'Unknown error'), false);
             }
         } catch (error) {
             console.error('Error fetching invoice data:', error);
-            setEditModal(invoice);
-            setFormData({
-                invoice_number: invoice.invoice_number || '',
-                date: invoice.date ? invoice.date.split('T')[0] : '',
-                invoice_amount: invoice.invoice_amount || '',
-                amount_due: invoice.amount_due || '',
-                status: invoice.status || 'draft',
-                payment_terms: invoice.payment_terms || '',
-                payment_type: invoice.payment_type || '',
-                note: invoice.note || '',
-                ppn: invoice.ppn || '',
-                pph: invoice.pph || '',
-                total: invoice.total || ''
-            });
+            showAnnouncement('error', 'Kesalahan', 'Terjadi kesalahan: ' + error.message, false);
         } finally {
             setFetchingInvoice(false);
         }
@@ -410,7 +483,7 @@ const InvoiceTable = ({ data, companyId }) => {
             date: '',
             invoice_amount: '',
             amount_due: '',
-            status: 'draft',
+            status: 'Draft',
             payment_terms: '',
             payment_type: '',
             note: '',
@@ -428,147 +501,131 @@ const InvoiceTable = ({ data, companyId }) => {
         }));
     };
 
+    // ==================== PERBAIKAN: handleUpdateInvoice ====================
     const handleUpdateInvoice = async () => {
-        if (!editModal || !companyId) return;
+        if (!editModal || !companyId) {
+            showAnnouncement('error', 'Error', 'Invalid data for update');
+            return;
+        }
         
         try {
+            // Validasi
             if (!formData.invoice_number.trim()) {
-                alert('Invoice number is required');
+                showAnnouncement('error', 'Validasi Gagal', 'Invoice number is required', false);
                 return;
             }
             
             if (!formData.date) {
-                alert('Date is required');
+                showAnnouncement('error', 'Validasi Gagal', 'Date is required', false);
                 return;
             }
             
-            if (!formData.invoice_amount || formData.invoice_amount <= 0) {
-                alert('Invoice amount must be greater than 0');
+            if (!formData.invoice_amount || parseFloat(formData.invoice_amount) <= 0) {
+                showAnnouncement('error', 'Validasi Gagal', 'Invoice amount must be greater than 0', false);
                 return;
             }
             
-            if (formData.amount_due < 0) {
-                alert('Amount due cannot be negative');
-                return;
-            }
-            
-            if (parseFloat(formData.amount_due) > 999999999999) {
-                alert('Amount due is too large');
+            if (parseFloat(formData.amount_due) < 0) {
+                showAnnouncement('error', 'Validasi Gagal', 'Amount due cannot be negative', false);
                 return;
             }
             
             setLoading(true);
             
+            // PERBAIKAN: Gunakan URL yang benar sesuai route
+            const url = `/companies/${companyId}/invoices/${editModal.id}`;
+            console.log('Update invoice URL:', url);
+            console.log('Update data:', formData);
+            
             const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+            console.log('CSRF Token exists:', !!csrfToken);
             
-            console.log('Sending update data:', formData);
-            
-            const response = await fetch(`/companies/${companyId}/invoices/${editModal.id}`, {
+            const response = await fetch(url, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
                     'X-CSRF-TOKEN': csrfToken,
-                    'X-Requested-With': 'XMLHttpRequest'
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Accept': 'application/json'
                 },
+                credentials: 'include',
                 body: JSON.stringify(formData)
             });
 
             const responseText = await response.text();
-            console.log('Raw response:', responseText);
+            console.log('Response status:', response.status, response.statusText);
+            console.log('Response text:', responseText);
             
             let result;
             try {
                 result = JSON.parse(responseText);
             } catch (e) {
                 console.error('Failed to parse JSON response:', e);
-                throw new Error(`Invalid JSON response: ${responseText.substring(0, 200)}`);
+                throw new Error('Invalid server response');
             }
 
             if (!response.ok) {
-                throw new Error(`Failed to update invoice: ${response.status} ${response.statusText}. ${result.message || 'Unknown error'}`);
+                // Handle 403 error khusus
+                if (response.status === 403) {
+                    showAnnouncement('error', 'Akses Ditolak', 'Invoice tidak termasuk dalam perusahaan ini atau Anda tidak memiliki izin.', false);
+                    return;
+                }
+                
+                console.error('Response not OK:', response.status);
+                throw new Error(`Failed to update invoice: ${result.message || 'Unknown error'}`);
             }
             
             if (result.success) {
-                alert('Invoice updated successfully!');
+                showAnnouncement('success', 'Berhasil!', 'Invoice berhasil diperbarui!');
                 console.log('Update successful:', result);
-                router.reload({ only: ['invoices'] });
+                // Refresh data dengan Inertia
+                router.reload({ 
+                    only: ['invoices'], 
+                    preserveScroll: true,
+                    onSuccess: () => {
+                        showAnnouncement('success', 'Berhasil!', 'Data invoice telah diperbarui.');
+                    }
+                });
             } else {
-                alert('Failed to update invoice: ' + result.message);
+                showAnnouncement('error', 'Gagal', 'Gagal memperbarui invoice: ' + (result.message || 'Unknown error'), false);
                 console.error('Update failed:', result);
             }
             
         } catch (error) {
             console.error('Error updating invoice:', error);
-            alert('Failed to update invoice: ' + error.message);
+            showAnnouncement('error', 'Kesalahan Sistem', 'Failed to update invoice: ' + error.message, false);
         } finally {
             setLoading(false);
             closeEditModal();
         }
     };
 
-    const handleMarkAsPaid = async (invoiceId) => {
-        if (!invoiceId || !companyId) return;
-        
-        try {
-            const confirmPaid = window.confirm(t('invoice_table.confirm_mark_paid'));
-            if (!confirmPaid) return;
-            
-            setLoading(true);
-            
-            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
-            
-            const response = await fetch(`/companies/${companyId}/invoices/${invoiceId}/mark-paid`, {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': csrfToken,
-                    'X-Requested-With': 'XMLHttpRequest'
-                }
-            });
-
-            if (!response.ok) {
-                const errorText = await response.text();
-                throw new Error(`Failed to mark invoice as paid: ${response.status} ${response.statusText}. ${errorText}`);
-            }
-
-            const result = await response.json();
-            
-            if (result.success) {
-                alert('Invoice marked as paid successfully!');
-                router.reload({ only: ['invoices'] });
-            } else {
-                alert('Failed to mark invoice as paid: ' + result.message);
-            }
-            
-        } catch (error) {
-            console.error('Error marking invoice as paid:', error);
-            alert('Failed to mark invoice as paid: ' + error.message);
-        } finally {
-            setLoading(false);
-        }
-    };
-
+    // ==================== PERBAIKAN: handleDeleteInvoice ====================
     const handleDeleteInvoice = async (invoiceId) => {
-        if (!invoiceId || !companyId) return;
+        if (!invoiceId || !companyId) {
+            showAnnouncement('error', 'Error', 'Invalid invoice data');
+            return;
+        }
         
         try {
             setLoading(true);
-            console.log('Attempting to delete invoice:', {
-                invoiceId,
-                companyId,
-                url: `/companies/${companyId}/invoices/${invoiceId}`
-            });
+            
+            // PERBAIKAN: Gunakan URL yang benar
+            const url = `/companies/${companyId}/invoices/${invoiceId}`;
+            console.log('Delete invoice URL:', url);
             
             const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
             console.log('CSRF Token:', csrfToken ? 'Found' : 'Not found');
             
-            const response = await fetch(`/companies/${companyId}/invoices/${invoiceId}`, {
+            const response = await fetch(url, {
                 method: 'DELETE',
                 headers: {
                     'Content-Type': 'application/json',
                     'X-CSRF-TOKEN': csrfToken,
-                    'X-Requested-With': 'XMLHttpRequest'
-                }
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Accept': 'application/json'
+                },
+                credentials: 'include'
             });
 
             console.log('Response status:', response.status, response.statusText);
@@ -576,30 +633,48 @@ const InvoiceTable = ({ data, companyId }) => {
             if (!response.ok) {
                 const errorText = await response.text();
                 console.error('Error response:', errorText);
-                throw new Error(`Failed to delete invoice: ${response.status} ${response.statusText}. ${errorText}`);
+                
+                // Handle 403 error
+                if (response.status === 403) {
+                    showAnnouncement('error', 'Akses Ditolak', 'Invoice tidak dapat dihapus karena tidak termasuk dalam perusahaan ini.', false);
+                    return;
+                }
+                
+                throw new Error(`Failed to delete invoice: ${response.status} ${response.statusText}`);
             }
 
             const result = await response.json();
-            console.log('Success result:', result);
+            console.log('Delete result:', result);
             
             if (result.success) {
-                alert('Invoice deleted successfully!');
-                router.reload({ only: ['invoices'] });
+                showAnnouncement('success', 'Berhasil!', 'Invoice berhasil dihapus!');
+                // Refresh data
+                router.reload({ 
+                    only: ['invoices'], 
+                    preserveScroll: true,
+                    onSuccess: () => {
+                        showAnnouncement('success', 'Berhasil!', 'Invoice telah dihapus.');
+                    }
+                });
             } else {
-                alert('Failed to delete invoice: ' + result.message);
+                showAnnouncement('error', 'Gagal', 'Gagal menghapus invoice: ' + (result.message || 'Unknown error'), false);
             }
             
         } catch (error) {
             console.error('Error deleting invoice:', error);
-            alert('Failed to delete invoice: ' + error.message);
+            showAnnouncement('error', 'Kesalahan Sistem', 'Failed to delete invoice: ' + error.message, false);
         } finally {
             setLoading(false);
             setDeleteConfirm(null);
         }
     };
 
+    // ==================== PERBAIKAN: handleBulkDelete ====================
     const handleBulkDelete = async () => {
-        if (selectedInvoices.length === 0 || !companyId) return;
+        if (selectedInvoices.length === 0 || !companyId) {
+            showAnnouncement('warning', 'Peringatan', 'No invoices selected or company ID missing');
+            return;
+        }
         
         const confirmDelete = window.confirm(
             t('invoice_table.confirm_bulk_delete', { count: selectedInvoices.length })
@@ -610,83 +685,179 @@ const InvoiceTable = ({ data, companyId }) => {
         try {
             setLoading(true);
             
+            // PERBAIKAN: Gunakan URL yang benar
+            const url = `/companies/${companyId}/invoices/bulk-delete`;
+            console.log('Bulk delete URL:', url);
+            
             const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
             
-            const response = await fetch(`/companies/${companyId}/invoices/bulk-delete`, {
+            const response = await fetch(url, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     'X-CSRF-TOKEN': csrfToken,
-                    'X-Requested-With': 'XMLHttpRequest'
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Accept': 'application/json'
                 },
+                credentials: 'include',
                 body: JSON.stringify({ invoice_ids: selectedInvoices })
             });
 
             if (!response.ok) {
                 const errorText = await response.text();
-                throw new Error(`Failed to delete invoices: ${response.status} ${response.statusText}. ${errorText}`);
+                console.error('Error response:', errorText);
+                
+                // Handle 403 error
+                if (response.status === 403) {
+                    showAnnouncement('error', 'Akses Ditolak', 'Salah satu invoice tidak dapat dihapus karena tidak termasuk dalam perusahaan ini.', false);
+                    return;
+                }
+                
+                throw new Error(`Failed to delete invoices: ${response.status} ${response.statusText}`);
             }
 
             const result = await response.json();
+            console.log('Bulk delete result:', result);
             
             if (result.success) {
-                alert(`Successfully deleted ${result.deleted_count} invoice(s)!`);
+                showAnnouncement('success', 'Berhasil!', `Berhasil menghapus ${result.deleted_count} invoice!`);
                 setSelectedInvoices([]);
-                router.reload({ only: ['invoices'] });
+                // Refresh data
+                router.reload({ 
+                    only: ['invoices'], 
+                    preserveScroll: true,
+                    onSuccess: () => {
+                        showAnnouncement('success', 'Berhasil!', `${result.deleted_count} invoice telah dihapus.`);
+                    }
+                });
             } else {
-                alert('Failed to delete invoices: ' + result.message);
+                showAnnouncement('error', 'Gagal', 'Gagal menghapus invoices: ' + result.message, false);
             }
             
         } catch (error) {
             console.error('Error deleting invoices:', error);
-            alert('Failed to delete invoices: ' + error.message);
+            showAnnouncement('error', 'Kesalahan Sistem', 'Failed to delete invoices: ' + error.message, false);
         } finally {
             setLoading(false);
         }
     };
 
-    const handleBulkMarkAsPaid = async () => {
-        if (selectedInvoices.length === 0 || !companyId) return;
+    // ==================== FUNGSI UNTUK PAYMENT (Jika diperlukan) ====================
+    const handleEditPayment = async (paymentId, formData) => {
+        if (!paymentId || !companyId) {
+            console.error('Company ID or payment ID is missing');
+            showAnnouncement('error', 'Error', 'Missing company ID or payment data');
+            return;
+        }
+
+        setLoading(true);
         
-        const confirmPaid = window.confirm(
-            t('invoice_table.confirm_bulk_mark_paid', { count: selectedInvoices.length })
-        );
+        const url = `/companies/${companyId}/payments/${paymentId}`;
+        console.log('Update payment URL:', url);
+        console.log('Update data:', formData);
         
-        if (!confirmPaid) return;
+        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
         
         try {
-            setLoading(true);
-            
-            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
-            
-            const response = await fetch(`/companies/${companyId}/invoices/bulk-mark-paid`, {
-                method: 'POST',
+            const response = await fetch(url, {
+                method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
                     'X-CSRF-TOKEN': csrfToken,
-                    'X-Requested-With': 'XMLHttpRequest'
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Accept': 'application/json'
                 },
-                body: JSON.stringify({ invoice_ids: selectedInvoices })
+                credentials: 'include',
+                body: JSON.stringify(formData)
             });
-
-            if (!response.ok) {
-                const errorText = await response.text();
-                throw new Error(`Failed to mark invoices as paid: ${response.status} ${response.statusText}. ${errorText}`);
-            }
-
+            
+            console.log('Update payment response status:', response.status);
+            
             const result = await response.json();
+            console.log('Update payment result:', result);
+            
+            if (!response.ok) {
+                // Handle 403 error
+                if (response.status === 403) {
+                    showAnnouncement('error', 'Akses Ditolak', 'Payment tidak dapat diperbarui karena tidak termasuk dalam perusahaan ini.', false);
+                    return;
+                }
+                
+                throw new Error(result.message || `Server error: ${response.status}`);
+            }
             
             if (result.success) {
-                alert(`Successfully marked ${result.updated_count} invoice(s) as paid!`);
-                setSelectedInvoices([]);
-                router.reload({ only: ['invoices'] });
+                showAnnouncement('success', 'Berhasil!', 'Payment berhasil diperbarui!');
+                // Refresh data
+                router.reload({ 
+                    only: ['payments'], 
+                    preserveScroll: true 
+                });
             } else {
-                alert('Failed to mark invoices as paid: ' + result.message);
+                showAnnouncement('error', 'Gagal', 'Gagal memperbarui payment: ' + result.message, false);
+            }
+        } catch (error) {
+            console.error('Error updating payment:', error);
+            showAnnouncement('error', 'Kesalahan Sistem', 'Failed to update payment: ' + error.message, false);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleDeletePayment = async (paymentId) => {
+        if (!paymentId || !companyId) {
+            console.error('Company ID or payment ID is missing');
+            showAnnouncement('error', 'Error', 'Missing company ID or payment data');
+            return;
+        }
+
+        setLoading(true);
+        
+        const url = `/companies/${companyId}/payments/${paymentId}`;
+        console.log('Delete payment URL:', url);
+        
+        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+        
+        try {
+            const response = await fetch(url, {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': csrfToken,
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Accept': 'application/json'
+                },
+                credentials: 'include'
+            });
+            
+            console.log('Delete payment response status:', response.status);
+            
+            const result = await response.json();
+            console.log('Delete payment result:', result);
+            
+            if (!response.ok) {
+                // Handle 403 error
+                if (response.status === 403) {
+                    showAnnouncement('error', 'Akses Ditolak', 'Payment tidak dapat dihapus karena tidak termasuk dalam perusahaan ini.', false);
+                    return;
+                }
+                
+                throw new Error(result.message || `Server error: ${response.status}`);
             }
             
+            if (result.success) {
+                showAnnouncement('success', 'Berhasil!', 'Payment berhasil dihapus!');
+                // Refresh data
+                router.reload({ 
+                    only: ['payments'], 
+                    preserveScroll: true 
+                });
+            } else {
+                showAnnouncement('error', 'Gagal', 'Gagal menghapus payment: ' + result.message, false);
+            }
         } catch (error) {
-            console.error('Error marking invoices as paid:', error);
-            alert('Failed to mark invoices as paid: ' + error.message);
+            console.error('Error deleting payment:', error);
+            showAnnouncement('error', 'Kesalahan Sistem', 'Failed to delete payment: ' + error.message, false);
         } finally {
             setLoading(false);
         }
@@ -762,27 +933,17 @@ const InvoiceTable = ({ data, companyId }) => {
                 
                 <div className="flex justify-between space-x-2">
                     <button 
-                        className="flex items-center space-x-1 px-3 py-1 bg-blue-50 text-blue-700 rounded text-xs hover:bg-blue-100"
+                        className="flex items-center space-x-1 px-3 py-1 bg-blue-50 text-blue-700 rounded text-xs hover:bg-blue-100 disabled:opacity-50 disabled:cursor-not-allowed"
                         onClick={() => openEditModal(invoice)}
+                        disabled={loading || fetchingInvoice}
                     >
                         <Edit className="w-3 h-3" />
                         <span>{t('invoice_table.edit')}</span>
                     </button>
                     <button 
-                        className={`flex items-center space-x-1 px-3 py-1 rounded text-xs ${
-                            invoice.status !== 'paid' 
-                                ? 'bg-green-50 text-green-700 hover:bg-green-100' 
-                                : 'bg-gray-100 text-gray-500 cursor-not-allowed'
-                        }`}
-                        disabled={invoice.status === 'paid'}
-                        onClick={() => invoice.status !== 'paid' && handleMarkAsPaid(invoice.id)}
-                    >
-                        <Check className="w-3 h-3" />
-                        <span>{invoice.status !== 'paid' ? t('invoice_table.mark_paid') : t('invoice_table.paid')}</span>
-                    </button>
-                    <button 
-                        className="flex items-center space-x-1 px-3 py-1 bg-red-50 text-red-700 rounded text-xs hover:bg-red-100"
+                        className="flex items-center space-x-1 px-3 py-1 bg-red-50 text-red-700 rounded text-xs hover:bg-red-100 disabled:opacity-50 disabled:cursor-not-allowed"
                         onClick={() => setDeleteConfirm(invoice)}
+                        disabled={loading}
                     >
                         <Trash2 className="w-3 h-3" />
                         <span>{t('invoice_table.delete')}</span>
@@ -795,6 +956,7 @@ const InvoiceTable = ({ data, companyId }) => {
     if (!data || data.length === 0) {
         return (
             <div className="bg-white border border-gray-200 rounded-lg p-6 text-center text-gray-500">
+                <AnnouncementModal />
                 <div className="mb-2">
                     <FileText className="w-16 h-16 text-gray-300 mx-auto mb-4" />
                 </div>
@@ -810,8 +972,11 @@ const InvoiceTable = ({ data, companyId }) => {
 
     return (
         <div className="relative">
+            <AnnouncementModal />
+            
+            {/* Delete Confirmation Modal */}
             {deleteConfirm && (
-                <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50 flex items-center justify-center">
+                <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50 flex items-center justify-center p-4">
                     <div className="bg-white p-6 rounded-lg shadow-xl max-w-md w-full mx-4">
                         <div className="flex items-center mb-4">
                             <AlertCircle className="w-8 h-8 text-red-600 mr-3" />
@@ -827,13 +992,14 @@ const InvoiceTable = ({ data, companyId }) => {
                         <div className="flex justify-end space-x-3">
                             <button
                                 onClick={() => setDeleteConfirm(null)}
-                                className="px-4 py-2 border border-gray-300 text-gray-700 rounded hover:bg-gray-50"
+                                className="px-4 py-2 border border-gray-300 text-gray-700 rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                                disabled={loading}
                             >
                                 {t('invoice_table.cancel')}
                             </button>
                             <button
                                 onClick={() => handleDeleteInvoice(deleteConfirm.id)}
-                                className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+                                className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 flex items-center justify-center min-w-[80px] disabled:opacity-50 disabled:cursor-not-allowed"
                                 disabled={loading}
                             >
                                 {loading ? <Loader className="w-4 h-4 animate-spin" /> : t('invoice_table.delete')}
@@ -843,8 +1009,9 @@ const InvoiceTable = ({ data, companyId }) => {
                 </div>
             )}
 
+            {/* Edit Modal */}
             {editModal && (
-                <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50 flex items-center justify-center">
+                <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50 flex items-center justify-center p-4">
                     <div className="bg-white p-6 rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
                         <div className="flex justify-between items-center mb-6">
                             <h3 className="text-lg font-bold text-gray-900">
@@ -852,196 +1019,217 @@ const InvoiceTable = ({ data, companyId }) => {
                             </h3>
                             <button
                                 onClick={closeEditModal}
-                                className="p-1 hover:bg-gray-100 rounded-full"
+                                className="p-1 hover:bg-gray-100 rounded-full disabled:opacity-50 disabled:cursor-not-allowed"
+                                disabled={loading || fetchingInvoice}
                             >
                                 <X className="w-5 h-5" />
                             </button>
                         </div>
-                        <form onSubmit={e => { e.preventDefault(); handleUpdateInvoice(); }}>
-                            <div className="space-y-4">
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                                            Invoice Number *
-                                        </label>
-                                        <input
-                                            type="text"
-                                            name="invoice_number"
-                                            value={formData.invoice_number}
-                                            onChange={handleInputChange}
-                                            className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500"
-                                            required
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                                            Date *
-                                        </label>
-                                        <input
-                                            type="date"
-                                            name="date"
-                                            value={formData.date}
-                                            onChange={handleInputChange}
-                                            className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500"
-                                            required
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                                            Invoice Amount *
-                                        </label>
-                                        <input
-                                            type="number"
-                                            name="invoice_amount"
-                                            value={formData.invoice_amount}
-                                            onChange={handleInputChange}
-                                            className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500"
-                                            required
-                                            min="0"
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                                            Amount Due *
-                                        </label>
-                                        <input
-                                            type="number"
-                                            name="amount_due"
-                                            value={formData.amount_due}
-                                            onChange={handleInputChange}
-                                            className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500"
-                                            required
-                                            min="0"
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                                            Payment Terms
-                                        </label>
-                                        <input
-                                            type="text"
-                                            name="payment_terms"
-                                            value={formData.payment_terms}
-                                            onChange={handleInputChange}
-                                            className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500"
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                                            Payment Type
-                                        </label>
-                                        <input
-                                            type="text"
-                                            name="payment_type"
-                                            value={formData.payment_type}
-                                            onChange={handleInputChange}
-                                            className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500"
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                                            Payment Percentage
-                                        </label>
-                                        <input
-                                            type="number"
-                                            name="payment_percentage"
-                                            value={formData.payment_percentage || ''}
-                                            onChange={handleInputChange}
-                                            className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500"
-                                            min="0"
-                                            max="100"
-                                            step="0.01"
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                                            Note
-                                        </label>
-                                        <input
-                                            type="text"
-                                            name="note"
-                                            value={formData.note}
-                                            onChange={handleInputChange}
-                                            className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500"
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                                            PPN
-                                        </label>
-                                        <input
-                                            type="number"
-                                            name="ppn"
-                                            value={formData.ppn || ''}
-                                            onChange={handleInputChange}
-                                            className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500"
-                                            min="0"
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                                            PPH
-                                        </label>
-                                        <input
-                                            type="number"
-                                            name="pph"
-                                            value={formData.pph || ''}
-                                            onChange={handleInputChange}
-                                            className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500"
-                                            min="0"
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                                            Total
-                                        </label>
-                                        <input
-                                            type="number"
-                                            name="total"
-                                            value={formData.total || ''}
-                                            onChange={handleInputChange}
-                                            className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500"
-                                            min="0"
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                                            Status
-                                        </label>
-                                        <select
-                                            name="status"
-                                            value={formData.status}
-                                            onChange={handleInputChange}
-                                            className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500"
-                                        >
-                                            <option value="Draft">Draft</option>
-                                            <option value="Paid">Paid</option>
-                                            <option value="Invoice">Invoice</option>
-                                            <option value="Unpaid">Unpaid</option>
-                                            <option value="Partial">Partial</option>
-                                            <option value="Cancelled">Cancelled</option>
-                                        </select>
-                                    </div>
-                                </div>
-                                <div className="flex justify-end space-x-3 mt-6">
-                                    <button
-                                        type="button"
-                                        onClick={closeEditModal}
-                                        className="px-4 py-2 border border-gray-300 text-gray-700 rounded hover:bg-gray-50"
-                                    >
-                                        {t('invoice_table.cancel')}
-                                    </button>
-                                    <button
-                                        type="submit"
-                                        className="px-4 py-2 bg-[#054748] text-white rounded-lg hover:bg-[#0a5d5e] transition-colors flex items-center disabled:opacity-50 disabled:cursor-not-allowed"
-                                        disabled={loading}
-                                    >
-                                        {loading ? <Loader className="w-4 h-4 animate-spin mr-2" /> : <Save className="w-4 h-4 mr-2" />}
-                                        {t('invoice_table.save')}
-                                    </button>
-                                </div>
+                        
+                        {fetchingInvoice ? (
+                            <div className="flex justify-center items-center py-12">
+                                <Loader className="w-8 h-8 animate-spin text-blue-600" />
+                                <span className="ml-3 text-gray-600">Loading invoice data...</span>
                             </div>
-                        </form>
+                        ) : (
+                            <form onSubmit={e => { e.preventDefault(); handleUpdateInvoice(); }}>
+                                <div className="space-y-4">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                                Invoice Number *
+                                            </label>
+                                            <input
+                                                type="text"
+                                                name="invoice_number"
+                                                value={formData.invoice_number}
+                                                onChange={handleInputChange}
+                                                className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                                                required
+                                                disabled={loading}
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                                Date *
+                                            </label>
+                                            <input
+                                                type="date"
+                                                name="date"
+                                                value={formData.date}
+                                                onChange={handleInputChange}
+                                                className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                                                required
+                                                disabled={loading}
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                                Invoice Amount *
+                                            </label>
+                                            <input
+                                                type="number"
+                                                name="invoice_amount"
+                                                value={formData.invoice_amount}
+                                                onChange={handleInputChange}
+                                                className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                                                required
+                                                min="0"
+                                                step="0.01"
+                                                disabled={loading}
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                                Amount Due *
+                                            </label>
+                                            <input
+                                                type="number"
+                                                name="amount_due"
+                                                value={formData.amount_due}
+                                                onChange={handleInputChange}
+                                                className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                                                required
+                                                min="0"
+                                                step="0.01"
+                                                disabled={loading}
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                                Payment Terms
+                                            </label>
+                                            <input
+                                                type="text"
+                                                name="payment_terms"
+                                                value={formData.payment_terms}
+                                                onChange={handleInputChange}
+                                                className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                                                disabled={loading}
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                                Payment Type
+                                            </label>
+                                            <input
+                                                type="text"
+                                                name="payment_type"
+                                                value={formData.payment_type}
+                                                onChange={handleInputChange}
+                                                className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                                                disabled={loading}
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                                Note
+                                            </label>
+                                            <input
+                                                type="text"
+                                                name="note"
+                                                value={formData.note}
+                                                onChange={handleInputChange}
+                                                className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                                                disabled={loading}
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                                Status *
+                                            </label>
+                                            <select
+                                                name="status"
+                                                value={formData.status}
+                                                onChange={handleInputChange}
+                                                className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                                                required
+                                                disabled={loading}
+                                            >
+                                                <option value="Draft">Draft</option>
+                                                <option value="Paid">Paid</option>
+                                                <option value="Unpaid">Unpaid</option>
+                                                <option value="Partial">Partial</option>
+                                                <option value="Cancelled">Cancelled</option>
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                                PPN
+                                            </label>
+                                            <input
+                                                type="number"
+                                                name="ppn"
+                                                value={formData.ppn}
+                                                onChange={handleInputChange}
+                                                className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                                                min="0"
+                                                step="0.01"
+                                                disabled={loading}
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                                PPH
+                                            </label>
+                                            <input
+                                                type="number"
+                                                name="pph"
+                                                value={formData.pph}
+                                                onChange={handleInputChange}
+                                                className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                                                min="0"
+                                                step="0.01"
+                                                disabled={loading}
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                                Total
+                                            </label>
+                                            <input
+                                                type="number"
+                                                name="total"
+                                                value={formData.total}
+                                                onChange={handleInputChange}
+                                                className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                                                min="0"
+                                                step="0.01"
+                                                disabled={loading}
+                                            />
+                                        </div>
+                                    </div>
+                                    
+                                    <div className="flex justify-end space-x-3 mt-6 pt-6 border-t border-gray-200">
+                                        <button
+                                            type="button"
+                                            onClick={closeEditModal}
+                                            className="px-4 py-2 border border-gray-300 text-gray-700 rounded hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                            disabled={loading}
+                                        >
+                                            {t('invoice_table.cancel')}
+                                        </button>
+                                        <button
+                                            type="submit"
+                                            className="px-4 py-2 bg-[#054748] text-white rounded-lg hover:bg-[#0a5d5e] transition-colors flex items-center justify-center min-w-[100px] disabled:opacity-50 disabled:cursor-not-allowed"
+                                            disabled={loading || fetchingInvoice}
+                                        >
+                                            {loading ? (
+                                                <>
+                                                    <Loader className="w-4 h-4 animate-spin mr-2" />
+                                                    {t('invoice_table.saving')}
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <Save className="w-4 h-4 mr-2" />
+                                                    {t('invoice_table.save')}
+                                                </>
+                                            )}
+                                        </button>
+                                    </div>
+                                </div>
+                            </form>
+                        )}
                     </div>
                 </div>
             )}
@@ -1076,7 +1264,8 @@ const InvoiceTable = ({ data, companyId }) => {
                                 placeholder={t('invoice_table.search_placeholder')}
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
-                                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                                disabled={loading}
                             />
                         </div>
                     </div>
@@ -1086,14 +1275,15 @@ const InvoiceTable = ({ data, companyId }) => {
                             <select
                                 value={statusFilter}
                                 onChange={(e) => setStatusFilter(e.target.value)}
-                                className="w-full pl-3 pr-10 py-2 border border-gray-300 rounded-lg appearance-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                className="w-full pl-3 pr-10 py-2 border border-gray-300 rounded-lg appearance-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                                disabled={loading}
                             >
                                 <option value="all">{t('invoice_table.all_status')}</option>
                                 <option value="paid">{t('invoice_table.status_paid')}</option>
                                 <option value="unpaid">{t('invoice_table.status_unpaid')}</option>
-                                <option value="invoice">{t('invoice_table.status_invoice_sent')}</option>
                                 <option value="draft">{t('invoice_table.status_draft')}</option>
                                 <option value="cancelled">{t('invoice_table.status_cancelled')}</option>
+                                <option value="partial">{t('invoice_table.status_partial')}</option>
                             </select>
                             <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5 pointer-events-none" />
                         </div>
@@ -1114,15 +1304,7 @@ const InvoiceTable = ({ data, companyId }) => {
                             </div>
                             <div className="flex space-x-2">
                                 <button 
-                                    className="px-3 py-1 bg-green-600 text-white rounded text-sm hover:bg-green-700 flex items-center"
-                                    onClick={handleBulkMarkAsPaid}
-                                    disabled={loading}
-                                >
-                                    <Check className="w-4 h-4 inline mr-1" />
-                                    {t('invoice_table.mark_as_paid')}
-                                </button>
-                                <button 
-                                    className="px-3 py-1 bg-red-600 text-white rounded text-sm hover:bg-red-700 flex items-center"
+                                    className="px-3 py-1 bg-red-600 text-white rounded text-sm hover:bg-red-700 flex items-center disabled:opacity-50 disabled:cursor-not-allowed"
                                     onClick={handleBulkDelete}
                                     disabled={loading}
                                 >
@@ -1135,12 +1317,14 @@ const InvoiceTable = ({ data, companyId }) => {
                 )}
             </div>
 
+            {/* Mobile View */}
             <div className="sm:hidden space-y-3">
                 {filteredData.map((invoice) => (
                     <MobileCardView key={invoice.id} invoice={invoice} />
                 ))}
             </div>
 
+            {/* Desktop View */}
             <div className="hidden sm:block">
                 <div className="overflow-x-auto border border-gray-200 rounded-lg">
                     <table className="min-w-full divide-y divide-gray-200">
@@ -1151,7 +1335,7 @@ const InvoiceTable = ({ data, companyId }) => {
                                 <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase border-r border-gray-200">Invoice Amount</th>
                                 <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase border-r border-gray-200">Payment Term</th>
                                 <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase border-r border-gray-200">PPN & PPh</th>
-                                <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase border-r border-gray-200">Ammount Due</th>
+                                <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase border-r border-gray-200">Amount Due</th>
                                 <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase border-r border-gray-200">Status</th>
                                 <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase">Action</th>
                             </tr>
@@ -1163,76 +1347,62 @@ const InvoiceTable = ({ data, companyId }) => {
                                         key={invoice.id} 
                                         className={`hover:bg-gray-50 ${selectedInvoices.includes(invoice.id) ? 'bg-blue-50' : ''}`}
                                     >
-                                        {/* No / Checkbox */}
                                         <td className="px-4 py-3">
                                             <input
                                                 type="checkbox"
                                                 checked={selectedInvoices.includes(invoice.id)}
                                                 onChange={() => handleSelectInvoice(invoice.id)}
-                                                className="h-4 w-4 text-blue-600 rounded"
+                                                className="h-4 w-4 text-blue-600 rounded disabled:opacity-50 disabled:cursor-not-allowed"
+                                                disabled={loading}
                                             />
                                         </td>
-                                        {/* Invoice Number */}
                                         <td className="px-4 py-3">
                                             <div className="font-medium text-gray-900">
                                                 {invoice.invoice_number || t('invoice_table.not_available')}
                                             </div>
+                                            <div className="text-xs text-gray-500">
+                                                {formatDate(invoice.date)}
+                                            </div>
                                         </td>
-                                        {/* Invoice Amount */}
                                         <td className="px-4 py-3">
                                             <div className="font-semibold text-gray-900">
                                                 <ExpandableAmount amount={invoice.invoice_amount} />
                                             </div>
                                         </td>
-                                        {/* Payment Term */}
                                         <td className="px-4 py-3">
                                             <div className="text-gray-900">
                                                 {invoice.payment_terms || t('invoice_table.not_available')}
                                             </div>
                                         </td>
-                                        {/* PPN & PPh */}
                                         <td className="px-4 py-3">
                                             <div className="text-gray-900">
                                                 {t('invoice_table.ppn')}: {invoice.ppn || 0} <br />
                                                 {t('invoice_table.pph')}: {invoice.pph || 0}
                                             </div>
                                         </td>
-                                        {/* Amount Due */}
                                         <td className="px-4 py-3">
                                             <div className="font-bold text-red-600">
                                                 <ExpandableAmount amount={invoice.amount_due} />
                                             </div>
                                         </td>
-                                        {/* Status */}
                                         <td className="px-4 py-3">
                                             {getStatusBadge(invoice.status)}
                                         </td>
-                                        {/* Action */}
                                         <td className="px-4 py-3">
                                             <div className="flex space-x-2">
                                                 <button 
                                                     title={t('invoice_table.edit_invoice')}
-                                                    className="p-1 text-blue-600 hover:text-blue-900 hover:bg-blue-50 rounded"
+                                                    className="p-1 text-blue-600 hover:text-blue-900 hover:bg-blue-50 rounded disabled:opacity-50 disabled:cursor-not-allowed"
                                                     onClick={() => openEditModal(invoice)}
+                                                    disabled={loading || fetchingInvoice}
                                                 >
                                                     <Edit className="w-4 h-4" />
                                                 </button>
                                                 <button 
-                                                    title={t('invoice_table.mark_as_paid')}
-                                                    className={`p-1 rounded ${
-                                                        invoice.status !== 'paid' 
-                                                            ? 'text-green-600 hover:text-green-900 hover:bg-green-50' 
-                                                            : 'text-gray-400 cursor-not-allowed'
-                                                    }`}
-                                                    disabled={invoice.status === 'paid' || loading}
-                                                    onClick={() => invoice.status !== 'paid' && handleMarkAsPaid(invoice.id)}
-                                                >
-                                                    <Check className="w-4 h-4" />
-                                                </button>
-                                                <button 
                                                     title={t('invoice_table.delete_invoice')}
-                                                    className="p-1 text-red-600 hover:text-red-900 hover:bg-red-50 rounded"
+                                                    className="p-1 text-red-600 hover:text-red-900 hover:bg-red-50 rounded disabled:opacity-50 disabled:cursor-not-allowed"
                                                     onClick={() => setDeleteConfirm(invoice)}
+                                                    disabled={loading}
                                                 >
                                                     <Trash2 className="w-4 h-4" />
                                                 </button>
@@ -1246,6 +1416,7 @@ const InvoiceTable = ({ data, companyId }) => {
                 </div>
             </div>
 
+            {/* Summary Section */}
             <div className="mt-6 pt-6 border-t border-gray-200">
                 <h3 className="text-lg font-bold text-gray-900 mb-4">
                     {t('invoice_table.invoice_summary')}
@@ -1256,7 +1427,7 @@ const InvoiceTable = ({ data, companyId }) => {
                             <FileText className="w-5 h-5 text-blue-600 mr-2" />
                             <p className="text-sm text-gray-600">{t('invoice_table.total_invoices')}</p>
                         </div>
-                        <p className="text-2xl font-bold text-gray-900 mt-2 cursor-help">
+                        <p className="text-2xl font-bold text-gray-900 mt-2">
                             {data.length}
                         </p>
                         <p className="text-xs text-gray-500 mt-1">
@@ -1314,13 +1485,13 @@ const InvoiceTable = ({ data, companyId }) => {
                     <div className="p-3 bg-gray-50 rounded-lg">
                         <p className="text-sm text-gray-600">{t('invoice_table.paid_invoices')}</p>
                         <p className="text-xl font-bold text-green-600">
-                            {data.filter(i => i.status === 'paid').length}
+                            {data.filter(i => i.status === 'Paid' || i.status === 'paid').length}
                         </p>
                     </div>
                     <div className="p-3 bg-gray-50 rounded-lg">
                         <p className="text-sm text-gray-600">{t('invoice_table.unpaid_invoices')}</p>
                         <p className="text-xl font-bold text-yellow-600">
-                            {data.filter(i => i.status === 'unpaid').length}
+                            {data.filter(i => i.status === 'Unpaid' || i.status === 'unpaid').length}
                         </p>
                     </div>
                     <div className="p-3 bg-gray-50 rounded-lg">
@@ -1343,6 +1514,7 @@ const InvoiceTable = ({ data, companyId }) => {
                 </div>
             </div>
 
+            {/* Debug Info */}
             {process.env.NODE_ENV === 'development' && (
                 <div className="mt-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
                     <details>
@@ -1352,7 +1524,9 @@ const InvoiceTable = ({ data, companyId }) => {
                         <div className="mt-2 text-xs text-gray-600 space-y-2">
                             <div>{t('invoice_table.total_from_api', { count: data.length })}</div>
                             <div>{t('invoice_table.filtered_invoices', { count: filteredData.length })}</div>
-                            <div>{t('invoice_table.sample_data')}</div>
+                            <div>Company ID: {companyId}</div>
+                            <div>Loading: {loading ? 'Yes' : 'No'}</div>
+                            <div>Fetching Invoice: {fetchingInvoice ? 'Yes' : 'No'}</div>
                             <pre className="bg-white p-2 rounded border overflow-auto max-h-40">
                                 {JSON.stringify(data[0] || {}, null, 2)}
                             </pre>
