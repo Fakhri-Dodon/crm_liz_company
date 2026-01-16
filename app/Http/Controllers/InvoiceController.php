@@ -585,7 +585,8 @@ class InvoiceController extends Controller
                     'pph'                   => $validated['tax_amount_pph'] ?? 0,
                     'total'                 => $validated['total'],
                     'amount_due'            => $validated['total'],
-                    'status'                => $statuName,
+                    'invoice_statuses_id'   => $statusId,
+                    'status'                => $statusName,
                     'pdf_path'              => $validated['pdf_path'] ?? $invoice->pdf_path,
                     'updated_by'            => auth()->id(),
                 ]);
