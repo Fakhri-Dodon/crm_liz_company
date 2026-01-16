@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from "react";
+import { Head, usePage, router, useForm } from '@inertiajs/react';
 import grapesjs from "grapesjs";
 import "grapesjs/dist/css/grapes.min.css";
 import "@/assets/css/grapes-custom.css";
+import * as htmlToImage from 'html-to-image';
 
 const TEXT_CANDIDATES = [
     "H1",
@@ -51,13 +53,15 @@ const STYLE_GROUPS = {
 };
 
 export default function Create({ id, template }) {
-    const [loading, setLoading] = useState(false);
     const editorRef = useRef(null);
     const activeModeRef = useRef("elements");
+    
     const [categories, setCategories] = useState([]);
     const [activeCat, setActiveCat] = useState("All Blocks");
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const [isCatSelected, setIsCatSelected] = useState(false);
+    const [isDirty, setIsDirty] = useState(false);
+    const [loading, setLoading] = useState(false);
     const [activeMode, setActiveMode] = useState("elements");
 
     // =========================================================
@@ -306,8 +310,9 @@ export default function Create({ id, template }) {
             panels: { defaults: [] },
             canvas: {
                 styles: [
-                    "/templates/css/plugins/bootstrap.min.css",
                     "/templates/css/style.css",
+                    "/templates/css/plugins/bootstrap.min.css",
+                    '/templates/css/font-awesome.min.css',
                 ],
             },
         });
@@ -327,6 +332,21 @@ export default function Create({ id, template }) {
         editorRef.current = editor;
 
         editor.on("load", () => {
+            const body = editor.Canvas.getBody();
+
+            if (!body.querySelector(".el-toolbar")) {
+                const toolbar = document.createElement("div");
+                toolbar.className = "el-toolbar";
+                toolbar.style.display = "none";
+
+                toolbar.innerHTML = `
+                    <button class="el-btn source"><i class="fa fa-code"></i></button>
+                    <button class="el-btn reset"><i class="fa fa-refresh"></i></button>
+                    <button class="el-btn remove"><i class="fa fa-trash"></i></button>
+                `;
+
+                body.appendChild(toolbar);
+            }
             // CSS Injection (Pointer Events Locking)
             const canvasHead = editor.Canvas.getDocument().head;
             const styleId = "mode-content-style";
@@ -345,9 +365,64 @@ export default function Create({ id, template }) {
                         pointer-events: auto !important; cursor: text !important; outline: 2px dashed #4cd137 !important; 
                     }
                     .gjs-rte-toolbar, .gjs-rte-toolbar * { pointer-events: auto !important; }
+                    
+                    .fa,
+                    .fa:before {
+                        font-family: FontAwesome !important;
+                    }
                 `;
                 canvasHead.appendChild(styleEl);
             }
+
+            editor.addStyle(`
+                .el-toolbar {
+                    position: absolute !important;
+                    top: -18px !important;
+                    right: 10px !important;
+                    display: inline-flex !important;
+                    border-radius: 6px !important;
+                    overflow: hidden !important;
+                    box-shadow: 0 4px 10px rgba(0,0,0,0.15) !important;
+                    z-index: 9999 !important;
+                    font-family: Arial, sans-serif;
+                }
+
+                .el-toolbar .el-btn {
+                    border: none !important;
+                    padding: 6px 12px !important;
+                    font-size: 12px !important;
+                    color: #fff !important;
+                    cursor: pointer !important;
+                    display: flex !important;
+                    align-items: center !important;
+                    gap: 6px !important;
+                    background: #333 !important;
+                }
+
+                .el-toolbar .el-btn.source {
+                    background: #2c3e50 !important;
+                }
+
+                .el-toolbar .el-btn.reset {
+                    background: #f39c12 !important;
+                }
+
+                .el-toolbar .el-btn.remove {
+                    background: #e74c3c !important;
+                }
+
+                .el-toolbar .el-btn:hover {
+                    filter: brightness(1.1) !important;
+                }
+
+                .el-toolbar i {
+                    font-size: 12px !important;
+                }
+
+                section, header, footer {
+                    overflow: visible !important;
+                }
+            `);
 
             fetch(`/api/proposal/templates`)
                 .then((res) => res.json())
@@ -361,7 +436,13 @@ export default function Create({ id, template }) {
                         editor.BlockManager.add(`template-${index}`, {
                             category: tpl.category || "Templates",
                             media: `<img src="${tpl.preview}" style="width: 100%;" />`,
-                            content: { content: tpl.html, style: tpl.css },
+                            content: {
+                                content: `<input type="hidden" data-template-category="${tpl.category || 'Templates'}">${tpl.html}`,
+                                attributes: {
+                                    "data-gjs-section": "true",
+                                    "data-section-type": tpl.category
+                                }
+                            }
                         });
                     });
                 })
@@ -374,6 +455,35 @@ export default function Create({ id, template }) {
             }
 
             setTimeout(() => changeMode("elements"), 500);
+        });
+
+        editor.on("component:dblclick", (comp) => {
+            if (activeModeRef.current !== "content") return;
+
+            const tag = comp.get("tagName")?.toUpperCase();
+            const isText =
+                TEXT_CANDIDATES.includes(tag) || comp.get("type") === "text";
+
+            if (!isText) return;
+
+            editor.Modal.setTitle("Edit Content");
+            editor.Modal.setContent(`
+                <textarea id="content-editor"
+                    style="width:100%;height:200px;">
+                    ${comp.view.el.innerText}
+                </textarea>
+                <button id="save-content">Save</button>
+            `);
+            editor.Modal.open();
+
+            setTimeout(() => {
+                document.getElementById("save-content").onclick = () => {
+                    const val =
+                        document.getElementById("content-editor").value;
+                    comp.components(val);
+                    editor.Modal.close();
+                };
+            }, 0);
         });
 
         // =========================================================
@@ -444,14 +554,119 @@ export default function Create({ id, template }) {
         });
 
         editor.on("component:add", (component) => {
+            component.set("initialContent", component.toHTML());
             setTimeout(
                 () => applyComponentSettings(component, activeModeRef.current),
                 10
             );
         });
 
+        const markDirty = () => setIsDirty(true);
+
+        editor.on("component:add", markDirty);
+        editor.on("component:remove", markDirty);
+        editor.on("component:update", markDirty);
+        editor.on("style:property:update", markDirty);
+        editor.on("component:styleUpdate", markDirty);
+        editor.on("trait:value:update", markDirty);
+
         return () => editor.destroy();
     }, []);
+
+    useEffect(() => {
+        const handler = (e) => {
+            if (!isDirty) return;
+            e.preventDefault();
+            e.returnValue = "";
+        };
+
+        window.addEventListener("beforeunload", handler);
+        return () => window.removeEventListener("beforeunload", handler);
+    }, [isDirty]);
+
+    const savePage = async () => {
+
+        if (!editorRef.current) return;
+
+        const editor = editorRef.current;
+
+        const html = editor.getHtml();
+
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(html, 'text/html');
+
+        const categoriesUsed = [
+            ...new Set(
+                [...doc.querySelectorAll('[data-template-category]')]
+                    .map(el => el.dataset.templateCategory)
+            )
+        ];
+
+        const canvasConfig = editor.getConfig().canvas;
+        
+        const getFilteredCss = async (url) => {
+            try {
+                const response = await fetch(url);
+                const text = await response.text();
+
+                // JANGAN FILTER FONT AWESOME
+                if (url.includes("font-awesome")) {
+                    return text;
+                }
+                
+                return filterCssRules(text, doc);
+            } catch (err) {
+                console.error("Gagal mengambil CSS:", url);
+                return "";
+            }
+        };
+
+        const externalPromises = canvasConfig.styles.map(url => getFilteredCss(url));
+        const externalResults = await Promise.all(externalPromises);
+        
+        const internalCss = filterCssRules(editor.getCss(), doc);
+
+        const finalUsedCss = externalResults.join('\n') + '\n' + internalCss;
+
+        const iframe = editor.Canvas.getFrameEl();
+        const iframeBody = iframe.contentDocument.body;
+
+        const imageBlob = await htmlToImage.toBlob(iframeBody, {
+            backgroundColor: '#ffffff',
+            pixelRatio: 2, // HD thumbnail
+        });
+
+        // Convert ke Base64 (untuk dikirim)
+        const imageBase64 = await new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.onloadend = () => resolve(reader.result);
+            reader.readAsDataURL(imageBlob);
+        });
+
+        const res = await fetch("/proposal", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json",
+                "X-CSRF-TOKEN": document.querySelector('meta[name="csrf-token"]').getAttribute("content"),
+            },
+            body: JSON.stringify({
+                id: id,
+                html: html,
+                css: finalUsedCss,
+                categories: categoriesUsed,
+                image: imageBase64,
+            }),
+        });
+
+        const savePage = await res.json();
+
+        if (savePage.success) {
+            alert("Simpan Berhasil!");
+            window.location.href = savePage.redirect;
+        }
+
+    };
 
     const applyComponentSettings = (comp, mode) => {
         if (!comp || typeof comp.get !== "function") return;
@@ -474,27 +689,45 @@ export default function Create({ id, template }) {
         if (view?.el) view.el.removeAttribute("contenteditable");
 
         if (mode === "elements") {
-            props = {
-                draggable: !isWrapper,
-                droppable: true,
-                selectable: true,
-                hoverable: true,
-                editable: true,
-                highlightable: true,
-                toolbar: undefined,
-            };
+            if (isSectionRoot(comp)) {
+                props = {
+                    selectable: true,
+                    hoverable: true,
+                    draggable: true,
+                    droppable: false,
+                    removable: true,
+                    highlightable: true,
+                    editable: false,
+                };
+            } else {
+                props = {
+                    selectable: false,
+                    hoverable: false,
+                    draggable: false,
+                    droppable: false,
+                    removable: false,
+                    highlightable: false,
+                    editable: false,
+                };
+            }
         } else if (mode === "content") {
-            props = {
-                draggable: false,
-                droppable: false,
-                removable: false,
-                copyable: false,
-                selectable: isText,
-                hoverable: isText,
-                editable: isText,
-                highlightable: isText,
-                toolbar: [],
-            };
+            if (isText || comp.get("tagName") === "IMG" || comp.get("tagName") === "A") {
+                props = {
+                    selectable: true,
+                    hoverable: true,
+                    editable: true,
+                    draggable: false,
+                    droppable: false,
+                };
+            } else {
+                props = {
+                    selectable: false,
+                    hoverable: false,
+                    editable: false,
+                    draggable: false,
+                    droppable: false,
+                };
+            }
         } else if (mode === "details") {
             props = {
                 draggable: false,
@@ -510,6 +743,71 @@ export default function Create({ id, template }) {
             };
         }
         comp.set(props);
+    };
+
+    const injectElementToolbar = (editor, comp) => {
+        const view = comp.getView();
+        if (!view || !view.el) return;
+
+        const el = view.el;
+        if (el.querySelector(".el-toolbar")) return;
+
+        const bar = document.createElement("div");
+        bar.className = "el-toolbar";
+        bar.innerHTML = `
+            <button data-act="source">⧉</button>
+            <button data-act="reset">↺</button>
+            <button data-act="remove">✕</button>
+        `;
+
+        el.style.position = "relative";
+        el.appendChild(bar);
+
+        bar.onclick = (e) => {
+            e.stopPropagation();
+            const act = e.target.dataset.act;
+
+            if (act === "source") {
+                editor.Modal
+                    .setTitle("Source Code")
+                    .setContent(`<pre>${comp.toHTML()}</pre>`)
+                    .open();
+            }
+
+            if (act === "reset") {
+                const original = comp.get("initialContent");
+                if (original) comp.components(original);
+            }
+
+            if (act === "remove") comp.remove();
+        };
+        el.addEventListener("mouseenter", () => {
+            if (
+                activeModeRef.current === "elements" &&
+                isSectionRoot(comp)
+            ) {
+                injectElementToolbar(editor, comp);
+            }
+        });
+    };
+
+    const removeElementToolbar = (comp) => {
+        const el = comp.getView()?.el;
+        el?.querySelector(".el-toolbar")?.remove();
+    };
+
+    const isSectionRoot = (comp) => {
+        return (
+            comp.getAttributes()?.["data-gjs-section"] === "true" ||
+            ["HEADER", "SECTION", "FOOTER"].includes(
+                comp.get("tagName")?.toUpperCase()
+            )
+        );
+    };
+
+    const hideElementToolbar = (editor) => {
+        const toolbar = editor.Canvas.getBody().querySelector(".el-toolbar");
+        if (toolbar) toolbar.style.display = "none";
     };
 
     const changeMode = (mode) => {
@@ -555,7 +853,22 @@ export default function Create({ id, template }) {
                 .get("components")
                 .forEach((child) => updateRecursively(child));
         }
+
+        if (mode === "details") {
+            editor.runCommand("core:component-select");
+            editor.runCommand("core:component-hover");
+        }
+
         editor.refresh();
+    };
+
+    const isStructural = (comp) => {
+        const cls = comp.getClasses();
+        return (
+            cls.includes("container") ||
+            cls.includes("row") ||
+            cls.some(c => c.startsWith("col-"))
+        );
     };
 
     const filterCategory = (cat) => {
@@ -574,6 +887,229 @@ export default function Create({ id, template }) {
                     })
                 );
         }, 50);
+    };
+
+    function filterCssRules(cssText, doc) {
+        if (!cssText) return "";
+        
+        const styleSheet = new CSSStyleSheet();
+        // Gunakan try-catch karena CSS mentah mungkin punya karakter yang tidak valid bagi parser browser
+        try {
+            // Catatan: replace ini untuk menangani karakter escape atau baris baru jika perlu
+            styleSheet.replaceSync(cssText);
+        } catch (e) {
+            return cssText; // Jika gagal parsing, kembalikan apa adanya agar aman
+        }
+
+        let filtered = "";
+        const rules = styleSheet.cssRules;
+
+        for (let i = 0; i < rules.length; i++) {
+            const rule = rules[i];
+
+            // Jika aturan adalah Media Query (@media)
+            if (rule instanceof CSSMediaRule) {
+                let innerFiltered = "";
+                for (let j = 0; j < rule.cssRules.length; j++) {
+                    const subRule = rule.cssRules[j];
+                    if (isSelectorUsed(subRule.selectorText, doc)) {
+                        innerFiltered += subRule.cssText + "\n";
+                    }
+                }
+                if (innerFiltered) {
+                    filtered += `@media ${rule.conditionText} {\n${innerFiltered}}\n`;
+                }
+            } 
+            // Jika aturan CSS biasa
+            else if (rule.selectorText) {
+                if (isSelectorUsed(rule.selectorText, doc)) {
+                    filtered += rule.cssText + "\n";
+                }
+            }
+            // Tetap masukkan @font-face dan @keyframes agar desain tidak rusak
+            else {
+                filtered += rule.cssText + "\n";
+            }
+        }
+        return filtered;
+    }
+
+    function isSelectorUsed(selector, doc) {
+        if (!selector) return false;
+        
+        // Hapus pseudo-classes seperti :hover, :after agar querySelector tidak error
+        const cleanSelector = selector.split(':')[0]
+                                      .split(',')[0] // Ambil bagian pertama jika multiple selector
+                                      .trim();
+        
+        if (!cleanSelector) return true; // Biarkan selector kosong/universal lolos
+
+        try {
+            return doc.querySelector(cleanSelector) !== null;
+        } catch (e) {
+            // Jika selector kompleks (misal :nth-child), anggap saja digunakan agar aman
+            return true;
+        }
+    }
+
+    const exportPage = async () => {
+        if (!editorRef.current) return;
+
+        const editor = editorRef.current;
+        const html = editor.getHtml();
+
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(html, "text/html");
+
+        const canvasConfig = editor.getConfig().canvas;
+
+        const getFilteredCss = async (url) => {
+            try {
+                const res = await fetch(url);
+                const text = await res.text();
+
+                // JANGAN FILTER FONT AWESOME
+                if (url.includes("font-awesome")) {
+                    return text;
+                }
+                
+                return filterCssRules(text, doc);
+            } catch {
+                return "";
+            }
+        };
+
+        const externalCss = await Promise.all(
+            canvasConfig.styles.map(url => getFilteredCss(url))
+        );
+
+        const internalCss = filterCssRules(editor.getCss(), doc);
+        const finalCss = externalCss.join("\n") + "\n" + internalCss;
+
+        const fullHtml = `
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <meta charset="utf-8" />
+                <link
+                    rel="stylesheet"
+                    href="/templates/css/plugins/bootstrap.min.css"
+                />
+                <meta name="viewport" content="width=device-width, initial-scale=1" />
+                <title>Exported Page</title>
+                <style>${finalCss}</style>
+            </head>
+            <body>
+                ${html}
+                <script src="/templates/js/plugins/jquery.vide.min.js"></script>
+                <script src="/templates/js/plugins/jquery1.11.2.min.js"></script>
+                <script src="/templates/js/plugins/bootstrap.min.js"></script>
+                <script src="/templates/js/plugins/jquery.easing.1.3.min.js"></script>
+                <script src="/templates/js/plugins/jquery.countTo.js"></script>
+                <script src="/templates/js/plugins/jquery.formchimp.min.js"></script>
+                <script src="/templates/js/plugins/jquery.jCounter-0.1.4.js"></script>
+                <script src="/templates/js/plugins/jquery.magnific-popup.min.js"></script>
+                <script src="/templates/js/plugins/jquery.vide.min.js"></script>
+                <script src="/templates/js/plugins/owl.carousel.min.js"></script>
+                <script src="/templates/js/plugins/twitterFetcher_min.js"></script>
+                <script src="/templates/js/plugins/wow.min.js"></script>
+                <script src="/templates/js/custom.js"></script>
+            </body>
+            </html>
+        `.trim();
+
+        const blob = new Blob([fullHtml], { type: "text/html;charset=utf-8" });
+        const url = URL.createObjectURL(blob);
+
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "proposal.html";
+        a.click();
+
+        URL.revokeObjectURL(url);
+    };
+
+    const togglePreview = async () => {
+        if (!editorRef.current) return;
+
+        const editor = editorRef.current;
+        const html = editor.getHtml();
+
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(html, "text/html");
+
+        const canvasConfig = editor.getConfig().canvas;
+
+        const getFilteredCss = async (url) => {
+            try {
+                const res = await fetch(url);
+                const text = await res.text();
+
+                // JANGAN FILTER FONT AWESOME
+                if (url.includes("font-awesome")) {
+                    return text;
+                }
+                
+                return filterCssRules(text, doc);
+            } catch {
+                return "";
+            }
+        };
+
+        const externalCss = await Promise.all(
+            canvasConfig.styles.map(url => getFilteredCss(url))
+        );
+
+        const internalCss = filterCssRules(editor.getCss(), doc);
+        const finalCss = externalCss.join("\n") + "\n" + internalCss;
+
+        const previewWindow = window.open("", "_blank");
+
+        previewWindow.document.write(`
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <meta charset="utf-8" />
+                <link
+                    rel="stylesheet"
+                    href="/templates/css/plugins/bootstrap.min.css"
+                />
+                <meta name="viewport" content="width=device-width, initial-scale=1" />
+                <title>Preview Page</title>
+                <style>${finalCss}</style>
+            </head>
+            <body>
+                ${html}
+                <script src="/templates/js/plugins/jquery.vide.min.js"></script>
+                <script src="/templates/js/plugins/jquery1.11.2.min.js"></script>
+                <script src="/templates/js/plugins/bootstrap.min.js"></script>
+                <script src="/templates/js/plugins/jquery.easing.1.3.min.js"></script>
+                <script src="/templates/js/plugins/jquery.countTo.js"></script>
+                <script src="/templates/js/plugins/jquery.formchimp.min.js"></script>
+                <script src="/templates/js/plugins/jquery.jCounter-0.1.4.js"></script>
+                <script src="/templates/js/plugins/jquery.magnific-popup.min.js"></script>
+                <script src="/templates/js/plugins/jquery.vide.min.js"></script>
+                <script src="/templates/js/plugins/owl.carousel.min.js"></script>
+                <script src="/templates/js/plugins/twitterFetcher_min.js"></script>
+                <script src="/templates/js/plugins/wow.min.js"></script>
+                <script src="/templates/js/custom.js"></script>
+            </body>
+            </html>
+        `);
+
+        previewWindow.document.close();
+    };
+
+    const emptyPage = () => {
+        if (!editorRef.current) return;
+
+        if (!confirm("Are you sure you want to clear the page?")) return;
+
+        const editor = editorRef.current;
+
+        editor.DomComponents.clear();
+        editor.CssComposer.clear();
+        editor.select(null);
     };
 
     return (
@@ -632,27 +1168,64 @@ export default function Create({ id, template }) {
 
             <div className="container-main">
                 <header className="builder-header">
+                    <Head title="Create Proposal" />
                     <div className="modes">
                         <span className="mode-label">BUILDING MODE:</span>
                         {["elements", "content", "details"].map((m) => (
-                            <button
-                                key={m}
-                                className={`mode-btn ${
-                                    activeMode === m ? "active" : ""
-                                }`}
-                                onClick={() => changeMode(m)}
-                            >
-                                <i
-                                    className={
-                                        activeMode === m
-                                            ? "far fa-dot-circle"
-                                            : "far fa-circle"
-                                    }
-                                ></i>{" "}
-                                {m.charAt(0).toUpperCase() + m.slice(1)}
-                            </button>
+                            <label>
+                                <input
+                                    type="radio"
+                                    checked={activeMode === m}
+                                    onChange={() => changeMode(m)}
+                                    style={{
+                                        marginRight: "2px",
+                                        marginBottom: "2px",
+                                    }}
+                                />
+                                {m}
+                            </label>
                         ))}
                     </div>
+                    <div className="flex items-center gap-2">
+                    {/* SAVE */}
+                    <button
+                        onClick={savePage}
+                        disabled={!isDirty}
+                        className={`
+                            inline-flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium
+                            transition
+                            ${isDirty
+                                ? "bg-emerald-600 text-white hover:bg-emerald-700"
+                                : "cursor-not-allowed bg-emerald-200 text-emerald-700"}
+                        `}
+                    >
+                        ✓ {isDirty ? "Save Page" : "Nothing new to save"}
+                    </button>
+
+                    {/* EXPORT */}
+                    <button
+                        onClick={exportPage}
+                        className="inline-flex items-center rounded-md bg-blue-600 px-3 py-2 text-sm font-medium text-white hover:bg-blue-700 transition"
+                    >
+                        Export
+                    </button>
+
+                    {/* PREVIEW */}
+                    <button
+                        onClick={togglePreview}
+                        className="inline-flex items-center rounded-md bg-zinc-800 px-3 py-2 text-sm font-medium text-white hover:bg-zinc-900 transition"
+                    >
+                        Preview
+                    </button>
+
+                    {/* EMPTY */}
+                    <button
+                        onClick={emptyPage}
+                        className="inline-flex items-center rounded-md bg-red-600 px-3 py-2 text-sm font-medium text-white hover:bg-red-700 transition"
+                    >
+                        Empty Page
+                    </button>
+                </div>
                 </header>
 
                 <div className="screen-area">

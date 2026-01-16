@@ -30,6 +30,10 @@ body, html {
     border-top: none;
 } */
 
+#gjs * {
+    overflow: visible !important;
+}
+
 /* Theming */
 .gjs-one-bg {
   background-color: #242A3B; 
