@@ -551,19 +551,16 @@ export default function EditProposals({ id, name, template }) {
         editor.on("component:deselected", () => {
             const sidebar = document.getElementById("style-editor-container");
             if (sidebar) sidebar.classList.remove("open");
+            markDirty();
         });
 
         editor.on("component:add", (component) => {
-            component.set("initialContent", component.toHTML());
-            setTimeout(
-                () => applyComponentSettings(component, activeModeRef.current),
-                10
-            );
+            setTimeout(() => applyComponentSettings(component, activeModeRef.current), 50);
+            markDirty();
         });
 
         const markDirty = () => setIsDirty(true);
 
-        editor.on("component:add", markDirty);
         editor.on("component:remove", markDirty);
         editor.on("component:update", markDirty);
         editor.on("style:property:update", markDirty);
@@ -572,6 +569,23 @@ export default function EditProposals({ id, name, template }) {
 
         return () => editor.destroy();
     }, []);
+
+    // useEffect(() => {
+    //     if (!editorRef.current) return;
+
+    //     const editor = editorRef.current;
+
+    //     const traitContainer = document.getElementById("trait-editor-container");
+    //     const styleContainer = document.getElementById("style-manager-container");
+
+    //     // TRAITS
+    //     const traitsEl = editor.TraitManager.getTraitsViewer().el;
+    //     traitContainer.appendChild(traitsEl);
+
+    //     // STYLE
+    //     const styleEl = editor.StyleManager.getContainer().el;
+    //     styleContainer.appendChild(styleEl);
+    // }, []);
 
     useEffect(() => {
         const handler = (e) => {
@@ -643,25 +657,32 @@ export default function EditProposals({ id, name, template }) {
             reader.readAsDataURL(imageBlob);
         });
 
+        const form = new FormData();
+        form.append("name", name);
+        form.append("html", html);
+        form.append("css", finalUsedCss);
+        form.append("image", imageBase64);
+
+        // Tambahkan Method Spoofing jika menggunakan Laravel/PHP
+        form.append("_method", "PUT"); 
+
+        categoriesUsed.forEach(c => form.append("categories[]", c));
+
         const res = await fetch(`/setting/proposal-element/${id}`, {
-            method: "PUT",
+            method: "POST", // Ubah ke POST agar FormData terbaca dengan benar
             headers: {
-                "Content-Type": "application/json",
                 "Accept": "application/json",
-                "X-CSRF-TOKEN": document.querySelector('meta[name="csrf-token"]').getAttribute("content"),
+                // JANGAN masukkan Content-Type di sini saat menggunakan FormData
+                "X-CSRF-TOKEN": document.querySelector('meta[name="csrf-token"]')?.content,
             },
-            body: JSON.stringify({
-                name: name,
-                html: html,
-                css: finalUsedCss,
-                categories: categoriesUsed,
-                image: imageBase64,
-            }),
+            body: form,
         });
 
-        const savePage = await res.json();
-
-        if (savePage.success) {
+        if (!res.ok) {
+            const errorData = await res.json();
+            console.error("Gagal menyimpan:", errorData);
+        } else {
+            const savePage = await res.json();
             alert("Simpan Berhasil!");
             window.location.href = savePage.redirect;
         }
@@ -669,25 +690,50 @@ export default function EditProposals({ id, name, template }) {
     };
 
     const applyComponentSettings = (comp, mode) => {
+        // 1. Validasi dasar: Pastikan comp adalah objek komponen GrapesJS yang valid
         if (!comp || typeof comp.get !== "function") return;
+
         const tagName = comp.get("tagName")?.toUpperCase();
         const type = comp.get("type");
         const isWrapper = type === "wrapper";
+
+        // 2. Tentukan kandidat elemen teks
         const isCandidate =
             TEXT_CANDIDATES.includes(tagName) ||
             type === "text" ||
             type === "textnode";
-        const hasBlockChildren = comp
-            .find("*")
-            .some(
-                (c) => c.get("type") === "default" || c.get("tagName") === "DIV"
-            );
+
+        // 3. PERBAIKAN HASBLOCK: Gunakan pengecekan tipe data dan method yang aman
+        const hasBlockChildren = (() => {
+            // Jika komponen tidak punya method 'find' (seperti textnode), pasti tidak punya block children
+            if (typeof comp.find !== 'function') return false;
+
+            try {
+                // Kita cari apakah di dalamnya ada elemen default (blok) atau DIV
+                // Gunakan find("*") tapi dengan proteksi try-catch
+                return comp.find("*").some(c => {
+                    const cTag = c.get("tagName")?.toUpperCase();
+                    const cType = c.get("type");
+                    return cType === "default" || cTag === "DIV" || cTag === "SECTION";
+                });
+            } catch (e) {
+                // Jika terjadi error saat query (misal context issue), anggap false
+                return false;
+            }
+        })();
+
+        // 4. Tentukan apakah ini teks murni yang bisa diedit isinya
         const isText = isCandidate && !hasBlockChildren;
 
         let props = {};
         const view = comp.getView();
-        if (view?.el) view.el.removeAttribute("contenteditable");
+        
+        // Reset attribute contenteditable agar tidak bentrok dengan logic mode
+        if (view?.el && typeof view.el.removeAttribute === 'function') {
+            view.el.removeAttribute("contenteditable");
+        }
 
+        // 5. Logika Mode
         if (mode === "elements") {
             if (isSectionRoot(comp)) {
                 props = {
@@ -711,7 +757,8 @@ export default function EditProposals({ id, name, template }) {
                 };
             }
         } else if (mode === "content") {
-            if (isText || comp.get("tagName") === "IMG" || comp.get("tagName") === "A") {
+            // Di mode content, hanya teks, gambar, dan link yang aktif
+            if (isText || tagName === "IMG" || tagName === "A") {
                 props = {
                     selectable: true,
                     hoverable: true,
@@ -729,6 +776,7 @@ export default function EditProposals({ id, name, template }) {
                 };
             }
         } else if (mode === "details") {
+            // Mode detail mengaktifkan trait editor (untuk ganti src gambar, href link, dll)
             props = {
                 draggable: false,
                 droppable: false,
@@ -738,10 +786,12 @@ export default function EditProposals({ id, name, template }) {
                 hoverable: true,
                 editable: false,
                 highlightable: true,
-                toolbar: [],
+                toolbar: [], // Sembunyikan toolbar agar fokus ke sidebar detail
                 stylable: true,
             };
         }
+
+        // 6. Terapkan properti ke komponen
         comp.set(props);
     };
 
@@ -835,23 +885,41 @@ export default function EditProposals({ id, name, template }) {
 
         const wrapper = editor.getWrapper();
         if (wrapper) {
-            const updateRecursively = (component) => {
-                applyComponentSettings(component, mode);
-                const children = component.get("components");
-                if (children)
-                    children.forEach((child) => updateRecursively(child));
-            };
-            if (mode === "content")
-                wrapper.set({
-                    selectable: false,
-                    hoverable: false,
+            // Tentukan aturan Wrapper berdasarkan mode
+            if (mode === "content" || mode === "details") {
+                // Di mode Content/Details, Canvas tidak boleh terima drop elemen baru
+                wrapper.set({ 
+                    selectable: false, 
+                    hoverable: false, 
                     droppable: false,
+                    draggable: false
                 });
-            else wrapper.set({ droppable: true });
-
-            wrapper
-                .get("components")
-                .forEach((child) => updateRecursively(child));
+            } else {
+                // Di mode Elements, Canvas boleh terima drop
+                wrapper.set({ 
+                    droppable: true,
+                    selectable: false,
+                    draggable: false
+                }); 
+            }
+            
+            // 4. Update Anak Elemen secara Rekursif
+            // Fungsi helper untuk loop ke dalam
+            const updateRecursively = (component) => {
+                applyComponentSettings(component, mode); // Terapkan logic (editable/draggable)
+                
+                // Cek apakah punya anak
+                const children = component.get("components");
+                if (children) {
+                    children.forEach(child => updateRecursively(child));
+                }
+            };
+            
+            // Jalankan loop mulai dari komponen di dalam wrapper
+            const components = wrapper.get("components");
+            if(components) {
+                components.forEach(child => updateRecursively(child));
+            }
         }
 
         if (mode === "details") {
@@ -1168,7 +1236,7 @@ export default function EditProposals({ id, name, template }) {
 
             <div className="container-main">
                 <header className="builder-header">
-                    <Head title="Edit Proposal" />
+                    <Head title="Edit Template" />
                     <div className="modes">
                         <span className="mode-label">BUILDING MODE:</span>
                         {["elements", "content", "details"].map((m) => (
@@ -1187,46 +1255,79 @@ export default function EditProposals({ id, name, template }) {
                         ))}
                     </div>
                     <div className="flex items-center gap-2">
-                    {/* SAVE */}
-                    <button
-                        onClick={savePage}
-                        disabled={!isDirty}
-                        className={`
-                            inline-flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium
-                            transition
-                            ${isDirty
-                                ? "bg-emerald-600 text-white hover:bg-emerald-700"
-                                : "cursor-not-allowed bg-emerald-200 text-emerald-700"}
-                        `}
-                    >
-                        ✓ {isDirty ? "Save Page" : "Nothing new to save"}
-                    </button>
+                        {/* SAVE */}
+                        <button
+                            onClick={savePage}
+                            disabled={!isDirty}
+                            className={`
+                                inline-flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium
+                                transition
+                                ${isDirty
+                                    ? "bg-emerald-600 text-white hover:bg-emerald-700"
+                                    : "cursor-not-allowed bg-emerald-200 text-emerald-700"}
+                            `}
+                        >
+                            ✓ {isDirty ? "Save Page" : "Nothing new to save"}
+                        </button>
 
-                    {/* EXPORT */}
-                    <button
-                        onClick={exportPage}
-                        className="inline-flex items-center rounded-md bg-blue-600 px-3 py-2 text-sm font-medium text-white hover:bg-blue-700 transition"
-                    >
-                        Export
-                    </button>
+                        {/* EXPORT */}
+                        <button
+                            onClick={exportPage}
+                            className="inline-flex items-center rounded-md bg-blue-600 px-3 py-2 text-sm font-medium text-white hover:bg-blue-700 transition"
+                        >
+                            Export
+                        </button>
 
-                    {/* PREVIEW */}
-                    <button
-                        onClick={togglePreview}
-                        className="inline-flex items-center rounded-md bg-zinc-800 px-3 py-2 text-sm font-medium text-white hover:bg-zinc-900 transition"
-                    >
-                        Preview
-                    </button>
+                        {/* PREVIEW */}
+                        <button
+                            onClick={togglePreview}
+                            className="inline-flex items-center rounded-md bg-zinc-800 px-3 py-2 text-sm font-medium text-white hover:bg-zinc-900 transition"
+                        >
+                            Preview
+                        </button>
 
-                    {/* EMPTY */}
-                    <button
-                        onClick={emptyPage}
-                        className="inline-flex items-center rounded-md bg-red-600 px-3 py-2 text-sm font-medium text-white hover:bg-red-700 transition"
-                    >
-                        Empty Page
-                    </button>
-                </div>
+                        {/* EMPTY */}
+                        <button
+                            onClick={emptyPage}
+                            className="inline-flex items-center rounded-md bg-red-600 px-3 py-2 text-sm font-medium text-white hover:bg-red-700 transition"
+                        >
+                            Empty Page
+                        </button>
+                    </div>
                 </header>
+                <div
+                    id="style-editor-container"
+                    className={`style-sidebar-left ${
+                        activeMode === "details" ? "open" : ""
+                    }`}
+                >
+                    {/* Header Custom */}
+                    <div className="sidebar-header-custom">
+                        <span id="sidebar-title-text">
+                            <h3>SETTINGS</h3>
+                        </span>
+                        <button
+                            onClick={() =>
+                                document
+                                    .getElementById(
+                                        "style-editor-container"
+                                    )
+                                    .classList.remove("open")
+                            }
+                        >
+                            <i className="fa fa-times"></i>
+                        </button>
+                    </div>
+
+                    <div
+                        id="trait-editor-container"
+                        className="sidebar-section"
+                    ></div>
+                    <div
+                        id="style-manager-container"
+                        className="sidebar-section"
+                    ></div>
+                </div>
 
                 <div className="screen-area">
                     <div className="screen" id="screen">
@@ -1242,42 +1343,6 @@ export default function EditProposals({ id, name, template }) {
                         </div>
                         <div id="frameWrapper" className="frameWrapper empty">
                             {/* === SIDEBAR (DETAILS MODE) === */}
-                            <div
-                                id="style-editor-container"
-                                className="style-sidebar-left"
-                            >
-                                {/* Header Custom */}
-                                <div className="sidebar-header-custom">
-                                    <span id="sidebar-title-text">
-                                        SETTINGS
-                                    </span>
-                                    <button
-                                        onClick={() =>
-                                            document
-                                                .getElementById(
-                                                    "style-editor-container"
-                                                )
-                                                .classList.remove("open")
-                                        }
-                                        style={{
-                                            background: "none",
-                                            border: "none",
-                                            color: "white",
-                                        }}
-                                    >
-                                        <i className="fa fa-times"></i>
-                                    </button>
-                                </div>
-
-                                <div
-                                    id="trait-editor-container"
-                                    className="sidebar-section"
-                                ></div>
-                                <div
-                                    id="style-manager-container"
-                                    className="sidebar-section"
-                                ></div>
-                            </div>
 
                             <div
                                 id="gjs"
