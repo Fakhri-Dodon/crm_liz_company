@@ -251,7 +251,7 @@ export default function EmailIndex({ auth_permissions }) {
                                                     </svg>
                                                 </div>
                                                 <p className="text-gray-500 font-medium">
-                                                    No email logs found
+                                                    No email history found
                                                 </p>
                                                 <p className="text-sm text-gray-400 mt-1">
                                                     Sent emails will appear here

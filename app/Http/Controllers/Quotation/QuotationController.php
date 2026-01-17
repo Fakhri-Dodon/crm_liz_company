@@ -55,7 +55,7 @@ class QuotationController extends Controller {
             ->filter()
             ->values();
 
-        $query = Quotation::with(['lead', 'creator'])->where('deleted', 0);
+        $query = Quotation::with(['lead', 'creator', 'companyContactPerson'])->where('deleted', 0);
 
         // Filter Search
         $query->when($request->input('search'), function ($q, $search) {
@@ -138,9 +138,15 @@ class QuotationController extends Controller {
             ->pluck('lead_id');
         $availableLeads = Lead::where('deleted', 0)
             ->whereNotIn('id', $existingLeadIds)
-            ->select(['id', 'company_name', 'address', 'contact_person', 'email', 'phone', 'position'])
+            ->with(['contacts' => function($q) {
+                $q->where('deleted', 0);
+            }])
             ->get();
-        $companies = Company::where('deleted', 0)->with(['quotation', 'contacts' => function($query) {$query->where('deleted', 0);}, 'contactPersons.lead', 'lead'])->get();
+        $companies = Company::where('deleted', 0)
+            ->with(['lead', 'contacts' => function($q) {
+                $q->where('deleted', 0);
+            }])
+            ->get();
         
         $ppn = Ppn::where('deleted', 0)->get();
         
@@ -166,7 +172,8 @@ class QuotationController extends Controller {
         $validated = $request->validate([
             'client_type'     => 'required|string',
             'company_id'      => 'required', 
-            'number'          => 'required|',
+            'company_contact_person_id'      => 'required', 
+            'number'          => 'nullable',
             'date'            => 'required|date',
             'valid_until'     => 'nullable|date',
             'subject'         => 'required|string',
@@ -209,6 +216,7 @@ class QuotationController extends Controller {
 
                 $quotation = Quotation::create([
                     'lead_id'          => $leadId,
+                    'company_contact_person_id'    => $validated['company_contact_person_id'],
                     'quotation_number_formated_id' => $setting->id,
                     'quotation_statuses_id'        => $statusEntry->id,
                     'quotation_number' => $validated['number'], 
@@ -236,6 +244,8 @@ class QuotationController extends Controller {
                     ]);
                 }
 
+                $selectedContact = \App\Models\CompanyContactPerson::find($request->company_contact_person_id);
+
                 $managers = User::whereHas('role', function($q) {
                     $q->where('name', 'manager'); 
                 })->get();
@@ -251,8 +261,8 @@ class QuotationController extends Controller {
                         'status'           => 'draft',
                         'url'              => "/storage/quotations/{$quotation->id}",
                         'message'          => "Quotation baru #{$quotation->quotation_number} menunggu persetujuan.",
-                        'contact_person'   => $quotation->lead->contact_person ?? 'No Name',
-                        'email'            => $quotation->lead->email ?? null,
+                        'contact_person'   => $selectedContact->name ?? 'No Name',
+                        'email'            => $selectedContact->email ?? null,
                     ]));
                 }
 
@@ -307,7 +317,9 @@ class QuotationController extends Controller {
 
         $availableLeads = Lead::where('deleted', 0)
             ->whereNotIn('id', $existingLeadIds)
-            ->select(['id', 'company_name', 'address', 'contact_person', 'email', 'phone'])
+            ->with(['contacts' => function($q) {
+                $q->where('deleted', 0);
+            }])
             ->get();
 
         // PERBAIKAN: Gunakan 'contacts' bukan 'contactPersons'
@@ -321,7 +333,7 @@ class QuotationController extends Controller {
             ])->get();
 
         // Load data quotation dengan relationships yang benar
-        $quotation->load(['items', 'lead', 'company', 'company.contacts', 'creator.role']);
+        $quotation->load(['items', 'lead', 'company', 'company.contacts', 'creator.role', 'companyContactPerson']);
         
         $isClient = false;
         if ($quotation->company) {
@@ -348,6 +360,7 @@ class QuotationController extends Controller {
      */
     public function update(Request $request, Quotation $quotation)
     {
+        // dd($request->all());
         if ($request->has('services')) {
             $decodedServices = is_string($request->services) 
                 ? json_decode($request->services, true) 
@@ -359,7 +372,7 @@ class QuotationController extends Controller {
         $validated = $request->validate([
             'client_type'     => 'required|string',
             'company_id'      => 'required', 
-            'contact_person'  => 'required|string',
+            'company_contact_person_id' => 'nullable',
             'email'           => 'nullable|email',
             'phone'           => 'nullable',
             'number'          => 'required',
@@ -401,20 +414,16 @@ class QuotationController extends Controller {
             }
 
             $leadId = null;
-
-            if ($validated['client_type'] === 'Client') {
+           if ($validated['client_type'] === 'Client') {
                 $company = Company::find($validated['company_id']);
-                
-            if (!$company) {
-                throw new \Exception("Data Client tidak ditemukan.");
-            }
-                $leadId = $company->lead_id; 
+                $leadId = $company ? $company->lead_id : null;
             } else {
                 $leadId = $validated['company_id'];
             }
 
             $quotation->update([
                 'lead_id'       => $leadId, 
+                'company_contact_person_id'    => $validated['company_contact_person_id'],
                 'quotation_number_formated_id' => $setting->id,
                 'quotation_statuses_id'        => $statusEntry->id,
                 'date'          => $validated['date'],
@@ -443,6 +452,8 @@ class QuotationController extends Controller {
                 ]);
             }
 
+            $selectedContact = \App\Models\CompanyContactPerson::find($request->company_contact_person_id);
+
             auth()->user()->notifications()
                 ->where('data->id', $quotation->id)
                 ->delete();
@@ -463,8 +474,8 @@ class QuotationController extends Controller {
                     'status'           => 'draft',
                     'url'              => "/storage/{$quotation->pdf_path}",
                     'message'          => "Quotation #{$quotation->quotation_number} telah diperbarui dan siap di-review ulang.",
-                    'contact_person'   => $quotation->lead->contact_person ?? 'No Name',
-                    'email'            => $quotation->lead->email ?? null,
+                    'contact_person'   => $selectedContact->name ?? 'No Name',
+                    'email'            => $selectedContact->email ?? null,
                 ]));
             }
 
@@ -539,7 +550,7 @@ class QuotationController extends Controller {
 
     public function notificationUpdateStatus(Request $request, $id) 
     {
-        // dd("notif", $request->all());
+        // dd("notif", $request->all(), $id);
 
         $request->validate([
             'status' => 'required|in:draft,approved,revised,sent,accepted,expired,rejected',
@@ -553,6 +564,13 @@ class QuotationController extends Controller {
         }
 
         $quotation = Quotation::where('id', $id)->where('deleted', 0)->firstOrFail();
+
+        $managerNotif = auth()->user()->notifications()
+        ->where('data->id', $id)
+        ->first();
+
+        $capturedContactName  = $managerNotif->data['contact_person'] ?? 'No Name';
+        $capturedContactEmail = $managerNotif->data['email'] ?? null;
 
         $updateData = [
             'status' => $request->status, 
@@ -581,8 +599,8 @@ class QuotationController extends Controller {
 
             }
 
-            $contactPerson = $quotation->lead->contact_person ?? 'No Name';
-            $contactEmail = $quotation->lead->email ?? null;
+            // $contactPerson = $quotation->lead->contact_person ?? 'No Name';
+            // $contactEmail = $quotation->lead->email ?? null;
 
             $creator->notify(new DocumentNotification([
                 'id'     => $quotation->id,
@@ -591,8 +609,8 @@ class QuotationController extends Controller {
                 'type' => 'quotation',
                 'revision_note' => $request->revision_note,
                 'status'  => $request->status,
-                'contact_person' => $contactPerson,
-                'email'          => $contactEmail,
+                'contact_person' => $capturedContactName,
+                'email'          => $capturedContactEmail,
             ]));
         }
 

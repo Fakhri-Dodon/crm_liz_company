@@ -21,6 +21,7 @@ class Quotation extends Model
     protected $fillable = [
         'id',
         'lead_id',
+        'company_contact_person_id',
         'quotation_number_formated_id', // Tambahkan ini
         'quotation_statuses_id',
         'quotation_number',
@@ -105,6 +106,10 @@ class Quotation extends Model
         return $this->hasOne(Project::class);
     }
 
+    public function companyContactPerson()
+    {
+        return $this->belongsTo(CompanyContactPerson::class, 'company_contact_person_id');
+    }
     /**
      * Relasi ke company (jika ada)
      */

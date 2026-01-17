@@ -275,6 +275,8 @@ class InvoiceController extends Controller
                     ]);
                 }
 
+                $selectedContact = \App\Models\CompanyContactPerson::find($request->contact_person_id);
+
                 // Notify managers about new invoice (like quotations)
                 $managers = User::whereHas('role', function($q) {
                     $q->where('name', 'manager');
@@ -292,8 +294,8 @@ class InvoiceController extends Controller
                         'status'           => $statusName,
                         'url'              => "/storage/{$invoice->pdf_path}",
                         'message'          => "Invoice baru #{$invoice->invoice_number} menunggu persetujuan.",
-                        'contact_person'   => $invoice->contactPerson && ($invoice->contactPerson->name ?? null) ? ($invoice->contactPerson->name ?? ($invoice->contactPerson->lead->contact_person ?? 'No Name')) : ($invoice->contactPerson && $invoice->contactPerson->lead ? $invoice->contactPerson->lead->contact_person : 'No Name'),
-                        'email'            => $invoice->contactPerson && ($invoice->contactPerson->email ?? null) ? ($invoice->contactPerson->email ?? ($invoice->contactPerson->lead->email ?? null)) : ($invoice->contactPerson && $invoice->contactPerson->lead ? $invoice->contactPerson->lead->email : null),
+                        'contact_person'   => $selectedContact->name ?? 'No Name',
+                        'email'            => $selectedContact->email ?? null,
                     ]));
                 }
 
@@ -612,6 +614,8 @@ class InvoiceController extends Controller
                     ->where('data->id', $invoice->id)
                     ->delete();
 
+                $selectedContact = \App\Models\CompanyContactPerson::find($request->contact_person_id);
+
                 $managers = User::whereHas('role', function($q) {
                     $q->where('name', 'manager');
                 })->get();
@@ -628,8 +632,8 @@ class InvoiceController extends Controller
                         'status'           => $invoice->status,
                         'url'              => "/storage/{$invoice->pdf_path}",
                         'message'          => "Invoice #{$invoice->invoice_number} telah diperbarui dan siap di-review ulang.",
-                        'contact_person'   => $invoice->contactPerson && ($invoice->contactPerson->name ?? null) ? ($invoice->contactPerson->name ?? ($invoice->contactPerson->lead->contact_person ?? 'No Name')) : ($invoice->contactPerson && $invoice->contactPerson->lead ? $invoice->contactPerson->lead->contact_person : 'No Name'),
-                        'email'            => $invoice->contactPerson && ($invoice->contactPerson->email ?? null) ? ($invoice->contactPerson->email ?? ($invoice->contactPerson->lead->email ?? null)) : ($invoice->contactPerson && $invoice->contactPerson->lead ? $invoice->contactPerson->lead->email : null),
+                        'contact_person'   => $selectedContact->name ?? 'No Name',
+                        'email'            => $selectedContact->email ?? null,
                     ]));
                 }
 

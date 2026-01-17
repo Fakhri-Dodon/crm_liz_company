@@ -57,6 +57,7 @@ export default function Create({
         company_id: null,
         company_name: null,
         address: "",
+        company_contact_person_id: "",
         contact_person: "",
         position: "",
         email: "",
@@ -483,103 +484,6 @@ export default function Create({
                         }));
                     };
 
-                    // const handleSelectionChange = (id) => {
-                    //     const isClient = data.client_type === "Client";
-                    //     const source = isClient ? companies : leads;
-
-                    //     const selected = source.find(
-                    //         (item) => String(item.id) === String(id)
-                    //     );
-
-                    //     if (selected) {
-                    //         const dataSource = isClient ? selected.lead : selected;
-                    //         const correctLeadId = isClient ? selected.lead_id : selected.id;
-                    //         const correctCompanyId = isClient ? selected.id : null;
-
-                    //         const updateData = {
-                    //             company_id: correctCompanyId,
-                    //             lead_id: correctLeadId,
-                    //             company_name: isClient
-                    //                 ? (selected.lead?.company_name || selected.client_code)
-                    //                 : selected.company_name,
-                    //             address: dataSource?.address || "",
-                    //             contact_person_id: "",
-                    //             contact_person: "",
-                    //             email: "",
-                    //             phone: "",
-                    //             position: "",
-                    //         };
-                    //         Object.entries(updateData).forEach(([field, value]) => builderUpdate(field, value));
-                    //         setData((prev) => ({ ...prev, ...updateData }));
-                    //     }
-                    // };
-                    // const currentOptions =
-                    //     data.client_type === "Client"
-                    //         ? companies || []
-                    //         : leads || [];
-
-                    // // const handleContactChange = (contactName) => {
-                    // //     updateField("contact_person", contactName);
-                    // //     const sourceDB =
-                    // //         data.client_type === "LEAD" ? leadsDB : clientsDB;
-                    // //     const currentCompany = sourceDB.find(
-                    // //         (c) => c.name === data.company_name
-                    // //     );
-
-                    // //     const selectedContact = currentCompany?.contacts.find(
-                    // //         (ct) => ct.name === contactName
-                    // //     );
-
-                    // //     if (selectedContact) {
-                    // //         updateField("email", selectedContact.email);
-                    // //         updateField("phone", selectedContact.phone);
-                    // //         updateField("position", selectedContact.position);
-                    // //     } else {
-                    // //         updateField("email", "");
-                    // //         updateField("phone", "");
-                    // //         updateField("position", "");
-                    // //     }
-                    // // };
-
-                    // const handleContactChange = (contactId) => {
-                    //     const isClient = data.client_type === "Client";
-                    //     const source = isClient ? companies : leads;
-                    //     const selectedOrg = source.find(
-                    //         (c) => String(c.id) === String(data.company_id)
-                    //     );
-
-                    //     if (selectedOrg) {
-                    //         const personRow = isClient
-                    //             ? selectedOrg.contact_persons?.find(
-                    //                 (p) => String(p.id) === String(contactId)
-                    //             )
-                    //             : String(selectedOrg.id) === String(contactId)
-                    //             ? selectedOrg
-                    //             : null;
-
-                    //         if (personRow) {
-                    //             const dataSource = isClient
-                    //                 ? personRow.lead
-                    //                 : selectedOrg;
-
-                    //             const finalData = {
-                    //                 contact_person_id: contactId,
-                    //                 contact_person: dataSource?.contact_person || "",
-                    //                 email: dataSource?.email || "",
-                    //                 phone: dataSource?.phone || "",
-                    //                 position: isClient
-                    //                     ? personRow.position || ""
-                    //                     : "",
-                    //             };
-                    //             Object.entries(finalData).forEach(([f, v]) =>
-                    //                 builderUpdate(f, v)
-                    //             );
-
-                    //             setData((prev) => ({ ...prev, ...finalData }));
-                    //         }
-                    //     }
-                    // };
-
                     const handleSelectionChange = (id) => {
                         const isClient = data.client_type === "Client";
                         const source = isClient ? companies : leads;
@@ -593,23 +497,47 @@ export default function Create({
                                 ? selected.lead
                                 : selected;
 
+                            const availableContacts = selected.contacts || selected.contact_persons || [];
+
+                            let autoContactId = "";
+                            let autoContactName = "";
+                            let autoPosition = "";
+                            let autoEmail = "";
+                            let autoPhone = "";
+
+                            if (availableContacts.length === 1) {
+                                const first = availableContacts[0];
+                                autoContactId = String(first.id);
+                                autoContactName = first.name || first.contact_person || "";
+                                autoPosition = first.position || first.job_title || "";
+                                autoEmail = first.email || "";
+                                autoPhone = first.phone || first.mobile || "";
+                            }
+
+                            // if (!isClient) {
+                            //     autoContactId = String(selected.id);
+                            //     autoContactName = selected.contact_person || selected.company_name || "";
+                            //     autoPosition = selected.position || "Owner/PIC";
+                            //     autoEmail = selected.email || "";
+                            //     autoPhone = selected.phone || selected.mobile || "";
+                            // }
+
                             const updateData = {
-                                // Gunakan ID asli dari record yang dipilih agar dropdown tersinkron
                                 company_id: selected.id,
-                                lead_id: isClient
-                                    ? selected.lead_id
-                                    : selected.id,
+                                lead_id: isClient ? selected.lead_id : selected.id,
+                                
                                 company_name: isClient
-                                    ? selected.lead?.company_name ||
-                                      selected.client_code
+                                    ? (selected.lead?.company_name || selected.client_code)
                                     : selected.company_name,
-                                address: dataSource?.address || "",
-                                // Reset contact setiap kali ganti company
-                                contact_person_id: "",
-                                contact_person: "",
-                                email: "",
-                                phone: "",
-                                position: "",
+                                
+                                address: (isClient ? selected.lead?.address : selected.address) || "",
+                                
+                                // Set Data Kontak
+                                company_contact_person_id: autoContactId,
+                                contact_person: autoContactName,
+                                position: autoPosition,
+                                email: autoEmail,
+                                phone: autoPhone,
                             };
 
                             // Update UI Builder dan Local State
@@ -633,55 +561,36 @@ export default function Create({
                         );
 
                         if (selectedOrg) {
-                            let personRow = null;
+                            const contactsArr = selectedOrg.contacts || selectedOrg.contact_persons || [];
 
-                            if (isClient) {
-                                personRow = selectedOrg.contact_persons?.find(
-                                    (p) => String(p.id) === String(contactId)
-                                );
-                            } else {
-                                personRow = selectedOrg;
-                            }
+                            const personRow = contactsArr.find(
+                                (p) => String(p.id) === String(contactId)
+                            );
+
+                            // if (isClient) {
+                            //     personRow = selectedOrg.contact_persons?.find(
+                            //         (p) => String(p.id) === String(contactId)
+                            //     );
+                            // } else {
+                            //     personRow = selectedOrg;
+                            //     if (String(selectedOrg.id) === String(contactId)) {
+                            //         personRow = selectedOrg;
+                            //     }
+                            // }
 
                             if (personRow) {
                                 const finalData = {
-                                    contact_person_id: contactId,
-                                    contact_person: isClient
-                                        ? personRow.lead?.contact_person ||
-                                          selectedOrg.lead?.contact_person ||
-                                          "---"
-                                        : selectedOrg.contact_person || "",
-
-                                    email: isClient
-                                        ? personRow.lead?.email ||
-                                          selectedOrg.lead?.email ||
-                                          ""
-                                        : personRow.email || "",
-
-                                    phone: isClient
-                                        ? personRow.lead?.phone ||
-                                          selectedOrg.lead?.phone ||
-                                          ""
-                                        : personRow.phone || "",
-
-                                    position: isClient
-                                        ? personRow.position || ""
-                                        : selectedOrg.job_title ||
-                                          selectedOrg.position ||
-                                          "",
+                                    company_contact_person_id: contactId,
+                                    // Pastikan key object sesuai dengan respon database (biasanya 'name' untuk tabel contacts)
+                                    contact_person: personRow.name || personRow.contact_person || "",
+                                    email: personRow.email || "",
+                                    phone: personRow.phone || personRow.mobile || "",
+                                    position: personRow.position || personRow.job_title || "",
                                 };
 
-                                console.log(
-                                    "Data yang dikirim ke builder:",
-                                    finalData
+                                Object.entries(finalData).forEach(([f, v]) =>
+                                    builderUpdate(f, v)
                                 );
-
-                                Object.entries(finalData).forEach(([f, v]) => {
-                                    if (typeof builderUpdate === "function") {
-                                        builderUpdate(f, v);
-                                    }
-                                });
-
                                 setData((prev) => ({ ...prev, ...finalData }));
                             }
                         }
@@ -868,7 +777,7 @@ export default function Create({
                                 </label>
                                 <select
                                     className="w-full border-gray-300 rounded text-sm"
-                                    value={data.contact_person_id || ""}
+                                    value={data.company_contact_person_id || ""}
                                     onChange={(e) =>
                                         handleContactChange(e.target.value)
                                     }
@@ -883,44 +792,34 @@ export default function Create({
                                             ? companies
                                             : leads;
                                         const selectedOrg = source.find(
-                                            (c) =>
-                                                String(c.id) ===
-                                                String(data.company_id)
+                                            (c) => String(c.id) === String(data.company_id)
                                         );
 
                                         if (!selectedOrg) return null;
 
-                                        let contacts =
-                                            selectedOrg.contact_persons || [];
-                                        if (
-                                            contacts.length === 0 &&
-                                            !isClient
-                                        ) {
-                                            contacts = [{ id: selectedOrg.id }];
-                                        }
+                                        const contacts = selectedOrg.contacts || selectedOrg.contact_persons || [];
+                                        // if (isClient) {
+                                        //     // Ambil dari array contacts
+                                        //     contacts = selectedOrg.contact_persons || selectedOrg.contacts || [];
+                                        // } else {
+                                        //     contacts = [{ 
+                                        //         id: selectedOrg.id,
+                                        //         name: selectedOrg.contact_person || "Main Contact",
+                                        //         position: selectedOrg.position || "Owner/PIC" 
+                                        //     }];
+                                        // }
 
                                         return contacts.map((ct) => {
-                                            const labelName = isClient
-                                                ? selectedOrg.lead
-                                                      ?.contact_person ||
-                                                  "No Name"
-                                                : selectedOrg.contact_person ||
-                                                  "No Name";
-
-                                            // Tentukan apakah perlu menampilkan posisi
-                                            // Hanya muncul jika tipe Client DAN field position ada
-                                            const positionDisplay =
-                                                isClient && ct.position
-                                                    ? ` (${ct.position})`
-                                                    : "";
+                                            const name = ct.name || ct.contact_person || "No Name";
+                                            const pos = ct.position ? ` (${ct.position})` : "";
 
                                             return (
                                                 <option
                                                     key={ct.id}
                                                     value={ct.id}
                                                 >
-                                                    {labelName}
-                                                    {positionDisplay}
+                                                    {name}
+                                                    {pos}
                                                 </option>
                                             );
                                         });
