@@ -1934,19 +1934,14 @@ public function updateInvoice($companyId, $invoiceId, Request $request)
         }
     }
     
-    /**
-     * Update a payment
-     */
-/**
- * Update a payment (SIMPLIFIED VERSION)
- */
 public function updatePayment(Request $request, $companyId, $paymentId)
 {
+    DB::beginTransaction();
     try {
         Log::info('=== UPDATE PAYMENT REQUEST ===');
         Log::info('Company ID: ' . $companyId);
         Log::info('Payment ID: ' . $paymentId);
-        Log::info('Request data:', $request->all());
+        Log::info('Request amount: ' . $request->amount);
         
         $validator = Validator::make($request->all(), [
             'amount' => 'required|numeric|min:1',
@@ -1957,7 +1952,6 @@ public function updatePayment(Request $request, $companyId, $paymentId)
         ]);
 
         if ($validator->fails()) {
-            Log::warning('Validation failed:', $validator->errors()->toArray());
             return response()->json([
                 'success' => false,
                 'message' => 'Validasi gagal',
@@ -1965,6 +1959,315 @@ public function updatePayment(Request $request, $companyId, $paymentId)
             ], 422);
         }
 
+        // 1. Cari payment dengan relasi invoice
+        $payment = Payment::with(['invoice' => function($query) {
+            $query->select('id', 'total', 'invoice_amout', 'amount_due', 'status', 'company_contact_persons_id');
+        }])->find($paymentId);
+        
+        if (!$payment) {
+            Log::error('Payment not found: ' . $paymentId);
+            return response()->json([
+                'success' => false,
+                'message' => 'Payment tidak ditemukan'
+            ], 404);
+        }
+
+        Log::info('Found payment:', [
+            'id' => $payment->id,
+            'invoice_id' => $payment->invoice_id,
+            'current_amount' => $payment->amount,
+            'new_amount_request' => $request->amount
+        ]);
+
+        // 2. Cek invoice
+        $invoice = $payment->invoice;
+        if (!$invoice) {
+            Log::error('Invoice not found for payment: ' . $payment->invoice_id);
+            return response()->json([
+                'success' => false,
+                'message' => 'Invoice tidak ditemukan untuk payment ini'
+            ], 404);
+        }
+
+        Log::info('Found invoice:', [
+            'id' => $invoice->id,
+            'total' => $invoice->total,
+            'invoice_amout' => $invoice->invoice_amout,
+            'current_amount_due' => $invoice->amount_due
+        ]);
+
+        // 3. BYPASS COMPANY VALIDATION UNTUK TESTING - FOKUS KE UPDATE AMOUNT DUE
+        Log::warning('BYPASSING COMPANY VALIDATION FOR TESTING');
+        
+        /*
+        // Jika mau validasi, uncomment ini:
+        if ($invoice->company_contact_persons_id) {
+            $contactPerson = CompanyContactPerson::find($invoice->company_contact_persons_id);
+            if ($contactPerson && $contactPerson->company_id && $contactPerson->company_id != $companyId) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Payment tidak termasuk dalam company ini'
+                ], 403);
+            }
+        }
+        */
+
+        // 4. SIMPAN OLD AMOUNT UNTUK PERHITUNGAN
+        $oldAmount = $payment->amount;
+        $newAmount = $request->amount;
+        $amountDifference = $newAmount - $oldAmount;
+        
+        Log::info('Amount calculation:', [
+            'old_amount' => $oldAmount,
+            'new_amount' => $newAmount,
+            'difference' => $amountDifference
+        ]);
+
+        // 5. HITUNG TOTAL INVOICE (gunakan yang ada)
+        $totalInvoice = $invoice->total ?: ($invoice->invoice_amout ?: 0);
+        
+        Log::info('Invoice totals:', [
+            'total' => $invoice->total,
+            'invoice_amout' => $invoice->invoice_amout,
+            'used_total' => $totalInvoice
+        ]);
+
+        // 6. HITUNG TOTAL PAYMENTS YANG AKTIF UNTUK INVOICE INI
+        // INI BAGIAN PENTING: Hitung semua payment kecuali yang deleted
+        $existingPayments = Payment::where('invoice_id', $invoice->id)
+            ->where('id', '!=', $paymentId) // Exclude payment yang sedang diupdate
+            ->where('deleted', 0)
+            ->sum('amount');
+        
+        $totalAfterUpdate = $existingPayments + $newAmount;
+        
+        Log::info('Payment calculations:', [
+            'existing_payments_sum' => $existingPayments,
+            'new_payment_amount' => $newAmount,
+            'total_after_update' => $totalAfterUpdate,
+            'invoice_total' => $totalInvoice
+        ]);
+
+        // 7. VALIDASI: Total payments tidak boleh melebihi invoice total
+        if ($totalAfterUpdate > $totalInvoice) {
+            Log::warning('Payment exceeds invoice total:', [
+                'total_invoice' => $totalInvoice,
+                'total_payments' => $totalAfterUpdate
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Total pembayaran melebihi jumlah invoice. ' .
+                            'Max yang boleh: Rp ' . number_format($totalInvoice - $existingPayments, 0, ',', '.')
+            ], 422);
+        }
+
+        // 8. UPDATE PAYMENT
+        $payment->update([
+            'amount' => $newAmount,
+            'method' => $request->method,
+            'date' => $request->date,
+            'bank' => $request->bank,
+            'note' => $request->note,
+            'updated_by' => auth()->id(),
+            'updated_at' => now()
+        ]);
+
+        Log::info('Payment updated successfully');
+
+        // 9. CALCULATE NEW AMOUNT DUE - INI BAGIAN YANG PERLU DIPERBAIKI!
+        // Cara 1: Hitung dari awal berdasarkan semua payments
+        $allPaymentsSum = Payment::where('invoice_id', $invoice->id)
+            ->where('deleted', 0)
+            ->sum('amount');
+        
+        $newAmountDue = $totalInvoice - $allPaymentsSum;
+        
+        // Pastikan tidak negatif
+        $newAmountDue = max(0, $newAmountDue);
+        
+        Log::info('New amount due calculation:', [
+            'method' => 'recalculate_from_scratch',
+            'total_invoice' => $totalInvoice,
+            'all_payments_sum' => $allPaymentsSum,
+            'new_amount_due' => $newAmountDue,
+            'old_amount_due' => $invoice->amount_due
+        ]);
+
+        // 10. UPDATE INVOICE AMOUNT_DUE
+        $invoice->update([
+            'amount_due' => $newAmountDue,
+            'updated_by' => auth()->id(),
+            'updated_at' => now()
+        ]);
+
+        Log::info('Invoice amount_due updated');
+
+        // 11. UPDATE INVOICE STATUS
+        $this->updateInvoiceStatus($invoice);
+
+        // 12. COMMIT TRANSACTION
+        DB::commit();
+
+        // 13. RETURN RESPONSE
+        return response()->json([
+            'success' => true,
+            'message' => 'Payment berhasil diupdate',
+            'data' => [
+                'payment' => [
+                    'id' => $payment->id,
+                    'old_amount' => $oldAmount,
+                    'new_amount' => $payment->amount,
+                    'difference' => $amountDifference
+                ],
+                'invoice' => [
+                    'id' => $invoice->id,
+                    'invoice_number' => $invoice->invoice_number,
+                    'old_amount_due' => $invoice->getOriginal('amount_due'),
+                    'new_amount_due' => $newAmountDue,
+                    'total_invoice' => $totalInvoice,
+                    'total_paid' => $allPaymentsSum
+                ],
+                'calculation_details' => [
+                    'total_invoice' => $totalInvoice,
+                    'all_payments_sum' => $allPaymentsSum,
+                    'amount_difference' => $amountDifference
+                ]
+            ]
+        ]);
+
+    } catch (\Exception $e) {
+        DB::rollBack();
+        Log::error('Error updating payment: ' . $e->getMessage());
+        Log::error('Stack trace: ' . $e->getTraceAsString());
+        
+        return response()->json([
+            'success' => false,
+            'message' => 'Gagal mengupdate payment: ' . $e->getMessage()
+        ], 500);
+    }
+}
+
+/**
+ * Helper function untuk update invoice status
+ */
+/**
+ * Update invoice status berdasarkan pembayaran
+ */
+private function updateInvoiceStatus($invoice)
+{
+    try {
+        // Hitung total invoice
+        $totalInvoice = $invoice->total ?: ($invoice->invoice_amout ?: 0);
+        
+        if ($totalInvoice == 0) {
+            Log::warning('Invoice total is 0, skipping status update');
+            return;
+        }
+        
+        // Hitung total payment yang aktif
+        $totalPaid = Payment::where('invoice_id', $invoice->id)
+            ->where('deleted', 0)
+            ->sum('amount');
+        
+        Log::info('Status calculation:', [
+            'invoice_id' => $invoice->id,
+            'total_invoice' => $totalInvoice,
+            'total_paid' => $totalPaid,
+            'percentage' => ($totalPaid / $totalInvoice) * 100
+        ]);
+        
+        // Tentukan status
+        $newStatus = 'Unpaid';
+        
+        if ($totalPaid >= $totalInvoice) {
+            $newStatus = 'Paid';
+        } elseif ($totalPaid > 0) {
+            $newStatus = 'Partial';
+        }
+        
+        // Update jika status berubah
+        if ($invoice->status != $newStatus) {
+            $oldStatus = $invoice->status;
+            $invoice->update(['status' => $newStatus]);
+            
+            Log::info('Invoice status updated:', [
+                'invoice_id' => $invoice->id,
+                'old_status' => $oldStatus,
+                'new_status' => $newStatus
+            ]);
+        }
+        
+    } catch (\Exception $e) {
+        Log::error('Error in updateInvoiceStatus: ' . $e->getMessage());
+    }
+}
+
+/**
+ * Helper function untuk recalculate invoice amount_due setelah delete/update
+ */
+private function recalculateInvoiceAmountDue($invoiceId)
+{
+    try {
+        $invoice = Invoice::find($invoiceId);
+        if (!$invoice) {
+            Log::warning('Invoice not found for recalc: ' . $invoiceId);
+            return null;
+        }
+        
+        // Hitung total invoice
+        $totalInvoice = $invoice->total ?: ($invoice->invoice_amout ?: 0);
+        
+        // Hitung total payment yang aktif (tidak deleted)
+        $totalPaid = Payment::where('invoice_id', $invoiceId)
+            ->where('deleted', 0)
+            ->sum('amount');
+        
+        // Hitung amount_due baru
+        $newAmountDue = $totalInvoice - $totalPaid;
+        
+        // Pastikan tidak negatif
+        $newAmountDue = max(0, $newAmountDue);
+        
+        // Update invoice
+        $invoice->update([
+            'amount_due' => $newAmountDue,
+            'updated_at' => now()
+        ]);
+        
+        // Update status
+        $this->updateInvoiceStatus($invoice);
+        
+        Log::info('Invoice recalculated:', [
+            'invoice_id' => $invoiceId,
+            'total_invoice' => $totalInvoice,
+            'total_paid' => $totalPaid,
+            'new_amount_due' => $newAmountDue
+        ]);
+        
+        return [
+            'total_invoice' => $totalInvoice,
+            'total_paid' => $totalPaid,
+            'amount_due' => $newAmountDue
+        ];
+        
+    } catch (\Exception $e) {
+        Log::error('Error recalculating invoice: ' . $e->getMessage());
+        return null;
+    }
+}
+
+/**
+ * Delete a payment (soft delete) dan update invoice
+ */
+public function destroyPayment(Request $request, $companyId, $paymentId)
+{
+    DB::beginTransaction();
+    try {
+        Log::info('=== DELETE PAYMENT REQUEST ===');
+        Log::info('Company ID: ' . $companyId);
+        Log::info('Payment ID: ' . $paymentId);
+        
         // 1. Cari payment
         $payment = Payment::find($paymentId);
         
@@ -1976,15 +2279,7 @@ public function updatePayment(Request $request, $companyId, $paymentId)
             ], 404);
         }
 
-        Log::info('Payment found:', [
-            'id' => $payment->id,
-            'invoice_id' => $payment->invoice_id
-        ]);
-
-        // 2. Update payment langsung (HAPUS VALIDASI COMPANY UNTUK SEKARANG)
-        // Comment out validasi company untuk testing
-        /*
-        // Cek invoice untuk payment ini
+        // 2. Cek invoice untuk payment ini
         $invoice = Invoice::find($payment->invoice_id);
         if (!$invoice) {
             Log::warning('Invoice not found for payment: ' . $payment->invoice_id);
@@ -1994,7 +2289,7 @@ public function updatePayment(Request $request, $companyId, $paymentId)
             ], 404);
         }
 
-        // Cek contact person untuk invoice
+        // 3. Cek contact person untuk invoice
         $contactPerson = CompanyContactPerson::find($invoice->company_contact_persons_id);
         if (!$contactPerson) {
             Log::warning('Contact person not found: ' . $invoice->company_contact_persons_id);
@@ -2004,7 +2299,7 @@ public function updatePayment(Request $request, $companyId, $paymentId)
             ], 404);
         }
 
-        // Validasi bahwa contact person ini milik company yang dimaksud
+        // 4. Validasi bahwa contact person ini milik company yang dimaksud
         if ($contactPerson->company_id != $companyId) {
             Log::warning('Payment does not belong to company:', [
                 'payment_company_id' => $contactPerson->company_id,
@@ -2015,145 +2310,49 @@ public function updatePayment(Request $request, $companyId, $paymentId)
                 'message' => 'Payment tidak termasuk dalam company ini'
             ], 403);
         }
-        */
 
-        // 3. Update payment
+        // 5. Simpan amount payment sebelum dihapus
+        $paymentAmount = $payment->amount;
+        
+        // 6. Soft delete payment
         $payment->update([
-            'amount' => $request->amount,
-            'method' => $request->method,
-            'date' => $request->date,
-            'bank' => $request->bank,
-            'note' => $request->note,
-            'updated_by' => auth()->id(),
-            'updated_at' => now()
+            'deleted' => 1,
+            'deleted_by' => auth()->id(),
+            'deleted_at' => now()
         ]);
 
-        Log::info('Payment updated successfully:', [
-            'payment_id' => $payment->id,
-            'new_amount' => $payment->amount,
-            'new_method' => $payment->method
+        Log::info('Payment deleted successfully:', [
+            'payment_id' => $paymentId,
+            'amount' => $paymentAmount
         ]);
 
-        // 4. Return response
+        // 7. Recalculate invoice amount_due
+        $this->recalculateInvoiceAmountDue($payment->invoice_id);
+        
+        // 8. Commit transaction
+        DB::commit();
+
+        // 9. Return response
         return response()->json([
             'success' => true,
-            'message' => 'Payment berhasil diupdate',
+            'message' => 'Payment berhasil dihapus',
             'data' => [
-                'id' => $payment->id,
-                'amount' => $payment->amount,
-                'method' => $payment->method,
-                'date' => $payment->date,
-                'bank' => $payment->bank,
-                'note' => $payment->note,
-                'updated_at' => $payment->updated_at->format('Y-m-d H:i:s')
+                'id' => $paymentId,
+                'deleted' => 1,
+                'deleted_at' => now()->format('Y-m-d H:i:s')
             ]
         ]);
 
     } catch (\Exception $e) {
-        Log::error('Error updating payment: ' . $e->getMessage());
-        Log::error('Stack trace: ' . $e->getTraceAsString());
+        DB::rollBack();
+        Log::error('Error deleting payment: ' . $e->getMessage());
         
         return response()->json([
             'success' => false,
-            'message' => 'Gagal mengupdate payment: ' . $e->getMessage()
+            'message' => 'Gagal menghapus payment: ' . $e->getMessage()
         ], 500);
     }
 }
-
-    /**
-     * Delete a payment (soft delete)
-     */
-    public function destroyPayment(Request $request, $companyId, $paymentId)
-    {
-        try {
-            Log::info('=== DELETE PAYMENT REQUEST ===');
-            Log::info('Company ID: ' . $companyId);
-            Log::info('Payment ID: ' . $paymentId);
-            Log::info('User ID: ' . auth()->id());
-            
-            // 1. Cari payment
-            $payment = Payment::find($paymentId);
-            
-            if (!$payment) {
-                Log::warning('Payment not found: ' . $paymentId);
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Payment tidak ditemukan'
-                ], 404);
-            }
-
-            Log::info('Payment found:', [
-                'id' => $payment->id,
-                'invoice_id' => $payment->invoice_id,
-                'deleted' => $payment->deleted
-            ]);
-
-            // 2. Cek invoice untuk payment ini
-            $invoice = Invoice::find($payment->invoice_id);
-            if (!$invoice) {
-                Log::warning('Invoice not found for payment: ' . $payment->invoice_id);
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Invoice tidak ditemukan untuk payment ini'
-                ], 404);
-            }
-
-            // 3. Cek contact person untuk invoice
-            $contactPerson = CompanyContactPerson::find($invoice->company_contact_persons_id);
-            if (!$contactPerson) {
-                Log::warning('Contact person not found: ' . $invoice->company_contact_persons_id);
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Contact person tidak ditemukan'
-                ], 404);
-            }
-
-            // 4. Validasi bahwa contact person ini milik company yang dimaksud
-            if ($contactPerson->company_id != $companyId) {
-                Log::warning('Payment does not belong to company:', [
-                    'payment_company_id' => $contactPerson->company_id,
-                    'requested_company_id' => $companyId
-                ]);
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Payment tidak termasuk dalam company ini'
-                ], 403);
-            }
-
-            // 5. Soft delete payment
-            $payment->update([
-                'deleted' => 1,
-                'deleted_by' => auth()->id(),
-                'deleted_at' => now()
-            ]);
-
-            Log::info('Payment deleted successfully:', [
-                'payment_id' => $paymentId,
-                'deleted_by' => auth()->id(),
-                'deleted_at' => now()->format('Y-m-d H:i:s')
-            ]);
-
-            // 6. Return response
-            return response()->json([
-                'success' => true,
-                'message' => 'Payment berhasil dihapus',
-                'data' => [
-                    'id' => $paymentId,
-                    'deleted' => 1,
-                    'deleted_at' => now()->format('Y-m-d H:i:s')
-                ]
-            ]);
-
-        } catch (\Exception $e) {
-            Log::error('Error deleting payment: ' . $e->getMessage());
-            Log::error('Stack trace: ' . $e->getTraceAsString());
-            
-            return response()->json([
-                'success' => false,
-                'message' => 'Gagal menghapus payment: ' . $e->getMessage()
-            ], 500);
-        }
-    }
 
     /**
      * Bulk delete payments
