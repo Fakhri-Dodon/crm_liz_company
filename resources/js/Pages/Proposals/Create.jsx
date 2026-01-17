@@ -276,9 +276,9 @@ export default function Create({ id, template }) {
             panels: { defaults: [] },
             canvas: { 
                 styles: [
-                    "/templates/css/plugins/bootstrap.min.css", 
                     "/templates/css/style.css",
-                    "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css",
+                    "/templates/css/plugins/bootstrap.min.css",
+                    '/templates/css/font-awesome.min.css',
                 ],
                 scripts: [],
                 style: `
@@ -364,7 +364,10 @@ export default function Create({ id, template }) {
                     editor.BlockManager.add(`template-${index}`, {
                         category: tpl.category || "Templates",
                         media: `<img src="${tpl.preview}" style="width: 100%;" />`,
-                        content: { content: tpl.html, style: tpl.css },
+                        content: { 
+                                content: `<input type="hidden" data-template-category="${tpl.category || 'Templates'}">${tpl.html}`, 
+                                style: tpl.css 
+                            },
                     });
                 });
             }).finally(() => setLoading(false));
@@ -434,17 +437,22 @@ export default function Create({ id, template }) {
                     view.el.focus();
                 }
             }
+            markDirty();
         });
 
         // 2. SAAT KLIK RUANG KOSONG (DESELECT) -> TUTUP SIDEBAR
         editor.on("component:deselected", () => {
+            markDirty();
             const sidebar = document.getElementById("style-editor-container");
             if (sidebar) sidebar.style.display = 'none';
         });
 
         editor.on("component:add", (component) => {
+            markDirty();
             setTimeout(() => applyComponentSettings(component, activeModeRef.current), 50);
         });
+
+        const markDirty = () => setIsDirty(true);
 
         return () => editor.destroy();
     }, []);
@@ -521,22 +529,20 @@ export default function Create({ id, template }) {
             reader.readAsDataURL(imageBlob);
         });
 
+        const form = new FormData();
+        form.append("id", id);
+        form.append("html", html);
+        form.append("css", finalUsedCss);
+        form.append("image", imageBase64);
+        categoriesUsed.forEach(c => form.append("categories[]", c));
+
         const res = await fetch("/proposal", {
             method: "POST",
             headers: {
-                "Content-Type": "application/json",
-                Accept: "application/json",
-                "X-CSRF-TOKEN": document
-                    .querySelector('meta[name="csrf-token"]')
-                    .getAttribute("content"),
+                "Accept": "application/json",
+                "X-CSRF-TOKEN": document.querySelector('meta[name="csrf-token"]').content,
             },
-            body: JSON.stringify({
-                id: id,
-                html: html,
-                css: finalUsedCss,
-                categories: categoriesUsed,
-                image: imageBase64,
-            }),
+            body: form,
         });
 
         const savePage = await res.json();
@@ -1119,14 +1125,12 @@ export default function Create({ id, template }) {
                             onClick={savePage}
                             disabled={!isDirty}
                             className={`
-                            inline-flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium
-                            transition
-                            ${
-                                isDirty
+                                inline-flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium
+                                transition
+                                ${isDirty
                                     ? "bg-emerald-600 text-white hover:bg-emerald-700"
-                                    : "cursor-not-allowed bg-emerald-200 text-emerald-700"
-                            }
-                        `}
+                                    : "cursor-not-allowed bg-emerald-200 text-emerald-700"}
+                            `}
                         >
                             ✓ {isDirty ? "Save Page" : "Nothing new to save"}
                         </button>
@@ -1156,6 +1160,39 @@ export default function Create({ id, template }) {
                         </button>
                     </div>
                 </header>
+                <div
+                    id="style-editor-container"
+                    className={`style-sidebar-left ${
+                        activeMode === "details" ? "open" : ""
+                    }`}
+                >
+                    {/* Header Custom */}
+                    <div className="sidebar-header-custom">
+                        <span id="sidebar-title-text">
+                            <h3>SETTINGS</h3>
+                        </span>
+                        <button
+                            onClick={() =>
+                                document
+                                    .getElementById(
+                                        "style-editor-container"
+                                    )
+                                    .classList.remove("open")
+                            }
+                        >
+                            <i className="fa fa-times"></i>
+                        </button>
+                    </div>
+
+                    <div
+                        id="trait-editor-container"
+                        className="sidebar-section"
+                    ></div>
+                    <div
+                        id="style-manager-container"
+                        className="sidebar-section"
+                    ></div>
+                </div>
 
                 <div className="screen-area">
                     <div className="screen" id="screen">
@@ -1166,97 +1203,11 @@ export default function Create({ id, template }) {
                                 <span className="left green"></span>
                             </div>
                             <div className="title">
-                                <span>index.html</span>
+                                <span>{name}.html</span>
                             </div>
                         </div>
                         <div id="frameWrapper" className="frameWrapper empty">
                             {/* === SIDEBAR (DETAILS MODE) === */}
-                            <div
-                                id="style-editor-container"
-                                style={{
-                                    display: 'none',
-                                    flexDirection: "column",
-                                    position: "absolute",
-                                    left: 0, // Menempel di kiri
-                                    top: 0,
-                                    bottom: 0,
-                                    width: "240px", // Lebar panel standar flat ui
-                                    backgroundColor: "#2f4154", // Warna gelap Flat UI
-                                    zIndex: 100, // Di atas canvas
-                                    borderRight: "1px solid #222",
-                                    padding: "0",
-                                    overflowY: "auto",
-                                }}
-                            >
-                                {/* Header Panel */}
-                                <div
-                                    style={{
-                                        padding: "15px",
-                                        background: "#1abc9c", // Warna Hijau Tosca Flat UI
-                                        color: "white",
-                                        fontWeight: "bold",
-                                        fontSize: "13px",
-                                        textTransform: "uppercase",
-                                        display: "flex",
-                                        justifyContent: "space-between",
-                                        alignItems: "center",
-                                    }}
-                                >
-                                    <span id="sidebar-title-text">
-                                        SETTINGS
-                                    </span>
-                                    {/* Tombol Close kecil */}
-                                    <i
-                                        className="fa fa-times"
-                                        style={{ cursor: "pointer" }}
-                                        onClick={() =>
-                                            (document.getElementById(
-                                                "style-editor-container"
-                                            ).style.display = "none")
-                                        }
-                                    ></i>
-                                </div>
-
-                                {/* Area Settings (Link, Image Src, dll) */}
-                                {/* Header kecil: ATTRIBUTES */}
-                                <div
-                                    id="trait-header"
-                                    style={{
-                                        padding: "10px 15px",
-                                        fontSize: "11px",
-                                        fontWeight: "bold",
-                                        color: "#bdc3c7",
-                                        background: "#34495e",
-                                        marginTop: "0",
-                                    }}
-                                >
-                                    ATTRIBUTES
-                                </div>
-                                <div
-                                    id="trait-editor-container"
-                                    style={{ padding: "5px" }}
-                                ></div>
-
-                                {/* Area Style (CSS) */}
-                                {/* Header kecil: STYLE */}
-                                <div
-                                    style={{
-                                        padding: "10px 15px",
-                                        fontSize: "11px",
-                                        fontWeight: "bold",
-                                        color: "#bdc3c7",
-                                        background: "#34495e",
-                                        marginTop: "10px",
-                                        borderTop: "1px solid #2c3e50",
-                                    }}
-                                >
-                                    STYLE
-                                </div>
-                                <div
-                                    id="style-manager-container"
-                                    style={{ padding: "5px" }}
-                                ></div>
-                            </div>
 
                             <div
                                 id="gjs"
@@ -1272,35 +1223,6 @@ export default function Create({ id, template }) {
                     </div>
                 </div>
             </div>
-
-            {/* MODAL SOURCE CODE */}
-            {showCode && (
-                <div style={{
-                    position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-                    backgroundColor: 'rgba(0,0,0,0.8)', zIndex: 9999,
-                    display: 'flex', justifyContent: 'center', alignItems: 'center'
-                }}>
-                    <div style={{
-                        background: '#2c3e50', padding: '20px', borderRadius: '5px',
-                        width: '80%', height: '80%', display: 'flex', flexDirection: 'column'
-                    }}>
-                        <div style={{display:'flex', justifyContent:'space-between', marginBottom:'10px', color:'white'}}>
-                            <h3>Source Code</h3>
-                            <button onClick={() => setShowCode(false)} style={{background:'none', border:'none', color:'white', fontSize:'20px', cursor:'pointer'}}>
-                                <i className="fa fa-times"></i>
-                            </button>
-                        </div>
-                        <textarea 
-                            value={sourceCode} 
-                            readOnly 
-                            style={{
-                                flex: 1, width: '100%', backgroundColor: '#34495e', 
-                                color: '#ecf0f1', border: 'none', padding: '10px', fontFamily: 'monospace'
-                            }}
-                        />
-                    </div>
-                </div>
-            )}
         </div>
     );
 }
