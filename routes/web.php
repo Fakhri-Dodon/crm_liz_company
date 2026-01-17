@@ -209,6 +209,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
             // Update status route (important!)
     Route::put('/projects/{project}/status', [ProjectController::class, 'updateStatus'])
         ->name('projects.status.update');
+        // Update status route
+    Route::put('/projects/{project}/status', [ProjectController::class, 'updateStatus'])
+        ->name('projects.status.update');
      // Projects routes
     Route::resource('projects', ProjectController::class);
     
@@ -222,6 +225,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // ====================== PUBLIC ENDPOINTS ======================
     Route::get('/payment-types', [PaymentTypeController::class, 'index'])->name('payment-types.index');
 
+
+    // ====================== ADDITIONAL COMPANY ROUTES ======================
+    Route::get('/companies/get-accepted-quotations', [CompanyController::class, 'getAcceptedQuotations']);
+    Route::get('/companies/get-lead-from-quotation/{id}', [CompanyController::class, 'getLeadFromQuotation']);
+    Route::get('/companies/get-accepted-quotation/{id}', [CompanyController::class, 'getAcceptedQuotation']);
     // ====================== COMPANY MAIN ROUTES ======================
     // Company List & Creation
     Route::get('/companies', [CompanyController::class, 'index'])->name('companies.index');

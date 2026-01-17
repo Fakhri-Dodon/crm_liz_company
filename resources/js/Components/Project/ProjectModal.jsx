@@ -18,7 +18,9 @@ const ProjectModal = ({
     const [clients, setClients] = useState([]);
     const [projectData, setProjectData] = useState(null);
     const [loadingClients, setLoadingClients] = useState(false);
+    const [isSubmitting, setIsSubmitting] = useState(false);
     
+    // Gunakan useForm dengan initial state kosong
     const { data, setData, post, put, processing, errors, reset } = useForm({
         quotation_id: '',
         company_id: '',
@@ -52,16 +54,26 @@ const ProjectModal = ({
     // Fetch project data saat modal edit dibuka
     useEffect(() => {
         if (show && isEdit && projectId) {
+            console.log('Fetching project data for edit mode');
             fetchProjectData();
         }
     }, [show, isEdit, projectId]);
 
-    // Reset form ketika modal create dibuka
+    // RESET FORM KETIKA MODAL CREATE DIBUKA
     useEffect(() => {
         if (show && !isEdit) {
+            console.log('Resetting form for create mode');
             resetForm();
         }
     }, [show, isEdit]);
+
+    // RESET FORM KETIKA MODAL TERTUTUP
+    useEffect(() => {
+        if (!show) {
+            console.log('Modal closed, resetting form');
+            resetForm();
+        }
+    }, [show]);
 
     const fetchClients = async () => {
         setLoadingClients(true);
@@ -109,6 +121,7 @@ const ProjectModal = ({
     };
 
     const resetForm = () => {
+        console.log('Resetting form to empty state');
         reset({
             quotation_id: '',
             company_id: '',
@@ -119,26 +132,41 @@ const ProjectModal = ({
             status: 'in_progress'
         });
         setProjectData(null);
+        setIsSubmitting(false);
     };
 
     const handleSubmit = (e) => {
         e.preventDefault();
         
+        // TUTUP MODAL LANGSUNG SETELAH SUBMIT DITEKAN
+        // Panggil onSuccess untuk menutup modal segera
+        if (onSuccess && typeof onSuccess === 'function') {
+            console.log('Calling onSuccess to close modal immediately');
+            onSuccess();
+        }
+        
+        // Set submitting state untuk UI feedback
+        setIsSubmitting(true);
+        
+        // Kirim data ke server
         if (isEdit && projectId) {
             put(route('projects.update', projectId), {
                 preserveScroll: true,
                 preserveState: true,
                 onSuccess: () => {
-                    reset();
+                    console.log('Project updated successfully on server');
+                    // Reset form setelah sukses
                     resetForm();
-                    
-                    // Panggil onSuccess untuk auto close modal
-                    if (onSuccess && typeof onSuccess === 'function') {
-                        onSuccess();
-                    }
+                    // Tidak perlu panggil onSuccess lagi karena sudah dipanggil di atas
                 },
                 onError: (errors) => {
                     console.error('Update errors:', errors);
+                    setIsSubmitting(false);
+                    // Jika error, modal tetap tertutup (karena sudah ditutup di awal)
+                    // Bisa tambahkan logika untuk membuka modal kembali jika perlu
+                },
+                onFinish: () => {
+                    setIsSubmitting(false);
                 }
             });
         } else {
@@ -151,16 +179,19 @@ const ProjectModal = ({
                 preserveScroll: true,
                 preserveState: true,
                 onSuccess: () => {
+                    console.log('Project created successfully on server');
+                    // Reset form setelah sukses
                     resetForm();
-                    reset();
-                    
-                    // Panggil onSuccess untuk auto close modal
-                    if (onSuccess && typeof onSuccess === 'function') {
-                        onSuccess();
-                    }
+                    // Tidak perlu panggil onSuccess lagi karena sudah dipanggil di atas
                 },
                 onError: (errors) => {
                     console.error('Store errors:', errors);
+                    setIsSubmitting(false);
+                    // Jika error, modal tetap tertutup (karena sudah ditutup di awal)
+                    // Bisa tambahkan logika untuk membuka modal kembali jika perlu
+                },
+                onFinish: () => {
+                    setIsSubmitting(false);
                 }
             });
         }
@@ -168,9 +199,9 @@ const ProjectModal = ({
 
     // Fungsi untuk menutup modal dengan aman
     const handleCloseModal = () => {
-        if (!processing && !isLoading) {
+        if (!processing && !isLoading && !isSubmitting) {
+            console.log('Manual close modal, resetting form');
             resetForm();
-            reset();
             // Panggil onClose yang diberikan dari parent
             if (onClose && typeof onClose === 'function') {
                 onClose();
@@ -190,7 +221,7 @@ const ProjectModal = ({
         return () => {
             window.removeEventListener('keydown', handleEsc);
         };
-    }, [show, processing, isLoading]);
+    }, [show, processing, isLoading, isSubmitting]);
 
     if (!show) return null;
 
@@ -216,7 +247,7 @@ const ProjectModal = ({
                         <button
                             onClick={handleCloseModal}
                             className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                            disabled={processing || isLoading}
+                            disabled={processing || isLoading || isSubmitting}
                         >
                             <X className="w-5 h-5" />
                         </button>
@@ -246,7 +277,7 @@ const ProjectModal = ({
                                         maxLength={250}
                                         required
                                         placeholder="Describe the project scope and objectives..."
-                                        disabled={processing}
+                                        disabled={isSubmitting}
                                     />
                                     <div className="flex justify-between items-center mt-2">
                                         {errors.project_description ? (
@@ -286,7 +317,7 @@ const ProjectModal = ({
                                                         errors.company_id ? 'border-red-300' : 'border-gray-300'
                                                     }`}
                                                     required
-                                                    disabled={processing || loadingClients}
+                                                    disabled={loadingClients || isSubmitting}
                                                 >
                                                     <option value="" className="text-gray-400">Select a client</option>
                                                     {clients.map(client => (
@@ -318,7 +349,7 @@ const ProjectModal = ({
                                             onChange={e => setData('quotation_id', e.target.value)}
                                             className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#005954] focus:border-transparent appearance-none transition-colors"
                                             required
-                                            disabled={processing}
+                                            disabled={isSubmitting}
                                         >
                                             <option value="" className="text-gray-400">Select a quotation</option>
                                             {quotations && quotations.map(quote => (
@@ -350,7 +381,7 @@ const ProjectModal = ({
                                             errors.start_date ? 'border-red-300' : 'border-gray-300'
                                         }`}
                                         required
-                                        disabled={processing}
+                                        disabled={isSubmitting}
                                     />
                                     {errors.start_date && (
                                         <p className="mt-1 text-sm text-red-600">{errors.start_date}</p>
@@ -372,7 +403,7 @@ const ProjectModal = ({
                                             errors.deadline ? 'border-red-300' : 'border-gray-300'
                                         }`}
                                         required
-                                        disabled={processing}
+                                        disabled={isSubmitting}
                                     />
                                     {errors.deadline && (
                                         <p className="mt-1 text-sm text-red-600">{errors.deadline}</p>
@@ -392,7 +423,7 @@ const ProjectModal = ({
                                     className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#005954] focus:border-transparent min-h-[100px] resize-none transition-colors"
                                     maxLength={250}
                                     placeholder="Additional notes or requirements..."
-                                    disabled={processing}
+                                    disabled={isSubmitting}
                                 />
                                 <div className="text-right text-xs text-gray-500 mt-2">
                                     {data.note?.length || 0}/250 characters
@@ -427,7 +458,7 @@ const ProjectModal = ({
                                                             ? `${colorClass} ring-2 ring-offset-1 ring-[#005954]` 
                                                             : `${colorClass} hover:opacity-90`
                                                     }`}
-                                                    disabled={processing}
+                                                    disabled={isSubmitting}
                                                 >
                                                     {option.label}
                                                 </button>
@@ -446,19 +477,19 @@ const ProjectModal = ({
                                     type="button"
                                     onClick={handleCloseModal}
                                     className="px-6 py-3 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 transition-colors font-medium flex-1 disabled:opacity-50 disabled:cursor-not-allowed"
-                                    disabled={processing || isLoading}
+                                    disabled={isLoading || isSubmitting}
                                 >
                                     Cancel
                                 </button>
                                 <button
                                     type="submit"
                                     className="px-6 py-3 bg-[#005954] text-white rounded-xl hover:bg-[#004d47] transition-colors font-medium flex-1 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm hover:shadow-md flex items-center justify-center gap-2"
-                                    disabled={processing || isLoading || (clients.length === 0 && loadingClients)}
+                                    disabled={isLoading || isSubmitting || (clients.length === 0 && loadingClients)}
                                 >
-                                    {(processing || isLoading) ? (
+                                    {isSubmitting ? (
                                         <>
                                             <Loader2 className="w-4 h-4 animate-spin" />
-                                            {isLoading ? 'Loading...' : 'Processing...'}
+                                            Processing...
                                         </>
                                     ) : (
                                         isEdit ? 'Update Project' : 'Create Project'
