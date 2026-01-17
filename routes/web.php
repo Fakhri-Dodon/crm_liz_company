@@ -200,26 +200,39 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/notifications', fn() => Inertia::render('Notifications/Index'))->name('notifications.index');
 });
 
-Route::middleware(['auth', 'verified'])->group(function () {
-    // Projects routes
-    Route::resource('projects', ProjectController::class);
-    Route::get('/projects/{project}/edit', [ProjectController::class, 'edit']); 
-    Route::put('/projects/{project}/status', [ProjectController::class, 'updateStatus'])
-        ->name('projects.status.update');
-            // Update status route (important!)
-    Route::put('/projects/{project}/status', [ProjectController::class, 'updateStatus'])
-        ->name('projects.status.update');
-        // Update status route
-    Route::put('/projects/{project}/status', [ProjectController::class, 'updateStatus'])
-        ->name('projects.status.update');
-     // Projects routes
-    Route::resource('projects', ProjectController::class);
-    
-    // API untuk mendapatkan clients dengan nama dari leads
-    Route::get('/api/clients', [ProjectController::class, 'getClients']);
-    // Atau jika sudah ada route untuk companies, bisa dimodifikasi
-    Route::get('/api/companies', [CompanyController::class, 'getClientsForProjects']);
-});
+    Route::middleware(['auth', 'verified'])->group(function () {
+        // Companies routes
+        Route::resource('companies', CompanyController::class);
+        
+        // Company-specific project routes
+        Route::prefix('companies/{company}')->group(function () {
+            // Update project
+            Route::put('/projects/{project}', [CompanyController::class, 'updateProject'])
+                ->name('companies.projects.update');
+            
+            // Delete project
+            Route::delete('/projects/{project}', [CompanyController::class, 'destroyProject'])
+                ->name('companies.projects.destroy');
+            
+            // Get single project
+            Route::get('/projects/{project}', [CompanyController::class, 'getProject'])
+                ->name('companies.projects.show');
+            
+            // Get all company projects
+            Route::get('/projects', [CompanyController::class, 'getCompanyProjects'])
+                ->name('companies.projects.index');
+        });
+        
+        // Existing project routes (global)
+        Route::resource('projects', ProjectController::class);
+        Route::get('/projects/{project}/edit', [ProjectController::class, 'edit']);
+        Route::put('/projects/{project}/status', [ProjectController::class, 'updateStatus'])
+            ->name('projects.status.update');
+        
+        // API untuk mendapatkan clients
+        Route::get('/api/clients', [ProjectController::class, 'getClients']);
+        Route::get('/api/companies', [CompanyController::class, 'getClientsForProjects']);
+    });
 
 Route::middleware(['auth', 'verified'])->group(function () {
     // ====================== PUBLIC ENDPOINTS ======================
