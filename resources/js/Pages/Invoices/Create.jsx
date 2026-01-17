@@ -173,7 +173,7 @@ export default function Create({ nextNumber, leads = [], companies = [], quotati
 
             console.log('Posting to server...');
             router.post(route("invoice.store"), formData, {
-                forceFormData: true,
+                // forceFormData: true,
                 onSuccess: (response) => {
                     console.log('Success response:', response);
                     toast.success('Berhasil disimpan!', {

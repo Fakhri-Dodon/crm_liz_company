@@ -202,7 +202,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::middleware(['auth', 'verified'])->group(function () {
         // Companies routes
-        Route::resource('companies', CompanyController::class);
+        // Route::resource('companies', CompanyController::class);
         
         // Company-specific project routes
         Route::prefix('companies/{company}')->group(function () {
