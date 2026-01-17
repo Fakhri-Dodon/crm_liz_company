@@ -2917,6 +2917,317 @@ public function getContacts($companyId)
 }
 
 
+    /**
+     * Update project for a company
+     */
+    public function updateProject(Request $request, $companyId, $projectId)
+    {
+        try {
+            Log::info('CompanyController: Updating project', [
+                'company_id' => $companyId,
+                'project_id' => $projectId,
+                'data' => $request->all(),
+                'user_id' => Auth::id()
+            ]);
+
+            // Validasi input
+            $validator = Validator::make($request->all(), [
+                'project_description' => 'required|string|max:1000',
+                'start_date' => 'required|date',
+                'deadline' => 'required|date|after_or_equal:start_date',
+                'status' => 'required|string|in:pending,in_progress,completed,cancelled,delayed,progress,done,finished,new,draft,rejected,overdue,active,on_progress,canceled',
+                'note' => 'nullable|string|max:500'
+            ]);
+
+            if ($validator->fails()) {
+                Log::warning('Validation failed for project update', [
+                    'errors' => $validator->errors()->toArray(),
+                    'project_id' => $projectId
+                ]);
+                
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Validation error',
+                    'errors' => $validator->errors()
+                ], 422);
+            }
+
+            $validated = $validator->validated();
+
+            // Temukan company
+            $company = Company::find($companyId);
+            if (!$company) {
+                Log::warning('Company not found', ['company_id' => $companyId]);
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Company not found'
+                ], 404);
+            }
+
+            // Temukan project berdasarkan projectId DAN client_id harus sama dengan companyId
+            $project = Project::where('id', $projectId)
+                ->where('client_id', $companyId) // Gunakan client_id untuk relasi
+                ->where('deleted', 0)
+                ->first();
+
+            if (!$project) {
+                Log::warning('Project not found or not belongs to company', [
+                    'project_id' => $projectId,
+                    'client_id' => $companyId,
+                    'deleted' => 0
+                ]);
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Project not found or does not belong to this company'
+                ], 404);
+            }
+
+            // Hitung days_left jika deadline diubah
+            $isDeadlineChanged = $project->deadline != $validated['deadline'];
+            $isStatusChanged = $project->status != $validated['status'];
+
+            // Update project
+            DB::beginTransaction();
+            
+            try {
+                $updateData = [
+                    'project_description' => $validated['project_description'],
+                    'start_date' => $validated['start_date'],
+                    'deadline' => $validated['deadline'],
+                    'status' => $validated['status'],
+                    'note' => $validated['note'] ?? null,
+                    'updated_by' => Auth::id(),
+                    'updated_at' => now()
+                ];
+
+                $project->update($updateData);
+
+                // Hitung ulang days_left jika deadline berubah atau status berubah
+                if ($isDeadlineChanged || $isStatusChanged) {
+                    $this->calculateAndUpdateDaysLeft($project);
+                }
+
+                DB::commit();
+
+                // Reload project dengan relasi
+                $updatedProject = Project::with(['company', 'assignedUser', 'quotation'])
+                    ->where('id', $projectId)
+                    ->where('deleted', 0)
+                    ->first();
+
+                Log::info('Project updated successfully', [
+                    'project_id' => $projectId,
+                    'updated_data' => $updatedProject,
+                    'calculated_days_left' => $updatedProject->days_left
+                ]);
+
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Project updated successfully!',
+                    'project' => $updatedProject,
+                    'calculated_days_left' => $updatedProject->days_left
+                ]);
+
+            } catch (\Exception $e) {
+                DB::rollBack();
+                Log::error('Transaction error updating project', [
+                    'error' => $e->getMessage(),
+                    'trace' => $e->getTraceAsString()
+                ]);
+                
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Failed to update project due to database error.',
+                    'error' => config('app.debug') ? $e->getMessage() : null
+                ], 500);
+            }
+
+        } catch (\Exception $e) {
+            Log::error('Error updating project in CompanyController', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+                'project_id' => $projectId
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'An unexpected error occurred while updating the project.',
+                'error' => config('app.debug') ? $e->getMessage() : null
+            ], 500);
+        }
+    }
+
+    /**
+     * Helper function to calculate and update days_left
+     */
+    private function calculateAndUpdateDaysLeft(Project $project)
+    {
+        try {
+            // Status yang mengharuskan days_left = null
+            $completedStatuses = ['completed', 'done', 'finished'];
+            $cancelledStatuses = ['cancelled', 'canceled', 'rejected'];
+            
+            // Jika status sudah completed atau cancelled, set days_left ke null
+            if (in_array($project->status, $completedStatuses) || in_array($project->status, $cancelledStatuses)) {
+                $project->days_left = null;
+                $project->save();
+                
+                Log::debug('Set days_left to null for completed/cancelled project', [
+                    'project_id' => $project->id,
+                    'status' => $project->status
+                ]);
+                return;
+            }
+
+            // Hitung days left
+            $deadline = new \DateTime($project->deadline);
+            $today = new \DateTime();
+            $today->setTime(0, 0, 0);
+            
+            $interval = $today->diff($deadline);
+            $daysLeft = (int) $interval->format('%r%a'); // %r gives sign (- for past, + for future)
+
+            // Update days_left
+            $project->days_left = $daysLeft;
+
+            // Jika deadline sudah lewat dan status belum completed/cancelled, set status delayed
+            $shouldBeDelayed = $daysLeft < 0 && 
+                !in_array($project->status, array_merge($completedStatuses, $cancelledStatuses, ['delayed', 'overdue']));
+            
+            if ($shouldBeDelayed) {
+                $project->status = 'delayed';
+                Log::debug('Auto-updated status to delayed', [
+                    'project_id' => $project->id,
+                    'days_left' => $daysLeft,
+                    'old_status' => $project->getOriginal('status'),
+                    'new_status' => 'delayed'
+                ]);
+            }
+
+            $project->save();
+
+            Log::debug('Days left calculated and updated', [
+                'project_id' => $project->id,
+                'days_left' => $daysLeft,
+                'status' => $project->status,
+                'deadline' => $project->deadline,
+                'today' => $today->format('Y-m-d')
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Error calculating days left', [
+                'error' => $e->getMessage(),
+                'project_id' => $project->id
+            ]);
+        }
+    }
+
+    /**
+     * Delete project for a company
+     */
+    public function destroyProject($companyId, $projectId)
+    {
+        try {
+            Log::info('CompanyController: Deleting project', [
+                'company_id' => $companyId,
+                'project_id' => $projectId,
+                'user_id' => Auth::id()
+            ]);
+
+            // Temukan project yang dimiliki oleh company (gunakan client_id)
+            $project = Project::where('id', $projectId)
+                ->where('client_id', $companyId)
+                ->where('deleted', 0)
+                ->first();
+
+            if (!$project) {
+                Log::warning('Project not found for deletion', [
+                    'company_id' => $companyId,
+                    'project_id' => $projectId,
+                    'deleted' => 0
+                ]);
+
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Project not found'
+                ], 404);
+            }
+
+            DB::beginTransaction();
+            
+            try {
+                // Soft delete (set deleted flag)
+                $project->update([
+                    'deleted' => 1,
+                    'deleted_at' => now(),
+                    'deleted_by' => Auth::id(),
+                    'updated_by' => Auth::id()
+                ]);
+
+                DB::commit();
+
+                Log::info('Project soft deleted successfully', [
+                    'project_id' => $projectId,
+                    'deleted_by' => Auth::id()
+                ]);
+
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Project deleted successfully!',
+                    'deleted_at' => $project->deleted_at
+                ]);
+
+            } catch (\Exception $e) {
+                DB::rollBack();
+                throw $e;
+            }
+
+        } catch (\Exception $e) {
+            Log::error('Error deleting project in CompanyController', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+                'project_id' => $projectId
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to delete project. Please try again.',
+                'error' => config('app.debug') ? $e->getMessage() : null
+            ], 500);
+        }
+    }
+
+    /**
+     * Get single project for editing
+     */
+    public function getProject($companyId, $projectId)
+    {
+        try {
+            $project = Project::with(['company', 'assignedUser', 'quotation'])
+                ->where('id', $projectId)
+                ->where('client_id', $companyId)
+                ->where('deleted', 0)
+                ->firstOrFail();
+
+            return response()->json([
+                'success' => true,
+                'project' => $project
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Error fetching project', [
+                'company_id' => $companyId,
+                'project_id' => $projectId,
+                'error' => $e->getMessage()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Project not found'
+            ], 404);
+        }
+    }
+
 /**
  * Add new contact
  */

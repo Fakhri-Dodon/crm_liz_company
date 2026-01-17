@@ -255,32 +255,32 @@ export default function Index({
         }
     };
 
-    // Handler untuk auto close modal create dan refresh data
+    // Handler untuk auto close modal create - dengan reset form
     const handleCreateSuccess = useCallback(() => {
-        console.log('Create modal success callback called');
-        // Tutup modal create
+        console.log('Create modal success callback called - CLOSING MODAL AND RESETTING');
+        // Tutup modal create LANGSUNG
         setShowCreateModal(false);
-        
-        // Refresh data
-        applyFilters();
         
         // Tampilkan toast success
         showToast('Project created successfully!', 'success');
+        
+        // Refresh data tanpa delay
+        applyFilters();
     }, [applyFilters]);
 
-    // Handler untuk auto close modal edit dan refresh data
+    // Handler untuk auto close modal edit - dengan reset form
     const handleEditSuccess = useCallback(() => {
-        console.log('Edit modal success callback called');
-        // Tutup modal edit
+        console.log('Edit modal success callback called - CLOSING MODAL AND RESETTING');
+        // Tutup modal edit LANGSUNG
         setShowEditModal(false);
         setSelectedProjectId(null);
         setEditingProject(null);
         
-        // Refresh data
-        applyFilters();
-        
         // Tampilkan toast success
         showToast('Project updated successfully!', 'success');
+        
+        // Refresh data tanpa delay
+        applyFilters();
     }, [applyFilters]);
 
     const months = [
@@ -669,12 +669,16 @@ export default function Index({
                 {/* Create Modal */}
                 <ProjectModal
                     show={showCreateModal}
-                    onClose={() => setShowCreateModal(false)}
+                    onClose={() => {
+                        console.log('Closing create modal');
+                        setShowCreateModal(false);
+                    }}
                     companies={companies || []}
                     quotations={quotations || []}
                     statusOptions={statusOptions || []}
                     title="Add Project"
-                    onSuccess={handleCreateSuccess}  // Gunakan handleCreateSuccess khusus
+                    onSuccess={handleCreateSuccess}
+                    key={showCreateModal ? 'create-modal' : 'create-modal-closed'} // Tambahkan key untuk force remount
                 />
 
                 {selectedProjectId && (
@@ -683,6 +687,7 @@ export default function Index({
                         <ProjectModal
                             show={showEditModal}
                             onClose={() => {
+                                console.log('Closing edit modal');
                                 setShowEditModal(false);
                                 setSelectedProjectId(null);
                                 setEditingProject(null);
@@ -693,7 +698,8 @@ export default function Index({
                             statusOptions={statusOptions || []}
                             isEdit={true}
                             title="Edit Project"
-                            onSuccess={handleEditSuccess}  // Gunakan handleEditSuccess khusus
+                            onSuccess={handleEditSuccess}
+                            key={`edit-modal-${selectedProjectId}-${showEditModal}`} // Tambahkan key untuk force remount
                         />
 
                         {/* Delete Modal */}

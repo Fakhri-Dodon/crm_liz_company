@@ -1,5 +1,5 @@
 // resources/js/Pages/Companies/ProjectTable.jsx
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
     FolderKanban, 
     Calendar, 
@@ -11,13 +11,80 @@ import {
     Trash2,
     XCircle,
     PauseCircle,
-    AlertTriangle
+    AlertTriangle,
+    X,
+    Save,
+    Loader2
 } from 'lucide-react';
-import { useTranslation } from 'react-i18next'; // Import useTranslation
+import { useTranslation } from 'react-i18next';
 
 const ProjectTable = ({ data, onEdit, onDelete }) => {
-    const { t } = useTranslation(); // Initialize translation hook
+    const { t } = useTranslation();
     const [actionMenu, setActionMenu] = useState(null);
+    const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+    const [editingProject, setEditingProject] = useState(null);
+    const [formData, setFormData] = useState({
+        project_description: '',
+        start_date: '',
+        deadline: '',
+        status: 'pending',
+        note: ''
+    });
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [formErrors, setFormErrors] = useState({});
+
+    // Map status dari database ke 4 status standar untuk form
+    const mapStatusForForm = (status) => {
+        if (!status) return 'pending';
+        
+        const statusLower = status.toLowerCase();
+        
+        if (['progress', 'active', 'on_progress', 'in_progress'].includes(statusLower)) {
+            return 'in_progress';
+        }
+        if (['done', 'finished', 'completed'].includes(statusLower)) {
+            return 'completed';
+        }
+        if (['canceled', 'cancelled', 'rejected'].includes(statusLower)) {
+            return 'cancelled';
+        }
+        if (['delayed', 'overdue', 'draft', 'new', 'pending'].includes(statusLower)) {
+            return 'pending';
+        }
+        
+        return 'pending'; // default
+    };
+
+    // Map status dari form ke status yang dikirim ke backend (sesuai kebutuhan backend)
+    const mapStatusForBackend = (formStatus) => {
+        const statusMap = {
+            'in_progress': 'in_progress',
+            'completed': 'completed',
+            'cancelled': 'cancelled',
+            'pending': 'pending'
+        };
+        return statusMap[formStatus] || 'pending';
+    };
+
+    // Initialize form when editingProject changes
+    useEffect(() => {
+        if (editingProject) {
+            // Map status dari database ke status form (4 opsi)
+            const mappedStatus = mapStatusForForm(editingProject.status);
+            
+            setFormData({
+                project_description: editingProject.project_description || '',
+                start_date: editingProject.start_date ? 
+                    new Date(editingProject.start_date).toISOString().split('T')[0] : '',
+                deadline: editingProject.deadline ? 
+                    new Date(editingProject.deadline).toISOString().split('T')[0] : '',
+                status: mappedStatus,
+                note: editingProject.note || ''
+            });
+            // Clear errors when form is initialized
+            setFormErrors({});
+        }
+    }, [editingProject]);
 
     const formatDate = (dateString) => {
         if (!dateString) return t('project_table.not_available');
@@ -45,14 +112,15 @@ const ProjectTable = ({ data, onEdit, onDelete }) => {
         }
     };
 
-    const getStatusBadge = (status) => {
+    // Update getStatusBadge untuk menampilkan status yang sesuai dengan mapping
+    const getStatusBadge = (originalStatus) => {
         const baseClasses = "inline-flex items-center px-2 py-1 rounded-full text-xs font-medium";
         
-        switch(status) {
+        // Map original status untuk display
+        const displayStatus = mapStatusForForm(originalStatus);
+        
+        switch(displayStatus) {
             case 'in_progress':
-            case 'progress':
-            case 'active':
-            case 'on_progress':
                 return (
                     <span className={`${baseClasses} bg-blue-100 text-blue-800`}>
                         <PlayCircle className="w-3 h-3 mr-1" />
@@ -60,8 +128,6 @@ const ProjectTable = ({ data, onEdit, onDelete }) => {
                     </span>
                 );
             case 'completed':
-            case 'done':
-            case 'finished':
                 return (
                     <span className={`${baseClasses} bg-green-100 text-green-800`}>
                         <CheckCircle className="w-3 h-3 mr-1" />
@@ -69,8 +135,6 @@ const ProjectTable = ({ data, onEdit, onDelete }) => {
                     </span>
                 );
             case 'pending':
-            case 'draft':
-            case 'new':
                 return (
                     <span className={`${baseClasses} bg-yellow-100 text-yellow-800`}>
                         <PauseCircle className="w-3 h-3 mr-1" />
@@ -78,44 +142,31 @@ const ProjectTable = ({ data, onEdit, onDelete }) => {
                     </span>
                 );
             case 'cancelled':
-            case 'canceled':
-            case 'rejected':
                 return (
                     <span className={`${baseClasses} bg-red-100 text-red-800`}>
                         <XCircle className="w-3 h-3 mr-1" />
                         {t('project_table.status_cancelled')}
                     </span>
                 );
-            case 'delayed':
-            case 'overdue':
-                return (
-                    <span className={`${baseClasses} bg-orange-100 text-orange-800`}>
-                        <AlertTriangle className="w-3 h-3 mr-1" />
-                        {t('project_table.status_delayed')}
-                    </span>
-                );
             default:
                 return (
                     <span className={`${baseClasses} bg-gray-100 text-gray-800`}>
-                        {status || t('project_table.status_unknown')}
+                        {originalStatus || t('project_table.status_unknown')}
                     </span>
                 );
         }
     };
 
     const getDaysLeftText = (daysLeft, status) => {
-        // Jika status sudah completed atau cancelled, tampilkan status saja
-        if (status === 'completed' || status === 'done' || status === 'finished') {
+        const displayStatus = mapStatusForForm(status);
+        
+        if (displayStatus === 'completed') {
             return t('project_table.completed');
         }
-        if (status === 'cancelled' || status === 'canceled' || status === 'rejected') {
+        if (displayStatus === 'cancelled') {
             return t('project_table.cancelled');
         }
-        if (status === 'delayed' || status === 'overdue') {
-            return t('project_table.overdue');
-        }
         
-        // Jika ada daysLeft dari backend, gunakan itu
         if (daysLeft !== null && daysLeft !== undefined) {
             if (daysLeft < 0) return t('project_table.days_late', { days: Math.abs(daysLeft) });
             if (daysLeft === 0) return t('project_table.today');
@@ -123,7 +174,6 @@ const ProjectTable = ({ data, onEdit, onDelete }) => {
             return t('project_table.days_left', { days: daysLeft });
         }
         
-        // Jika tidak ada daysLeft dari backend, hitung manual
         if (!daysLeft && typeof daysLeft !== 'number') {
             return t('project_table.not_available');
         }
@@ -132,18 +182,15 @@ const ProjectTable = ({ data, onEdit, onDelete }) => {
     };
 
     const getDaysLeftColor = (daysLeft, status) => {
-        // Prioritaskan status
-        if (status === 'completed' || status === 'done' || status === 'finished') {
+        const displayStatus = mapStatusForForm(status);
+        
+        if (displayStatus === 'completed') {
             return 'text-green-800 bg-green-100';
         }
-        if (status === 'cancelled' || status === 'canceled' || status === 'rejected') {
+        if (displayStatus === 'cancelled') {
             return 'text-red-800 bg-red-100';
         }
-        if (status === 'delayed' || status === 'overdue') {
-            return 'text-orange-800 bg-orange-100';
-        }
         
-        // Gunakan daysLeft untuk menentukan warna
         if (daysLeft !== null && daysLeft !== undefined) {
             if (daysLeft < 0) return 'text-red-800 bg-red-100';
             if (daysLeft <= 7) return 'text-yellow-800 bg-yellow-100';
@@ -155,6 +202,125 @@ const ProjectTable = ({ data, onEdit, onDelete }) => {
 
     const toggleActionMenu = (index) => {
         setActionMenu(actionMenu === index ? null : index);
+    };
+
+    // Handle edit button click
+    const handleEditClick = (project) => {
+        console.log('Opening edit modal for project:', project);
+        setEditingProject(project);
+        setIsEditModalOpen(true);
+        setActionMenu(null); // Close action menu if open
+    };
+
+    // Handle form input change
+    const handleFormChange = (e) => {
+        const { name, value } = e.target;
+        setFormData(prev => ({
+            ...prev,
+            [name]: value
+        }));
+        // Clear error for this field when user starts typing
+        if (formErrors[name]) {
+            setFormErrors(prev => ({
+                ...prev,
+                [name]: ''
+            }));
+        }
+    };
+
+    // Validate form
+    const validateForm = () => {
+        const errors = {};
+        
+        if (!formData.project_description.trim()) {
+            errors.project_description = t('project_table.errors.description_required');
+        }
+        
+        if (!formData.start_date) {
+            errors.start_date = t('project_table.errors.start_date_required');
+        }
+        
+        if (!formData.deadline) {
+            errors.deadline = t('project_table.errors.deadline_required');
+        } else if (formData.start_date && formData.deadline < formData.start_date) {
+            errors.deadline = t('project_table.errors.deadline_before_start');
+        }
+        
+        if (!formData.status) {
+            errors.status = t('project_table.errors.status_required');
+        }
+        
+        return errors;
+    };
+
+    // Handle form submit
+    const handleFormSubmit = async (e) => {
+        e.preventDefault();
+        
+        console.log('Submitting form data:', formData);
+        
+        // Validate form
+        const errors = validateForm();
+        if (Object.keys(errors).length > 0) {
+            setFormErrors(errors);
+            console.error('Form validation errors:', errors);
+            return;
+        }
+        
+        setIsSubmitting(true);
+        
+        try {
+            // Prepare updated project data dengan status yang sudah di-map untuk backend
+            const updatedProject = {
+                ...editingProject,
+                project_description: formData.project_description,
+                start_date: formData.start_date,
+                deadline: formData.deadline,
+                status: mapStatusForBackend(formData.status), // Map ke status backend
+                note: formData.note
+            };
+            
+            console.log('Calling onEdit with updated project:', updatedProject);
+            
+            // Call parent's onEdit if provided
+            if (onEdit && typeof onEdit === 'function') {
+                // Pass the updated project data and a callback for success/failure
+                const success = await onEdit(updatedProject);
+                
+                if (success) {
+                    // Close modal only if parent indicates success
+                    setIsEditModalOpen(false);
+                    setEditingProject(null);
+                    setFormErrors({});
+                    console.log('Project edit successful');
+                } else {
+                    console.error('Parent onEdit callback returned false');
+                    // Keep modal open if there was an error
+                }
+            } else {
+                console.warn('onEdit prop not provided or not a function');
+                // If no onEdit prop, just close the modal
+                setIsEditModalOpen(false);
+                setEditingProject(null);
+            }
+            
+        } catch (error) {
+            console.error('Error in form submission:', error);
+            setFormErrors({
+                submit: t('project_table.errors.submission_failed')
+            });
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
+    // Handle modal close
+    const handleModalClose = () => {
+        if (!isSubmitting) {
+            setIsEditModalOpen(false);
+            setEditingProject(null);
+            setFormErrors({});
+        }
     };
 
     // Mobile Card View
@@ -196,10 +362,7 @@ const ProjectTable = ({ data, onEdit, onDelete }) => {
                                     {actionMenu === index && (
                                         <div className="absolute right-0 mt-1 w-32 bg-white rounded-lg shadow-lg border border-gray-200 z-10">
                                             <button
-                                                onClick={() => {
-                                                    onEdit(project);
-                                                    setActionMenu(null);
-                                                }}
+                                                onClick={() => handleEditClick(project)}
                                                 className="w-full px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center"
                                             >
                                                 <Edit className="w-3 h-3 mr-2" />
@@ -207,7 +370,9 @@ const ProjectTable = ({ data, onEdit, onDelete }) => {
                                             </button>
                                             <button
                                                 onClick={() => {
-                                                    onDelete(project);
+                                                    if (onDelete && typeof onDelete === 'function') {
+                                                        onDelete(project);
+                                                    }
                                                     setActionMenu(null);
                                                 }}
                                                 className="w-full px-3 py-2 text-left text-sm text-red-600 hover:bg-gray-50 flex items-center"
@@ -239,12 +404,207 @@ const ProjectTable = ({ data, onEdit, onDelete }) => {
         );
     };
 
+    // Edit Modal Component
+    const EditProjectModal = () => {
+        if (!isEditModalOpen || !editingProject) return null;
+
+        return (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+                <div className="bg-white rounded-lg shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
+                    {/* Modal Header */}
+                    <div className="flex items-center justify-between p-6 border-b border-gray-200">
+                        <div className="flex items-center space-x-3">
+                            <div className="bg-blue-100 p-2 rounded-lg">
+                                <Edit className="w-5 h-5 text-blue-600" />
+                            </div>
+                            <div>
+                                <h3 className="text-lg font-semibold text-gray-900">
+                                    {t('project_table.edit_project_title') || 'Edit Proyek'}
+                                </h3>
+                                <p className="text-sm text-gray-500 mt-1">
+                                    {t('project_table.edit_project_subtitle') || 'Ubah detail proyek'}
+                                </p>
+                            </div>
+                        </div>
+                        <button
+                            onClick={handleModalClose}
+                            disabled={isSubmitting}
+                            className="text-gray-400 hover:text-gray-600 p-1 rounded-lg hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                            <X className="w-5 h-5" />
+                        </button>
+                    </div>
+
+                    {/* Modal Form */}
+                    <form onSubmit={handleFormSubmit} className="p-6">
+                        <div className="space-y-4">
+                            {/* Project Description */}
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    {t('project_table.project_description') || 'Deskripsi Proyek'}
+                                    <span className="text-red-500 ml-1">*</span>
+                                </label>
+                                <textarea
+                                    name="project_description"
+                                    value={formData.project_description}
+                                    onChange={handleFormChange}
+                                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors ${
+                                        formErrors.project_description ? 'border-red-300' : 'border-gray-300'
+                                    }`}
+                                    rows="3"
+                                    placeholder={t('project_table.description_placeholder') || 'Masukkan deskripsi proyek...'}
+                                    required
+                                    disabled={isSubmitting}
+                                />
+                                {formErrors.project_description && (
+                                    <p className="mt-1 text-sm text-red-600">{formErrors.project_description}</p>
+                                )}
+                            </div>
+
+                            {/* Dates */}
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        {t('project_table.start_date') || 'Tanggal Mulai'}
+                                        <span className="text-red-500 ml-1">*</span>
+                                    </label>
+                                    <input
+                                        type="date"
+                                        name="start_date"
+                                        value={formData.start_date}
+                                        onChange={handleFormChange}
+                                        className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors ${
+                                            formErrors.start_date ? 'border-red-300' : 'border-gray-300'
+                                        }`}
+                                        required
+                                        disabled={isSubmitting}
+                                    />
+                                    {formErrors.start_date && (
+                                        <p className="mt-1 text-sm text-red-600">{formErrors.start_date}</p>
+                                    )}
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        {t('project_table.deadline') || 'Deadline'}
+                                        <span className="text-red-500 ml-1">*</span>
+                                    </label>
+                                    <input
+                                        type="date"
+                                        name="deadline"
+                                        value={formData.deadline}
+                                        onChange={handleFormChange}
+                                        min={formData.start_date}
+                                        className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors ${
+                                            formErrors.deadline ? 'border-red-300' : 'border-gray-300'
+                                        }`}
+                                        required
+                                        disabled={isSubmitting}
+                                    />
+                                    {formErrors.deadline && (
+                                        <p className="mt-1 text-sm text-red-600">{formErrors.deadline}</p>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* Status - Hanya 4 opsi */}
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    {t('project_table.status') || 'Status'}
+                                    <span className="text-red-500 ml-1">*</span>
+                                </label>
+                                <select
+                                    name="status"
+                                    value={formData.status}
+                                    onChange={handleFormChange}
+                                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors ${
+                                        formErrors.status ? 'border-red-300' : 'border-gray-300'
+                                    }`}
+                                    required
+                                    disabled={isSubmitting}
+                                >
+                                    <option value="pending">
+                                        {t('project_table.status_pending') || 'Pending'}
+                                    </option>
+                                    <option value="in_progress">
+                                        {t('project_table.status_in_progress') || 'In Progress'}
+                                    </option>
+                                    <option value="completed">
+                                        {t('project_table.status_completed') || 'Completed'}
+                                    </option>
+                                    <option value="cancelled">
+                                        {t('project_table.status_cancelled') || 'Cancelled'}
+                                    </option>
+                                </select>
+                                {formErrors.status && (
+                                    <p className="mt-1 text-sm text-red-600">{formErrors.status}</p>
+                                )}
+                            </div>
+
+                            {/* Note */}
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    {t('project_table.note') || 'Catatan'}
+                                </label>
+                                <textarea
+                                    name="note"
+                                    value={formData.note}
+                                    onChange={handleFormChange}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                                    rows="2"
+                                    placeholder={t('project_table.note_placeholder') || 'Masukkan catatan tambahan...'}
+                                    disabled={isSubmitting}
+                                />
+                            </div>
+                        </div>
+
+                        {/* Submit error */}
+                        {formErrors.submit && (
+                            <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+                                <p className="text-sm text-red-600">{formErrors.submit}</p>
+                            </div>
+                        )}
+
+                        {/* Modal Footer */}
+                        <div className="flex justify-end space-x-3 mt-6 pt-6 border-t border-gray-200">
+                            <button
+                                type="button"
+                                onClick={handleModalClose}
+                                className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                disabled={isSubmitting}
+                            >
+                                {t('project_table.cancel') || 'Batal'}
+                            </button>
+                            <button
+                                type="submit"
+                                className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center min-w-[120px]"
+                                disabled={isSubmitting}
+                            >
+                                {isSubmitting ? (
+                                    <>
+                                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                        {t('project_table.saving') || 'Menyimpan...'}
+                                    </>
+                                ) : (
+                                    <>
+                                        <Save className="w-4 h-4 mr-2" />
+                                        {t('project_table.save_changes') || 'Simpan Perubahan'}
+                                    </>
+                                )}
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        );
+    };
+
     return (
         <div>
             {/* Title for Project Table */}
             <h2 className="text-xl font-bold text-gray-900 mb-4">
                 {t('project_table.title') || 'Daftar Proyek'}
             </h2>
+            
             {/* Mobile View */}
             <div className="sm:hidden">
                 {data.map((project, index) => (
@@ -324,14 +684,18 @@ const ProjectTable = ({ data, onEdit, onDelete }) => {
                                         <td className="px-4 py-3 whitespace-nowrap">
                                             <div className="flex items-center space-x-2">
                                                 <button
-                                                    onClick={() => onEdit(project)}
+                                                    onClick={() => handleEditClick(project)}
                                                     className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
                                                     title={t('project_table.edit_project')}
                                                 >
                                                     <Edit className="w-4 h-4" />
                                                 </button>
                                                 <button
-                                                    onClick={() => onDelete(project)}
+                                                    onClick={() => {
+                                                        if (onDelete && typeof onDelete === 'function') {
+                                                            onDelete(project);
+                                                        }
+                                                    }}
                                                     className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                                                     title={t('project_table.delete_project')}
                                                 >
@@ -360,7 +724,7 @@ const ProjectTable = ({ data, onEdit, onDelete }) => {
                 </div>
             )}
 
-            {/* Summary */}
+            {/* Summary - Diupdate untuk menggunakan mapping status */}
             {data.length > 0 && (
                 <div className="mt-6 pt-6 border-t border-gray-200">
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -376,9 +740,7 @@ const ProjectTable = ({ data, onEdit, onDelete }) => {
                             </p>
                             <p className="text-2xl font-bold text-gray-900">
                                 {data.filter(p => 
-                                    p.status === 'completed' || 
-                                    p.status === 'done' || 
-                                    p.status === 'finished'
+                                    ['completed', 'done', 'finished'].includes(p.status?.toLowerCase())
                                 ).length}
                             </p>
                         </div>
@@ -388,9 +750,7 @@ const ProjectTable = ({ data, onEdit, onDelete }) => {
                             </p>
                             <p className="text-2xl font-bold text-gray-900">
                                 {data.filter(p => 
-                                    p.status === 'pending' || 
-                                    p.status === 'draft' || 
-                                    p.status === 'new'
+                                    ['pending', 'delayed', 'overdue', 'draft', 'new'].includes(p.status?.toLowerCase())
                                 ).length}
                             </p>
                         </div>
@@ -400,15 +760,16 @@ const ProjectTable = ({ data, onEdit, onDelete }) => {
                             </p>
                             <p className="text-2xl font-bold text-gray-900">
                                 {data.filter(p => 
-                                    p.status === 'cancelled' || 
-                                    p.status === 'canceled' || 
-                                    p.status === 'rejected'
+                                    ['cancelled', 'canceled', 'rejected'].includes(p.status?.toLowerCase())
                                 ).length}
                             </p>
                         </div>
                     </div>
                 </div>
             )}
+
+            {/* Edit Modal */}
+            <EditProjectModal />
         </div>
     );
 };
