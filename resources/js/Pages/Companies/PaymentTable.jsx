@@ -1,5 +1,5 @@
 // resources/js/Pages/Companies/PaymentTable.jsx
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { router } from '@inertiajs/react';
 import { 
     CreditCard, Calendar, DollarSign, Building, 
@@ -53,7 +53,29 @@ const PaymentTable = ({ data: initialData, companyId, showInvoiceAmount = false 
         setLocalData(initialData || []);
     }, [initialData]);
 
-    console.log('PaymentTable data received:', data);
+    // Filter data berdasarkan companyId
+    const filterDataByCompany = useMemo(() => {
+        if (!companyId || !localData.length) return localData;
+        
+        // Filter dengan berbagai strategi
+        const filtered = localData.filter(payment => {
+            // Strategi 1: Langsung memiliki company_id
+            if (payment.company_id && payment.company_id === companyId) return true;
+            
+            // Strategi 2: Melalui invoice.company_id
+            if (payment.invoice?.company_id && payment.invoice.company_id === companyId) return true;
+            
+            // Strategi 3: Melalui contact_person.company_id
+            if (payment.contact_person?.company_id && payment.contact_person.company_id === companyId) return true;
+            
+            // Strategi 4: Melalui company object
+            if (payment.company?.id && payment.company.id === companyId) return true;
+            
+            return false;
+        });
+        
+        return filtered;
+    }, [localData, companyId]);
 
     // Fungsi untuk menampilkan announcement
     const showAnnouncement = (type, title, message, autoClose = true) => {
@@ -130,7 +152,7 @@ const PaymentTable = ({ data: initialData, companyId, showInvoiceAmount = false 
         );
     };
 
-    // Format currency untuk mobile - FIXED
+    // Format currency untuk mobile
     const formatCurrency = (amount) => {
         if (amount === null || amount === undefined || amount === '' || isNaN(amount)) {
             return t('payment_table.currency_format', { amount: 0 });
@@ -195,7 +217,6 @@ const PaymentTable = ({ data: initialData, companyId, showInvoiceAmount = false 
         
         try {
             const date = new Date(dateString);
-            // Check if date is valid
             if (isNaN(date.getTime())) {
                 return t('payment_table.invalid_date');
             }
@@ -206,13 +227,12 @@ const PaymentTable = ({ data: initialData, companyId, showInvoiceAmount = false 
                 year: 'numeric'
             });
         } catch (error) {
-            console.error('Error formatting date:', error);
             return t('payment_table.invalid_date');
         }
     };
 
-    // Filter dan sort data menggunakan localData
-    const filteredData = localData
+    // Filter dan sort data menggunakan filteredDataByCompany
+    const filteredData = filterDataByCompany
         .filter(payment => {
             const matchesSearch = searchTerm === '' || 
                 (payment.invoice_number && payment.invoice_number.toLowerCase().includes(searchTerm.toLowerCase())) ||
@@ -266,12 +286,11 @@ const PaymentTable = ({ data: initialData, companyId, showInvoiceAmount = false 
                 return dateB - dateA;
                 
             } catch (error) {
-                console.error('Sorting error:', error);
                 return 0;
             }
         });
 
-    // Get invoice number - safely handle different data structures
+    // Get invoice number
     const getInvoiceNumber = (payment) => {
         if (payment.invoice_number) return payment.invoice_number;
         if (payment.invoice?.invoice_number) return payment.invoice.invoice_number;
@@ -279,7 +298,7 @@ const PaymentTable = ({ data: initialData, companyId, showInvoiceAmount = false 
         return t('payment_table.no_invoice');
     };
 
-    // Get invoice amount - safely handle different data structures
+    // Get invoice amount
     const getInvoiceAmount = (payment) => {
         if (payment.invoice_amount !== undefined && payment.invoice_amount !== null) {
             return Number(payment.invoice_amount);
@@ -355,7 +374,7 @@ const PaymentTable = ({ data: initialData, companyId, showInvoiceAmount = false 
     };
 
     const handleSelectAll = () => {
-        if (selectedPayments.length === filteredData.length) {
+        if (selectedPayments.length === filteredData.length && filteredData.length > 0) {
             setSelectedPayments([]);
         } else {
             setSelectedPayments(filteredData.map(payment => payment.id));
@@ -396,27 +415,39 @@ const PaymentTable = ({ data: initialData, companyId, showInvoiceAmount = false 
         }
         
         setSelectedPayment(payment);
-        // Format date dari YYYY-MM-DD atau format lain ke YYYY-MM-DD
+        
+        // Format tanggal untuk input date
         let formattedDate = '';
         if (payment.date) {
             try {
-                // Coba parse berbagai format tanggal
                 const date = new Date(payment.date);
                 if (!isNaN(date.getTime())) {
-                    formattedDate = date.toISOString().split('T')[0];
+                    // Format ke YYYY-MM-DD untuk input type="date"
+                    const year = date.getFullYear();
+                    const month = String(date.getMonth() + 1).padStart(2, '0');
+                    const day = String(date.getDate()).padStart(2, '0');
+                    formattedDate = `${year}-${month}-${day}`;
                 } else {
-                    // Coba format dd-mm-yyyy
-                    const parts = payment.date.split('-');
+                    // Coba format lain
+                    const parts = payment.date.split(/[-/]/);
                     if (parts.length === 3) {
-                        formattedDate = `${parts[2]}-${parts[1]}-${parts[0]}`;
+                        if (parts[0].length === 4) {
+                            // Format YYYY-MM-DD
+                            formattedDate = payment.date;
+                        } else {
+                            // Format DD-MM-YYYY ke YYYY-MM-DD
+                            formattedDate = `${parts[2]}-${parts[1]}-${parts[0]}`;
+                        }
                     }
                 }
             } catch (error) {
                 console.error('Error parsing date:', error);
-                formattedDate = new Date().toISOString().split('T')[0];
+                const today = new Date();
+                formattedDate = today.toISOString().split('T')[0];
             }
         } else {
-            formattedDate = new Date().toISOString().split('T')[0];
+            const today = new Date();
+            formattedDate = today.toISOString().split('T')[0];
         }
         
         setFormData({
@@ -426,111 +457,109 @@ const PaymentTable = ({ data: initialData, companyId, showInvoiceAmount = false 
             bank: payment.bank || '',
             note: payment.note || '',
         });
+        
         setErrors({});
         setShowEditModal(true);
     };
 
-// Di dalam handleEditPayment dan openEditModal, pastikan method hanya memiliki nilai yang valid
-const handleEditPayment = async () => {
-    if (!selectedPayment || !companyId) {
-        showAnnouncement('error', 'Error', 'Company ID or payment data is missing');
-        return;
-    }
-
-    // Validasi sederhana
-    if (!formData.amount || !formData.date) {
-        showAnnouncement('error', 'Error', 'Amount and Date are required');
-        return;
-    }
-
-    // PERBAIKAN: Validasi method
-    const validMethods = ['transfer', 'cash', 'check'];
-    if (!validMethods.includes(formData.method)) {
-        showAnnouncement('error', 'Error', 'Invalid payment method');
-        return;
-    }
-
-    setLoading(true);
-    setErrors({});
-    
-    // Backup data lama
-    const oldData = [...localData];
-    
-    try {
-        // Update local state terlebih dahulu untuk immediate feedback
-        const updatedPayment = {
-            ...selectedPayment,
-            amount: formData.amount,
-            method: formData.method,
-            date: formData.date,
-            bank: formData.bank,
-            note: formData.note,
-            updated_at: new Date().toISOString()
-        };
-
-        const newData = localData.map(payment => 
-            payment.id === selectedPayment.id ? updatedPayment : payment
-        );
-        
-        setLocalData(newData);
-        
-        // Menggunakan fetch API
-        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
-        const url = `/companies/${companyId}/payments/${selectedPayment.id}`;
-        
-        console.log('Updating payment via PUT:', url);
-        
-        const response = await fetch(url, {
-            method: 'PUT',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': csrfToken,
-                'X-Requested-With': 'XMLHttpRequest',
-                'Accept': 'application/json'
-            },
-            credentials: 'include',
-            body: JSON.stringify({
-                amount: formData.amount,
-                method: formData.method, // Hanya 'transfer', 'cash', atau 'check'
-                date: formData.date,
-                bank: formData.bank,
-                note: formData.note
-            })
-        });
-
-        const result = await response.json();
-        
-        if (result.success) {
-            showAnnouncement('success', 'Success!', 'Payment updated successfully');
-            
-            // Update data utama
-            setData(newData);
-            // Langsung close modal
-            setShowEditModal(false);
-            setSelectedPayment(null);
-            setFormData({
-                amount: '',
-                method: 'transfer',
-                date: '',
-                bank: '',
-                note: '',
-            });
-        } else {
-            // Jika gagal, restore data
-            setLocalData(oldData);
-            setErrors({ general: result.message || 'Failed to update payment' });
-            showAnnouncement('error', 'Error', result.message || 'Failed to update payment', false);
+    // ==================== FUNGSI UPDATE PAYMENT DENGAN FETCH API ====================
+    const handleEditPayment = async () => {
+        if (!selectedPayment || !companyId) {
+            showAnnouncement('error', 'Error', 'Company ID or payment data is missing');
+            return;
         }
-    } catch (error) {
-        console.error('Error updating payment:', error);
-        // Restore data jika error
-        setLocalData(oldData);
-        showAnnouncement('error', 'Error', 'Failed to update payment: ' + error.message, false);
-    } finally {
-        setLoading(false);
-    }
-};
 
+        // Validasi sederhana
+        if (!formData.amount || !formData.date) {
+            showAnnouncement('error', 'Error', 'Amount and Date are required');
+            return;
+        }
+
+        // Validasi method
+        const validMethods = ['transfer', 'cash', 'check'];
+        if (!validMethods.includes(formData.method)) {
+            showAnnouncement('error', 'Error', 'Invalid payment method');
+            return;
+        }
+
+        setLoading(true);
+        setErrors({});
+        
+        try {
+            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+            const url = `/companies/${companyId}/payments/${selectedPayment.id}`;
+            
+            console.log('Updating payment:', {
+                url,
+                formData,
+                companyId,
+                paymentId: selectedPayment.id
+            });
+            
+            const response = await fetch(url, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': csrfToken,
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Accept': 'application/json'
+                },
+                credentials: 'include',
+                body: JSON.stringify({
+                    amount: formData.amount,
+                    method: formData.method,
+                    date: formData.date,
+                    bank: formData.bank,
+                    note: formData.note
+                })
+            });
+
+            const result = await response.json();
+            
+            console.log('Update response:', result);
+            
+            if (result.success) {
+                showAnnouncement('success', 'Success!', 'Payment updated successfully');
+                
+                // Update local data dengan data yang baru
+                const updatedPayment = {
+                    ...selectedPayment,
+                    amount: formData.amount,
+                    method: formData.method,
+                    date: formData.date,
+                    bank: formData.bank,
+                    note: formData.note,
+                    updated_at: new Date().toISOString()
+                };
+
+                const newData = localData.map(payment => 
+                    payment.id === selectedPayment.id ? updatedPayment : payment
+                );
+                
+                setLocalData(newData);
+                setData(newData);
+                
+                // Close modal
+                setShowEditModal(false);
+                setSelectedPayment(null);
+                setFormData({
+                    amount: '',
+                    method: 'transfer',
+                    date: '',
+                    bank: '',
+                    note: '',
+                });
+            } else {
+                setErrors(result.errors || { general: result.message });
+                showAnnouncement('error', 'Error', result.message || 'Failed to update payment', false);
+            }
+        } catch (error) {
+            console.error('Error updating payment:', error);
+            showAnnouncement('error', 'Error', 'Failed to update payment: ' + error.message, false);
+        } finally {
+            setLoading(false);
+        }
+    };
 
     // ==================== FUNGSI DELETE PAYMENT ====================
     const openDeleteModal = (payment) => {
@@ -543,131 +572,113 @@ const handleEditPayment = async () => {
         setShowDeleteModal(true);
     };
 
-// ==================== FUNGSI DELETE PAYMENT DENGAN FETCH API ====================
-const handleDeletePayment = async () => {
-    if (!selectedPayment || !companyId) {
-        showAnnouncement('error', 'Error', 'Company ID or payment data is missing');
-        return;
-    }
-
-    setLoading(true);
-    
-    // Backup data lama
-    const oldData = [...localData];
-    
-    try {
-        // Update local state terlebih dahulu untuk immediate feedback
-        const newData = localData.filter(payment => payment.id !== selectedPayment.id);
-        setLocalData(newData);
-        
-        // Juga update selected payments jika payment yang dihapus ada di dalamnya
-        if (selectedPayments.includes(selectedPayment.id)) {
-            setSelectedPayments(prev => prev.filter(id => id !== selectedPayment.id));
+    // ==================== FUNGSI DELETE PAYMENT DENGAN FETCH API ====================
+    const handleDeletePayment = async () => {
+        if (!selectedPayment || !companyId) {
+            showAnnouncement('error', 'Error', 'Company ID or payment data is missing');
+            return;
         }
-        
-        // Menggunakan fetch API untuk menghindari error Inertia response
-        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
-        const url = `/companies/${companyId}/payments/${selectedPayment.id}`;
-        
-        const response = await fetch(url, {
-            method: 'DELETE',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': csrfToken,
-                'X-Requested-With': 'XMLHttpRequest',
-                'Accept': 'application/json'
-            },
-            credentials: 'include'
-        });
 
-        const result = await response.json();
+        setLoading(true);
         
-        if (result.success) {
-            showAnnouncement('success', 'Success!', 'Payment deleted successfully');
+        try {
+            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+            const url = `/companies/${companyId}/payments/${selectedPayment.id}`;
             
-            // Update data utama
-            setData(newData);
-            // Langsung close modal
-            setShowDeleteModal(false);
-            setSelectedPayment(null);
-        } else {
-            // Jika gagal, restore data
-            setLocalData(oldData);
-            showAnnouncement('error', 'Error', result.message || 'Failed to delete payment', false);
-        }
-    } catch (error) {
-        console.error('Error deleting payment:', error);
-        // Restore data jika error
-        setLocalData(oldData);
-        showAnnouncement('error', 'Error', 'Failed to delete payment: ' + error.message, false);
-    } finally {
-        setLoading(false);
-    }
-};
+            const response = await fetch(url, {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': csrfToken,
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Accept': 'application/json'
+                },
+                credentials: 'include'
+            });
 
- // ==================== Bulk Delete dengan Fetch API ====================
-const handleBulkDelete = async () => {
-    if (selectedPayments.length === 0 || !companyId) {
-        showAnnouncement('warning', 'Warning', 'No payments selected or Company ID missing');
-        return;
-    }
-    
-    const confirmMessage = `Are you sure you want to delete ${selectedPayments.length} payment(s)?`;
-    
-    if (!window.confirm(confirmMessage)) {
-        return;
-    }
-    
-    setLoading(true);
-    
-    // Backup data lama
-    const oldData = [...localData];
-    
-    try {
-        // Update local state terlebih dahulu untuk immediate feedback
-        const newData = localData.filter(payment => !selectedPayments.includes(payment.id));
-        setLocalData(newData);
-        
-        // Menggunakan fetch API untuk menghindari error Inertia response
-        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
-        const url = `/companies/${companyId}/payments/bulk-delete`;
-        
-        const response = await fetch(url, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': csrfToken,
-                'X-Requested-With': 'XMLHttpRequest',
-                'Accept': 'application/json'
-            },
-            credentials: 'include',
-            body: JSON.stringify({ payment_ids: selectedPayments })
-        });
-
-        const result = await response.json();
-        
-        if (result.success) {
-            showAnnouncement('success', 'Success!', 
-                `Successfully deleted ${result.deleted_count || selectedPayments.length} payment(s)`);
+            const result = await response.json();
             
-            // Update data utama
-            setData(newData);
-            // Clear selection
-            setSelectedPayments([]);
-        } else {
-            // Jika gagal, restore data
-            setLocalData(oldData);
-            showAnnouncement('error', 'Error', result.message || 'Failed to delete payments', false);
+            if (result.success) {
+                showAnnouncement('success', 'Success!', 'Payment deleted successfully');
+                
+                // Update local data
+                const newData = localData.filter(payment => payment.id !== selectedPayment.id);
+                setLocalData(newData);
+                setData(newData);
+                
+                // Update selected payments
+                if (selectedPayments.includes(selectedPayment.id)) {
+                    setSelectedPayments(prev => prev.filter(id => id !== selectedPayment.id));
+                }
+                
+                // Close modal
+                setShowDeleteModal(false);
+                setSelectedPayment(null);
+            } else {
+                showAnnouncement('error', 'Error', result.message || 'Failed to delete payment', false);
+            }
+        } catch (error) {
+            console.error('Error deleting payment:', error);
+            showAnnouncement('error', 'Error', 'Failed to delete payment: ' + error.message, false);
+        } finally {
+            setLoading(false);
         }
-    } catch (error) {
-        console.error('Error bulk deleting payments:', error);
-        // Restore data jika error
-        setLocalData(oldData);
-        showAnnouncement('error', 'Error', 'Failed to delete payments: ' + error.message, false);
-    } finally {
-        setLoading(false);
-    }
-};
+    };
+
+    // ==================== Bulk Delete dengan Fetch API ====================
+    const handleBulkDelete = async () => {
+        if (selectedPayments.length === 0 || !companyId) {
+            showAnnouncement('warning', 'Warning', 'No payments selected or Company ID missing');
+            return;
+        }
+        
+        const confirmMessage = `Are you sure you want to delete ${selectedPayments.length} payment(s)?`;
+        
+        if (!window.confirm(confirmMessage)) {
+            return;
+        }
+        
+        setLoading(true);
+        
+        try {
+            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+            const url = `/companies/${companyId}/payments/bulk-delete`;
+            
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': csrfToken,
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Accept': 'application/json'
+                },
+                credentials: 'include',
+                body: JSON.stringify({ payment_ids: selectedPayments })
+            });
+
+            const result = await response.json();
+            
+            if (result.success) {
+                showAnnouncement('success', 'Success!', 
+                    `Successfully deleted ${result.deleted_count || selectedPayments.length} payment(s)`);
+                
+                // Update local data
+                const newData = localData.filter(payment => !selectedPayments.includes(payment.id));
+                setLocalData(newData);
+                setData(newData);
+                
+                // Clear selection
+                setSelectedPayments([]);
+            } else {
+                showAnnouncement('error', 'Error', result.message || 'Failed to delete payments', false);
+            }
+        } catch (error) {
+            console.error('Error bulk deleting payments:', error);
+            showAnnouncement('error', 'Error', 'Failed to delete payments: ' + error.message, false);
+        } finally {
+            setLoading(false);
+        }
+    };
 
     // Mobile Card View
     const MobileCardView = ({ payment }) => {
@@ -810,8 +821,18 @@ const handleBulkDelete = async () => {
         );
     };
 
-    // Empty State - update untuk menggunakan localData
-    if (!localData || localData.length === 0) {
+    // Calculate statistics menggunakan filterDataByCompany (hanya untuk company ini)
+    const totalPayments = filterDataByCompany.length;
+    const totalReceived = filterDataByCompany.reduce((sum, p) => sum + getPaymentAmount(p), 0);
+    const totalInvoiceValue = filterDataByCompany.reduce((sum, p) => sum + getInvoiceAmount(p), 0);
+    const transferCount = filterDataByCompany.filter(p => ['transfer', 'bank_transfer'].includes((p.method || '').toLowerCase())).length;
+    const cashCount = filterDataByCompany.filter(p => (p.method || '').toLowerCase() === 'cash').length;
+    const checkCount = filterDataByCompany.filter(p => (p.method || '').toLowerCase() === 'check').length;
+    const averagePayment = totalPayments > 0 ? totalReceived / totalPayments : 0;
+    const paymentRatio = totalInvoiceValue > 0 ? (totalReceived / totalInvoiceValue) * 100 : 0;
+
+    // Empty State
+    if (filterDataByCompany.length === 0) {
         return (
             <div className="text-center py-12">
                 <AnnouncementModal />
@@ -825,16 +846,6 @@ const handleBulkDelete = async () => {
             </div>
         );
     }
-
-    // Calculate statistics - update untuk menggunakan localData
-    const totalPayments = localData.length;
-    const totalReceived = localData.reduce((sum, p) => sum + getPaymentAmount(p), 0);
-    const totalInvoiceValue = localData.reduce((sum, p) => sum + getInvoiceAmount(p), 0);
-    const transferCount = localData.filter(p => ['transfer', 'bank_transfer'].includes((p.method || '').toLowerCase())).length;
-    const cashCount = localData.filter(p => (p.method || '').toLowerCase() === 'cash').length;
-    const checkCount = localData.filter(p => (p.method || '').toLowerCase() === 'check').length;
-    const averagePayment = totalPayments > 0 ? totalReceived / totalPayments : 0;
-    const paymentRatio = totalInvoiceValue > 0 ? (totalReceived / totalInvoiceValue) * 100 : 0;
 
     return (
         <div className="relative">
@@ -1185,6 +1196,7 @@ const handleBulkDelete = async () => {
                                         </span>
                                         <input
                                             type="number"
+                                            step="0.01"
                                             value={formData.amount}
                                             onChange={(e) => setFormData({...formData, amount: e.target.value})}
                                             className={`w-full pl-10 pr-3 py-2 border ${errors.amount ? 'border-red-300' : 'border-gray-300'} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50 disabled:cursor-not-allowed`}
@@ -1212,7 +1224,7 @@ const handleBulkDelete = async () => {
                                         <option value="cash">Cash</option>
                                         <option value="check">Check</option>
                                     </select>
-                                    {errors.method && (
+                                        {errors.method && (
                                         <p className="mt-1 text-xs text-red-600">{errors.method}</p>
                                     )}
                                 </div>
@@ -1284,7 +1296,7 @@ const handleBulkDelete = async () => {
                                 </button>
                                 <button
                                     type="submit"
-                                    disabled={loading || !companyId}
+                                    disabled={loading}
                                     className="px-4 py-2 bg-[#054748] text-white rounded-lg hover:bg-[#0a5d5e] transition-colors flex items-center justify-center min-w-[100px] disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
                                     {loading ? (
@@ -1354,24 +1366,6 @@ const handleBulkDelete = async () => {
                             </button>
                         </div>
                     </div>
-                </div>
-            )}
-
-            {/* Debug Info */}
-            {process.env.NODE_ENV === 'development' && (
-                <div className="mt-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
-                    <details>
-                        <summary className="text-sm font-medium text-gray-700 cursor-pointer">
-                            Debug Info
-                        </summary>
-                        <div className="mt-2 text-xs text-gray-600 space-y-2">
-                            <div>Total payments: {localData.length}</div>
-                            <div>Filtered payments: {filteredData.length}</div>
-                            <div>Company ID: {companyId}</div>
-                            <div>Loading: {loading ? 'Yes' : 'No'}</div>
-                            <div>Selected: {selectedPayments.length} payments</div>
-                        </div>
-                    </details>
                 </div>
             )}
         </div>

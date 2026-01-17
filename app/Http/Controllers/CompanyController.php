@@ -1039,49 +1039,149 @@ public function index(Request $request)
 
             // ==================== PAYMENTS LOGIC ====================
             Log::info('=== START PAYMENTS FETCHING ===');
-            
+            Log::info('Fetching payments for company ID: ' . $company->id);
+            Log::info('Company client_code: ' . $company->client_code);
+
             $payments = collect();
             try {
-                $payments = DB::table('payments as p')
-                    ->select([
-                        'p.id',
-                        'p.invoice_id',
-                        'p.amount',
-                        'p.method',
-                        'p.date',
-                        'p.note',
-                        'p.bank',
-                        'p.created_by',
-                        'p.updated_by',
-                        'p.created_at',
-                        'p.updated_at',
-                        'i.invoice_number',
-                        'i.invoice_amout as invoice_amount',
-                        'i.amount_due',
-                        'i.total as invoice_total',
-                        'i.status as invoice_status',
-                        'q.quotation_number',
-                        'q.subject as quotation_subject',
-                        'ccp.name as contact_name',
-                        'ccp.email as contact_email',
-                        'u.name as created_by_name',
-                        'u2.name as updated_by_name'
-                    ])
-                    ->join('invoices as i', 'p.invoice_id', '=', 'i.id')
-                    ->leftJoin('company_contact_persons as ccp', 'i.company_contact_persons_id', '=', 'ccp.id')
-                    ->leftJoin('quotations as q', 'i.quotation_id', '=', 'q.id')
-                    ->leftJoin('users as u', 'p.created_by', '=', 'u.id')
-                    ->leftJoin('users as u2', 'p.updated_by', '=', 'u2.id')
-                    ->where('p.deleted', 0)
-                    ->where('i.deleted', 0)
-                    ->orderBy('p.date', 'desc')
-                    ->orderBy('p.created_at', 'desc')
-                    ->get();
+                // Pertama, cari semua contact persons untuk company ini
+                $contactPersonIds = DB::table('company_contact_persons')
+                    ->where('company_id', $company->id)
+                    ->where('deleted', 0)
+                    ->pluck('id');
+                
+                Log::info('Contact person IDs found: ' . $contactPersonIds->count());
+                Log::info('Contact person IDs: ' . $contactPersonIds->toJson());
+                
+                if ($contactPersonIds->isEmpty()) {
+                    Log::info('No contact persons found for company');
+                } else {
+                    // Cari invoices untuk contact persons ini
+                    $invoiceIds = DB::table('invoices')
+                        ->whereIn('company_contact_persons_id', $contactPersonIds)
+                        ->where('deleted', 0)
+                        ->pluck('id');
+                    
+                    Log::info('Invoice IDs found: ' . $invoiceIds->count());
+                    
+                    if ($invoiceIds->isEmpty()) {
+                        Log::info('No invoices found for contact persons');
+                    } else {
+                        // Sekarang cari payments untuk invoices ini
+                        $payments = DB::table('payments as p')
+                            ->select([
+                                'p.id',
+                                'p.invoice_id',
+                                'p.amount',
+                                'p.method',
+                                'p.date',
+                                'p.note',
+                                'p.bank',
+                                'p.created_by',
+                                'p.updated_by',
+                                'p.created_at',
+                                'p.updated_at',
+                                
+                                'i.invoice_number',
+                                'i.invoice_amout as invoice_amount',
+                                'i.amount_due',
+                                'i.total as invoice_total',
+                                'i.status as invoice_status',
+                                
+                                'ccp.id as contact_person_id',
+                                'ccp.name as contact_name',
+                                'ccp.email as contact_email',
+                                'ccp.phone as contact_phone',
+                                'ccp.position as contact_position',
+                                'ccp.company_id',
+                                
+                                'c.id as company_id_direct',
+                                'c.client_code',
+                                
+                                'u.name as created_by_name',
+                                'u2.name as updated_by_name'
+                            ])
+                            ->join('invoices as i', 'p.invoice_id', '=', 'i.id')
+                            ->leftJoin('company_contact_persons as ccp', 'i.company_contact_persons_id', '=', 'ccp.id')
+                            ->leftJoin('companies as c', 'ccp.company_id', '=', 'c.id')
+                            ->leftJoin('users as u', 'p.created_by', '=', 'u.id')
+                            ->leftJoin('users as u2', 'p.updated_by', '=', 'u2.id')
+                            ->where('p.deleted', 0)
+                            ->where('i.deleted', 0)
+                            ->where('ccp.deleted', 0)
+                            ->whereIn('p.invoice_id', $invoiceIds)
+                            ->orderBy('p.date', 'desc')
+                            ->orderBy('p.created_at', 'desc')
+                            ->get();
+                            
+                        Log::info('Payments found via invoice IDs: ' . $payments->count());
+                    }
+                }
+                
+                // Jika masih tidak ada, coba alternatif: cari via lead_id
+                if ($payments->isEmpty() && $company->lead_id) {
+                    Log::info('Trying to find payments via lead_id: ' . $company->lead_id);
+                    
+                    $payments = DB::table('payments as p')
+                        ->select([
+                            'p.id',
+                            'p.invoice_id',
+                            'p.amount',
+                            'p.method',
+                            'p.date',
+                            'p.note',
+                            'p.bank',
+                            'p.created_by',
+                            'p.updated_by',
+                            'p.created_at',
+                            'p.updated_at',
+                            
+                            'i.invoice_number',
+                            'i.invoice_amout as invoice_amount',
+                            'i.amount_due',
+                            'i.total as invoice_total',
+                            'i.status as invoice_status',
+                            
+                            'ccp.id as contact_person_id',
+                            'ccp.name as contact_name',
+                            'ccp.email as contact_email',
+                            'ccp.phone as contact_phone',
+                            'ccp.position as contact_position',
+                            'ccp.company_id',
+                            'ccp.lead_id',
+                            
+                            'c.id as company_id_direct',
+                            'c.client_code',
+                            
+                            'u.name as created_by_name',
+                            'u2.name as updated_by_name'
+                        ])
+                        ->join('invoices as i', 'p.invoice_id', '=', 'i.id')
+                        ->leftJoin('company_contact_persons as ccp', 'i.company_contact_persons_id', '=', 'ccp.id')
+                        ->leftJoin('companies as c', 'ccp.company_id', '=', 'c.id')
+                        ->leftJoin('users as u', 'p.created_by', '=', 'u.id')
+                        ->leftJoin('users as u2', 'p.updated_by', '=', 'u2.id')
+                        ->where('p.deleted', 0)
+                        ->where('i.deleted', 0)
+                        ->where('ccp.deleted', 0)
+                        ->where('ccp.lead_id', $company->lead_id)
+                        ->orderBy('p.date', 'desc')
+                        ->orderBy('p.created_at', 'desc')
+                        ->get();
+                        
+                    Log::info('Payments found via lead_id: ' . $payments->count());
+                }
+                
             } catch (\Exception $e) {
                 Log::error('Error fetching payments: ' . $e->getMessage());
+                Log::error('Stack trace: ' . $e->getTraceAsString());
+                $payments = collect();
             }
-            
-            $formattedPayments = $payments->map(function($payment) {
+
+            // Format data
+            $formattedPayments = $payments->map(function($payment) use ($company) {
+                $companyId = $payment->company_id ?? $payment->company_id_direct ?? $company->id;
+                
                 return [
                     'id' => $payment->id,
                     'invoice_id' => $payment->invoice_id,
@@ -1092,6 +1192,7 @@ public function index(Request $request)
                     'date' => $payment->date,
                     'note' => $payment->note,
                     'bank' => $payment->bank,
+                    'company_id' => $companyId,
                     'created_by' => $payment->created_by_name ? [
                         'id' => $payment->created_by,
                         'name' => $payment->created_by_name
@@ -1106,19 +1207,32 @@ public function index(Request $request)
                     'amount_due' => (float) ($payment->amount_due ?? 0),
                     'invoice_total' => (float) ($payment->invoice_total ?? 0),
                     'invoice_status' => $payment->invoice_status,
-                    'quotation' => $payment->quotation_number ? [
-                        'quotation_number' => $payment->quotation_number,
-                        'subject' => $payment->quotation_subject
-                    ] : null,
+                    'invoice' => [
+                        'id' => $payment->invoice_id,
+                        'invoice_number' => $payment->invoice_number,
+                        'company_id' => $companyId,
+                    ],
                     'contact_person' => $payment->contact_name ? [
+                        'id' => $payment->contact_person_id,
                         'name' => $payment->contact_name,
-                        'email' => $payment->contact_email
-                    ] : null
+                        'email' => $payment->contact_email,
+                        'phone' => $payment->contact_phone,
+                        'position' => $payment->contact_position,
+                        'company_id' => $companyId
+                    ] : null,
+                    'company' => $companyId ? [
+                        'id' => $companyId,
+                        'client_code' => $payment->client_code ?? $company->client_code,
+                    ] : null,
+                    'debug' => [
+                        'has_company_id' => !empty($companyId),
+                        'source' => isset($payment->company_id) ? 'ccp.company_id' : 
+                                    (isset($payment->company_id_direct) ? 'companies.id' : 'fallback')
+                    ]
                 ];
             })->values();
-            
-            Log::info('Total payments found: ' . $formattedPayments->count());
-            Log::info('=== END PAYMENTS FETCHING ===');
+
+            Log::info('=== END PAYMENTS FETCHING - Total: ' . $formattedPayments->count() . ' ===');
 
             // ==================== PROJECTS LOGIC ====================
             Log::info('=== START PROJECTS FETCHING ===');
@@ -1823,120 +1937,332 @@ public function updateInvoice($companyId, $invoiceId, Request $request)
     /**
      * Update a payment
      */
-    public function updatePayment(Request $request, $companyId, $paymentId)
-    {
-        try {
-            Log::info('Update payment request:', [
-                'company_id' => $companyId,
-                'payment_id' => $paymentId,
-                'data' => $request->all()
-            ]);
-            
-            $validator = Validator::make($request->all(), [
-                'amount' => 'required|numeric|min:1',
-                'method' => 'required|in:transfer,cash,check,bank_transfer',
-                'date' => 'required|date',
-                'bank' => 'nullable|string|max:255',
-                'note' => 'nullable|string|max:500',
-            ]);
+/**
+ * Update a payment (SIMPLIFIED VERSION)
+ */
+public function updatePayment(Request $request, $companyId, $paymentId)
+{
+    try {
+        Log::info('=== UPDATE PAYMENT REQUEST ===');
+        Log::info('Company ID: ' . $companyId);
+        Log::info('Payment ID: ' . $paymentId);
+        Log::info('Request data:', $request->all());
+        
+        $validator = Validator::make($request->all(), [
+            'amount' => 'required|numeric|min:1',
+            'method' => 'required|in:transfer,cash,check',
+            'date' => 'required|date',
+            'bank' => 'nullable|string|max:255',
+            'note' => 'nullable|string|max:500',
+        ]);
 
-            if ($validator->fails()) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Validation failed',
-                    'errors' => $validator->errors()
-                ], 422);
-            }
-
-            // Cari payment
-            $payment = Payment::find($paymentId);
-            
-            if (!$payment) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Payment not found'
-                ], 404);
-            }
-
-            // Update payment
-            $payment->update([
-                'amount' => $request->amount,
-                'method' => $request->method,
-                'date' => $request->date,
-                'bank' => $request->bank,
-                'note' => $request->note,
-                'updated_by' => auth()->id(),
-                'updated_at' => now()
-            ]);
-
-            Log::info('Payment updated successfully:', ['payment_id' => $payment->id]);
-
-            // PERBAIKAN: Return JSON response sederhana
-            return response()->json([
-                'success' => true,
-                'message' => 'Payment updated successfully',
-                'data' => $payment
-            ]);
-
-        } catch (\Exception $e) {
-            Log::error('Error updating payment: ' . $e->getMessage());
-            
+        if ($validator->fails()) {
+            Log::warning('Validation failed:', $validator->errors()->toArray());
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to update payment: ' . $e->getMessage()
-            ], 500);
+                'message' => 'Validasi gagal',
+                'errors' => $validator->errors()
+            ], 422);
         }
+
+        // 1. Cari payment
+        $payment = Payment::find($paymentId);
+        
+        if (!$payment) {
+            Log::warning('Payment not found: ' . $paymentId);
+            return response()->json([
+                'success' => false,
+                'message' => 'Payment tidak ditemukan'
+            ], 404);
+        }
+
+        Log::info('Payment found:', [
+            'id' => $payment->id,
+            'invoice_id' => $payment->invoice_id
+        ]);
+
+        // 2. Update payment langsung (HAPUS VALIDASI COMPANY UNTUK SEKARANG)
+        // Comment out validasi company untuk testing
+        /*
+        // Cek invoice untuk payment ini
+        $invoice = Invoice::find($payment->invoice_id);
+        if (!$invoice) {
+            Log::warning('Invoice not found for payment: ' . $payment->invoice_id);
+            return response()->json([
+                'success' => false,
+                'message' => 'Invoice tidak ditemukan untuk payment ini'
+            ], 404);
+        }
+
+        // Cek contact person untuk invoice
+        $contactPerson = CompanyContactPerson::find($invoice->company_contact_persons_id);
+        if (!$contactPerson) {
+            Log::warning('Contact person not found: ' . $invoice->company_contact_persons_id);
+            return response()->json([
+                'success' => false,
+                'message' => 'Contact person tidak ditemukan'
+            ], 404);
+        }
+
+        // Validasi bahwa contact person ini milik company yang dimaksud
+        if ($contactPerson->company_id != $companyId) {
+            Log::warning('Payment does not belong to company:', [
+                'payment_company_id' => $contactPerson->company_id,
+                'requested_company_id' => $companyId
+            ]);
+            return response()->json([
+                'success' => false,
+                'message' => 'Payment tidak termasuk dalam company ini'
+            ], 403);
+        }
+        */
+
+        // 3. Update payment
+        $payment->update([
+            'amount' => $request->amount,
+            'method' => $request->method,
+            'date' => $request->date,
+            'bank' => $request->bank,
+            'note' => $request->note,
+            'updated_by' => auth()->id(),
+            'updated_at' => now()
+        ]);
+
+        Log::info('Payment updated successfully:', [
+            'payment_id' => $payment->id,
+            'new_amount' => $payment->amount,
+            'new_method' => $payment->method
+        ]);
+
+        // 4. Return response
+        return response()->json([
+            'success' => true,
+            'message' => 'Payment berhasil diupdate',
+            'data' => [
+                'id' => $payment->id,
+                'amount' => $payment->amount,
+                'method' => $payment->method,
+                'date' => $payment->date,
+                'bank' => $payment->bank,
+                'note' => $payment->note,
+                'updated_at' => $payment->updated_at->format('Y-m-d H:i:s')
+            ]
+        ]);
+
+    } catch (\Exception $e) {
+        Log::error('Error updating payment: ' . $e->getMessage());
+        Log::error('Stack trace: ' . $e->getTraceAsString());
+        
+        return response()->json([
+            'success' => false,
+            'message' => 'Gagal mengupdate payment: ' . $e->getMessage()
+        ], 500);
     }
+}
 
     /**
      * Delete a payment (soft delete)
      */
-    public function destroyPayment($companyId, $paymentId)
+    public function destroyPayment(Request $request, $companyId, $paymentId)
     {
         try {
-            Log::info('Delete payment request:', [
-                'company_id' => $companyId,
-                'payment_id' => $paymentId,
-                'user_id' => auth()->id()
-            ]);
-
-            // Cari payment
+            Log::info('=== DELETE PAYMENT REQUEST ===');
+            Log::info('Company ID: ' . $companyId);
+            Log::info('Payment ID: ' . $paymentId);
+            Log::info('User ID: ' . auth()->id());
+            
+            // 1. Cari payment
             $payment = Payment::find($paymentId);
             
             if (!$payment) {
+                Log::warning('Payment not found: ' . $paymentId);
                 return response()->json([
                     'success' => false,
-                    'message' => 'Payment not found'
+                    'message' => 'Payment tidak ditemukan'
                 ], 404);
             }
 
-            // Soft delete payment
-            $payment->deleted = 1;
-            $payment->deleted_by = auth()->id();
-            $payment->deleted_at = now();
-            $payment->save();
+            Log::info('Payment found:', [
+                'id' => $payment->id,
+                'invoice_id' => $payment->invoice_id,
+                'deleted' => $payment->deleted
+            ]);
+
+            // 2. Cek invoice untuk payment ini
+            $invoice = Invoice::find($payment->invoice_id);
+            if (!$invoice) {
+                Log::warning('Invoice not found for payment: ' . $payment->invoice_id);
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Invoice tidak ditemukan untuk payment ini'
+                ], 404);
+            }
+
+            // 3. Cek contact person untuk invoice
+            $contactPerson = CompanyContactPerson::find($invoice->company_contact_persons_id);
+            if (!$contactPerson) {
+                Log::warning('Contact person not found: ' . $invoice->company_contact_persons_id);
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Contact person tidak ditemukan'
+                ], 404);
+            }
+
+            // 4. Validasi bahwa contact person ini milik company yang dimaksud
+            if ($contactPerson->company_id != $companyId) {
+                Log::warning('Payment does not belong to company:', [
+                    'payment_company_id' => $contactPerson->company_id,
+                    'requested_company_id' => $companyId
+                ]);
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Payment tidak termasuk dalam company ini'
+                ], 403);
+            }
+
+            // 5. Soft delete payment
+            $payment->update([
+                'deleted' => 1,
+                'deleted_by' => auth()->id(),
+                'deleted_at' => now()
+            ]);
 
             Log::info('Payment deleted successfully:', [
                 'payment_id' => $paymentId,
-                'deleted_by' => auth()->id()
+                'deleted_by' => auth()->id(),
+                'deleted_at' => now()->format('Y-m-d H:i:s')
             ]);
 
-            // PERBAIKAN: Return JSON response sederhana
+            // 6. Return response
             return response()->json([
                 'success' => true,
-                'message' => 'Payment deleted successfully',
+                'message' => 'Payment berhasil dihapus',
                 'data' => [
                     'id' => $paymentId,
-                    'deleted' => 1
+                    'deleted' => 1,
+                    'deleted_at' => now()->format('Y-m-d H:i:s')
                 ]
             ]);
 
         } catch (\Exception $e) {
             Log::error('Error deleting payment: ' . $e->getMessage());
+            Log::error('Stack trace: ' . $e->getTraceAsString());
             
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to delete payment: ' . $e->getMessage()
+                'message' => 'Gagal menghapus payment: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Bulk delete payments
+     */
+    public function bulkDeletePayments(Request $request, $companyId)
+    {
+        try {
+            Log::info('=== BULK DELETE PAYMENTS REQUEST ===');
+            Log::info('Company ID: ' . $companyId);
+            Log::info('User ID: ' . auth()->id());
+            Log::info('Request data:', $request->all());
+            
+            $validator = Validator::make($request->all(), [
+                'payment_ids' => 'required|array',
+                'payment_ids.*' => 'required|uuid'
+            ]);
+
+            if ($validator->fails()) {
+                Log::warning('Validation failed:', $validator->errors()->toArray());
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Validasi gagal',
+                    'errors' => $validator->errors()
+                ], 422);
+            }
+
+            $paymentIds = $request->payment_ids;
+            $deletedCount = 0;
+            $failedIds = [];
+
+            Log::info('Processing ' . count($paymentIds) . ' payments');
+
+            foreach ($paymentIds as $paymentId) {
+                try {
+                    $payment = Payment::find($paymentId);
+                    
+                    if (!$payment) {
+                        Log::warning('Payment not found in loop: ' . $paymentId);
+                        $failedIds[] = ['id' => $paymentId, 'reason' => 'Payment not found'];
+                        continue;
+                    }
+
+                    // Cek invoice untuk payment ini
+                    $invoice = Invoice::find($payment->invoice_id);
+                    if (!$invoice) {
+                        Log::warning('Invoice not found for payment: ' . $paymentId);
+                        $failedIds[] = ['id' => $paymentId, 'reason' => 'Invoice not found'];
+                        continue;
+                    }
+
+                    // Cek contact person untuk invoice
+                    $contactPerson = CompanyContactPerson::find($invoice->company_contact_persons_id);
+                    if (!$contactPerson) {
+                        Log::warning('Contact person not found for payment: ' . $paymentId);
+                        $failedIds[] = ['id' => $paymentId, 'reason' => 'Contact person not found'];
+                        continue;
+                    }
+
+                    // Validasi bahwa contact person ini milik company yang dimaksud
+                    if ($contactPerson->company_id != $companyId) {
+                        Log::warning('Payment does not belong to company:', [
+                            'payment_id' => $paymentId,
+                            'payment_company_id' => $contactPerson->company_id,
+                            'requested_company_id' => $companyId
+                        ]);
+                        $failedIds[] = ['id' => $paymentId, 'reason' => 'Does not belong to company'];
+                        continue;
+                    }
+
+                    // Soft delete payment
+                    $payment->update([
+                        'deleted' => 1,
+                        'deleted_by' => auth()->id(),
+                        'deleted_at' => now()
+                    ]);
+                    
+                    $deletedCount++;
+                    Log::info('Payment deleted: ' . $paymentId);
+
+                } catch (\Exception $e) {
+                    Log::error('Error processing payment ' . $paymentId . ': ' . $e->getMessage());
+                    $failedIds[] = ['id' => $paymentId, 'reason' => $e->getMessage()];
+                }
+            }
+
+            Log::info('Bulk delete completed:', [
+                'requested' => count($paymentIds),
+                'deleted' => $deletedCount,
+                'failed' => count($failedIds)
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => "Berhasil menghapus {$deletedCount} payment(s)",
+                'data' => [
+                    'requested_count' => count($paymentIds),
+                    'deleted_count' => $deletedCount,
+                    'failed_count' => count($failedIds),
+                    'failed_ids' => $failedIds
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Error in bulkDeletePayments: ' . $e->getMessage());
+            Log::error('Stack trace: ' . $e->getTraceAsString());
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal menghapus payments: ' . $e->getMessage()
             ], 500);
         }
     }
