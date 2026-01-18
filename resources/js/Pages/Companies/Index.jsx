@@ -25,8 +25,13 @@ import {
 
 const CompaniesIndex = () => {
     // Ambil semua props termasuk clientTypes
-    const { companies, statistics, types, filters, fromQuotation, quotationId, clientTypes } = usePage().props;
+    const { companies, statistics, types, filters, fromQuotation, quotationId, clientTypes, auth_permissions } = usePage().props;
     const { t } = useTranslation();
+
+    const canRead = auth_permissions.can_read === 1;
+    const canCreate = auth_permissions.can_create === 1;
+    const canUpdate = auth_permissions.can_update === 1;
+    const canDelete = auth_permissions.can_delete === 1;
 
     console.log('DEBUG: Props Received:', { 
         companiesCount: companies?.data?.length,
@@ -472,13 +477,15 @@ const CompaniesIndex = () => {
                     )}
 
                     <div className="flex gap-3 w-full sm:w-auto">
-                        <button 
-                            onClick={() => setIsCreateModalOpen(true)}
-                            className="inline-flex items-center rounded-md border border-transparent px-5 py-2.5 text-sm font-medium font-semibold uppercase tracking-widest text-white transition duration-150 ease-in-out bg-[rgb(17,94,89)] hover:bg-[rgb(13,75,71)] focus:bg-[rgb(13,75,71)] focus:outline-none focus:ring-2 focus:ring-[rgb(17,94,89)] focus:ring-offset-2 active:bg-[rgb(10,60,57)] w-full sm:w-auto flex items-center justify-center gap-2 shadow-sm hover:shadow"
-                        >
-                            <Plus className="h-5 w-5" />
-                            <span className="font-semibold">{t('companies.add_new_client')}</span>
-                        </button>
+                        {canCreate && ( 
+                            <button 
+                                onClick={() => setIsCreateModalOpen(true)}
+                                className="inline-flex items-center rounded-md border border-transparent px-5 py-2.5 text-sm font-medium font-semibold uppercase tracking-widest text-white transition duration-150 ease-in-out bg-[rgb(17,94,89)] hover:bg-[rgb(13,75,71)] focus:bg-[rgb(13,75,71)] focus:outline-none focus:ring-2 focus:ring-[rgb(17,94,89)] focus:ring-offset-2 active:bg-[rgb(10,60,57)] w-full sm:w-auto flex items-center justify-center gap-2 shadow-sm hover:shadow"
+                            >
+                                <Plus className="h-5 w-5" />
+                                <span className="font-semibold">{t('companies.add_new_client')}</span>
+                            </button>
+                        )}
                     </div>
                 </div>
 
@@ -643,9 +650,9 @@ const CompaniesIndex = () => {
                         <TableLayout
                             columns={columns}
                             data={tableData}
-                            onEdit={handleEditClick}
-                            onDelete={handleDeleteClick}
-                            showAction={true}
+                            onEdit={ canUpdate ? handleEditClick : null}
+                            onDelete={ canDelete ? handleDeleteClick : null}
+                            showAction={ canUpdate || canDelete }
                             pagination={{
                                 currentPage: companies.current_page || 1,
                                 totalPages: companies.last_page || 1,

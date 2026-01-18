@@ -1409,7 +1409,7 @@
             "footer": "Proyek selesai"
         },
         "filters": {
-            "search_placeholder": "Cari berdasarkan subjek atau klien",
+            "search_placeholder": "Cari berdasarkan klien",
             "status": "Status",
             "all_status": "Semua Status",
             "month": "Bulan",

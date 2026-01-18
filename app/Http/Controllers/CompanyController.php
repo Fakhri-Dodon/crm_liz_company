@@ -222,7 +222,8 @@ public function index(Request $request)
                 'client_type_id' => $request->client_type_id ?? ''
             ],
             'fromQuotation' => $fromQuotation,
-            'quotationId' => $quotationId
+            'quotationId' => $quotationId,
+            'auth_permissions' => auth()->user()->getPermissions('CLIENTS'),
         ]);
 
     } catch (\Exception $e) {
@@ -904,8 +905,9 @@ public function index(Request $request)
                         'raw_invoice_amount' => $invoice->invoice_amout ?? 'null',
                         'raw_amount_due' => $invoice->amount_due ?? 'null',
                         'has_contact' => !empty($contactPerson),
-                        'has_quotation' => !empty($quotation)
-                    ]
+                        'has_quotation' => !empty($quotation),
+                    ],
+                    'auth_permissions' => auth()->user()->getPermissions('CLIENTS')
                 ];
             });
 
@@ -1031,7 +1033,8 @@ public function index(Request $request)
                     'updated_at' => $quotation->updated_at ? 
                         (is_string($quotation->updated_at) ? 
                             $quotation->updated_at : 
-                            $quotation->updated_at->format('Y-m-d H:i:s')) : null
+                            $quotation->updated_at->format('Y-m-d H:i:s')) : null,
+                    'auth_permissions' => auth()->user()->getPermissions('CLIENTS'),            
                 ];
             })->values();
             
@@ -1528,7 +1531,8 @@ public function index(Request $request)
                     'company_id' => $company->id,
                     'company_name' => $company->company_name,
                     'lead_id' => $company->lead_id
-                ]
+                ],
+                'auth_permissions' => auth()->user()->getPermissions('CLIENTS'),              
             ]);
 
         } catch (\Exception $e) {

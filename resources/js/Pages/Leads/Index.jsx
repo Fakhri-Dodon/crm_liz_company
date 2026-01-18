@@ -746,15 +746,17 @@ export default function LeadsIndex({ leads = [], auth, auth_permissions }) {
                                 </button>
                             )}
                             {!hasActiveFilters && (
-                                <PrimaryButton
-                                    onClick={handleAdd}
-                                    className="px-6 py-3 text-sm font-semibold"
-                                >
-                                    <svg className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                                    </svg>
-                                    Create Your First Lead
-                                </PrimaryButton>
+                                canCreate && (
+                                    <PrimaryButton
+                                        onClick={handleAdd}
+                                        className="px-6 py-3 text-sm font-semibold"
+                                    >
+                                        <svg className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                                        </svg>
+                                        Create Your First Lead
+                                    </PrimaryButton>
+                                )                                
                             )}
                         </div>
                     </div>

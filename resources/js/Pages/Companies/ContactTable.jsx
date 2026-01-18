@@ -14,7 +14,8 @@ const ContactTable = ({
     contacts = [], 
     companyId,
     onUpdate,
-    isLoading: propsLoading = false
+    isLoading: propsLoading = false,
+    auth_permissions
 }) => {
     const { t } = useTranslation();
     const [expandedContact, setExpandedContact] = useState(null);
@@ -28,6 +29,13 @@ const ContactTable = ({
     const [statusFilter, setStatusFilter] = useState('all');
     const [departmentFilter, setDepartmentFilter] = useState('all');
     const [sortBy, setSortBy] = useState('name_asc');
+
+    const perms = auth_permissions || {}; 
+    
+    const canRead = perms.can_read === 1;
+    const canCreate = perms.can_create === 1;
+    const canUpdate = perms.can_update === 1;
+    const canDelete = perms.can_delete === 1;
 
     const isLoading = propsLoading || internalLoading;
 
@@ -171,14 +179,16 @@ const ContactTable = ({
                             {t('contact_table.clear_search_filters')}
                         </button>
                     ) : (
-                        <button
-                            onClick={() => setIsAddModalOpen(true)}
-                            className="inline-flex items-center px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors"
-                            disabled={isLoading}
-                        >
-                            <Plus className="w-4 h-4 mr-2" />
-                            {t('contact_table.add_first_contact_button')}
-                        </button>
+                        canCreate && (
+                            <button
+                                onClick={() => setIsAddModalOpen(true)}
+                                className="inline-flex items-center px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors"
+                                disabled={isLoading}
+                            >
+                                <Plus className="w-4 h-4 mr-2" />
+                                {t('contact_table.add_first_contact_button')}
+                            </button>
+                        )                       
                     )}
                 </div>
             ) : (
@@ -207,7 +217,7 @@ const ContactTable = ({
                             </div>
                             <div className="flex items-center space-x-1">
                                 <button 
-                                    onClick={() => handleTogglePrimary(contact.id)}
+                                    onClick={() => {if (canUpdate) handleTogglePrimary(contact.id);}}
                                     className={`p-1.5 rounded-lg ${contact.is_primary 
                                         ? 'bg-yellow-100 text-yellow-600 hover:bg-yellow-200' 
                                         : 'bg-gray-100 text-gray-400 hover:bg-gray-200'}`}
@@ -216,22 +226,28 @@ const ContactTable = ({
                                 >
                                     <Star className="w-4 h-4" />
                                 </button>
-                                <button 
-                                    onClick={() => handleEdit(contact)}
-                                    className="p-1.5 bg-blue-100 text-blue-600 rounded-lg hover:bg-blue-200"
-                                    title={t('contact_table.edit_contact')}
-                                    disabled={isLoading}
-                                >
-                                    <Edit2 className="w-4 h-4" />
-                                </button>
-                                <button 
-                                    onClick={() => handleDelete(contact.id)}
-                                    className="p-1.5 bg-red-100 text-red-600 rounded-lg hover:bg-red-200"
-                                    title={t('contact_table.delete_contact')}
-                                    disabled={isLoading}
-                                >
-                                    <Trash2 className="w-4 h-4" />
-                                </button>
+                                {canUpdate && (
+                                    <button 
+                                        onClick={() => handleEdit(contact)}
+                                        className="p-1.5 bg-blue-100 text-blue-600 rounded-lg hover:bg-blue-200"
+                                        title={t('contact_table.edit_contact')}
+                                        disabled={isLoading}
+                                    >
+                                        <Edit2 className="w-4 h-4" />
+                                    </button>
+                                )}
+
+                                {/* 3. DELETE BUTTON (Hanya jika canDelete) */}
+                                {canDelete && (
+                                    <button 
+                                        onClick={() => handleDelete(contact.id)}
+                                        className="p-1.5 bg-red-100 text-red-600 rounded-lg hover:bg-red-200"
+                                        title={t('contact_table.delete_contact')}
+                                        disabled={isLoading}
+                                    >
+                                        <Trash2 className="w-4 h-4" />
+                                    </button>
+                                )}
                             </div>
                         </div>
                         
@@ -348,14 +364,16 @@ const ContactTable = ({
                             {t('contact_table.clear_search_filters')}
                         </button>
                     ) : (
-                        <button
-                            onClick={() => setIsAddModalOpen(true)}
-                            className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-teal-600 to-teal-700 text-white rounded-lg hover:from-teal-700 hover:to-teal-800 transition-all duration-300 font-medium shadow-md hover:shadow-lg"
-                            disabled={isLoading}
-                        >
-                            <Plus className="w-5 h-5 mr-2" />
-                            {t('contact_table.add_first_contact_button_long')}
-                        </button>
+                        canCreate && (
+                            <button
+                                onClick={() => setIsAddModalOpen(true)}
+                                className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-teal-600 to-teal-700 text-white rounded-lg hover:from-teal-700 hover:to-teal-800 transition-all duration-300 font-medium shadow-md hover:shadow-lg"
+                                disabled={isLoading}
+                            >
+                                <Plus className="w-5 h-5 mr-2" />
+                                {t('contact_table.add_first_contact_button_long')}
+                            </button>
+                        )                                                            
                     )}
                 </div>
             ) : (
@@ -388,32 +406,38 @@ const ContactTable = ({
                                 </div>
                             </div>
                             <div className="flex items-center space-x-1">
-                                <button 
-                                    onClick={() => handleTogglePrimary(contact.id)}
-                                    className={`p-1.5 rounded-lg ${contact.is_primary 
-                                        ? 'bg-yellow-100 text-yellow-600 hover:bg-yellow-200' 
-                                        : 'bg-gray-100 text-gray-400 hover:bg-gray-200'}`}
-                                    title={contact.is_primary ? t('contact_table.primary_contact') : t('contact_table.set_as_primary')}
-                                    disabled={isLoading}
-                                >
-                                    <Star className="w-4 h-4" />
-                                </button>
-                                <button 
-                                    onClick={() => handleEdit(contact)}
-                                    className="p-1.5 bg-blue-100 text-blue-600 rounded-lg hover:bg-blue-200"
-                                    title={t('contact_table.edit_contact')}
-                                    disabled={isLoading}
-                                >
-                                    <Edit2 className="w-4 h-4" />
-                                </button>
-                                <button 
-                                    onClick={() => handleDelete(contact.id)}
-                                    className="p-1.5 bg-red-100 text-red-600 rounded-lg hover:bg-red-200"
-                                    title={t('contact_table.delete_contact')}
-                                    disabled={isLoading}
-                                >
-                                    <Trash2 className="w-4 h-4" />
-                                </button>
+                                { canUpdate && (
+                                    <>
+                                        <button 
+                                            onClick={() => handleTogglePrimary(contact.id)}
+                                            className={`p-1.5 rounded-lg ${contact.is_primary 
+                                                ? 'bg-yellow-100 text-yellow-600 hover:bg-yellow-200' 
+                                                : 'bg-gray-100 text-gray-400 hover:bg-gray-200'}`}
+                                            title={contact.is_primary ? t('contact_table.primary_contact') : t('contact_table.set_as_primary')}
+                                            disabled={isLoading}
+                                        >
+                                            <Star className="w-4 h-4" />
+                                        </button>
+                                        <button 
+                                            onClick={() => handleEdit(contact)}
+                                            className="p-1.5 bg-blue-100 text-blue-600 rounded-lg hover:bg-blue-200"
+                                            title={t('contact_table.edit_contact')}
+                                            disabled={isLoading}
+                                        >
+                                            <Edit2 className="w-4 h-4" />
+                                        </button>
+                                    </>                                    
+                                )} 
+                                { canDelete && (
+                                    <button 
+                                        onClick={() => handleDelete(contact.id)}
+                                        className="p-1.5 bg-red-100 text-red-600 rounded-lg hover:bg-red-200"
+                                        title={t('contact_table.delete_contact')}
+                                        disabled={isLoading}
+                                    >
+                                        <Trash2 className="w-4 h-4" />
+                                    </button>
+                                )}                                                                               
                             </div>
                         </div>
 
@@ -511,14 +535,16 @@ const ContactTable = ({
                             {t('contact_table.clear_search_filters')}
                         </button>
                     ) : (
-                        <button
-                            onClick={() => setIsAddModalOpen(true)}
-                            className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-teal-600 to-teal-700 text-white rounded-lg hover:from-teal-700 hover:to-teal-800 transition-all duration-300 font-medium shadow-md hover:shadow-lg"
-                            disabled={isLoading}
-                        >
-                            <Plus className="w-5 h-5 mr-2" />
-                            {t('contact_table.add_first_contact_button')}
-                        </button>
+                        canCreate && (
+                            <button
+                                onClick={() => setIsAddModalOpen(true)}
+                                className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-teal-600 to-teal-700 text-white rounded-lg hover:from-teal-700 hover:to-teal-800 transition-all duration-300 font-medium shadow-md hover:shadow-lg"
+                                disabled={isLoading}
+                            >
+                                <Plus className="w-5 h-5 mr-2" />
+                                {t('contact_table.add_first_contact_button')}
+                            </button>
+                        )                        
                     )}
                 </div>
             ) : (
@@ -610,32 +636,38 @@ const ContactTable = ({
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap">
                                         <div className="flex items-center space-x-2">
-                                            <button 
-                                                onClick={() => handleTogglePrimary(contact.id)}
-                                                className={`p-1.5 rounded-lg ${contact.is_primary 
-                                                    ? 'bg-yellow-100 text-yellow-600 hover:bg-yellow-200' 
-                                                    : 'bg-gray-100 text-gray-400 hover:bg-gray-200'}`}
-                                                title={contact.is_primary ? t('contact_table.primary_contact') : t('contact_table.set_as_primary')}
-                                                disabled={isLoading}
-                                            >
-                                                <Star className="w-4 h-4" />
-                                            </button>
-                                            <button 
-                                                onClick={() => handleEdit(contact)}
-                                                className="p-1.5 bg-blue-100 text-blue-600 rounded-lg hover:bg-blue-200"
-                                                title={t('contact_table.edit_contact')}
-                                                disabled={isLoading}
-                                            >
-                                                <Edit2 className="w-4 h-4" />
-                                            </button>
-                                            <button 
-                                                onClick={() => handleDelete(contact.id)}
-                                                className="p-1.5 bg-red-100 text-red-600 rounded-lg hover:bg-red-200"
-                                                title={t('contact_table.delete_contact')}
-                                                disabled={isLoading}
-                                            >
-                                                <Trash2 className="w-4 h-4" />
-                                            </button>
+                                            { canUpdate && (
+                                                <>
+                                                    <button 
+                                                        onClick={() => handleTogglePrimary(contact.id)}
+                                                        className={`p-1.5 rounded-lg ${contact.is_primary 
+                                                            ? 'bg-yellow-100 text-yellow-600 hover:bg-yellow-200' 
+                                                            : 'bg-gray-100 text-gray-400 hover:bg-gray-200'}`}
+                                                        title={contact.is_primary ? t('contact_table.primary_contact') : t('contact_table.set_as_primary')}
+                                                        disabled={isLoading}
+                                                    >
+                                                        <Star className="w-4 h-4" />
+                                                    </button>
+                                                    <button 
+                                                        onClick={() => handleEdit(contact)}
+                                                        className="p-1.5 bg-blue-100 text-blue-600 rounded-lg hover:bg-blue-200"
+                                                        title={t('contact_table.edit_contact')}
+                                                        disabled={isLoading}
+                                                    >
+                                                        <Edit2 className="w-4 h-4" />
+                                                    </button>
+                                                </>
+                                            )}           
+                                            { canDelete && (
+                                                <button 
+                                                    onClick={() => handleDelete(contact.id)}
+                                                    className="p-1.5 bg-red-100 text-red-600 rounded-lg hover:bg-red-200"
+                                                    title={t('contact_table.delete_contact')}
+                                                    disabled={isLoading}
+                                                >
+                                                    <Trash2 className="w-4 h-4" />
+                                                </button>
+                                            )}                                                                            
                                         </div>
                                     </td>
                                 </tr>
@@ -726,23 +758,25 @@ const ContactTable = ({
                     )}
                     
                     {/* Add Button */}
-                    <button 
-                        onClick={() => setIsAddModalOpen(true)}
-                        className="flex items-center space-x-2 px-5 py-2.5 bg-gradient-to-r from-teal-600 to-teal-700 text-white rounded-lg hover:from-teal-700 hover:to-teal-800 transition-all duration-300 font-medium shadow-md hover:shadow-lg"
-                        disabled={isLoading}
-                    >
-                        {isLoading ? (
-                            <>
-                                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                                <span>{t('contact_table.adding')}</span>
-                            </>
-                        ) : (
-                            <>
-                                <Plus className="w-5 h-5" />
-                                <span>{t('contact_table.add_contact')}</span>
-                            </>
-                        )}
-                    </button>
+                    { canCreate && (
+                        <button 
+                            onClick={() => setIsAddModalOpen(true)}
+                            className="flex items-center space-x-2 px-5 py-2.5 bg-gradient-to-r from-teal-600 to-teal-700 text-white rounded-lg hover:from-teal-700 hover:to-teal-800 transition-all duration-300 font-medium shadow-md hover:shadow-lg"
+                            disabled={isLoading}
+                        >
+                            {isLoading ? (
+                                <>
+                                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                                    <span>{t('contact_table.adding')}</span>
+                                </>
+                            ) : (
+                                <>
+                                    <Plus className="w-5 h-5" />
+                                    <span>{t('contact_table.add_contact')}</span>
+                                </>
+                            )}
+                        </button>
+                    )}                    
                 </div>
             </div>
 

@@ -26,19 +26,21 @@ class MenuMappingSeeder extends Seeder
                 // MANAGER
                 if ($role->name === 'Manager') {
                     if ($menu->name === 'USER') { $c = 1; $r = 1; $u = 1; $d = 1; }
-                    if (in_array($menu->name, ['CLIENTS', 'LEAD', 'PROJECT', 'EMAIL', 'Setting'])) { $c = 1; $r = 1; $u = 1; $d = 1; }
+                    if (in_array($menu->name, ['CLIENTS', 'LEAD', 'PROJECT', 'EMAIL', 'Setting', 'DASHBOARD'])) { $c = 1; $r = 1; $u = 1; $d = 1; }
                     if (in_array($menu->name, ['PROPOSAL', 'QUOTATION', 'INVOICE', 'PAYMENT'])) { $r = 1; }
                 }
 
                 // MARKETING
                 if ($role->name === 'Marketing') {
                     if ($menu->name === 'USER') { $r = 1; }
+                    if ($menu->name === 'DASHBOARD') { $c = 1; $r = 1; $u = 1; $d = 1;}
                     if (in_array($menu->name, ['CLIENTS', 'LEAD', 'PROPOSAL', 'QUOTATION'])) { $c = 1; $r = 1; $u = 1; }
                     if (in_array($menu->name, ['INVOICE', 'PAYMENT', 'PROJECT', 'EMAIL'])) { $r = 1; }
                 }
 
                 // FINANCE
                 if ($role->name === 'Finance') {
+                    if ($menu->name === 'DASHBOARD') { $c = 1; $r = 1; $u = 1; $d = 1;}
                     if (in_array($menu->name, ['USER', 'CLIENTS', 'LEAD', 'PROPOSAL', 'QUOTATION', 'PROJECT', 'EMAIL'])) { $r = 1; }
                     if (in_array($menu->name, ['INVOICE', 'PAYMENT'])) { $c = 1; $r = 1; $u = 1; }
                 }
