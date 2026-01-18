@@ -2,10 +2,15 @@ import React, { useState, useEffect } from "react";
 import { useForm, router, usePage } from "@inertiajs/react";
 import DocumentBuilder from "@/Components/PDF_Builder/Builder";
 import { Edit, Trash2, Loader2, Plus } from "lucide-react";
-import html2pdf from 'html2pdf.js';
-import { Toaster, toast } from 'react-hot-toast';
+import html2pdf from "html2pdf.js";
+import { Toaster, toast } from "react-hot-toast";
 
-export default function Create({ nextNumber, leads = [], companies = [], quotations = [] }) {
+export default function Create({
+    nextNumber,
+    leads = [],
+    companies = [],
+    quotations = [],
+}) {
     const [showModal, setShowModal] = useState(false);
     const [newItem, setNewItem] = useState({
         name: "",
@@ -20,12 +25,12 @@ export default function Create({ nextNumber, leads = [], companies = [], quotati
         const itemWithId = {
             ...newItem,
             id: Date.now() + Math.random(),
-            price: Number(newItem.price) || 0
+            price: Number(newItem.price) || 0,
         };
 
         console.log("Menambahkan item dengan ID:", itemWithId.id);
 
-        setData('services', [...data.services, itemWithId]);
+        setData("services", [...data.services, itemWithId]);
     };
 
     const generateFormatNumber = (num) => {
@@ -33,7 +38,7 @@ export default function Create({ nextNumber, leads = [], companies = [], quotati
         if (typeof num === "object" && num !== null) {
             const next = num.next_number ?? num.nextNumber ?? 1;
             const padding = num.padding ?? 4;
-            const prefix = num.prefix ?? '';
+            const prefix = num.prefix ?? "";
             const sequence = String(next || 1).padStart(padding, "0");
             return `${prefix}${sequence}`;
         }
@@ -57,9 +62,9 @@ export default function Create({ nextNumber, leads = [], companies = [], quotati
         date: "",
         number: generateFormatNumber(nextNumber),
 
-        prepared_by_name: auth?.user?.name || '',
-        prepared_by_role: auth?.user?.role_name || '',
-        my_company_name: app_config?.company_name || '',
+        prepared_by_name: auth?.user?.name || "",
+        prepared_by_role: auth?.user?.role_name || "",
+        my_company_name: app_config?.company_name || "",
 
         company_id: null,
         company_name: null,
@@ -96,7 +101,7 @@ export default function Create({ nextNumber, leads = [], companies = [], quotati
         const ppnAmount = subTotal * ppnRate;
         const pphAmount = subTotal * pphRate;
         const downPaymentAmount = subTotal * downPaymentPercent;
-        
+
         const total = subTotal + ppnAmount - pphAmount;
 
         if (
@@ -119,7 +124,9 @@ export default function Create({ nextNumber, leads = [], companies = [], quotati
 
     const handleSave = async () => {
         if (data.services.length === 0) {
-            alert("Peringatan: Anda harus menambahkan setidaknya satu jasa/layanan sebelum menyimpan.");
+            alert(
+                "Peringatan: Anda harus menambahkan setidaknya satu jasa/layanan sebelum menyimpan."
+            );
             return;
         }
 
@@ -129,95 +136,99 @@ export default function Create({ nextNumber, leads = [], companies = [], quotati
         }
 
         try {
-            console.log('=== START SAVE INVOICE ===');
-            console.log('Current data:', data);
-            
-            const element = document.getElementById('quotation-pdf');
+            console.log("=== START SAVE INVOICE ===");
+            console.log("Current data:", data);
+
+            const element = document.getElementById("quotation-pdf");
             if (!element) {
-                throw new Error('Element quotation-pdf not found');
+                throw new Error("Element quotation-pdf not found");
             }
-            
-            console.log('Generating PDF...');
+
+            console.log("Generating PDF...");
             const opt = {
                 margin: 0,
                 filename: `${data.number}.pdf`,
-                image: { type: 'jpeg', quality: 0.98 },
+                image: { type: "jpeg", quality: 0.98 },
                 html2canvas: { scale: 2, useCORS: true },
-                jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+                jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
             };
 
-            const pdfBlob = await html2pdf().set(opt).from(element).output('blob');
-            console.log('PDF generated, size:', pdfBlob.size);
+            const pdfBlob = await html2pdf()
+                .set(opt)
+                .from(element)
+                .output("blob");
+            console.log("PDF generated, size:", pdfBlob.size);
 
             const formData = new FormData();
-            
-            console.log('Building FormData...');
-            Object.keys(data).forEach(key => {
-                if (key === 'services') {
-                    const servicesData = Array.isArray(data.services) ? data.services : [];
-                    formData.append('services', JSON.stringify(servicesData));
-                    console.log('Services:', servicesData);
+
+            console.log("Building FormData...");
+            Object.keys(data).forEach((key) => {
+                if (key === "services") {
+                    const servicesData = Array.isArray(data.services)
+                        ? data.services
+                        : [];
+                    formData.append("services", JSON.stringify(servicesData));
+                    console.log("Services:", servicesData);
                 } else if (data[key] !== null && data[key] !== undefined) {
                     formData.append(key, data[key]);
                 }
             });
 
-            formData.append('pdf_file', pdfBlob, `${data.number}.pdf`);
-            
-            console.log('FormData entries:');
+            formData.append("pdf_file", pdfBlob, `${data.number}.pdf`);
+
+            console.log("FormData entries:");
             for (let pair of formData.entries()) {
-                if (pair[0] !== 'pdf_file') {
-                    console.log(pair[0]+ ':', pair[1]); 
+                if (pair[0] !== "pdf_file") {
+                    console.log(pair[0] + ":", pair[1]);
                 }
             }
 
-            console.log('Posting to server...');
+            console.log("Posting to server...");
             router.post(route("invoice.store"), formData, {
                 // forceFormData: true,
                 onSuccess: (response) => {
-                    console.log('Success response:', response);
-                    toast.success('Berhasil disimpan!', {
+                    console.log("Success response:", response);
+                    toast.success("Berhasil disimpan!", {
                         style: {
-                        border: '1px solid #4ade80',
-                        padding: '16px',
-                        color: '#166534',
+                            border: "1px solid #4ade80",
+                            padding: "16px",
+                            color: "#166534",
                         },
                         iconTheme: {
-                        primary: '#4ade80',
-                        secondary: '#FFFAEE',
+                            primary: "#4ade80",
+                            secondary: "#FFFAEE",
                         },
                     });
                 },
                 onError: (errors) => {
-                    console.error('=== ERROR FROM SERVER ===');
-                    console.error('Errors object:', errors);
-                    console.error('Error keys:', Object.keys(errors));
-                    
+                    console.error("=== ERROR FROM SERVER ===");
+                    console.error("Errors object:", errors);
+                    console.error("Error keys:", Object.keys(errors));
+
                     // Display all errors
-                    Object.keys(errors).forEach(key => {
+                    Object.keys(errors).forEach((key) => {
                         console.error(`${key}:`, errors[key]);
                         toast.error(`${key}: ${errors[key]}`, {
                             duration: 5000,
                         });
                     });
-                    
+
                     // Show alert with all errors
                     const errorMessages = Object.entries(errors)
                         .map(([key, value]) => `${key}: ${value}`)
-                        .join('\n');
-                    alert('Error:\n' + errorMessages);
+                        .join("\n");
+                    alert("Error:\n" + errorMessages);
                 },
                 onFinish: () => {
-                    console.log('Request finished');
-                }
+                    console.log("Request finished");
+                },
             });
-
         } catch (error) {
-            console.error('=== CATCH ERROR ===');
-            console.error('Error message:', error.message);
-            console.error('Error stack:', error.stack);
-            console.error('Full error:', error);
-            alert('Error: ' + error.message);
+            console.error("=== CATCH ERROR ===");
+            console.error("Error message:", error.message);
+            console.error("Error stack:", error.stack);
+            console.error("Full error:", error);
+            alert("Error: " + error.message);
         }
     };
 
@@ -237,9 +248,9 @@ export default function Create({ nextNumber, leads = [], companies = [], quotati
             maximumFractionDigits: 0,
         }).format(num);
 
-    const logoUrl = app_config?.doc_logo_path 
-                    ? `/storage/${app_config.doc_logo_path}` 
-                    : null;
+    const logoUrl = app_config?.doc_logo_path
+        ? `/storage/${app_config.doc_logo_path}`
+        : null;
 
     return (
         <>
@@ -315,11 +326,15 @@ export default function Create({ nextNumber, leads = [], companies = [], quotati
                                     if (!newItem.name || !newItem.price) {
                                         return alert("Lengkapi data!");
                                     }
-                                    
-                                    builderAddItem(newItem); 
+
+                                    builderAddItem(newItem);
 
                                     setShowModal(false);
-                                    setNewItem({ name: "", processing: "", price: "" });
+                                    setNewItem({
+                                        name: "",
+                                        processing: "",
+                                        price: "",
+                                    });
                                 }}
                                 className="bg-[#2d6a4f] text-white px-6 py-2 rounded-lg font-bold text-sm shadow-lg"
                             >
@@ -341,7 +356,7 @@ export default function Create({ nextNumber, leads = [], companies = [], quotati
                 onBack={handleBack}
                 renderEditor={({ updateField: builderUpdate }) => {
                     const nameIsLocked = !data.client_type;
-                    
+
                     const calculateAndSyncTotals = (
                         currentServices,
                         currentPpn,
@@ -363,7 +378,7 @@ export default function Create({ nextNumber, leads = [], companies = [], quotati
                         builderUpdate("tax_amount_pph", pphAmount);
                         builderUpdate("down_payment", downPayment);
                         builderUpdate("total", total);
-                        
+
                         setData((prev) => ({
                             ...prev,
                             sub_total: subTotal,
@@ -411,7 +426,7 @@ export default function Create({ nextNumber, leads = [], companies = [], quotati
                             setData((prev) => ({ ...prev, ...updateData }));
                         }
                     };
-                    
+
                     const currentOptions =
                         data.client_type === "Client"
                             ? companies || []
@@ -439,31 +454,42 @@ export default function Create({ nextNumber, leads = [], companies = [], quotati
                             if (personRow) {
                                 const finalData = {
                                     contact_person_id: contactId,
-                                    contact_person: isClient 
-                                        ? (personRow.lead?.contact_person || selectedOrg.lead?.contact_person || "---") 
-                                        : (selectedOrg.contact_person || ""),
-                                    
-                                    email: isClient 
-                                        ? (personRow.lead?.email || selectedOrg.lead?.email || "") 
-                                        : (personRow.email || ""),
-                                    
-                                    phone: isClient 
-                                        ? (personRow.lead?.phone || selectedOrg.lead?.phone || "") 
-                                        : (personRow.phone || ""),
+                                    contact_person: isClient
+                                        ? personRow.lead?.contact_person ||
+                                          selectedOrg.lead?.contact_person ||
+                                          "---"
+                                        : selectedOrg.contact_person || "",
 
-                                    position: isClient 
-                                        ? (personRow.position || "") 
-                                        : (selectedOrg.job_title || selectedOrg.position || ""),
+                                    email: isClient
+                                        ? personRow.lead?.email ||
+                                          selectedOrg.lead?.email ||
+                                          ""
+                                        : personRow.email || "",
+
+                                    phone: isClient
+                                        ? personRow.lead?.phone ||
+                                          selectedOrg.lead?.phone ||
+                                          ""
+                                        : personRow.phone || "",
+
+                                    position: isClient
+                                        ? personRow.position || ""
+                                        : selectedOrg.job_title ||
+                                          selectedOrg.position ||
+                                          "",
                                 };
 
-                                console.log("Data yang dikirim ke builder:", finalData);
+                                console.log(
+                                    "Data yang dikirim ke builder:",
+                                    finalData
+                                );
 
                                 Object.entries(finalData).forEach(([f, v]) => {
-                                    if (typeof builderUpdate === 'function') {
+                                    if (typeof builderUpdate === "function") {
                                         builderUpdate(f, v);
                                     }
                                 });
-                                
+
                                 setData((prev) => ({ ...prev, ...finalData }));
                             }
                         }
@@ -509,7 +535,7 @@ export default function Create({ nextNumber, leads = [], companies = [], quotati
                         <div className="space-y-5">
                             <div className="flex flex-col">
                                 <label className="text-[10px] font-bold text-gray-400 uppercase">
-                                    Date<span className="text-red-600">*</span> 
+                                    Date<span className="text-red-600">*</span>
                                 </label>
                                 <input
                                     type="date"
@@ -521,7 +547,7 @@ export default function Create({ nextNumber, leads = [], companies = [], quotati
                                     }}
                                 />
                             </div>
-                            
+
                             <div className="flex bg-gray-100 p-1 rounded-xl">
                                 {["Client", "Lead"].map((type) => {
                                     const isActive = data.client_type === type;
@@ -571,7 +597,8 @@ export default function Create({ nextNumber, leads = [], companies = [], quotati
                                 }
                             >
                                 <label className="text-[10px] font-bold text-gray-400 uppercase">
-                                    Select Company<span className="text-red-600">*</span> 
+                                    Select Company
+                                    <span className="text-red-600">*</span>
                                 </label>
                                 <select
                                     className="w-full border-gray-300 rounded text-sm"
@@ -600,7 +627,8 @@ export default function Create({ nextNumber, leads = [], companies = [], quotati
                                 }`}
                             >
                                 <label className="text-[10px] font-bold text-gray-400 uppercase">
-                                    Select Contact Person<span className="text-red-600">*</span> 
+                                    Select Contact Person
+                                    <span className="text-red-600">*</span>
                                 </label>
                                 <select
                                     className="w-full border-gray-300 rounded text-sm"
@@ -661,7 +689,7 @@ export default function Create({ nextNumber, leads = [], companies = [], quotati
                                     })()}
                                 </select>
                             </div>
-                            
+
                             <div className="grid grid-cols-1 gap-3">
                                 <div className="flex flex-col">
                                     <label className="text-[10px] font-bold text-gray-400 uppercase">
@@ -671,14 +699,24 @@ export default function Create({ nextNumber, leads = [], companies = [], quotati
                                         className="w-full border-gray-300 rounded text-sm"
                                         value={data.quotation_id || ""}
                                         onChange={(e) => {
-                                            builderUpdate("quotation_id", e.target.value);
-                                            setData("quotation_id", e.target.value);
+                                            builderUpdate(
+                                                "quotation_id",
+                                                e.target.value
+                                            );
+                                            setData(
+                                                "quotation_id",
+                                                e.target.value
+                                            );
                                         }}
                                     >
-                                        <option value="">-- Choose Quotation --</option>
+                                        <option value="">
+                                            -- Choose Quotation --
+                                        </option>
                                         {quotations.map((q) => (
                                             <option key={q.id} value={q.id}>
-                                                {q.no} - {q.company_name || q.lead?.company_name}
+                                                {q.no} -{" "}
+                                                {q.company_name ||
+                                                    q.lead?.company_name}
                                             </option>
                                         ))}
                                     </select>
@@ -686,7 +724,8 @@ export default function Create({ nextNumber, leads = [], companies = [], quotati
 
                                 <div className="flex flex-col">
                                     <label className="text-[10px] font-bold text-gray-400 uppercase">
-                                        Payment Type<span className="text-red-600">*</span>
+                                        Payment Type
+                                        <span className="text-red-600">*</span>
                                     </label>
                                     {/* Use payment types coming from server */}
                                     <select
@@ -699,22 +738,39 @@ export default function Create({ nextNumber, leads = [], companies = [], quotati
 
                                             // If user selects a payment type that implies full payment,
                                             // automatically set payment_percentage to 100% (1.0)
-                                            const selected = (props.paymentTypes || []).find(
-                                                (pt) => pt.name === val || pt.slug === val
+                                            const selected = (
+                                                props.paymentTypes || []
+                                            ).find(
+                                                (pt) =>
+                                                    pt.name === val ||
+                                                    pt.slug === val
                                             );
                                             // Debug: show selected payment type
-                                            console.log('Selected payment type:', selected);
-
-                                            // Accept common slug/name variants so "Full Payment" reliably sets 100%
-                                            const isFullPayment = !!selected && (
-                                                selected.slug === 'full_payment' ||
-                                                selected.slug === 'full-payment' ||
-                                                String(selected.name || '').toLowerCase().includes('full')
+                                            console.log(
+                                                "Selected payment type:",
+                                                selected
                                             );
 
+                                            // Accept common slug/name variants so "Full Payment" reliably sets 100%
+                                            const isFullPayment =
+                                                !!selected &&
+                                                (selected.slug ===
+                                                    "full_payment" ||
+                                                    selected.slug ===
+                                                        "full-payment" ||
+                                                    String(selected.name || "")
+                                                        .toLowerCase()
+                                                        .includes("full"));
+
                                             if (isFullPayment) {
-                                                builderUpdate("payment_percentage", 1);
-                                                setData("payment_percentage", 1);
+                                                builderUpdate(
+                                                    "payment_percentage",
+                                                    1
+                                                );
+                                                setData(
+                                                    "payment_percentage",
+                                                    1
+                                                );
                                                 // make sure totals recalc immediately
                                                 calculateAndSyncTotals(
                                                     data.services,
@@ -722,11 +778,28 @@ export default function Create({ nextNumber, leads = [], companies = [], quotati
                                                     data.pph,
                                                     1
                                                 );
-                                            } else if (selected && (selected.slug === 'down_payment' || selected.slug === 'down-payment' || String(selected.name || '').toLowerCase().includes('down')) ) {
+                                            } else if (
+                                                selected &&
+                                                (selected.slug ===
+                                                    "down_payment" ||
+                                                    selected.slug ===
+                                                        "down-payment" ||
+                                                    String(selected.name || "")
+                                                        .toLowerCase()
+                                                        .includes("down"))
+                                            ) {
                                                 // user selected a down payment type - reset percentage to 0 (user can input desired percent)
-                                                console.log('Selected Down Payment - resetting payment_percentage to 0');
-                                                builderUpdate("payment_percentage", 0);
-                                                setData("payment_percentage", 0);
+                                                console.log(
+                                                    "Selected Down Payment - resetting payment_percentage to 0"
+                                                );
+                                                builderUpdate(
+                                                    "payment_percentage",
+                                                    0
+                                                );
+                                                setData(
+                                                    "payment_percentage",
+                                                    0
+                                                );
                                                 calculateAndSyncTotals(
                                                     data.services,
                                                     data.ppn,
@@ -735,16 +808,25 @@ export default function Create({ nextNumber, leads = [], companies = [], quotati
                                                 );
                                             } else {
                                                 // Other payment type selected - keep current percentage or reset to 0
-                                                console.log('Other payment type selected - leaving payment_percentage unchanged');
+                                                console.log(
+                                                    "Other payment type selected - leaving payment_percentage unchanged"
+                                                );
                                             }
                                         }}
                                     >
-                                        <option value="">-- Choose Payment --</option>
-                                        {(props.paymentTypes || []).map((pt) => (
-                                            <option key={pt.id} value={pt.name}>
-                                                {pt.name}
-                                            </option>
-                                        ))}
+                                        <option value="">
+                                            -- Choose Payment --
+                                        </option>
+                                        {(props.paymentTypes || []).map(
+                                            (pt) => (
+                                                <option
+                                                    key={pt.id}
+                                                    value={pt.name}
+                                                >
+                                                    {pt.name}
+                                                </option>
+                                            )
+                                        )}
                                     </select>
                                 </div>
 
@@ -758,13 +840,27 @@ export default function Create({ nextNumber, leads = [], companies = [], quotati
                                         min="0"
                                         max="100"
                                         className="w-full border-gray-300 rounded text-sm font-bold"
-                                        value={data.payment_percentage ? (data.payment_percentage * 100) : ""}
+                                        value={
+                                            data.payment_percentage
+                                                ? data.payment_percentage * 100
+                                                : ""
+                                        }
                                         onChange={(e) => {
                                             const raw = e.target.value;
-                                            const percent = raw === "" ? "" : Number(raw);
-                                            const decimal = percent === "" ? "" : Number(percent) / 100;
-                                            builderUpdate("payment_percentage", decimal);
-                                            setData("payment_percentage", decimal);
+                                            const percent =
+                                                raw === "" ? "" : Number(raw);
+                                            const decimal =
+                                                percent === ""
+                                                    ? ""
+                                                    : Number(percent) / 100;
+                                            builderUpdate(
+                                                "payment_percentage",
+                                                decimal
+                                            );
+                                            setData(
+                                                "payment_percentage",
+                                                decimal
+                                            );
                                             calculateAndSyncTotals(
                                                 data.services,
                                                 data.ppn,
@@ -782,7 +878,9 @@ export default function Create({ nextNumber, leads = [], companies = [], quotati
                                     <select
                                         className="w-full border-gray-300 rounded text-sm"
                                         value={data.ppn || 0}
-                                        onChange={(e) => handlePpnChange(e.target.value)}
+                                        onChange={(e) =>
+                                            handlePpnChange(e.target.value)
+                                        }
                                     >
                                         <option value="0">-- No PPN --</option>
                                         {(props.ppn || []).map((p) => (
@@ -800,7 +898,9 @@ export default function Create({ nextNumber, leads = [], companies = [], quotati
                                     <select
                                         className="w-full border-gray-300 rounded text-sm"
                                         value={data.pph || 0}
-                                        onChange={(e) => handlePphChange(e.target.value)}
+                                        onChange={(e) =>
+                                            handlePphChange(e.target.value)
+                                        }
                                     >
                                         <option value="0">-- No PPh --</option>
                                         {(props.pph || []).map((p) => (
@@ -813,7 +913,8 @@ export default function Create({ nextNumber, leads = [], companies = [], quotati
 
                                 <div className="flex flex-col justify-start">
                                     <label className="text-[10px] font-bold text-gray-400 uppercase">
-                                        Payment Terms<span className="text-red-600">*</span> 
+                                        Payment Terms
+                                        <span className="text-red-600">*</span>
                                     </label>
                                     <textarea
                                         rows="3"
@@ -826,10 +927,11 @@ export default function Create({ nextNumber, leads = [], companies = [], quotati
                                         }}
                                     />
                                 </div>
-                                
+
                                 <div className="flex flex-col justify-start">
                                     <label className="text-[10px] font-bold text-gray-400 uppercase">
-                                        Note<span className="text-red-600">*</span> 
+                                        Note
+                                        <span className="text-red-600">*</span>
                                     </label>
                                     <textarea
                                         rows="3"
@@ -846,40 +948,54 @@ export default function Create({ nextNumber, leads = [], companies = [], quotati
                         </div>
                     );
                 }}
-                renderPreview={({ data, addItem, removeItem, updateField }) => {                
+                renderPreview={({ data, addItem, removeItem, updateField }) => {
                     if (!builderAddItem) setBuilderAddItem(() => addItem);
 
-                   useEffect(() => {
+                    useEffect(() => {
                         const calculatedSubTotal = data.services.reduce(
-                            (acc, curr) => acc + Number(curr.price || 0), 0
+                            (acc, curr) => acc + Number(curr.price || 0),
+                            0
                         );
 
                         const ppnRate = Number(data.ppn) || 0;
                         const pphRate = Number(data.pph) || 0;
-                        const downPaymentPercent = Number(data.payment_percentage || 0);
+                        const downPaymentPercent = Number(
+                            data.payment_percentage || 0
+                        );
 
-                        const calculatedPpnAmount = calculatedSubTotal * ppnRate;
-                        const calculatedPphAmount = calculatedSubTotal * pphRate;
-                        const calculatedDownPayment = calculatedSubTotal * downPaymentPercent;
-                        const calculatedTotal = calculatedSubTotal + calculatedPpnAmount - calculatedPphAmount;
+                        const calculatedPpnAmount =
+                            calculatedSubTotal * ppnRate;
+                        const calculatedPphAmount =
+                            calculatedSubTotal * pphRate;
+                        const calculatedDownPayment =
+                            calculatedSubTotal * downPaymentPercent;
+                        const calculatedTotal =
+                            calculatedSubTotal +
+                            calculatedPpnAmount -
+                            calculatedPphAmount;
 
                         if (
-                            data.sub_total !== calculatedSubTotal || 
+                            data.sub_total !== calculatedSubTotal ||
                             data.total !== calculatedTotal ||
                             data.tax_amount_ppn !== calculatedPpnAmount ||
                             data.tax_amount_pph !== calculatedPphAmount ||
                             data.down_payment !== calculatedDownPayment
                         ) {
-                            setData(prev => ({
+                            setData((prev) => ({
                                 ...prev,
                                 sub_total: calculatedSubTotal,
                                 tax_amount_ppn: calculatedPpnAmount,
                                 tax_amount_pph: calculatedPphAmount,
                                 down_payment: calculatedDownPayment,
-                                total: calculatedTotal
+                                total: calculatedTotal,
                             }));
                         }
-                    }, [data.services, data.ppn, data.pph, data.payment_percentage]);
+                    }, [
+                        data.services,
+                        data.ppn,
+                        data.pph,
+                        data.payment_percentage,
+                    ]);
 
                     return (
                         <div className="p-2 text-[12px]">
@@ -1004,8 +1120,11 @@ export default function Create({ nextNumber, leads = [], companies = [], quotati
                                                     type="button"
                                                     data-html2canvas-ignore="true"
                                                     onClick={() => {
-                                                        console.log("ID Item ini adalah:", s.id); 
-                                                        removeItem(s.id)
+                                                        console.log(
+                                                            "ID Item ini adalah:",
+                                                            s.id
+                                                        );
+                                                        removeItem(s.id);
                                                     }}
                                                     className="text-red-400 hover:text-red-600 transition-colors"
                                                 >
@@ -1061,19 +1180,50 @@ export default function Create({ nextNumber, leads = [], companies = [], quotati
                                     <div className="flex justify-between">
                                         <span>
                                             {(() => {
-                                                const percent = data.payment_percentage ? `${(data.payment_percentage * 100).toFixed(0)}%` : '';
-                                                const isFullPercent = Number(data.payment_percentage) === 1;
-                                                const selected = (props.paymentTypes || []).find(
-                                                    (pt) => pt.name === data.payment_type || pt.slug === data.payment_type || pt.name === (data.payment_type)
+                                                const percent =
+                                                    data.payment_percentage
+                                                        ? `${(
+                                                              data.payment_percentage *
+                                                              100
+                                                          ).toFixed(0)}%`
+                                                        : "";
+                                                const isFullPercent =
+                                                    Number(
+                                                        data.payment_percentage
+                                                    ) === 1;
+                                                const selected = (
+                                                    props.paymentTypes || []
+                                                ).find(
+                                                    (pt) =>
+                                                        pt.name ===
+                                                            data.payment_type ||
+                                                        pt.slug ===
+                                                            data.payment_type ||
+                                                        pt.name ===
+                                                            data.payment_type
                                                 );
-                                                const isFullPayment = isFullPercent || (selected && (
-                                                    selected.slug === 'full_payment' ||
-                                                    selected.slug === 'full-payment' ||
-                                                    String(selected.name || '').toLowerCase().includes('full')
-                                                ));
+                                                const isFullPayment =
+                                                    isFullPercent ||
+                                                    (selected &&
+                                                        (selected.slug ===
+                                                            "full_payment" ||
+                                                            selected.slug ===
+                                                                "full-payment" ||
+                                                            String(
+                                                                selected.name ||
+                                                                    ""
+                                                            )
+                                                                .toLowerCase()
+                                                                .includes(
+                                                                    "full"
+                                                                )));
 
                                                 return isFullPayment
-                                                    ? `Paid in Full ${percent ? `(${percent})` : ''}`
+                                                    ? `Paid in Full ${
+                                                          percent
+                                                              ? `(${percent})`
+                                                              : ""
+                                                      }`
                                                     : `Down Payment ${percent}`;
                                             })()}
                                         </span>
@@ -1083,26 +1233,58 @@ export default function Create({ nextNumber, leads = [], companies = [], quotati
                                     </div>
 
                                     <div className="flex justify-between text-red-600">
-                                        <span>VAT (PPN) {(() => {
-                                            const options = props.ppn || [];
-                                            const rate = Number(data.ppn || 0);
-                                            const found = options.find((p) => Number(p.rate) === rate);
-                                            return found ? found.name : (rate ? `${(rate * 100).toFixed(0)}%` : '');
-                                        })()}</span>
                                         <span>
-                                            {formatIDR(data.tax_amount_ppn || 0)}
+                                            VAT (PPN){" "}
+                                            {(() => {
+                                                const options = props.ppn || [];
+                                                const rate = Number(
+                                                    data.ppn || 0
+                                                );
+                                                const found = options.find(
+                                                    (p) =>
+                                                        Number(p.rate) === rate
+                                                );
+                                                return found
+                                                    ? found.name
+                                                    : rate
+                                                    ? `${(rate * 100).toFixed(
+                                                          0
+                                                      )}%`
+                                                    : "";
+                                            })()}
+                                        </span>
+                                        <span>
+                                            {formatIDR(
+                                                data.tax_amount_ppn || 0
+                                            )}
                                         </span>
                                     </div>
 
                                     <div className="flex justify-between text-red-600 border-b border-black pb-1">
-                                        <span>VAT (PPh) {(() => {
-                                            const options = props.pph || [];
-                                            const rate = Number(data.pph || 0);
-                                            const found = options.find((p) => Number(p.rate) === rate);
-                                            return found ? found.name : (rate ? `${(rate * 100).toFixed(0)}%` : '');
-                                        })()}</span>
                                         <span>
-                                            {formatIDR(data.tax_amount_pph || 0)}
+                                            VAT (PPh){" "}
+                                            {(() => {
+                                                const options = props.pph || [];
+                                                const rate = Number(
+                                                    data.pph || 0
+                                                );
+                                                const found = options.find(
+                                                    (p) =>
+                                                        Number(p.rate) === rate
+                                                );
+                                                return found
+                                                    ? found.name
+                                                    : rate
+                                                    ? `${(rate * 100).toFixed(
+                                                          0
+                                                      )}%`
+                                                    : "";
+                                            })()}
+                                        </span>
+                                        <span>
+                                            {formatIDR(
+                                                data.tax_amount_pph || 0
+                                            )}
                                         </span>
                                     </div>
 
@@ -1112,24 +1294,36 @@ export default function Create({ nextNumber, leads = [], companies = [], quotati
                                             {formatIDR(data.total || 0)}
                                         </span>
                                     </div>
-                                    
+
                                     <div className="text-left">
                                         <p className="text-[16px] uppercase font-black">
-                                            {data.my_company_name || app_config?.company_name || "---"}
+                                            {data.my_company_name ||
+                                                app_config?.company_name ||
+                                                "---"}
                                         </p>
 
                                         <div className="h-20"></div>
 
                                         <div>
                                             <p className="text-[14px] uppercase font-black leading-tight">
-                                                {data.prepared_by_name || auth?.user?.name || "---"}
+                                                {data.prepared_by_name ||
+                                                    auth?.user?.name ||
+                                                    "---"}
                                             </p>
                                             <p className="text-[13px] text-gray-500 leading-tight">
-                                                {data.prepared_by_role || auth?.user?.role_name || "---"}
+                                                {data.prepared_by_role ||
+                                                    auth?.user?.role_name ||
+                                                    "---"}
                                             </p>
                                         </div>
                                     </div>
                                 </div>
+                            </div>
+                            {/* Footer Alamat */}
+                            <div className="mt-10 p-3 bg-slate-100 rounded-md border border-slate-200">
+                                <p className="text-[12px] text-gray-600">
+                                    {app_config?.address}
+                                </p>
                             </div>
                         </div>
                     );

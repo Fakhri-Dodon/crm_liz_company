@@ -206,51 +206,26 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/notifications', fn() => Inertia::render('Notifications/Index'))->name('notifications.index');
 });
 
-    Route::middleware(['auth', 'verified'])->group(function () {
-        // Companies routes
-        // Route::resource('companies', CompanyController::class);
-        
-        // Company-specific project routes
-        Route::prefix('companies/{company}')->group(function () {
-            // Update project
-            Route::put('/projects/{project}', [CompanyController::class, 'updateProject'])
-                ->name('companies.projects.update');
-            
-            // Delete project
-            Route::delete('/projects/{project}', [CompanyController::class, 'destroyProject'])
-                ->name('companies.projects.destroy');
-            
-            // Get single project
-            Route::get('/projects/{project}', [CompanyController::class, 'getProject'])
-                ->name('companies.projects.show');
-            
-            // Get all company projects
-            Route::get('/projects', [CompanyController::class, 'getCompanyProjects'])
-                ->name('companies.projects.index');
-        });
-        
-        // Existing project routes (global)
-        Route::resource('projects', ProjectController::class);
-        Route::get('/projects/{project}/edit', [ProjectController::class, 'edit']);
-        Route::put('/projects/{project}/status', [ProjectController::class, 'updateStatus'])
-            ->name('projects.status.update');
-        
-        // API untuk mendapatkan clients
-        Route::get('/api/clients', [ProjectController::class, 'getClients']);
-        Route::get('/api/companies', [CompanyController::class, 'getClientsForProjects']);
-    });
+Route::middleware(['auth', 'verified'])->group(function () {
+    // Projects routes
+    Route::resource('projects', ProjectController::class);
+    Route::get('/projects/{project}/edit', [ProjectController::class, 'edit']); 
+    Route::put('/projects/{project}/status', [ProjectController::class, 'updateStatus'])
+        ->name('projects.status.update');
+            // Update status route (important!)
+    Route::put('/projects/{project}/status', [ProjectController::class, 'updateStatus'])
+        ->name('projects.status.update');
+     // Projects routes
+    Route::resource('projects', ProjectController::class);
+    
+    // API untuk mendapatkan clients dengan nama dari leads
+    Route::get('/api/clients', [ProjectController::class, 'getClients']);
+    // Atau jika sudah ada route untuk companies, bisa dimodifikasi
+    Route::get('/api/companies', [CompanyController::class, 'getClientsForProjects']);
+});
 
 Route::middleware(['auth', 'verified'])->group(function () {
-    // ====================== PUBLIC ENDPOINTS ======================
-    Route::get('/payment-types', [PaymentTypeController::class, 'index'])->name('payment-types.index');
-
-
-    // ====================== ADDITIONAL COMPANY ROUTES ======================
-    Route::get('/companies/get-accepted-quotations', [CompanyController::class, 'getAcceptedQuotations']);
-    Route::get('/companies/get-lead-from-quotation/{id}', [CompanyController::class, 'getLeadFromQuotation']);
-    Route::get('/companies/get-accepted-quotation/{id}', [CompanyController::class, 'getAcceptedQuotation']);
     // ====================== COMPANY MAIN ROUTES ======================
-    // Company List & Creation
     Route::get('/companies', [CompanyController::class, 'index'])->name('companies.index');
     Route::get('/companies/create', [CompanyController::class, 'create'])->name('companies.create');
     Route::post('/companies', [CompanyController::class, 'store'])->name('companies.store');
@@ -276,6 +251,31 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/get-accepted-quotations', [CompanyController::class, 'getAcceptedQuotations']);
         Route::get('/get-lead-from-quotation/{id}', [CompanyController::class, 'getLeadFromQuotation']);
         Route::get('/get-accepted-quotation/{id}', [CompanyController::class, 'getAcceptedQuotation']);
+        
+        // ====================== COMPANY CONTACT ROUTES ======================
+        // ⬇⬇⬇ PASTIKAN INI DI DALAM PREFIX 'companies' ⬇⬇⬇
+        Route::prefix('{company}/contacts')->group(function () {
+            // Get all contacts for company
+            Route::get('/', [CompanyController::class, 'getContacts'])->name('companies.contacts.index');
+            
+            // Add new contact
+            Route::post('/', [CompanyController::class, 'addContact'])->name('companies.contacts.store');
+            
+            // Update contact
+            Route::put('/{contact}', [CompanyController::class, 'updateContact'])->name('companies.contacts.update');
+            
+            // Delete contact
+            Route::delete('/{contact}', [CompanyController::class, 'deleteContact'])->name('companies.contacts.destroy');
+            
+            // Set as primary contact
+            // Route untuk toggle primary (tambahkan ini)
+            Route::post('/{contact}/toggle-primary', [CompanyController::class, 'togglePrimary'])
+                ->name('companies.contacts.toggle-primary');
+            
+            // Route untuk set primary (sudah ada)
+            Route::post('/{contact}/primary', [CompanyController::class, 'togglePrimary'])
+                ->name('companies.contacts.primary');
+        });
         
         // ====================== COMPANY PAYMENT ROUTES ======================
         Route::prefix('{company}/payments')->group(function () {
@@ -348,6 +348,7 @@ Route::put('/invoices/{invoice}', [InvoiceController::class, 'update'])->name('i
 Route::post('/proposal/add', [ProposalController::class, 'add'])->name('proposal.add');
 Route::get('/proposal/addProposal/{id}', [ProposalController::class, 'addProposal'])->name('proposal.addProposal');
 Route::get('/html-sections', [ProposalController::class, 'sections']);
+Route::get('/proposal/templates', [ProposalController::class, 'templates'])->name('proposal.templates');
 Route::resource('proposal', ProposalController::class);
 
 require __DIR__.'/auth.php';
