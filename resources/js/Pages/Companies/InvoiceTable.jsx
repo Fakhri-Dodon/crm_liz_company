@@ -45,8 +45,6 @@ const InvoiceTable = ({ data: initialData, companyId }) => {
         setLocalData(initialData || []);
     }, [initialData]);
 
-    console.log('InvoiceTable data received:', data);
-
     // Fungsi untuk menampilkan announcement
     const showAnnouncement = (type, title, message, autoClose = true) => {
         setAnnouncement({
@@ -112,7 +110,7 @@ const InvoiceTable = ({ data: initialData, companyId }) => {
                                 className={`rounded-md inline-flex ${textColor} hover:opacity-80 focus:outline-none`}
                                 onClick={() => setAnnouncement(prev => ({ ...prev, show: false }))}
                             >
-                                <span className="sr-only">Close</span>
+                                <span className="sr-only">{t('invoice_table.close')}</span>
                                 <X className="h-5 w-5" />
                             </button>
                         </div>
@@ -139,9 +137,14 @@ const InvoiceTable = ({ data: initialData, companyId }) => {
         if (full.length <= maxLength) return <span>{full}</span>;
         return (
             <span className="relative">
-                <span className="cursor-pointer" onClick={() => setExpanded(!expanded)}>
+                <span 
+                    className="cursor-pointer hover:underline" 
+                    onClick={() => setExpanded(!expanded)}
+                >
                     {expanded ? full : full.slice(0, maxLength) + '...'}
-                    <span className="ml-1 text-xs text-blue-500 underline">{expanded ? 'Sembunyikan' : 'Lihat'}</span>
+                    <span className="ml-1 text-xs text-blue-500">
+                        {expanded ? t('invoice_table.hide') : t('invoice_table.view')}
+                    </span>
                 </span>
             </span>
         );
@@ -331,12 +334,11 @@ const InvoiceTable = ({ data: initialData, companyId }) => {
     // ==================== FUNGSI EDIT - DIRECT KE HALAMAN EDIT ====================
     const openEditPage = (invoice) => {
         if (!invoice || !invoice.id) {
-            showAnnouncement('error', 'Error', 'Invalid invoice data');
+            showAnnouncement('error', t('invoice_table.error'), t('invoice_table.invalid_data'));
             return;
         }
 
         const editUrl = `/invoice/${invoice.id}/edit`;
-        console.log('Redirecting to edit page:', editUrl);
         
         router.visit(editUrl, {
             method: 'get',
@@ -346,7 +348,7 @@ const InvoiceTable = ({ data: initialData, companyId }) => {
             onFinish: () => setLoading(false),
             onError: (error) => {
                 console.error('Error navigating to edit page:', error);
-                showAnnouncement('error', 'Error', 'Cannot open edit page', false);
+                showAnnouncement('error', t('invoice_table.error'), t('invoice_table.cannot_open_edit'), false);
             }
         });
     };
@@ -354,11 +356,13 @@ const InvoiceTable = ({ data: initialData, companyId }) => {
     // ==================== FUNGSI DELETE DENGAN STATE UPDATE ====================
     const handleDeleteInvoice = async (invoice) => {
         if (!invoice || !invoice.id || !companyId) {
-            showAnnouncement('error', 'Error', 'Invalid invoice data');
+            showAnnouncement('error', t('invoice_table.error'), t('invoice_table.invalid_data'));
             return;
         }
         
-        const confirmMessage = `Are you sure you want to delete invoice ${invoice.invoice_number || invoice.id}?`;
+        const confirmMessage = t('invoice_table.delete_confirm_message', { 
+            invoiceNumber: invoice.invoice_number || invoice.id 
+        });
         
         if (!window.confirm(confirmMessage)) {
             return;
@@ -393,20 +397,20 @@ const InvoiceTable = ({ data: initialData, companyId }) => {
             const result = await response.json();
             
             if (result.success) {
-                showAnnouncement('success', 'Success!', 'Invoice deleted successfully');
+                showAnnouncement('success', t('invoice_table.success'), t('invoice_table.delete_success'));
                 // Juga update data utama
                 setData(prev => prev.filter(item => item.id !== invoice.id));
             } else {
                 // Jika gagal, restore data
                 setLocalData(data);
-                showAnnouncement('error', 'Error', result.message || 'Failed to delete invoice', false);
+                showAnnouncement('error', t('invoice_table.error'), result.message || t('invoice_table.delete_error'), false);
             }
             
         } catch (error) {
             console.error('Delete error:', error);
             // Restore data jika error
             setLocalData(data);
-            showAnnouncement('error', 'Error', 'Failed to delete invoice', false);
+            showAnnouncement('error', t('invoice_table.error'), t('invoice_table.delete_error'), false);
         } finally {
             setIsDeleting(false);
             setLoading(false);
@@ -415,11 +419,11 @@ const InvoiceTable = ({ data: initialData, companyId }) => {
 
     const handleBulkDelete = async () => {
         if (selectedInvoices.length === 0 || !companyId) {
-            showAnnouncement('warning', 'Warning', 'No invoices selected or Company ID missing');
+            showAnnouncement('warning', t('invoice_table.warning'), t('invoice_table.no_selection'));
             return;
         }
         
-        const confirmMessage = `Are you sure you want to delete ${selectedInvoices.length} invoice(s)?`;
+        const confirmMessage = t('invoice_table.bulk_delete_confirm', { count: selectedInvoices.length });
         
         if (!window.confirm(confirmMessage)) {
             return;
@@ -453,8 +457,10 @@ const InvoiceTable = ({ data: initialData, companyId }) => {
             const result = await response.json();
             
             if (result.success) {
-                showAnnouncement('success', 'Success!', 
-                    `Successfully deleted ${result.deleted_count || selectedInvoices.length} invoice(s)`);
+                showAnnouncement('success', t('invoice_table.success'), 
+                    t('invoice_table.bulk_delete_success', { 
+                        count: result.deleted_count || selectedInvoices.length 
+                    }));
                 
                 // Clear selection
                 setSelectedInvoices([]);
@@ -463,14 +469,14 @@ const InvoiceTable = ({ data: initialData, companyId }) => {
             } else {
                 // Jika gagal, restore data
                 setLocalData(oldData);
-                showAnnouncement('error', 'Error', result.message || 'Failed to delete invoices', false);
+                showAnnouncement('error', t('invoice_table.error'), result.message || t('invoice_table.bulk_delete_error'), false);
             }
             
         } catch (error) {
             console.error('Bulk delete error:', error);
             // Restore data jika error
             setLocalData(data);
-            showAnnouncement('error', 'Error', 'Failed to delete invoices', false);
+            showAnnouncement('error', t('invoice_table.error'), t('invoice_table.bulk_delete_error'), false);
         } finally {
             setIsDeleting(false);
             setLoading(false);
@@ -623,7 +629,7 @@ const InvoiceTable = ({ data: initialData, companyId }) => {
                             <div className="flex items-center">
                                 <CheckCircle className="w-5 h-5 text-blue-600 mr-2" />
                                 <span className="font-medium text-blue-800">
-                                    {selectedInvoices.length} invoice dipilih
+                                    {selectedInvoices.length} {t('invoice_table.invoices_selected')}
                                 </span>
                             </div>
                             <div className="flex space-x-2">
@@ -637,7 +643,7 @@ const InvoiceTable = ({ data: initialData, companyId }) => {
                                     ) : (
                                         <Trash2 className="w-4 h-4 inline mr-1" />
                                     )}
-                                    Hapus yang dipilih
+                                    {t('invoice_table.delete_selected')}
                                 </button>
                             </div>
                         </div>
@@ -667,13 +673,27 @@ const InvoiceTable = ({ data: initialData, companyId }) => {
                                         disabled={loading || isDeleting}
                                     />
                                 </th>
-                                <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase border-r border-gray-200">Invoice</th>
-                                <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase border-r border-gray-200">Invoice Amount</th>
-                                <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase border-r border-gray-200">Payment Term</th>
-                                <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase border-r border-gray-200">PPN & PPh</th>
-                                <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase border-r border-gray-200">Amount Due</th>
-                                <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase border-r border-gray-200">Status</th>
-                                <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase">Action</th>
+                                <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase border-r border-gray-200">
+                                    {t('invoice_table.invoice')}
+                                </th>
+                                <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase border-r border-gray-200">
+                                    {t('invoice_table.invoice_amount')}
+                                </th>
+                                <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase border-r border-gray-200">
+                                    {t('invoice_table.payment_term')}
+                                </th>
+                                <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase border-r border-gray-200">
+                                    {t('invoice_table.tax_info')}
+                                </th>
+                                <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase border-r border-gray-200">
+                                    {t('invoice_table.amount_due')}
+                                </th>
+                                <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase border-r border-gray-200">
+                                    {t('invoice_table.status')}
+                                </th>
+                                <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase">
+                                    {t('invoice_table.actions')}
+                                </th>
                             </tr>
                         </thead>
                         <tbody className="bg-white divide-y divide-gray-200">
@@ -712,8 +732,8 @@ const InvoiceTable = ({ data: initialData, companyId }) => {
                                         </td>
                                         <td className="px-4 py-3">
                                             <div className="text-gray-900">
-                                                PPN: {invoice.ppn || 0} <br />
-                                                PPh: {invoice.pph || 0}
+                                                {t('invoice_table.ppn')}: {invoice.ppn || 0} <br />
+                                                {t('invoice_table.pph')}: {invoice.pph || 0}
                                             </div>
                                         </td>
                                         <td className="px-4 py-3">
@@ -767,11 +787,12 @@ const InvoiceTable = ({ data: initialData, companyId }) => {
                             {localData.length}
                         </p>
                         <p className="text-xs text-gray-500 mt-1">
-                            Cocok filter: {filteredData.length}
+                            {t('invoice_table.matching_filter')}: {filteredData.length}
                         </p>
                     </div>
                     <div className="bg-green-50 p-4 rounded-lg">
                         <div className="flex items-center">
+                            <DollarSign className="w-5 h-5 text-green-600 mr-2" />
                             <p className="text-sm text-gray-600">{t('invoice_table.total_amount')}</p>
                         </div>
                         <p className="text-2xl font-bold text-gray-900 mt-2">
@@ -834,12 +855,12 @@ const InvoiceTable = ({ data: initialData, companyId }) => {
                             {t('invoice_table.debug_info')}
                         </summary>
                         <div className="mt-2 text-xs text-gray-600 space-y-2">
-                            <div>Total invoices: {localData.length}</div>
-                            <div>Filtered invoices: {filteredData.length}</div>
-                            <div>Company ID: {companyId}</div>
-                            <div>Loading: {loading ? 'Yes' : 'No'}</div>
-                            <div>Deleting: {isDeleting ? 'Yes' : 'No'}</div>
-                            <div>Selected: {selectedInvoices.length} invoices</div>
+                            <div>{t('invoice_table.total_invoices')}: {localData.length}</div>
+                            <div>{t('invoice_table.filtered_invoices')}: {filteredData.length}</div>
+                            <div>{t('invoice_table.company_id')}: {companyId}</div>
+                            <div>{t('invoice_table.loading')}: {loading ? t('invoice_table.yes') : t('invoice_table.no')}</div>
+                            <div>{t('invoice_table.deleting')}: {isDeleting ? t('invoice_table.yes') : t('invoice_table.no')}</div>
+                            <div>{t('invoice_table.selected')}: {selectedInvoices.length} {t('invoice_table.invoices')}</div>
                         </div>
                     </details>
                 </div>

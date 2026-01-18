@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useForm } from '@inertiajs/react';
 import { X, Calendar, FileText, Clock, MessageSquare, ChevronDown, Users, Loader2 } from 'lucide-react';
 import axios from 'axios';
+import { useTranslation } from 'react-i18next';
 
 const ProjectModal = ({ 
     show, 
@@ -11,9 +12,10 @@ const ProjectModal = ({
     quotations, 
     statusOptions, 
     isEdit = false,
-    title = "Add Project",
+    title,
     onSuccess
 }) => {
+    const { t } = useTranslation();
     const [isLoading, setIsLoading] = useState(false);
     const [clients, setClients] = useState([]);
     const [projectData, setProjectData] = useState(null);
@@ -84,6 +86,7 @@ const ProjectModal = ({
             }
         } catch (error) {
             console.error('Error fetching clients:', error);
+            showToast(t('project_modal.error_fetching_clients'), 'error');
         } finally {
             setLoadingClients(false);
         }
@@ -112,8 +115,10 @@ const ProjectModal = ({
         } catch (error) {
             console.error('Error fetching project data:', error);
             if (error.response?.status === 404) {
-                alert('Project not found. It may have been deleted.');
+                showToast(t('project_modal.project_not_found'), 'error');
                 handleCloseModal();
+            } else {
+                showToast(t('project_modal.error_fetching_project'), 'error');
             }
         } finally {
             setIsLoading(false);
@@ -135,9 +140,72 @@ const ProjectModal = ({
         setIsSubmitting(false);
     };
 
+    const showToast = (message, type = 'success') => {
+        const existingToasts = document.querySelectorAll('[data-toast]');
+        existingToasts.forEach(toast => toast.remove());
+        
+        const toast = document.createElement('div');
+        toast.setAttribute('data-toast', 'true');
+        toast.className = `fixed top-4 right-4 z-50 px-6 py-4 rounded-lg shadow-lg transform transition-all duration-300 ${
+            type === 'success' ? 'bg-green-500 text-white' : 'bg-red-500 text-white'
+        }`;
+        toast.innerHTML = `
+            <div class="flex items-center">
+                <span>${message}</span>
+                <button onclick="this.parentElement.parentElement.remove()" class="ml-4">
+                    ✕
+                </button>
+            </div>
+        `;
+        document.body.appendChild(toast);
+        
+        setTimeout(() => {
+            if (toast.parentElement) {
+                toast.remove();
+            }
+        }, 3000);
+    };
+
     const handleSubmit = (e) => {
         e.preventDefault();
         
+        // Validasi form
+        if (!data.project_description?.trim()) {
+            showToast(t('project_modal.project_description_required'), 'error');
+            return;
+        }
+        
+        if (!data.company_id) {
+            showToast(t('project_modal.client_required'), 'error');
+            return;
+        }
+        
+        if (!data.quotation_id) {
+            showToast(t('project_modal.quotation_required'), 'error');
+            return;
+        }
+        
+        if (!data.start_date) {
+            showToast(t('project_modal.start_date_required'), 'error');
+            return;
+        }
+        
+        if (!data.deadline) {
+            showToast(t('project_modal.deadline_required'), 'error');
+            return;
+        }
+        
+        // Validasi tanggal
+        if (data.start_date && data.deadline) {
+            const startDate = new Date(data.start_date);
+            const deadlineDate = new Date(data.deadline);
+            
+            if (deadlineDate < startDate) {
+                showToast(t('project_modal.deadline_before_start'), 'error');
+                return;
+            }
+        }
+
         // TUTUP MODAL LANGSUNG SETELAH SUBMIT DITEKAN
         // Panggil onSuccess untuk menutup modal segera
         if (onSuccess && typeof onSuccess === 'function') {
@@ -155,15 +223,14 @@ const ProjectModal = ({
                 preserveState: true,
                 onSuccess: () => {
                     console.log('Project updated successfully on server');
+                    showToast(t('project_modal.project_updated'), 'success');
                     // Reset form setelah sukses
                     resetForm();
-                    // Tidak perlu panggil onSuccess lagi karena sudah dipanggil di atas
                 },
                 onError: (errors) => {
                     console.error('Update errors:', errors);
                     setIsSubmitting(false);
-                    // Jika error, modal tetap tertutup (karena sudah ditutup di awal)
-                    // Bisa tambahkan logika untuk membuka modal kembali jika perlu
+                    showToast(t('project_modal.update_error'), 'error');
                 },
                 onFinish: () => {
                     setIsSubmitting(false);
@@ -180,15 +247,14 @@ const ProjectModal = ({
                 preserveState: true,
                 onSuccess: () => {
                     console.log('Project created successfully on server');
+                    showToast(t('project_modal.project_created'), 'success');
                     // Reset form setelah sukses
                     resetForm();
-                    // Tidak perlu panggil onSuccess lagi karena sudah dipanggil di atas
                 },
                 onError: (errors) => {
                     console.error('Store errors:', errors);
                     setIsSubmitting(false);
-                    // Jika error, modal tetap tertutup (karena sudah ditutup di awal)
-                    // Bisa tambahkan logika untuk membuka modal kembali jika perlu
+                    showToast(t('project_modal.save_error'), 'error');
                 },
                 onFinish: () => {
                     setIsSubmitting(false);
@@ -225,6 +291,10 @@ const ProjectModal = ({
 
     if (!show) return null;
 
+    // Determine title and description based on mode
+    const modalTitle = title || (isEdit ? t('project_modal.edit_project_title') : t('project_modal.add_project_title'));
+    const modalDescription = isEdit ? t('project_modal.edit_project_description') : t('project_modal.add_project_description');
+
     return (
         <div className="fixed inset-0 bg-gray-900/50 backdrop-blur-sm overflow-y-auto h-full w-full z-50">
             <div className="relative min-h-screen flex items-center justify-center p-4">
@@ -237,10 +307,10 @@ const ProjectModal = ({
                             </div>
                             <div>
                                 <h3 className="text-xl font-bold text-gray-900">
-                                    {title}
+                                    {modalTitle}
                                 </h3>
                                 <p className="text-sm text-gray-500 mt-1">
-                                    {isEdit ? 'Update project details' : 'Create a new project'}
+                                    {modalDescription}
                                 </p>
                             </div>
                         </div>
@@ -248,6 +318,7 @@ const ProjectModal = ({
                             onClick={handleCloseModal}
                             className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                             disabled={processing || isLoading || isSubmitting}
+                            title={t('project_modal.close_modal')}
                         >
                             <X className="w-5 h-5" />
                         </button>
@@ -257,7 +328,7 @@ const ProjectModal = ({
                     {isLoading && isEdit ? (
                         <div className="p-12 flex flex-col items-center justify-center">
                             <Loader2 className="w-8 h-8 text-[#005954] animate-spin mb-4" />
-                            <p className="text-gray-600">Loading project data...</p>
+                            <p className="text-gray-600">{t('project_modal.loading_project')}</p>
                         </div>
                     ) : (
                         <form onSubmit={handleSubmit} className="p-6 space-y-6 max-h-[70vh] overflow-y-auto">
@@ -265,7 +336,7 @@ const ProjectModal = ({
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
                                     <FileText className="w-4 h-4" />
-                                    Project Description *
+                                    {t('project_modal.project_description')} *
                                 </label>
                                 <div className="relative">
                                     <textarea
@@ -276,7 +347,7 @@ const ProjectModal = ({
                                         }`}
                                         maxLength={250}
                                         required
-                                        placeholder="Describe the project scope and objectives..."
+                                        placeholder={t('project_modal.project_description_placeholder')}
                                         disabled={isSubmitting}
                                     />
                                     <div className="flex justify-between items-center mt-2">
@@ -284,7 +355,7 @@ const ProjectModal = ({
                                             <p className="text-sm text-red-600">{errors.project_description}</p>
                                         ) : (
                                             <div className="text-xs text-gray-400">
-                                                Brief and descriptive (max 250 characters)
+                                                {t('project_modal.project_description_hint')}
                                             </div>
                                         )}
                                         <div className="text-xs text-gray-500">
@@ -300,13 +371,15 @@ const ProjectModal = ({
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
                                         <Users className="w-4 h-4" />
-                                        Client *
+                                        {t('project_modal.client')} *
                                     </label>
                                     <div className="relative">
                                         {loadingClients && clients.length === 0 ? (
                                             <div className="flex items-center justify-center py-3 border border-gray-300 rounded-xl">
                                                 <Loader2 className="w-4 h-4 animate-spin text-gray-500 mr-2" />
-                                                <span className="text-sm text-gray-500">Loading clients...</span>
+                                                <span className="text-sm text-gray-500">
+                                                    {t('project_modal.loading_clients')}
+                                                </span>
                                             </div>
                                         ) : (
                                             <>
@@ -319,7 +392,9 @@ const ProjectModal = ({
                                                     required
                                                     disabled={loadingClients || isSubmitting}
                                                 >
-                                                    <option value="" className="text-gray-400">Select a client</option>
+                                                    <option value="" className="text-gray-400">
+                                                        {t('project_modal.client_placeholder')}
+                                                    </option>
                                                     {clients.map(client => (
                                                         <option key={client.id} value={client.id}>
                                                             {client.full_display || client.display_name || client.name}
@@ -341,17 +416,21 @@ const ProjectModal = ({
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
                                         <FileText className="w-4 h-4" />
-                                        Quotation *
+                                        {t('project_modal.quotation')} *
                                     </label>
                                     <div className="relative">
                                         <select
                                             value={data.quotation_id}
                                             onChange={e => setData('quotation_id', e.target.value)}
-                                            className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#005954] focus:border-transparent appearance-none transition-colors"
+                                            className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-[#005954] focus:border-transparent appearance-none transition-colors ${
+                                                errors.quotation_id ? 'border-red-300' : 'border-gray-300'
+                                            }`}
                                             required
                                             disabled={isSubmitting}
                                         >
-                                            <option value="" className="text-gray-400">Select a quotation</option>
+                                            <option value="" className="text-gray-400">
+                                                {t('project_modal.quotation_placeholder')}
+                                            </option>
                                             {quotations && quotations.map(quote => (
                                                 <option key={quote.id} value={quote.id}>
                                                     {quote.display_name || quote.name || quote.number}
@@ -362,6 +441,9 @@ const ProjectModal = ({
                                             <ChevronDown className="w-4 h-4" />
                                         </div>
                                     </div>
+                                    {errors.quotation_id && (
+                                        <p className="mt-1 text-sm text-red-600">{errors.quotation_id}</p>
+                                    )}
                                 </div>
                             </div>
 
@@ -371,7 +453,7 @@ const ProjectModal = ({
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
                                         <Calendar className="w-4 h-4" />
-                                        Start Date *
+                                        {t('project_modal.start_date')} *
                                     </label>
                                     <input
                                         type="date"
@@ -392,7 +474,7 @@ const ProjectModal = ({
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
                                         <Clock className="w-4 h-4" />
-                                        Deadline *
+                                        {t('project_modal.deadline')} *
                                     </label>
                                     <input
                                         type="date"
@@ -415,18 +497,18 @@ const ProjectModal = ({
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
                                     <MessageSquare className="w-4 h-4" />
-                                    Note (Optional)
+                                    {t('project_modal.note')}
                                 </label>
                                 <textarea
                                     value={data.note}
                                     onChange={e => setData('note', e.target.value)}
                                     className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#005954] focus:border-transparent min-h-[100px] resize-none transition-colors"
                                     maxLength={250}
-                                    placeholder="Additional notes or requirements..."
+                                    placeholder={t('project_modal.note_placeholder')}
                                     disabled={isSubmitting}
                                 />
                                 <div className="text-right text-xs text-gray-500 mt-2">
-                                    {data.note?.length || 0}/250 characters
+                                    {t('project_modal.note_character_count', { current: data.note?.length || 0 })}
                                 </div>
                             </div>
 
@@ -434,7 +516,7 @@ const ProjectModal = ({
                             {isEdit && (
                                 <div className="p-4 bg-gray-50 rounded-xl border border-gray-200">
                                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                                        Project Status
+                                        {t('project_modal.status')}
                                     </label>
                                     <div className="grid grid-cols-2 gap-2">
                                         {statusOptions?.filter(option => 
@@ -479,7 +561,7 @@ const ProjectModal = ({
                                     className="px-6 py-3 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 transition-colors font-medium flex-1 disabled:opacity-50 disabled:cursor-not-allowed"
                                     disabled={isLoading || isSubmitting}
                                 >
-                                    Cancel
+                                    {t('project_modal.cancel_button')}
                                 </button>
                                 <button
                                     type="submit"
@@ -489,10 +571,10 @@ const ProjectModal = ({
                                     {isSubmitting ? (
                                         <>
                                             <Loader2 className="w-4 h-4 animate-spin" />
-                                            Processing...
+                                            {t('project_modal.processing')}
                                         </>
                                     ) : (
-                                        isEdit ? 'Update Project' : 'Create Project'
+                                        isEdit ? t('project_modal.update_project_button') : t('project_modal.create_project_button')
                                     )}
                                 </button>
                             </div>

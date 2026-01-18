@@ -3,7 +3,8 @@ import React, { useState } from 'react';
 import { 
     User, Mail, Phone, Briefcase, Star,
     MessageSquare, ChevronDown, ChevronUp,
-    Edit2, Trash2, Plus, Check, X
+    Edit2, Trash2, Plus, Check, X,
+    Filter, Search, SortAsc, SortDesc
 } from 'lucide-react';
 import axios from 'axios';
 import ContactModal from './ContactModal';
@@ -23,8 +24,50 @@ const ContactTable = ({
     const [selectedContact, setSelectedContact] = useState(null);
     const [internalLoading, setInternalLoading] = useState(false);
     const [successMessage, setSuccessMessage] = useState('');
+    const [searchTerm, setSearchTerm] = useState('');
+    const [statusFilter, setStatusFilter] = useState('all');
+    const [departmentFilter, setDepartmentFilter] = useState('all');
+    const [sortBy, setSortBy] = useState('name_asc');
+    const [selectedContacts, setSelectedContacts] = useState([]);
 
     const isLoading = propsLoading || internalLoading;
+
+    // Filter and sort contacts
+    const filteredAndSortedContacts = contacts
+        .filter(contact => {
+            const matchesSearch = !searchTerm || 
+                (contact.name && contact.name.toLowerCase().includes(searchTerm.toLowerCase())) ||
+                (contact.email && contact.email.toLowerCase().includes(searchTerm.toLowerCase())) ||
+                (contact.position && contact.position.toLowerCase().includes(searchTerm.toLowerCase())) ||
+                (contact.department && contact.department.toLowerCase().includes(searchTerm.toLowerCase()));
+            
+            const matchesStatus = statusFilter === 'all' ||
+                (statusFilter === 'primary' && contact.is_primary) ||
+                (statusFilter === 'secondary' && !contact.is_primary) ||
+                (statusFilter === 'active' && contact.is_active) ||
+                (statusFilter === 'inactive' && !contact.is_active);
+            
+            const matchesDepartment = departmentFilter === 'all' ||
+                (contact.department && contact.department.toLowerCase() === departmentFilter.toLowerCase());
+            
+            return matchesSearch && matchesStatus && matchesDepartment;
+        })
+        .sort((a, b) => {
+            switch (sortBy) {
+                case 'name_asc':
+                    return (a.name || '').localeCompare(b.name || '');
+                case 'name_desc':
+                    return (b.name || '').localeCompare(a.name || '');
+                case 'date_asc':
+                    return new Date(a.created_at) - new Date(b.created_at);
+                case 'date_desc':
+                    return new Date(b.created_at) - new Date(a.created_at);
+                case 'position':
+                    return (a.position || '').localeCompare(b.position || '');
+                default:
+                    return 0;
+            }
+        });
 
     const toggleContact = (id) => {
         setExpandedContact(expandedContact === id ? null : id);
@@ -59,6 +102,7 @@ const ContactTable = ({
                     onUpdate();
                 }
                 showSuccessMessage(t('contact_table.contact_deleted_success'));
+                setSelectedContacts(prev => prev.filter(id => id !== contactId));
             } else {
                 throw new Error(response.data.message || t('contact_table.delete_failed'));
             }
@@ -101,29 +145,62 @@ const ContactTable = ({
         showSuccessMessage(t(mode === 'edit' ? 'contact_table.contact_updated_success' : 'contact_table.contact_added_success'));
     };
 
-    // Mobile List View - WITHOUT ACTION BUTTONS
+    const handleSelectAll = () => {
+        if (selectedContacts.length === filteredAndSortedContacts.length) {
+            setSelectedContacts([]);
+        } else {
+            setSelectedContacts(filteredAndSortedContacts.map(c => c.id));
+        }
+    };
+
+    const handleSelectContact = (id) => {
+        setSelectedContacts(prev => 
+            prev.includes(id) 
+                ? prev.filter(contactId => contactId !== id)
+                : [...prev, id]
+        );
+    };
+
+    // Mobile List View
     const MobileListView = () => (
         <div className="space-y-3">
-            {contacts.length === 0 ? (
+            {filteredAndSortedContacts.length === 0 ? (
                 <div className="bg-white border border-gray-200 rounded-lg p-8 text-center">
                     <User className="w-12 h-12 text-gray-300 mx-auto mb-4" />
                     <h3 className="text-lg font-medium text-gray-900 mb-2">
-                        {t('contact_table.no_contacts_found')}
+                        {searchTerm || statusFilter !== 'all' || departmentFilter !== 'all' 
+                            ? t('contact_table.empty_search_results')
+                            : t('contact_table.no_contacts_found')}
                     </h3>
                     <p className="text-gray-600 mb-4">
-                        {t('contact_table.add_first_contact')}
+                        {searchTerm || statusFilter !== 'all' || departmentFilter !== 'all'
+                            ? t('contact_table.try_different_search')
+                            : t('contact_table.add_first_contact')}
                     </p>
-                    <button
-                        onClick={() => setIsAddModalOpen(true)}
-                        className="inline-flex items-center px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors"
-                        disabled={isLoading}
-                    >
-                        <Plus className="w-4 h-4 mr-2" />
-                        {t('contact_table.add_first_contact_button')}
-                    </button>
+                    {searchTerm || statusFilter !== 'all' || departmentFilter !== 'all' ? (
+                        <button
+                            onClick={() => {
+                                setSearchTerm('');
+                                setStatusFilter('all');
+                                setDepartmentFilter('all');
+                            }}
+                            className="inline-flex items-center px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
+                        >
+                            {t('contact_table.clear_search_filters')}
+                        </button>
+                    ) : (
+                        <button
+                            onClick={() => setIsAddModalOpen(true)}
+                            className="inline-flex items-center px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors"
+                            disabled={isLoading}
+                        >
+                            <Plus className="w-4 h-4 mr-2" />
+                            {t('contact_table.add_first_contact_button')}
+                        </button>
+                    )}
                 </div>
             ) : (
-                contacts.map((contact) => (
+                filteredAndSortedContacts.map((contact) => (
                     <div key={contact.id} className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-sm transition-shadow">
                         <div className="flex justify-between items-start mb-3">
                             <div className="flex items-center space-x-3">
@@ -189,6 +266,14 @@ const ContactTable = ({
                                     {contact.phone || t('contact_table.no_phone')}
                                 </span>
                             </div>
+                            {contact.department && (
+                                <div className="flex items-center">
+                                    <Briefcase className="w-4 h-4 text-gray-400 mr-2" />
+                                    <span className="text-xs text-gray-600">
+                                        {contact.department}
+                                    </span>
+                                </div>
+                            )}
                         </div>
                         
                         <div className="mt-3 flex items-center justify-between">
@@ -206,39 +291,93 @@ const ContactTable = ({
                                     </span>
                                 )}
                             </div>
-                            {/* Hapus tombol expand */}
+                            <button
+                                onClick={() => toggleContact(contact.id)}
+                                className="text-gray-400 hover:text-gray-600"
+                                aria-label={expandedContact === contact.id ? t('contact_table.close_details') : t('contact_table.open_details')}
+                            >
+                                {expandedContact === contact.id ? (
+                                    <ChevronUp className="w-4 h-4" />
+                                ) : (
+                                    <ChevronDown className="w-4 h-4" />
+                                )}
+                            </button>
                         </div>
+
+                        {expandedContact === contact.id && (
+                            <div className="mt-4 pt-4 border-t border-gray-100">
+                                <div className="space-y-3">
+                                    {contact.notes && (
+                                        <div>
+                                            <p className="text-xs text-gray-500 mb-1">{t('contact_table.notes')}</p>
+                                            <p className="text-sm text-gray-700">{contact.notes}</p>
+                                        </div>
+                                    )}
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <p className="text-xs text-gray-500">{t('contact_table.created_at')}</p>
+                                            <p className="text-sm font-medium text-gray-900">
+                                                {contact.created_at ? new Date(contact.created_at).toLocaleDateString() : '-'}
+                                            </p>
+                                        </div>
+                                        <div>
+                                            <p className="text-xs text-gray-500">{t('contact_table.last_contacted')}</p>
+                                            <p className="text-sm font-medium text-gray-900">
+                                                {contact.last_contacted ? new Date(contact.last_contacted).toLocaleDateString() : t('contact_table.never_contacted')}
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
                     </div>
                 ))
             )}
         </div>
     );
 
-    // Desktop Grid View - WITHOUT ACTION BUTTONS
+    // Desktop Grid View
     const DesktopGridView = () => (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {contacts.length === 0 ? (
+            {filteredAndSortedContacts.length === 0 ? (
                 <div className="col-span-full bg-white border border-gray-200 rounded-xl p-12 text-center">
                     <div className="w-20 h-20 bg-gradient-to-br from-teal-100 to-teal-200 rounded-full flex items-center justify-center mx-auto mb-6">
                         <User className="w-10 h-10 text-teal-600" />
                     </div>
                     <h3 className="text-2xl font-bold text-gray-900 mb-3">
-                        {t('contact_table.no_contacts_yet')}
+                        {searchTerm || statusFilter !== 'all' || departmentFilter !== 'all'
+                            ? t('contact_table.empty_search_results')
+                            : t('contact_table.no_contacts_yet')}
                     </h3>
                     <p className="text-gray-600 mb-8 max-w-md mx-auto">
-                        {t('contact_table.add_contacts_description')}
+                        {searchTerm || statusFilter !== 'all' || departmentFilter !== 'all'
+                            ? t('contact_table.try_different_search')
+                            : t('contact_table.add_contacts_description')}
                     </p>
-                    <button
-                        onClick={() => setIsAddModalOpen(true)}
-                        className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-teal-600 to-teal-700 text-white rounded-lg hover:from-teal-700 hover:to-teal-800 transition-all duration-300 font-medium shadow-md hover:shadow-lg"
-                        disabled={isLoading}
-                    >
-                        <Plus className="w-5 h-5 mr-2" />
-                        {t('contact_table.add_first_contact_button_long')}
-                    </button>
+                    {searchTerm || statusFilter !== 'all' || departmentFilter !== 'all' ? (
+                        <button
+                            onClick={() => {
+                                setSearchTerm('');
+                                setStatusFilter('all');
+                                setDepartmentFilter('all');
+                            }}
+                            className="inline-flex items-center px-6 py-3 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors font-medium"
+                        >
+                            {t('contact_table.clear_search_filters')}
+                        </button>
+                    ) : (
+                        <button
+                            onClick={() => setIsAddModalOpen(true)}
+                            className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-teal-600 to-teal-700 text-white rounded-lg hover:from-teal-700 hover:to-teal-800 transition-all duration-300 font-medium shadow-md hover:shadow-lg"
+                            disabled={isLoading}
+                        >
+                            <Plus className="w-5 h-5 mr-2" />
+                            {t('contact_table.add_first_contact_button_long')}
+                        </button>
+                    )}
                 </div>
             ) : (
-                contacts.map((contact) => (
+                filteredAndSortedContacts.map((contact) => (
                     <div key={contact.id} className="bg-white border border-gray-200 rounded-xl p-6 hover:shadow-lg transition-all duration-300">
                         <div className="flex items-start justify-between mb-4">
                             <div className="flex items-center space-x-3">
@@ -259,6 +398,11 @@ const ContactTable = ({
                                     <p className="text-sm text-gray-600 truncate max-w-[150px]">
                                         {contact.position || t('contact_table.no_position_specified')}
                                     </p>
+                                    {contact.department && (
+                                        <p className="text-xs text-gray-500 mt-1">
+                                            {contact.department}
+                                        </p>
+                                    )}
                                 </div>
                             </div>
                             <div className="flex items-center space-x-1">
@@ -321,6 +465,13 @@ const ContactTable = ({
                             </div>
                         </div>
 
+                        {contact.notes && (
+                            <div className="mb-6 p-4 bg-gray-50 rounded-lg">
+                                <p className="text-xs text-gray-500 mb-2">{t('contact_table.notes')}</p>
+                                <p className="text-sm text-gray-700 line-clamp-3">{contact.notes}</p>
+                            </div>
+                        )}
+
                         <div className="flex items-center justify-between pt-4 border-t border-gray-100">
                             <div className="flex space-x-2">
                                 {contact.is_primary && (
@@ -336,43 +487,110 @@ const ContactTable = ({
                                     </span>
                                 )}
                             </div>
+                            <div className="text-xs text-gray-500">
+                                {contact.created_at && (
+                                    <span>{t('contact_table.created_at')}: {new Date(contact.created_at).toLocaleDateString()}</span>
+                                )}
+                            </div>
                         </div>
-                        {/* Hapus section action buttons (email, call, message) */}
                     </div>
                 ))
             )}
         </div>
     );
 
-    // Desktop Table View - WITHOUT ACTION BUTTONS
+    // Desktop Table View
     const DesktopTableView = () => (
         <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
-            {contacts.length === 0 ? (
+            {filteredAndSortedContacts.length === 0 ? (
                 <div className="p-12 text-center">
                     <div className="w-20 h-20 bg-gradient-to-br from-teal-100 to-teal-200 rounded-full flex items-center justify-center mx-auto mb-6">
                         <User className="w-10 h-10 text-teal-600" />
                     </div>
                     <h3 className="text-2xl font-bold text-gray-900 mb-3">
-                        {t('contact_table.no_contacts_available')}
+                        {searchTerm || statusFilter !== 'all' || departmentFilter !== 'all'
+                            ? t('contact_table.empty_search_results')
+                            : t('contact_table.no_contacts_available')}
                     </h3>
                     <p className="text-gray-600 mb-8 max-w-md mx-auto">
-                        {t('contact_table.add_contacts_description_short')}
+                        {searchTerm || statusFilter !== 'all' || departmentFilter !== 'all'
+                            ? t('contact_table.try_different_search')
+                            : t('contact_table.add_contacts_description_short')}
                     </p>
-                    <button
-                        onClick={() => setIsAddModalOpen(true)}
-                        className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-teal-600 to-teal-700 text-white rounded-lg hover:from-teal-700 hover:to-teal-800 transition-all duration-300 font-medium shadow-md hover:shadow-lg"
-                        disabled={isLoading}
-                    >
-                        <Plus className="w-5 h-5 mr-2" />
-                        {t('contact_table.add_first_contact_button')}
-                    </button>
+                    {searchTerm || statusFilter !== 'all' || departmentFilter !== 'all' ? (
+                        <button
+                            onClick={() => {
+                                setSearchTerm('');
+                                setStatusFilter('all');
+                                setDepartmentFilter('all');
+                            }}
+                            className="inline-flex items-center px-6 py-3 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors font-medium"
+                        >
+                            {t('contact_table.clear_search_filters')}
+                        </button>
+                    ) : (
+                        <button
+                            onClick={() => setIsAddModalOpen(true)}
+                            className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-teal-600 to-teal-700 text-white rounded-lg hover:from-teal-700 hover:to-teal-800 transition-all duration-300 font-medium shadow-md hover:shadow-lg"
+                            disabled={isLoading}
+                        >
+                            <Plus className="w-5 h-5 mr-2" />
+                            {t('contact_table.add_first_contact_button')}
+                        </button>
+                    )}
                 </div>
             ) : (
                 <>
+                    {/* Bulk Actions Bar */}
+                    {selectedContacts.length > 0 && (
+                        <div className="bg-blue-50 border-b border-blue-200 p-4">
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center">
+                                    <Check className="w-5 h-5 text-blue-600 mr-2" />
+                                    <span className="font-medium text-blue-800">
+                                        {selectedContacts.length} {t('contact_table.contacts_selected')}
+                                    </span>
+                                </div>
+                                <div className="flex space-x-2">
+                                    <button
+                                        onClick={handleSelectAll}
+                                        className="text-sm text-blue-600 hover:text-blue-800"
+                                    >
+                                        {t('contact_table.select_all')}
+                                    </button>
+                                    <span className="text-gray-300">|</span>
+                                    <button
+                                        onClick={() => setSelectedContacts([])}
+                                        className="text-sm text-gray-600 hover:text-gray-800"
+                                    >
+                                        {t('contact_table.deselect_all')}
+                                    </button>
+                                    <span className="text-gray-300">|</span>
+                                    <button
+                                        onClick={handleBulkDelete}
+                                        className="text-sm text-red-600 hover:text-red-800"
+                                        disabled={isLoading}
+                                    >
+                                        {t('contact_table.bulk_delete')}
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
                     <div className="overflow-x-auto">
                         <table className="min-w-full divide-y divide-gray-200">
                             <thead className="bg-gray-50">
                                 <tr>
+                                    <th className="w-12 px-6 py-4 text-left">
+                                        <input
+                                            type="checkbox"
+                                            checked={selectedContacts.length === filteredAndSortedContacts.length && filteredAndSortedContacts.length > 0}
+                                            onChange={handleSelectAll}
+                                            className="h-4 w-4 text-blue-600 rounded"
+                                            disabled={isLoading}
+                                        />
+                                    </th>
                                     <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
                                         {t('contact_table.contact')}
                                     </th>
@@ -394,8 +612,17 @@ const ContactTable = ({
                                 </tr>
                             </thead>
                             <tbody className="bg-white divide-y divide-gray-100">
-                                {contacts.map((contact) => (
+                                {filteredAndSortedContacts.map((contact) => (
                                     <tr key={contact.id} className="hover:bg-gray-50 transition-colors">
+                                        <td className="w-12 px-6 py-4 whitespace-nowrap">
+                                            <input
+                                                type="checkbox"
+                                                checked={selectedContacts.includes(contact.id)}
+                                                onChange={() => handleSelectContact(contact.id)}
+                                                className="h-4 w-4 text-blue-600 rounded"
+                                                disabled={isLoading}
+                                            />
+                                        </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
                                             <div className="flex items-center">
                                                 <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
@@ -412,6 +639,11 @@ const ContactTable = ({
                                                             <Star className="w-3 h-3 text-yellow-500 inline-block ml-1" />
                                                         )}
                                                     </div>
+                                                    {contact.department && (
+                                                        <div className="text-xs text-gray-500">
+                                                            {contact.department}
+                                                        </div>
+                                                    )}
                                                 </div>
                                             </div>
                                         </td>
@@ -478,7 +710,6 @@ const ContactTable = ({
                                                 >
                                                     <Trash2 className="w-4 h-4" />
                                                 </button>
-                                                {/* Hapus tombol email dan call */}
                                             </div>
                                         </td>
                                     </tr>
@@ -530,12 +761,22 @@ const ContactTable = ({
                 
                 {/* Controls */}
                 <div className="flex items-center space-x-4">
+                    {/* Search */}
+                    <div className="relative">
+                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                        <input
+                            type="text"
+                            placeholder={t('contact_table.search_contacts')}
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 w-48 sm:w-64"
+                            disabled={isLoading}
+                        />
+                    </div>
+                    
                     {/* View Toggle */}
-                    {contacts.length > 0 && (
+                    {filteredAndSortedContacts.length > 0 && (
                         <div className="flex items-center space-x-2">
-                            <span className="text-sm text-gray-600 hidden sm:block">
-                                {t('contact_table.view')}:
-                            </span>
                             <div className="flex bg-gray-100 p-1 rounded-lg">
                                 <button 
                                     onClick={() => setViewMode('grid')}
@@ -580,6 +821,51 @@ const ContactTable = ({
                 </div>
             </div>
 
+            {/* Filters */}
+            {contacts.length > 0 && (
+                <div className="mb-6 flex flex-wrap gap-4">
+                    <select
+                        value={statusFilter}
+                        onChange={(e) => setStatusFilter(e.target.value)}
+                        className="px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                        disabled={isLoading}
+                    >
+                        <option value="all">{t('contact_table.all_status')}</option>
+                        <option value="primary">{t('contact_table.primary_only')}</option>
+                        <option value="secondary">{t('contact_table.secondary_only')}</option>
+                        <option value="active">{t('contact_table.active')}</option>
+                        <option value="inactive">{t('contact_table.inactive')}</option>
+                    </select>
+
+                    <select
+                        value={sortBy}
+                        onChange={(e) => setSortBy(e.target.value)}
+                        className="px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                        disabled={isLoading}
+                    >
+                        <option value="name_asc">{t('contact_table.sort_name_asc')}</option>
+                        <option value="name_desc">{t('contact_table.sort_name_desc')}</option>
+                        <option value="date_asc">{t('contact_table.sort_date_asc')}</option>
+                        <option value="date_desc">{t('contact_table.sort_date_desc')}</option>
+                        <option value="position">{t('contact_table.sort_position')}</option>
+                    </select>
+
+                    {(searchTerm || statusFilter !== 'all') && (
+                        <button
+                            onClick={() => {
+                                setSearchTerm('');
+                                setStatusFilter('all');
+                                setDepartmentFilter('all');
+                            }}
+                            className="px-3 py-2 text-sm text-gray-600 hover:text-gray-900 flex items-center"
+                        >
+                            <X className="w-4 h-4 mr-1" />
+                            {t('contact_table.clear_filters')}
+                        </button>
+                    )}
+                </div>
+            )}
+
             {/* Loading State */}
             {propsLoading && contacts.length === 0 ? (
                 <div className="flex flex-col justify-center items-center py-16">
@@ -603,6 +889,9 @@ const ContactTable = ({
                     {/* Summary Stats */}
                     {contacts.length > 0 && (
                         <div className="mt-8 pt-8 border-t border-gray-200">
+                            <h3 className="text-lg font-bold text-gray-900 mb-4">
+                                {t('contact_table.contact_statistics')}
+                            </h3>
                             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                                 <div className="bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200 p-5 rounded-xl">
                                     <p className="text-sm font-medium text-blue-700 mb-2">
