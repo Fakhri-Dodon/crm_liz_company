@@ -716,8 +716,7 @@ body, html {
 
 .sidebar-section {
     overflow-y: auto !important; /* Supaya bisa di-scroll */
-    max-height: 100vh;
-    padding-bottom: 100px !important;
+    max-height: 50vh;
 }
 
 /* Override GrapesJS Fields agar pas di Sidebar Kiri */
@@ -750,10 +749,6 @@ body, html {
     max-height: 85vh; /* Ruang napas agar input terakhir tidak mepet */
 }
 
-.gjs-traits-c {
-    padding-bottom: 60px !important; /* Ruang kosong di bawah agar tidak mentok */
-}
-
 .gjs-trt-trait__label {
     margin-bottom: 8px !important;
     color: #bdc3c7 !important;
@@ -777,7 +772,6 @@ body, html {
 #trait-editor-container {
     overflow-y: auto !important;
     max-height: 80vh; /* Memberi batas tinggi agar scroll muncul */
-    padding-bottom: 50px; /* Ruang agar bagian bawah tidak terpotong */
 }
 
 .gjs-sm-btn-c .gjs-sm-btn {
@@ -787,7 +781,7 @@ body, html {
 }
 
 .gjs-label {
-    color: #bdc3c7;
+    color: #34495e;
     font-size: 11px;
 }
 
@@ -833,4 +827,9 @@ body, html {
 .gjs-toolbar-items .gjs-toolbar-item {
     padding-top: 10px;
     padding-left: 10px;
+}
+
+.gjs-image-editable {
+    outline: 2px dashed #3b82f6;
+    cursor: pointer;
 }

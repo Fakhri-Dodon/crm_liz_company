@@ -4526,3 +4526,6 @@ input.toggle-round-flat:checked + label:after {
     margin-right: 2px;
 }
 
+#main-navbar {
+    margin-bottom: 0px!important;
+}
