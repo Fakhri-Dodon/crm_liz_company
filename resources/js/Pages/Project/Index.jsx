@@ -1,10 +1,11 @@
+// resources/js/Pages/Projects/Index.jsx
 import React, { useState, useEffect, useCallback } from 'react';
 import { Head, usePage, router, useForm } from '@inertiajs/react';
 import HeaderLayout from '@/Layouts/HeaderLayout';
 import TableLayout from '@/Layouts/TableLayout';
 import ProjectModal from '@/Components/Project/ProjectModal';
 import DeleteModal from '@/Components/DeleteModal';
-import { Search, Filter, Plus, Calendar, RefreshCw, FileText, ChevronDown } from 'lucide-react';
+import { Search, Filter, Plus, Calendar, RefreshCw, ChevronDown } from 'lucide-react';
 
 export default function Index({ 
     projects, 
@@ -38,7 +39,48 @@ export default function Index({
         year: filters?.year || ''
     });
 
-    // Status colors
+    // Helper function untuk mendapatkan class card berdasarkan status
+    const getStatusCardClass = (status) => {
+        switch(status) {
+            case 'in_progress':
+                return {
+                    card: "rounded-xl p-5 shadow-sm border border-blue-200 bg-blue-100 transition-transform hover:scale-[1.02] hover:shadow-md",
+                    text: "text-blue-800",
+                    count: "text-blue-900",
+                    subtext: "text-blue-700"
+                };
+            case 'completed':
+                return {
+                    card: "rounded-xl p-5 shadow-sm border border-green-200 bg-green-100 transition-transform hover:scale-[1.02] hover:shadow-md",
+                    text: "text-green-800",
+                    count: "text-green-900",
+                    subtext: "text-green-700"
+                };
+            case 'pending':
+                return {
+                    card: "rounded-xl p-5 shadow-sm border border-yellow-200 bg-yellow-100 transition-transform hover:scale-[1.02] hover:shadow-md",
+                    text: "text-yellow-800",
+                    count: "text-yellow-900",
+                    subtext: "text-yellow-700"
+                };
+            case 'cancelled':
+                return {
+                    card: "rounded-xl p-5 shadow-sm border border-red-200 bg-red-100 transition-transform hover:scale-[1.02] hover:shadow-md",
+                    text: "text-red-800",
+                    count: "text-red-900",
+                    subtext: "text-red-700"
+                };
+            default:
+                return {
+                    card: "rounded-xl p-5 shadow-sm border border-gray-200 bg-gray-100 transition-transform hover:scale-[1.02] hover:shadow-md",
+                    text: "text-gray-800",
+                    count: "text-gray-900",
+                    subtext: "text-gray-700"
+                };
+        }
+    };
+
+    // Status colors untuk dropdown
     const statusColors = {
         in_progress: { 
             bg: 'bg-blue-50', 
@@ -407,27 +449,29 @@ export default function Index({
                     </div>
                 </div>
 
-                {/* Summary Cards - Responsive */}
+                {/* Summary Cards - Responsive dengan styling baru */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-6 mb-6 sm:mb-8">
                     {statusesToShow.map((status) => {
-                        const colors = statusColors[status];
+                        const statusClass = getStatusCardClass(status);
                         const statusLabel = statusOptions?.find(opt => opt.value === status)?.label || 
                                           status.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
                         
                         return (
                             <div 
                                 key={status}
-                                className={`rounded-lg sm:rounded-xl p-4 sm:p-5 shadow-sm border-2 ${colors.border} ${colors.bg} transition-transform hover:scale-[1.02] hover:shadow-md`}
+                                className={statusClass.card}
                             >
                                 <div className="flex items-center justify-between">
                                     <div>
-                                        <p className={`text-xs sm:text-sm font-medium ${colors.text} uppercase tracking-wide`}>
+                                        <p className={`text-xs sm:text-sm font-medium ${statusClass.text} uppercase tracking-wide`}>
                                             {statusLabel}
                                         </p>
-                                        <p className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 mt-1 sm:mt-2">
+                                        <p className={`text-xl sm:text-2xl md:text-3xl font-bold ${statusClass.count} mt-1 sm:mt-2`}>
                                             {summary[status] || 0}
                                         </p>
-                                        <p className="text-xs text-gray-500 mt-1 sm:mt-2">Total Project</p>
+                                        <p className={`text-xs ${statusClass.subtext} mt-1 sm:mt-2`}>
+                                            Total Project
+                                        </p>
                                     </div>
                                 </div>
                             </div>

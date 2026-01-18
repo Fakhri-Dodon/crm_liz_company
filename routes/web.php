@@ -56,6 +56,20 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     // Leads
     Route::get('/lead', [LeadController::class, 'index'])->name('lead.index');
+
+            Route::prefix('leads')->group(function () {
+            Route::get('/', [LeadController::class, 'indexApi']);
+            Route::post('/', [LeadController::class, 'store']);
+            Route::put('/{id}', [LeadController::class, 'update']);
+            Route::delete('/{id}', [LeadController::class, 'destroy']);
+            Route::get('/statuses', [LeadController::class, 'getStatuses']);
+            Route::get('/user-info', [LeadController::class, 'getCurrentUserInfo']);
+            Route::get('/test', [LeadController::class, 'test']);
+            
+            // Routes untuk contact persons
+            Route::post('/{leadId}/sync-contact-person', [LeadController::class, 'syncContactPerson']);
+            Route::get('/{leadId}/contact-persons', [LeadController::class, 'getContactPersons']);
+    });
     
     //Quotation Modul - TAMBAHKAN ROUTE show DI SINI
     Route::prefix('quotation')->name('quotation.')->group(function() {
@@ -134,20 +148,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
             Route::post('/role-store', [RolesController::class, 'roleStore'])->name('roles.store');
         });
         
-        // routes/api.php
-        Route::prefix('leads')->group(function () {
-            Route::get('/', [LeadController::class, 'indexApi']);
-            Route::post('/', [LeadController::class, 'store']);
-            Route::put('/{id}', [LeadController::class, 'update']);
-            Route::delete('/{id}', [LeadController::class, 'destroy']);
-            Route::get('/statuses', [LeadController::class, 'getStatuses']);
-            Route::get('/user-info', [LeadController::class, 'getCurrentUserInfo']);
-            Route::get('/test', [LeadController::class, 'test']);
-            
-            // Routes untuk contact persons
-            Route::post('/{leadId}/sync-contact-person', [LeadController::class, 'syncContactPerson']);
-            Route::get('/{leadId}/contact-persons', [LeadController::class, 'getContactPersons']);
-        });        // Proposals Settings
+        // Leads Settings
+        Route::get('/leads', [SettingController::class, 'leads'])->name('leads');
+        Route::post('/lead-status/store', [LeadStatusesController::class, 'store'])->name('lead-status.store');
+        Route::put('/lead-status/update/{id}', [LeadStatusesController::class, 'update'])->name('lead-status.update');
+        Route::delete('/lead-status/destroy/{id}', [LeadStatusesController::class, 'destroy'])->name('lead-status.delete');
+        // Proposals Settings
         Route::get('/proposals', [SettingController::class, 'proposals'])->name('proposals');
         Route::post('/proposal_numbering/update/{id}', [ProposalNumberFormated::class, 'update'])->name('proposal_numbering.update');
         Route::post('/proposal-status/store', [ProposalStatusesController::class, 'store'])->name('proposal-status.store');
