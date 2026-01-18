@@ -384,10 +384,18 @@ export default function Create({ id, template }) {
         editor.on("component:select:before", (component, options) => {
             if (activeModeRef.current !== "elements") return;
 
-            if (!isSectionRoot(component)) {
-                const parent = findSectionRoot(component);
+            // ROOT boleh dipilih
+            if (isSectionRoot(component)) return;
+
+            // Selain ROOT → naikkan ke parent ROOT
+            const parentRoot = findSectionRoot(component);
+
+            if (parentRoot) {
                 options.abort = true;
-                if (parent) editor.select(parent);
+                editor.select(parentRoot);
+            } else {
+                // elemen liar tanpa root → tidak bisa select
+                options.abort = true;
             }
         });
         
@@ -632,6 +640,8 @@ export default function Create({ id, template }) {
         const editor = editorRef.current;
         if (!editor) return;
 
+        resetAllComponentsForMode(editorRef.current, mode);
+
         // 2. Reset Seleksi & Sidebar UI
         editor.select(null); 
         const sidebar = document.getElementById("style-editor-container");
@@ -708,6 +718,22 @@ export default function Create({ id, template }) {
             cls.includes("row") ||
             cls.some((c) => c.startsWith("col-"))
         );
+    };
+
+    const resetAllComponentsForMode = (editor, mode) => {
+        const all = editor.DomComponents.getWrapper().find('*');
+
+        all.forEach(comp => {
+            // HENTIKAN EDIT TEXT TOTAL
+            comp.set({
+                editable: false,
+                selectable: mode !== 'content',
+                hoverable: true,
+            }, { silent: true });
+
+            // HAPUS MODE FLAG
+            delete comp.__appliedMode;
+        });
     };
 
     const filterCategory = (cat) => {
