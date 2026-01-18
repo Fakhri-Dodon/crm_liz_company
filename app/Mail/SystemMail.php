@@ -59,8 +59,10 @@ class SystemMail extends Mailable
     {
         $attachments = [];
 
-        if ($this->filePath && Storage::disk('public')->exists($this->filePath)) {
-            $attachments[] = Attachment::fromPath(storage_path('app/public/' . $this->filePath));
+        $fullPath = public_path('storage/' . $this->filePath);
+
+        if ($this->filePath && file_exists($fullPath)) {
+            $attachments[] = Attachment::fromPath($fullPath);
         }
 
         return $attachments;

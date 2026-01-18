@@ -673,7 +673,7 @@ class QuotationController extends Controller {
                 $filePath = $document->pdf_path;
                 $link = asset('storage/' . $filePath);
             }
-
+            
             // 4. Mapping Placeholder Dinamis
             $placeholders = [
                 '{name}'    => $document->lead?->contact_person 
