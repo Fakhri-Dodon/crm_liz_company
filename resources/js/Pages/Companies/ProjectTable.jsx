@@ -1,5 +1,5 @@
 // resources/js/Pages/Companies/ProjectTable.jsx
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { 
     FolderKanban, 
     Calendar, 
@@ -11,7 +11,6 @@ import {
     Trash2,
     XCircle,
     PauseCircle,
-    AlertTriangle,
     X,
     Save,
     Loader2
@@ -32,9 +31,13 @@ const ProjectTable = ({ data, onEdit, onDelete }) => {
     });
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [formErrors, setFormErrors] = useState({});
+    
+    // Refs untuk menangani input dengan lebih baik
+    const descriptionTextareaRef = useRef(null);
+    const modalRef = useRef(null);
 
     // Map status dari database ke 4 status standar untuk form
-    const mapStatusForForm = (status) => {
+    const mapStatusForForm = useCallback((status) => {
         if (!status) return 'pending';
         
         const statusLower = status.toLowerCase();
@@ -53,10 +56,10 @@ const ProjectTable = ({ data, onEdit, onDelete }) => {
         }
         
         return 'pending'; // default
-    };
+    }, []);
 
     // Map status dari form ke status yang dikirim ke backend (sesuai kebutuhan backend)
-    const mapStatusForBackend = (formStatus) => {
+    const mapStatusForBackend = useCallback((formStatus) => {
         const statusMap = {
             'in_progress': 'in_progress',
             'completed': 'completed',
@@ -64,7 +67,7 @@ const ProjectTable = ({ data, onEdit, onDelete }) => {
             'pending': 'pending'
         };
         return statusMap[formStatus] || 'pending';
-    };
+    }, []);
 
     // Initialize form when editingProject changes
     useEffect(() => {
@@ -81,12 +84,41 @@ const ProjectTable = ({ data, onEdit, onDelete }) => {
                 status: mappedStatus,
                 note: editingProject.note || ''
             });
+            
             // Clear errors when form is initialized
             setFormErrors({});
+            
+            // Delay auto-focus untuk memastikan modal sudah ter-render
+            setTimeout(() => {
+                if (descriptionTextareaRef.current) {
+                    descriptionTextareaRef.current.focus();
+                    // Pindahkan cursor ke akhir teks
+                    const textLength = descriptionTextareaRef.current.value.length;
+                    descriptionTextareaRef.current.setSelectionRange(textLength, textLength);
+                }
+            }, 50);
         }
-    }, [editingProject]);
+    }, [editingProject, mapStatusForForm]);
 
-    const formatDate = (dateString) => {
+    // Clean up ketika modal ditutup
+    useEffect(() => {
+        if (!isEditModalOpen) {
+            // Reset hanya saat modal benar-benar ditutup
+            setTimeout(() => {
+                setFormData({
+                    project_description: '',
+                    start_date: '',
+                    deadline: '',
+                    status: 'pending',
+                    note: ''
+                });
+                setFormErrors({});
+                setIsSubmitting(false);
+            }, 300);
+        }
+    }, [isEditModalOpen]);
+
+    const formatDate = useCallback((dateString) => {
         if (!dateString) return t('project_table.not_available');
         try {
             const date = new Date(dateString);
@@ -98,9 +130,9 @@ const ProjectTable = ({ data, onEdit, onDelete }) => {
         } catch (error) {
             return dateString;
         }
-    };
+    }, [t]);
 
-    const calculateDaysLeft = (deadline) => {
+    const calculateDaysLeft = useCallback((deadline) => {
         if (!deadline) return 0;
         try {
             const today = new Date();
@@ -110,10 +142,10 @@ const ProjectTable = ({ data, onEdit, onDelete }) => {
         } catch (error) {
             return 0;
         }
-    };
+    }, []);
 
     // Update getStatusBadge untuk menampilkan status yang sesuai dengan mapping
-    const getStatusBadge = (originalStatus) => {
+    const getStatusBadge = useCallback((originalStatus) => {
         const baseClasses = "inline-flex items-center px-2 py-1 rounded-full text-xs font-medium";
         
         // Map original status untuk display
@@ -155,9 +187,9 @@ const ProjectTable = ({ data, onEdit, onDelete }) => {
                     </span>
                 );
         }
-    };
+    }, [mapStatusForForm, t]);
 
-    const getDaysLeftText = (daysLeft, status) => {
+    const getDaysLeftText = useCallback((daysLeft, status) => {
         const displayStatus = mapStatusForForm(status);
         
         if (displayStatus === 'completed') {
@@ -179,9 +211,9 @@ const ProjectTable = ({ data, onEdit, onDelete }) => {
         }
         
         return t('project_table.not_available');
-    };
+    }, [mapStatusForForm, t]);
 
-    const getDaysLeftColor = (daysLeft, status) => {
+    const getDaysLeftColor = useCallback((daysLeft, status) => {
         const displayStatus = mapStatusForForm(status);
         
         if (displayStatus === 'completed') {
@@ -198,7 +230,7 @@ const ProjectTable = ({ data, onEdit, onDelete }) => {
         }
         
         return 'text-gray-800 bg-gray-100';
-    };
+    }, [mapStatusForForm]);
 
     const toggleActionMenu = (index) => {
         setActionMenu(actionMenu === index ? null : index);
@@ -212,13 +244,34 @@ const ProjectTable = ({ data, onEdit, onDelete }) => {
         setActionMenu(null); // Close action menu if open
     };
 
-    // Handle form input change
-    const handleFormChange = (e) => {
+    // Handle form input change - DIPERBAIKI
+    const handleFormChange = useCallback((e) => {
         const { name, value } = e.target;
-        setFormData(prev => ({
-            ...prev,
-            [name]: value
-        }));
+        
+        // Simpan posisi cursor untuk textarea khususnya
+        if (name === 'project_description' && descriptionTextareaRef.current) {
+            const cursorPosition = descriptionTextareaRef.current.selectionStart;
+            
+            setFormData(prev => ({
+                ...prev,
+                [name]: value
+            }));
+            
+            // Setelah state update, kembalikan cursor position
+            setTimeout(() => {
+                if (descriptionTextareaRef.current) {
+                    descriptionTextareaRef.current.focus();
+                    descriptionTextareaRef.current.setSelectionRange(cursorPosition, cursorPosition);
+                }
+            }, 0);
+        } else {
+            // Untuk input lainnya, langsung update
+            setFormData(prev => ({
+                ...prev,
+                [name]: value
+            }));
+        }
+        
         // Clear error for this field when user starts typing
         if (formErrors[name]) {
             setFormErrors(prev => ({
@@ -226,10 +279,10 @@ const ProjectTable = ({ data, onEdit, onDelete }) => {
                 [name]: ''
             }));
         }
-    };
+    }, [formErrors]);
 
     // Validate form
-    const validateForm = () => {
+    const validateForm = useCallback(() => {
         const errors = {};
         
         if (!formData.project_description.trim()) {
@@ -251,7 +304,7 @@ const ProjectTable = ({ data, onEdit, onDelete }) => {
         }
         
         return errors;
-    };
+    }, [formData, t]);
 
     // Handle form submit
     const handleFormSubmit = async (e) => {
@@ -324,7 +377,7 @@ const ProjectTable = ({ data, onEdit, onDelete }) => {
     };
 
     // Mobile Card View
-    const MobileCardView = ({ project, index }) => {
+    const MobileCardView = useCallback(({ project, index }) => {
         const daysLeft = project.days_left !== undefined ? project.days_left : calculateDaysLeft(project.deadline);
         
         return (
@@ -402,15 +455,15 @@ const ProjectTable = ({ data, onEdit, onDelete }) => {
                 </div>
             </div>
         );
-    };
+    }, [actionMenu, calculateDaysLeft, formatDate, getDaysLeftColor, getDaysLeftText, getStatusBadge, onDelete, t]);
 
-    // Edit Modal Component
+    // Edit Modal Component - DIPERBAIKI TOTAL
     const EditProjectModal = () => {
         if (!isEditModalOpen || !editingProject) return null;
 
         return (
             <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-                <div className="bg-white rounded-lg shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
+                <div ref={modalRef} className="bg-white rounded-lg shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
                     {/* Modal Header */}
                     <div className="flex items-center justify-between p-6 border-b border-gray-200">
                         <div className="flex items-center space-x-3">
@@ -427,6 +480,7 @@ const ProjectTable = ({ data, onEdit, onDelete }) => {
                             </div>
                         </div>
                         <button
+                            type="button"
                             onClick={handleModalClose}
                             disabled={isSubmitting}
                             className="text-gray-400 hover:text-gray-600 p-1 rounded-lg hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
@@ -438,27 +492,44 @@ const ProjectTable = ({ data, onEdit, onDelete }) => {
                     {/* Modal Form */}
                     <form onSubmit={handleFormSubmit} className="p-6">
                         <div className="space-y-4">
-                            {/* Project Description */}
+                            {/* Project Description - DIPERBAIKI DENGAN CONTROLLED INPUT */}
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-2">
                                     {t('project_table.project_description') || 'Deskripsi Proyek'}
                                     <span className="text-red-500 ml-1">*</span>
                                 </label>
                                 <textarea
+                                    ref={descriptionTextareaRef}
                                     name="project_description"
                                     value={formData.project_description}
                                     onChange={handleFormChange}
+                                    onBlur={(e) => {
+                                        // Hanya handle blur untuk validasi, jangan ganggu fokus
+                                        if (!e.target.value.trim() && !formErrors.project_description) {
+                                            setFormErrors(prev => ({
+                                                ...prev,
+                                                project_description: t('project_table.errors.description_required')
+                                            }));
+                                        }
+                                    }}
                                     className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors ${
                                         formErrors.project_description ? 'border-red-300' : 'border-gray-300'
                                     }`}
-                                    rows="3"
+                                    rows="4"
                                     placeholder={t('project_table.description_placeholder') || 'Masukkan deskripsi proyek...'}
                                     required
                                     disabled={isSubmitting}
+                                    autoComplete="off"
+                                    spellCheck="true"
+                                    data-lpignore="true"
+                                    data-form-type="other"
                                 />
                                 {formErrors.project_description && (
                                     <p className="mt-1 text-sm text-red-600">{formErrors.project_description}</p>
                                 )}
+                                <div className="mt-1 text-xs text-gray-500">
+                                    {formData.project_description.length} karakter
+                                </div>
                             </div>
 
                             {/* Dates */}
@@ -550,7 +621,7 @@ const ProjectTable = ({ data, onEdit, onDelete }) => {
                                     value={formData.note}
                                     onChange={handleFormChange}
                                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-                                    rows="2"
+                                    rows="3"
                                     placeholder={t('project_table.note_placeholder') || 'Masukkan catatan tambahan...'}
                                     disabled={isSubmitting}
                                 />
