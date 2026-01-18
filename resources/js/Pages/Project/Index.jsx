@@ -46,38 +46,48 @@ export default function Index({
         switch(status) {
             case 'in_progress':
                 return {
-                    card: "rounded-xl p-5 shadow-sm border border-blue-200 bg-blue-100 transition-transform hover:scale-[1.02] hover:shadow-md",
+                    card: "rounded-xl p-5 shadow-sm border border-blue-200 bg-gradient-to-r from-blue-50 to-blue-100 transition-all hover:scale-[1.02] hover:shadow-md hover:border-blue-300",
                     text: "text-blue-800",
                     count: "text-blue-900",
-                    subtext: "text-blue-700"
+                    subtext: "text-blue-700",
+                    icon: "⚡", // Emoji untuk in progress
+                    iconBg: "bg-blue-100"
                 };
             case 'completed':
                 return {
-                    card: "rounded-xl p-5 shadow-sm border border-green-200 bg-green-100 transition-transform hover:scale-[1.02] hover:shadow-md",
+                    card: "rounded-xl p-5 shadow-sm border border-green-200 bg-gradient-to-r from-green-50 to-green-100 transition-all hover:scale-[1.02] hover:shadow-md hover:border-green-300",
                     text: "text-green-800",
                     count: "text-green-900",
-                    subtext: "text-green-700"
+                    subtext: "text-green-700",
+                    icon: "✅", // Emoji untuk completed
+                    iconBg: "bg-green-100"
                 };
             case 'pending':
                 return {
-                    card: "rounded-xl p-5 shadow-sm border border-yellow-200 bg-yellow-100 transition-transform hover:scale-[1.02] hover:shadow-md",
+                    card: "rounded-xl p-5 shadow-sm border border-yellow-200 bg-gradient-to-r from-yellow-50 to-yellow-100 transition-all hover:scale-[1.02] hover:shadow-md hover:border-yellow-300",
                     text: "text-yellow-800",
                     count: "text-yellow-900",
-                    subtext: "text-yellow-700"
+                    subtext: "text-yellow-700",
+                    icon: "⏳", // Emoji untuk pending
+                    iconBg: "bg-yellow-100"
                 };
             case 'cancelled':
                 return {
-                    card: "rounded-xl p-5 shadow-sm border border-red-200 bg-red-100 transition-transform hover:scale-[1.02] hover:shadow-md",
+                    card: "rounded-xl p-5 shadow-sm border border-red-200 bg-gradient-to-r from-red-50 to-red-100 transition-all hover:scale-[1.02] hover:shadow-md hover:border-red-300",
                     text: "text-red-800",
                     count: "text-red-900",
-                    subtext: "text-red-700"
+                    subtext: "text-red-700",
+                    icon: "❌", // Emoji untuk cancelled
+                    iconBg: "bg-red-100"
                 };
             default:
                 return {
-                    card: "rounded-xl p-5 shadow-sm border border-gray-200 bg-gray-100 transition-transform hover:scale-[1.02] hover:shadow-md",
+                    card: "rounded-xl p-5 shadow-sm border border-gray-200 bg-gradient-to-r from-gray-50 to-gray-100 transition-all hover:scale-[1.02] hover:shadow-md hover:border-gray-300",
                     text: "text-gray-800",
                     count: "text-gray-900",
-                    subtext: "text-gray-700"
+                    subtext: "text-gray-700",
+                    icon: "📊", // Emoji default
+                    iconBg: "bg-gray-100"
                 };
         }
     };
@@ -477,6 +487,11 @@ export default function Index({
                                         <p className={`text-xs ${statusClass.subtext} mt-1 sm:mt-2`}>
                                             {t('projects_index.total_project')}
                                         </p>
+                                    </div>
+                                    <div className={`p-3 rounded-full ${statusClass.iconBg}`}>
+                                        <span className="text-lg">
+                                            {statusClass.icon}
+                                        </span>
                                     </div>
                                 </div>
                             </div>
