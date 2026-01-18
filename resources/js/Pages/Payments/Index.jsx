@@ -184,7 +184,8 @@ export default function PaymentIndex({ payments = [], stats = {}, filters = {}, 
     const loadInvoices = async () => {
         try {
             const response = await axios.get(route('payment.get-invoices'));
-            setInvoices(response.data);
+            const invoicesList = (response.data || []).filter(inv => (inv.remaining_amount ?? 0) > 0);
+            setInvoices(invoicesList);
         } catch (error) {
             console.error('Failed to load invoices:', error);
         }
@@ -278,8 +279,8 @@ export default function PaymentIndex({ payments = [], stats = {}, filters = {}, 
                     id: payment.invoice_id,
                     invoice_number: payment.invoice_number || row.invoice || null,
                     company_name: payment.company_name || row.company_name || 'No Company',
-                    remaining_amount: payment.amount || 0,
-                    total_amount: payment.amount || 0,
+                    remaining_amount: (payment.amount ?? 0),
+                    total_amount: (payment.amount ?? 0),
                     paid_amount: 0
                 };
                 invoicesList = [...invoicesList, invoice];
@@ -305,7 +306,8 @@ export default function PaymentIndex({ payments = [], stats = {}, filters = {}, 
             // Load invoices dulu jika belum ada
             try {
                 const response = await axios.get(route('payment.get-invoices'));
-                syncInvoiceData(response.data);
+                const invoicesList = (response.data || []).filter(inv => (inv.remaining_amount ?? 0) > 0);
+                syncInvoiceData(invoicesList);
                 setShowAddModal(true);
             } catch (error) {
                 // fallback: gunakan data payment saja
@@ -571,7 +573,7 @@ export default function PaymentIndex({ payments = [], stats = {}, filters = {}, 
                                                     if (invoiceOptions.length > 0) {
                                                         return invoiceOptions.map((invoice) => (
                                                             <option key={invoice.id} value={invoice.id}>
-                                                                {invoice.invoice_number} - {invoice.company_name || 'No Company'} (Remaining: Rp {formatCurrency(invoice.remaining_amount || invoice.total_amount - invoice.paid_amount)})
+                                                                {invoice.invoice_number} - {invoice.company_name || 'No Company'} (Remaining: Rp {formatCurrency(invoice.remaining_amount ?? (invoice.total_amount - invoice.paid_amount))})
                                                             </option>
                                                         ));
                                                     } else {

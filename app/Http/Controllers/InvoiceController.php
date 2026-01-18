@@ -27,7 +27,45 @@ class InvoiceController extends Controller
 {
     public function index(Request $request)
     {
-        $invoices = Invoice::with(['contactPerson.company.lead', 'contactPerson.lead', 'items'])->orderBy('created_at', 'desc')->get();
+        // Build query and apply filters (search, status, month, year)
+        $query = Invoice::with(['contactPerson.company.lead', 'contactPerson.lead', 'items'])->orderBy('created_at', 'desc');
+
+        // Debug log filters (can be removed later)
+        \Log::debug('Invoice filters', $request->only('search', 'status', 'month', 'year'));
+
+        if ($request->filled('search')) {
+            $search = trim($request->search);
+            $query->where(function ($q) use ($search) {
+                // Search by invoice number
+                $q->where('invoice_number', 'like', "%{$search}%")
+                  // or by company info on related lead
+                  ->orWhereHas('contactPerson.lead', function ($q2) use ($search) {
+                      $q2->where('company_name', 'like', "%{$search}%")
+                         ->orWhere('contact_person', 'like', "%{$search}%")
+                         ->orWhere('email', 'like', "%{$search}%");
+                  })
+                  // or by contact person fields
+                  ->orWhereHas('contactPerson', function ($q3) use ($search) {
+                      $q3->where('name', 'like', "%{$search}%")
+                         ->orWhere('email', 'like', "%{$search}%")
+                         ->orWhere('phone', 'like', "%{$search}%");
+                  });
+            });
+        }
+
+        if ($request->filled('status')) {
+            $query->where('status', $request->status);
+        }
+
+        if ($request->filled('month')) {
+            $query->whereMonth('date', $request->month);
+        }
+
+        if ($request->filled('year')) {
+            $query->whereYear('date', $request->year);
+        }
+
+        $invoices = $query->get();
         $data = $invoices->map(function ($inv) {
             // Get company name from the proper source
             $contactPerson = $inv->contactPerson;
@@ -662,6 +700,18 @@ class InvoiceController extends Controller
             }
         } catch (\Exception $e) {
             \Log::warning('Failed to delete invoice PDF during destroy: ' . $e->getMessage());
+        }
+
+        // Soft-delete related payments (set deleted flag and soft-delete so existing flows remain intact)
+        try {
+            $payments = $invoice->payments()->where('deleted', 0)->get();
+            foreach ($payments as $payment) {
+                $payment->update([ 'deleted' => 1, 'deleted_by' => auth()->id() ]);
+                $payment->delete(); // triggers SoftDeletes
+                \Log::info('Deleted payment during invoice destroy: ' . $payment->id);
+            }
+        } catch (\Exception $e) {
+            \Log::warning('Failed to delete related payments during invoice destroy: ' . $e->getMessage());
         }
 
         $invoice->delete();

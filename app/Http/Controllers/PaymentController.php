@@ -19,38 +19,69 @@ class PaymentController extends Controller
         $query = Payment::with(['invoice.quotation.company.lead', 'invoice.contactPerson.company.lead'])
             ->where('deleted', 0);
 
-        // Filter by keyword (search in invoice number or company name)
-        if ($request->has('keyword') && $request->keyword) {
-            $keyword = $request->keyword;
+        // Debug filters
+        \Log::debug('Payment filters', $request->only('keyword', 'method', 'month', 'year'));
+
+        // Keyword search (invoice number, lead/quotation company name, contact person fields)
+        if ($request->filled('keyword')) {
+            $keyword = trim($request->keyword);
             $query->where(function($q) use ($keyword) {
-                $q->whereHas('invoice', function($invoiceQuery) use ($keyword) {
-                    $invoiceQuery->where('invoice_number', 'like', "%{$keyword}%")
-                        ->orWhereHas('quotation.company', function($companyQuery) use ($keyword) {
-                            $companyQuery->where('name', 'like', "%{$keyword}%");
-                        })
-                        ->orWhereHas('contactPerson.company', function($companyQuery) use ($keyword) {
-                            $companyQuery->where('name', 'like', "%{$keyword}%");
-                        });
+                $q->whereHas('invoice', function($iq) use ($keyword) {
+                    $iq->where('invoice_number', 'like', "%{$keyword}%")
+                       ->orWhere('id', $keyword);
+                })
+                ->orWhereHas('invoice.quotation.lead', function($lq) use ($keyword) {
+                    $lq->where('company_name', 'like', "%{$keyword}%")
+                       ->orWhere('contact_person', 'like', "%{$keyword}%")
+                       ->orWhere('email', 'like', "%{$keyword}%");
+                })
+                ->orWhereHas('invoice.contactPerson', function($cpq) use ($keyword) {
+                    $cpq->where('name', 'like', "%{$keyword}%")
+                        ->orWhere('email', 'like', "%{$keyword}%")
+                        ->orWhere('phone', 'like', "%{$keyword}%");
                 });
             });
         }
 
-        // Filter by method
-        if ($request->has('method') && $request->method) {
-            $query->where('method', strtolower($request->method));
+        // Method filtering - accept labels or internal values
+        if ($request->filled('method')) {
+            $method = strtolower($request->method);
+            $map = [
+                'transfer' => 'transfer',
+                'bank transfer' => 'transfer',
+                'transferencia' => 'transfer',
+                'cash' => 'cash',
+                'tunai' => 'cash',
+                'check' => 'check',
+                'cheque' => 'check'
+            ];
+
+            $methodKey = $map[$method] ?? $method;
+
+            if ($methodKey !== 'all' && in_array($methodKey, ['transfer', 'cash', 'check'])) {
+                $query->where('method', $methodKey);
+            }
         }
 
-        // Filter by month and year
-        if ($request->has('month') && $request->has('year')) {
-            $monthNumber = array_search($request->month, [
-                'January', 'February', 'March', 'April', 'May', 'June',
-                'July', 'August', 'September', 'October', 'November', 'December'
-            ]) + 1;
-            
-            if ($monthNumber) {
-                $query->whereMonth('date', $monthNumber)
-                    ->whereYear('date', $request->year);
+        // Month filter (accept numeric month '1'..'12' or month name)
+        if ($request->filled('month')) {
+            $month = $request->month;
+            if (is_numeric($month)) {
+                $query->whereMonth('date', (int)$month);
+            } else {
+                $monthNumber = array_search(ucfirst(strtolower($month)), [
+                    'January', 'February', 'March', 'April', 'May', 'June',
+                    'July', 'August', 'September', 'October', 'November', 'December'
+                ]) + 1;
+                if ($monthNumber) {
+                    $query->whereMonth('date', $monthNumber);
+                }
             }
+        }
+
+        // Year filter
+        if ($request->filled('year')) {
+            $query->whereYear('date', $request->year);
         }
 
         $payments = $query->orderBy('date', 'desc')->get()->map(function ($payment) {
@@ -115,8 +146,10 @@ class PaymentController extends Controller
      */
     public function getInvoices()
     {
+        // Return only invoices with amount_due > 0 (still unpaid or partially paid)
         $invoices = Invoice::with(['quotation.company.lead', 'contactPerson.company.lead', 'contactPerson.lead'])
-            ->whereIn('status', ['Draft', 'Invoice', 'Unpaid', 'Partial']) // Allow Draft for testing
+            ->where('deleted', 0)
+            ->where('amount_due', '>', 0)
             ->orderBy('created_at', 'desc')
             ->get()
             ->map(function ($invoice) {
@@ -140,6 +173,9 @@ class PaymentController extends Controller
                     $companyName = optional($company->lead)->company_name ?? 'N/A';
                 }
 
+                // Compute remaining using authoritative amount_due if present, fallback to calculation
+                $remaining = (float) ($invoice->amount_due ?? ($invoice->total - $paidAmount));
+
                 return [
                     'id' => $invoice->id,
                     'invoice_number' => $invoice->invoice_number,
@@ -147,7 +183,7 @@ class PaymentController extends Controller
                     'company_id' => $company ? $company->id : null,
                     'total_amount' => (float) $invoice->total,
                     'paid_amount' => (float) $paidAmount,
-                    'remaining_amount' => (float) ($invoice->total - $paidAmount),
+                    'remaining_amount' => $remaining,
                     'status' => $invoice->status,
                 ];
             })
