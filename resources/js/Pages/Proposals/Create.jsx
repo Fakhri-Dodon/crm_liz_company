@@ -263,6 +263,10 @@ export default function Create({ id, template }) {
             width: "100%",
             storageManager: false,
             allowScripts: 1,
+            assetManager: {
+                autoAdd: true,
+                openAssetsOnDrop: true,
+            },
             avoidInlineStyle: true,
             forceClass: false,
             selectable: true,
@@ -320,16 +324,6 @@ export default function Create({ id, template }) {
                         border: 2px solid #3498db !important;
                     }
                 `,
-            },
-        });
-
-        // Override Default Image
-        editor.DomComponents.addType("image", {
-            extend: "image",
-            model: {
-                defaults: {
-                    traits: [],
-                },
             },
         });
 
@@ -442,6 +436,18 @@ export default function Create({ id, template }) {
                         el.focus({ preventScroll: true });
                     }
                 });
+
+                const isImage =
+                    comp.is('image') ||
+                    comp.get('type') === 'image' ||
+                    comp.get('tagName') === 'IMG';
+
+                if (!isImage) return;
+
+                editor.runCommand('core:open-assets', {
+                    target: comp,
+                    select: true,
+                });
             }
         });
 
@@ -459,6 +465,26 @@ export default function Create({ id, template }) {
                     initialStyle: editor.getCss({ component }),
                 });
             }
+        });
+
+        editor.on("rte:enable", () => {
+            if (activeModeRef.current === "details") {
+                editor.stopCommand("rte:enable");
+            }
+        });
+
+        editor.on('component:dblclick', (comp) => {
+            const isImage =
+                comp.is('image') ||
+                comp.get('type') === 'image' ||
+                comp.get('tagName') === 'IMG';
+
+            if (!isImage) return;
+
+            editor.runCommand('core:open-assets', {
+                target: comp,
+                select: true,
+            });
         });
 
         editor.Commands.add('custom-view-code', {
@@ -496,6 +522,18 @@ export default function Create({ id, template }) {
             },
         });
 
+        editor.DomComponents.addType('image', {
+            model: {
+                defaults: {
+                    selectable: true,
+                    hoverable: true,
+                    draggable: false,
+                    removable: false,
+                    traits: ['src'],
+                }
+            }
+        });
+
         const markDirty = () => setIsDirty(true);
 
         editor.on("component:add", markDirty);
@@ -526,19 +564,13 @@ export default function Create({ id, template }) {
     const applyComponentSettings = (comp, mode) => {
         if (!comp || typeof comp.get !== "function") return;
 
-        const type = comp.get("type");
-        const view = comp.getView();
-        const isText = comp.is("text") || type === "text";
+        if (comp.__appliedMode === mode) return;
+        comp.__appliedMode = mode;
 
         let props = {};
 
-        if (mode === "elements") {
+        if (mode === 'elements') {
             const isRoot = isSectionRoot(comp);
-
-            // Pastikan contenteditable mati
-            if (view?.el instanceof HTMLElement) {
-                view.el.removeAttribute("contenteditable");
-            }
 
             props = {
                 selectable: isRoot,
@@ -546,24 +578,20 @@ export default function Create({ id, template }) {
                 removable: isRoot,
                 copyable: isRoot,
                 hoverable: isRoot,
-                highlightable: isRoot,
                 editable: false,
-                stylable: false,
-
+                highlightable: isRoot,
                 toolbar: isRoot
                     ? [
-                          { attributes: { class: "fa fa-arrows", title: "Move Section" }, command: "tlb-move" },
-                          { attributes: { class: "fa fa-code", title: "View Source" }, command: "custom-view-code" },
-                          { attributes: { class: "fa fa-refresh", title: "Reset Section" }, command: "reset-section" },
-                          { attributes: { class: "fa fa-trash", title: "Remove Section" }, command: "tlb-delete" },
-                      ]
+                        { attributes: { class: 'fa fa-arrows', title: 'Move' }, command: 'tlb-move' },
+                        { attributes: { class: 'fa fa-code', title: 'View Code' }, command: 'custom-view-code' },
+                        { attributes: { class: 'fa fa-refresh', title: 'Reset' }, command: 'reset-section' },
+                        { attributes: { class: 'fa fa-trash', title: 'Remove' }, command: 'tlb-delete' },
+                    ]
                     : [],
             };
-        } else if (mode === "content") {
-            if (view?.el && isText) {
-                view.el.setAttribute("contenteditable", "true");
-            }
+        }
 
+        if (mode === 'content') {
             props = {
                 draggable: false,
                 droppable: false,
@@ -572,21 +600,12 @@ export default function Create({ id, template }) {
 
                 selectable: true,
                 hoverable: true,
-                editable: true,
-                stylable: false,
-                highlightable: false,
-
+                editable: true, // ⬅️ BIARKAN GRAPESJS HANDLE
                 toolbar: [],
             };
+        }
 
-            if (type === "image") {
-                props.editable = true;
-            }
-        } else if (mode === "details") {
-            if (view?.el instanceof HTMLElement) {
-                view.el.removeAttribute("contenteditable");
-            }
-
+        if (mode === 'details') {
             props = {
                 draggable: false,
                 droppable: false,
@@ -598,7 +617,6 @@ export default function Create({ id, template }) {
                 editable: false,
                 highlightable: true,
                 stylable: true,
-
                 toolbar: [],
             };
         }
@@ -671,9 +689,8 @@ export default function Create({ id, template }) {
     };
 
     const isSectionRoot = (comp) => {
-        if (!comp) return false;
         const attrs = comp.getAttributes?.() || {};
-        return !!attrs["data-template-category"];
+        return !!attrs['data-template-category'];
     };
 
     const findSectionRoot = (comp) => {
@@ -1020,6 +1037,18 @@ export default function Create({ id, template }) {
         editor.select(null);
     };
 
+    const goBack = () => {
+        if (isDirty) {
+            const confirmLeave = window.confirm(
+                "Perubahan belum disimpan.\nApakah Anda yakin ingin kembali?"
+            );
+
+            if (!confirmLeave) return;
+        }
+
+        window.history.back();
+    };
+
     return (
         <div
             className={`builder-body ${
@@ -1095,6 +1124,17 @@ export default function Create({ id, template }) {
                         ))}
                     </div>
                     <div className="flex items-center gap-2">
+                        <button
+                            onClick={goBack}
+                            className="
+                                inline-flex items-center gap-2
+                                rounded-md bg-zinc-200 px-3 py-2
+                                text-sm font-medium text-zinc-800
+                                hover:bg-zinc-300 transition
+                            "
+                        >
+                            Back
+                        </button>
                         {/* SAVE */}
                         <button
                             onClick={savePage}
@@ -1107,7 +1147,7 @@ export default function Create({ id, template }) {
                                     : "cursor-not-allowed bg-emerald-200 text-emerald-700"}
                             `}
                         >
-                            ✓ {isDirty ? "Save Page" : "Nothing new to save"}
+                            {isDirty ? "Save" : "Nothing new to save"}
                         </button>
 
                         {/* EXPORT */}
