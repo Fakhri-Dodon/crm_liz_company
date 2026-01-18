@@ -28,7 +28,6 @@ const ContactTable = ({
     const [statusFilter, setStatusFilter] = useState('all');
     const [departmentFilter, setDepartmentFilter] = useState('all');
     const [sortBy, setSortBy] = useState('name_asc');
-    const [selectedContacts, setSelectedContacts] = useState([]);
 
     const isLoading = propsLoading || internalLoading;
 
@@ -102,7 +101,6 @@ const ContactTable = ({
                     onUpdate();
                 }
                 showSuccessMessage(t('contact_table.contact_deleted_success'));
-                setSelectedContacts(prev => prev.filter(id => id !== contactId));
             } else {
                 throw new Error(response.data.message || t('contact_table.delete_failed'));
             }
@@ -143,22 +141,6 @@ const ContactTable = ({
             onUpdate();
         }
         showSuccessMessage(t(mode === 'edit' ? 'contact_table.contact_updated_success' : 'contact_table.contact_added_success'));
-    };
-
-    const handleSelectAll = () => {
-        if (selectedContacts.length === filteredAndSortedContacts.length) {
-            setSelectedContacts([]);
-        } else {
-            setSelectedContacts(filteredAndSortedContacts.map(c => c.id));
-        }
-    };
-
-    const handleSelectContact = (id) => {
-        setSelectedContacts(prev => 
-            prev.includes(id) 
-                ? prev.filter(contactId => contactId !== id)
-                : [...prev, id]
-        );
     };
 
     // Mobile List View
@@ -540,184 +522,127 @@ const ContactTable = ({
                     )}
                 </div>
             ) : (
-                <>
-                    {/* Bulk Actions Bar */}
-                    {selectedContacts.length > 0 && (
-                        <div className="bg-blue-50 border-b border-blue-200 p-4">
-                            <div className="flex items-center justify-between">
-                                <div className="flex items-center">
-                                    <Check className="w-5 h-5 text-blue-600 mr-2" />
-                                    <span className="font-medium text-blue-800">
-                                        {selectedContacts.length} {t('contact_table.contacts_selected')}
-                                    </span>
-                                </div>
-                                <div className="flex space-x-2">
-                                    <button
-                                        onClick={handleSelectAll}
-                                        className="text-sm text-blue-600 hover:text-blue-800"
-                                    >
-                                        {t('contact_table.select_all')}
-                                    </button>
-                                    <span className="text-gray-300">|</span>
-                                    <button
-                                        onClick={() => setSelectedContacts([])}
-                                        className="text-sm text-gray-600 hover:text-gray-800"
-                                    >
-                                        {t('contact_table.deselect_all')}
-                                    </button>
-                                    <span className="text-gray-300">|</span>
-                                    <button
-                                        onClick={handleBulkDelete}
-                                        className="text-sm text-red-600 hover:text-red-800"
-                                        disabled={isLoading}
-                                    >
-                                        {t('contact_table.bulk_delete')}
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    )}
-
-                    <div className="overflow-x-auto">
-                        <table className="min-w-full divide-y divide-gray-200">
-                            <thead className="bg-gray-50">
-                                <tr>
-                                    <th className="w-12 px-6 py-4 text-left">
-                                        <input
-                                            type="checkbox"
-                                            checked={selectedContacts.length === filteredAndSortedContacts.length && filteredAndSortedContacts.length > 0}
-                                            onChange={handleSelectAll}
-                                            className="h-4 w-4 text-blue-600 rounded"
-                                            disabled={isLoading}
-                                        />
-                                    </th>
-                                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                                        {t('contact_table.contact')}
-                                    </th>
-                                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                                        {t('contact_table.position')}
-                                    </th>
-                                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                                        {t('contact_table.email')}
-                                    </th>
-                                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                                        {t('contact_table.phone')}
-                                    </th>
-                                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                                        {t('contact_table.status')}
-                                    </th>
-                                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                                        {t('contact_table.actions')}
-                                    </th>
-                                </tr>
-                            </thead>
-                            <tbody className="bg-white divide-y divide-gray-100">
-                                {filteredAndSortedContacts.map((contact) => (
-                                    <tr key={contact.id} className="hover:bg-gray-50 transition-colors">
-                                        <td className="w-12 px-6 py-4 whitespace-nowrap">
-                                            <input
-                                                type="checkbox"
-                                                checked={selectedContacts.includes(contact.id)}
-                                                onChange={() => handleSelectContact(contact.id)}
-                                                className="h-4 w-4 text-blue-600 rounded"
-                                                disabled={isLoading}
-                                            />
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap">
-                                            <div className="flex items-center">
-                                                <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                                                    contact.is_primary 
-                                                        ? 'bg-gradient-to-br from-yellow-400 to-yellow-600' 
-                                                        : 'bg-gradient-to-br from-teal-500 to-teal-700'
-                                                }`}>
-                                                    <User className="w-5 h-5 text-white" />
-                                                </div>
-                                                <div className="ml-3">
-                                                    <div className="text-sm font-semibold text-gray-900">
-                                                        {contact.name}
-                                                        {contact.is_primary && (
-                                                            <Star className="w-3 h-3 text-yellow-500 inline-block ml-1" />
-                                                        )}
-                                                    </div>
-                                                    {contact.department && (
-                                                        <div className="text-xs text-gray-500">
-                                                            {contact.department}
-                                                        </div>
+                <div className="overflow-x-auto">
+                    <table className="min-w-full divide-y divide-gray-200">
+                        <thead className="bg-gray-50">
+                            <tr>
+                                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                                    {t('contact_table.contact')}
+                                </th>
+                                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                                    {t('contact_table.position')}
+                                </th>
+                                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                                    {t('contact_table.email')}
+                                </th>
+                                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                                    {t('contact_table.phone')}
+                                </th>
+                                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                                    {t('contact_table.status')}
+                                </th>
+                                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                                    {t('contact_table.actions')}
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody className="bg-white divide-y divide-gray-100">
+                            {filteredAndSortedContacts.map((contact) => (
+                                <tr key={contact.id} className="hover:bg-gray-50 transition-colors">
+                                    <td className="px-6 py-4 whitespace-nowrap">
+                                        <div className="flex items-center">
+                                            <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                                                contact.is_primary 
+                                                    ? 'bg-gradient-to-br from-yellow-400 to-yellow-600' 
+                                                    : 'bg-gradient-to-br from-teal-500 to-teal-700'
+                                            }`}>
+                                                <User className="w-5 h-5 text-white" />
+                                            </div>
+                                            <div className="ml-3">
+                                                <div className="text-sm font-semibold text-gray-900">
+                                                    {contact.name}
+                                                    {contact.is_primary && (
+                                                        <Star className="w-3 h-3 text-yellow-500 inline-block ml-1" />
                                                     )}
                                                 </div>
-                                            </div>
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap">
-                                            <div className="text-sm text-gray-900">
-                                                {contact.position || '-'}
-                                            </div>
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap">
-                                            <div className="text-sm text-gray-900 truncate max-w-xs">
-                                                {contact.email || t('contact_table.no_email')}
-                                            </div>
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap">
-                                            <div className="text-sm text-gray-900">
-                                                {contact.phone || t('contact_table.no_phone')}
-                                            </div>
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap">
-                                            <div className="flex flex-wrap gap-2">
-                                                {contact.is_primary ? (
-                                                    <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
-                                                        <Check className="w-3 h-3 mr-1" />
-                                                        {t('contact_table.primary')}
-                                                    </span>
-                                                ) : (
-                                                    <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-                                                        {t('contact_table.secondary')}
-                                                    </span>
-                                                )}
-                                                {contact.is_active === false && (
-                                                    <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
-                                                        <X className="w-3 h-3 mr-1" />
-                                                        {t('contact_table.inactive')}
-                                                    </span>
+                                                {contact.department && (
+                                                    <div className="text-xs text-gray-500">
+                                                        {contact.department}
+                                                    </div>
                                                 )}
                                             </div>
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap">
-                                            <div className="flex items-center space-x-2">
-                                                <button 
-                                                    onClick={() => handleTogglePrimary(contact.id)}
-                                                    className={`p-1.5 rounded-lg ${contact.is_primary 
-                                                        ? 'bg-yellow-100 text-yellow-600 hover:bg-yellow-200' 
-                                                        : 'bg-gray-100 text-gray-400 hover:bg-gray-200'}`}
-                                                    title={contact.is_primary ? t('contact_table.primary_contact') : t('contact_table.set_as_primary')}
-                                                    disabled={isLoading}
-                                                >
-                                                    <Star className="w-4 h-4" />
-                                                </button>
-                                                <button 
-                                                    onClick={() => handleEdit(contact)}
-                                                    className="p-1.5 bg-blue-100 text-blue-600 rounded-lg hover:bg-blue-200"
-                                                    title={t('contact_table.edit_contact')}
-                                                    disabled={isLoading}
-                                                >
-                                                    <Edit2 className="w-4 h-4" />
-                                                </button>
-                                                <button 
-                                                    onClick={() => handleDelete(contact.id)}
-                                                    className="p-1.5 bg-red-100 text-red-600 rounded-lg hover:bg-red-200"
-                                                    title={t('contact_table.delete_contact')}
-                                                    disabled={isLoading}
-                                                >
-                                                    <Trash2 className="w-4 h-4" />
-                                                </button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
-                </>
+                                        </div>
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap">
+                                        <div className="text-sm text-gray-900">
+                                            {contact.position || '-'}
+                                        </div>
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap">
+                                        <div className="text-sm text-gray-900 truncate max-w-xs">
+                                            {contact.email || t('contact_table.no_email')}
+                                        </div>
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap">
+                                        <div className="text-sm text-gray-900">
+                                            {contact.phone || t('contact_table.no_phone')}
+                                        </div>
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap">
+                                        <div className="flex flex-wrap gap-2">
+                                            {contact.is_primary ? (
+                                                <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                                                    <Check className="w-3 h-3 mr-1" />
+                                                    {t('contact_table.primary')}
+                                                </span>
+                                            ) : (
+                                                <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                                                    {t('contact_table.secondary')}
+                                                </span>
+                                            )}
+                                            {contact.is_active === false && (
+                                                <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                                                    <X className="w-3 h-3 mr-1" />
+                                                    {t('contact_table.inactive')}
+                                                </span>
+                                            )}
+                                        </div>
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap">
+                                        <div className="flex items-center space-x-2">
+                                            <button 
+                                                onClick={() => handleTogglePrimary(contact.id)}
+                                                className={`p-1.5 rounded-lg ${contact.is_primary 
+                                                    ? 'bg-yellow-100 text-yellow-600 hover:bg-yellow-200' 
+                                                    : 'bg-gray-100 text-gray-400 hover:bg-gray-200'}`}
+                                                title={contact.is_primary ? t('contact_table.primary_contact') : t('contact_table.set_as_primary')}
+                                                disabled={isLoading}
+                                            >
+                                                <Star className="w-4 h-4" />
+                                            </button>
+                                            <button 
+                                                onClick={() => handleEdit(contact)}
+                                                className="p-1.5 bg-blue-100 text-blue-600 rounded-lg hover:bg-blue-200"
+                                                title={t('contact_table.edit_contact')}
+                                                disabled={isLoading}
+                                            >
+                                                <Edit2 className="w-4 h-4" />
+                                            </button>
+                                            <button 
+                                                onClick={() => handleDelete(contact.id)}
+                                                className="p-1.5 bg-red-100 text-red-600 rounded-lg hover:bg-red-200"
+                                                title={t('contact_table.delete_contact')}
+                                                disabled={isLoading}
+                                            >
+                                                <Trash2 className="w-4 h-4" />
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
             )}
         </div>
     );
