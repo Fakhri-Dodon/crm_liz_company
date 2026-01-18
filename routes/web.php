@@ -348,6 +348,7 @@ Route::put('/invoices/{invoice}', [InvoiceController::class, 'update'])->name('i
 Route::post('/proposal/add', [ProposalController::class, 'add'])->name('proposal.add');
 Route::get('/proposal/addProposal/{id}', [ProposalController::class, 'addProposal'])->name('proposal.addProposal');
 Route::get('/html-sections', [ProposalController::class, 'sections']);
+Route::get('/proposal/templates', [ProposalController::class, 'templates'])->name('proposal.templates');
 Route::resource('proposal', ProposalController::class);
 
 require __DIR__.'/auth.php';
