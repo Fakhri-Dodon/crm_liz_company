@@ -6,6 +6,7 @@ import TableLayout from '@/Layouts/TableLayout';
 import ProjectModal from '@/Components/Project/ProjectModal';
 import DeleteModal from '@/Components/DeleteModal';
 import { Search, Filter, Plus, Calendar, RefreshCw, ChevronDown } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 export default function Index({ 
     projects, 
@@ -17,6 +18,7 @@ export default function Index({
     statusOptions,
     auth_permissions
 }) {
+    const { t } = useTranslation();
     const { props } = usePage();
     const flash = props.flash || {};
     
@@ -205,13 +207,14 @@ export default function Index({
                     total: projects?.total,
                     data_length: projects?.data?.length
                 });
+                showToast(t('projects_index.filter_applied'), 'success');
             },
             onError: (errors) => {
                 console.error('Filter error:', errors);
-                showToast('Failed to apply filters!', 'error');
+                showToast(t('projects_index.filter_failed'), 'error');
             }
         });
-    }, [filterData, router, projects]);
+    }, [filterData, router, projects, t]);
 
     const resetFilters = useCallback(() => {
         console.log('Resetting filters...');
@@ -234,14 +237,14 @@ export default function Index({
             preserveScroll: true,
             onSuccess: () => {
                 console.log('Filters reset successfully');
-                showToast('Filters reset successfully!', 'success');
+                showToast(t('projects_index.filters_reset'), 'success');
             },
             onError: (errors) => {
                 console.error('Reset filter error:', errors);
-                showToast('Failed to reset filters!', 'error');
+                showToast(t('projects_index.reset_failed'), 'error');
             }
         });
-    }, [resetFilterForm, router]);
+    }, [resetFilterForm, router, t]);
 
     const handleEdit = (project) => {
         setSelectedProjectId(project.id);
@@ -256,19 +259,19 @@ export default function Index({
             }, {
                 preserveScroll: true,
                 onSuccess: () => {
-                    showToast('Status updated successfully!', 'success');
+                    showToast(t('projects_index.status_updated'), 'success');
                     // Refresh data setelah update status
                     applyFilters();
                 },
                 onError: (errors) => {
                     console.error('Status update error:', errors);
-                    showToast('Failed to update status!', 'error');
+                    showToast(t('projects_index.status_update_failed'), 'error');
                 }
             });
             
         } catch (error) {
             console.error('Error updating status:', error);
-            showToast('Error updating status!', 'error');
+            showToast(t('projects_index.status_update_failed'), 'error');
         }
     };
 
@@ -286,12 +289,12 @@ export default function Index({
                     setShowDeleteModal(false);
                     setSelectedProjectId(null);
                     setEditingProject(null);
-                    showToast('Project deleted successfully!', 'success');
+                    showToast(t('projects_index.project_deleted'), 'success');
                     // Refresh data setelah delete
                     applyFilters();
                 },
                 onError: () => {
-                    showToast('Failed to delete project!', 'error');
+                    showToast(t('projects_index.delete_failed'), 'error');
                 }
             });
         }
@@ -304,11 +307,11 @@ export default function Index({
         setShowCreateModal(false);
         
         // Tampilkan toast success
-        showToast('Project created successfully!', 'success');
+        showToast(t('projects_index.project_created'), 'success');
         
         // Refresh data tanpa delay
         applyFilters();
-    }, [applyFilters]);
+    }, [applyFilters, t]);
 
     // Handler untuk auto close modal edit - dengan reset form
     const handleEditSuccess = useCallback(() => {
@@ -319,26 +322,26 @@ export default function Index({
         setEditingProject(null);
         
         // Tampilkan toast success
-        showToast('Project updated successfully!', 'success');
+        showToast(t('projects_index.project_updated'), 'success');
         
         // Refresh data tanpa delay
         applyFilters();
-    }, [applyFilters]);
+    }, [applyFilters, t]);
 
     const months = [
-        { value: '', label: 'All Months' },
-        { value: '1', label: 'Jan' },
-        { value: '2', label: 'Feb' },
-        { value: '3', label: 'Mar' },
-        { value: '4', label: 'Apr' },
-        { value: '5', label: 'May' },
-        { value: '6', label: 'Jun' },
-        { value: '7', label: 'Jul' },
-        { value: '8', label: 'Aug' },
-        { value: '9', label: 'Sep' },
-        { value: '10', label: 'Oct' },
-        { value: '11', label: 'Nov' },
-        { value: '12', label: 'Dec' }
+        { value: '', label: t('projects_index.all_months') },
+        { value: '1', label: t('projects_index.jan') },
+        { value: '2', label: t('projects_index.feb') },
+        { value: '3', label: t('projects_index.mar') },
+        { value: '4', label: t('projects_index.apr') },
+        { value: '5', label: t('projects_index.may') },
+        { value: '6', label: t('projects_index.jun') },
+        { value: '7', label: t('projects_index.jul') },
+        { value: '8', label: t('projects_index.aug') },
+        { value: '9', label: t('projects_index.sep') },
+        { value: '10', label: t('projects_index.oct') },
+        { value: '11', label: t('projects_index.nov') },
+        { value: '12', label: t('projects_index.dec') }
     ];
 
     // Status yang akan ditampilkan di summary cards
@@ -428,13 +431,15 @@ export default function Index({
     return (
         <HeaderLayout>
             <div className="px-2 sm:px-4 md:px-8 py-4 sm:py-6">
-                <Head title="Project Management" />
+                <Head title={t('projects_index.page_title')} />
                 
                 {/* Header Section */}
                 <div className="mb-6 sm:mb-8">
                     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
                         <div>
-                            <h1 className="text-xl sm:text-2xl font-bold text-gray-800">PROJECT</h1>
+                            <h1 className="text-xl sm:text-2xl font-bold text-gray-800">
+                                {t('projects_index.header_title')}
+                            </h1>
                         </div>
                         {canCreate && (
                             <button
@@ -443,7 +448,7 @@ export default function Index({
                                 disabled={processing}
                             >
                                 <Plus className="w-3 h-3 sm:w-4 sm:h-4" />
-                                <span className="font-medium">Add Project</span>
+                                <span className="font-medium">{t('projects_index.add_project')}</span>
                             </button>
                         )}
                     </div>
@@ -470,7 +475,7 @@ export default function Index({
                                             {summary[status] || 0}
                                         </p>
                                         <p className={`text-xs ${statusClass.subtext} mt-1 sm:mt-2`}>
-                                            Total Project
+                                            {t('projects_index.total_project')}
                                         </p>
                                     </div>
                                 </div>
@@ -485,13 +490,13 @@ export default function Index({
                         {/* Search Input */}
                         <div className="flex-1">
                             <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1 sm:mb-2">
-                                Search Projects
+                                {t('projects_index.search_projects')}
                             </label>
                             <div className="relative">
                                 <Search className="absolute left-2 sm:left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4 sm:w-5 sm:h-5" />
                                 <input
                                     type="text"
-                                    placeholder="Search by project description..."
+                                    placeholder={t('projects_index.search_placeholder')}
                                     value={filterData.search}
                                     onChange={(e) => handleFilterChange('search', e.target.value)}
                                     onKeyDown={(e) => e.key === 'Enter' && applyFilters()}
@@ -506,7 +511,7 @@ export default function Index({
                             {/* Status Filter */}
                             <div className="sm:w-32 lg:w-40">
                                 <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1 sm:mb-2">
-                                    Status
+                                    {t('projects_index.status')}
                                 </label>
                                 <select
                                     value={filterData.status}
@@ -514,7 +519,7 @@ export default function Index({
                                     className="w-full px-2 sm:px-3 py-2 sm:py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#005954] focus:border-transparent bg-white text-xs sm:text-sm"
                                     disabled={processing}
                                 >
-                                    <option value="all">All Status</option>
+                                    <option value="all">{t('projects_index.all_status')}</option>
                                     {statusOptions?.map(option => (
                                         <option key={option.value} value={option.value}>
                                             {option.label}
@@ -526,7 +531,7 @@ export default function Index({
                             {/* Month Filter */}
                             <div className="sm:w-32 lg:w-40">
                                 <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1 sm:mb-2">
-                                    Month
+                                    {t('projects_index.month')}
                                 </label>
                                 <div className="relative">
                                     <Calendar className="absolute left-2 sm:left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-3 h-3 sm:w-4 sm:h-4" />
@@ -548,7 +553,7 @@ export default function Index({
                             {/* Year Filter */}
                             <div className="sm:w-28 lg:w-32">
                                 <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1 sm:mb-2">
-                                    Year
+                                    {t('projects_index.year')}
                                 </label>
                                 <select
                                     value={filterData.year}
@@ -556,7 +561,7 @@ export default function Index({
                                     className="w-full px-2 sm:px-3 py-2 sm:py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#005954] focus:border-transparent bg-white text-xs sm:text-sm"
                                     disabled={processing}
                                 >
-                                    <option value="">All Years</option>
+                                    <option value="">{t('projects_index.all_years')}</option>
                                     {(years || []).map(year => (
                                         <option key={year} value={year}>
                                             {year}
@@ -578,7 +583,7 @@ export default function Index({
                                 ) : (
                                     <Filter className="w-3 h-3 sm:w-4 sm:h-4" />
                                 )}
-                                <span>{processing ? 'Applying...' : 'Apply'}</span>
+                                <span>{processing ? t('projects_index.applying') : t('projects_index.apply')}</span>
                             </button>
                             <button
                                 onClick={resetFilters}
@@ -586,7 +591,7 @@ export default function Index({
                                 className="px-3 sm:px-4 py-2 sm:py-2.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors flex items-center gap-1 sm:gap-2 justify-center text-xs sm:text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed min-w-[80px]"
                             >
                                 <RefreshCw className="w-3 h-3 sm:w-4 sm:h-4" />
-                                <span>Reset</span>
+                                <span>{t('projects_index.reset')}</span>
                             </button>
                         </div>
                     </div>
@@ -599,7 +604,7 @@ export default function Index({
                             columns={[
                                 { 
                                     key: 'project_description', 
-                                    label: 'Description',
+                                    label: t('projects_index.description'),
                                     className: "min-w-[180px] sm:min-w-[200px]",
                                     render: (val, project) => {
                                         return (
@@ -618,7 +623,7 @@ export default function Index({
                                 },
                                 { 
                                     key: 'client', 
-                                    label: 'Client',
+                                    label: t('projects_index.client'),
                                     className: "min-w-[140px] sm:min-w-[160px]",
                                     render: (val, project) => {
                                         return (
@@ -630,7 +635,7 @@ export default function Index({
                                                         </div>
                                                         {project.company?.client_code && (
                                                             <div className="text-xs text-gray-500 truncate">
-                                                                Code: {project.company.client_code}
+                                                                {t('projects_index.code')}: {project.company.client_code}
                                                             </div>
                                                         )}
                                                     </>
@@ -640,11 +645,11 @@ export default function Index({
                                                             {project.company.client_code}
                                                         </div>
                                                         <div className="text-xs text-gray-400 italic truncate">
-                                                            No company name
+                                                            {t('projects_index.no_company_name')}
                                                         </div>
                                                     </>
                                                 ) : (
-                                                    <div className="text-gray-400 italic text-sm">N/A</div>
+                                                    <div className="text-gray-400 italic text-sm">{t('projects_index.not_available')}</div>
                                                 )}
                                             </div>
                                         );
@@ -652,7 +657,7 @@ export default function Index({
                                 },
                                 { 
                                     key: 'start_date', 
-                                    label: 'Start Date',
+                                    label: t('projects_index.start_date'),
                                     className: "min-w-[100px] sm:min-w-[110px]",
                                     render: (val) => val ? new Date(val).toLocaleDateString('id-ID', { 
                                         day: 'numeric', 
@@ -662,7 +667,7 @@ export default function Index({
                                 },
                                 { 
                                     key: 'deadline', 
-                                    label: 'Deadline',
+                                    label: t('projects_index.deadline'),
                                     className: "min-w-[100px] sm:min-w-[110px]",
                                     render: (val) => val ? new Date(val).toLocaleDateString('id-ID', { 
                                         day: 'numeric', 
@@ -672,7 +677,7 @@ export default function Index({
                                 },
                                 { 
                                     key: 'status', 
-                                    label: 'Status',
+                                    label: t('projects_index.status'),
                                     className: "min-w-[100px] sm:min-w-[120px]",
                                     render: (val, project) => (
                                         <StatusDropdown project={project} />
@@ -680,7 +685,7 @@ export default function Index({
                                 },
                                 { 
                                     key: 'quotation', 
-                                    label: 'Quotation',
+                                    label: t('projects_index.quotation'),
                                     className: "min-w-[90px] sm:min-w-[100px]",
                                     render: (val, project) => (
                                         <div className="min-w-[90px] sm:min-w-[100px] max-w-[120px]">
@@ -689,7 +694,9 @@ export default function Index({
                                                     {project.quotation.quotation_number}
                                                 </span>
                                             ) : (
-                                                <span className="text-xs sm:text-sm text-gray-400 truncate block">No quotation</span>
+                                                <span className="text-xs sm:text-sm text-gray-400 truncate block">
+                                                    {t('projects_index.no_quotation')}
+                                                </span>
                                             )}
                                         </div>
                                     )
@@ -706,6 +713,7 @@ export default function Index({
                                 itemsPerPage: projects.per_page,
                                 onPageChange: handlePageChange
                             }}
+                            emptyStateMessage={t('projects_index.no_data')}
                         />
                     </div>
                 </div>
@@ -720,9 +728,9 @@ export default function Index({
                     companies={companies || []}
                     quotations={quotations || []}
                     statusOptions={statusOptions || []}
-                    title="Add Project"
+                    title={t('projects_index.add_project')}
                     onSuccess={handleCreateSuccess}
-                    key={showCreateModal ? 'create-modal' : 'create-modal-closed'} // Tambahkan key untuk force remount
+                    key={showCreateModal ? 'create-modal' : 'create-modal-closed'}
                 />
 
                 {selectedProjectId && (
@@ -741,9 +749,9 @@ export default function Index({
                             quotations={quotations || []}
                             statusOptions={statusOptions || []}
                             isEdit={true}
-                            title="Edit Project"
+                            title={t('projects_index.edit_project')}
                             onSuccess={handleEditSuccess}
-                            key={`edit-modal-${selectedProjectId}-${showEditModal}`} // Tambahkan key untuk force remount
+                            key={`edit-modal-${selectedProjectId}-${showEditModal}`}
                         />
 
                         {/* Delete Modal */}
@@ -755,8 +763,10 @@ export default function Index({
                                 setEditingProject(null);
                             }}
                             onConfirm={confirmDelete}
-                            title="Delete Project"
-                            message={`Are you sure you want to delete project "${editingProject?.project_description}"? This action cannot be undone.`}
+                            title={t('projects_index.delete_confirm_title')}
+                            message={t('projects_index.delete_confirm_message', { 
+                                projectName: editingProject?.project_description 
+                            })}
                         />
                     </>
                 )}

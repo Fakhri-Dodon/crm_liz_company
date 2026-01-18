@@ -1,34 +1,83 @@
 import React, { useState } from 'react';
-import { Building2, MapPin, Globe, Mail, Phone, Calendar, Info } from 'lucide-react';
+import { Building2, MapPin, Globe, Mail, Phone, Info } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 const CompanyHeader = ({ company, activeTab, data, statistics }) => {
     const [showTooltip, setShowTooltip] = useState(null);
+    const { t } = useTranslation();
     
-    // Fungsi untuk menghitung statistik berdasarkan tab aktif
     const calculateStats = () => {
         switch (activeTab) {
             case 'profile':
                 return [
-                    { label: 'Total Kontak', value: data.contacts?.length || 0, color: 'bg-blue-500' },
-                    { label: 'Tahun Aktif', value: company.client_since ? new Date().getFullYear() - new Date(company.client_since).getFullYear() : 0, color: 'bg-green-500' },
-                    { label: 'Status', value: company.is_active ? 'Aktif' : 'Non-Aktif', color: company.is_active ? 'bg-yellow-500' : 'bg-gray-500' },
-                    { label: 'Tipe Klien', value: company.client_type?.name || 'N/A', color: 'bg-red-500' }
+                    { 
+                        label: t('companies_header.total_contacts'), 
+                        value: data.contacts?.length || 0, 
+                        color: 'bg-blue-500' 
+                    },
+                    { 
+                        label: t('companies_header.active_years'), 
+                        value: company.client_since ? new Date().getFullYear() - new Date(company.client_since).getFullYear() : 0, 
+                        color: 'bg-green-500' 
+                    },
+                    { 
+                        label: t('companies_header.status'), 
+                        value: company.is_active ? t('companies_header.active_status') : t('companies_header.inactive_status'), 
+                        color: company.is_active ? 'bg-yellow-500' : 'bg-gray-500' 
+                    },
+                    { 
+                        label: t('companies_header.client_type'), 
+                        value: company.client_type?.name || 'N/A', 
+                        color: 'bg-red-500' 
+                    }
                 ];
             
             case 'quotation':
                 return [
-                    { label: 'Total Quotation', value: statistics.total_quotations || 0, color: 'bg-blue-500' },
-                    { label: 'Diterima', value: statistics.accepted_quotations || 0, color: 'bg-green-500' },
-                    { label: 'Kadaluarsa', value: statistics.expired_quotations || 0, color: 'bg-yellow-500' },
-                    { label: 'Dibatalkan', value: statistics.cancelled_quotations || 0, color: 'bg-red-500' }
+                    { 
+                        label: t('companies_header.total_quotations'), 
+                        value: statistics.total_quotations || 0, 
+                        color: 'bg-blue-500' 
+                    },
+                    { 
+                        label: t('companies_header.accepted'), 
+                        value: statistics.accepted_quotations || 0, 
+                        color: 'bg-green-500' 
+                    },
+                    { 
+                        label: t('companies_header.expired'), 
+                        value: statistics.expired_quotations || 0, 
+                        color: 'bg-yellow-500' 
+                    },
+                    { 
+                        label: t('companies_header.cancelled'), 
+                        value: statistics.cancelled_quotations || 0, 
+                        color: 'bg-red-500' 
+                    }
                 ];
             
             case 'invoice':
                 return [
-                    { label: 'Total Invoice', value: statistics.total_invoices || 0, color: 'bg-blue-500' },
-                    { label: 'Dibayar', value: statistics.paid_invoices || 0, color: 'bg-green-500' },
-                    { label: 'Pending', value: statistics.pending_invoices || 0, color: 'bg-yellow-500' },
-                    { label: 'Jatuh Tempo', value: statistics.overdue_invoices || 0, color: 'bg-red-500' }
+                    { 
+                        label: t('companies_header.total_invoices'), 
+                        value: statistics.total_invoices || 0, 
+                        color: 'bg-blue-500' 
+                    },
+                    { 
+                        label: t('companies_header.paid'), 
+                        value: statistics.paid_invoices || 0, 
+                        color: 'bg-green-500' 
+                    },
+                    { 
+                        label: t('companies_header.pending'), 
+                        value: statistics.pending_invoices || 0, 
+                        color: 'bg-yellow-500' 
+                    },
+                    { 
+                        label: t('companies_header.overdue'), 
+                        value: statistics.overdue_invoices || 0, 
+                        color: 'bg-red-500' 
+                    }
                 ];
             
             case 'payment':
@@ -38,10 +87,26 @@ const CompanyHeader = ({ company, activeTab, data, statistics }) => {
                 const checkPayments = data.payments?.filter(p => p.method === 'check').length || 0;
                 
                 return [
-                    { label: 'Total Pembayaran', value: totalPayments, color: 'bg-blue-500' },
-                    { label: 'Transfer Bank', value: bankTransfers, color: 'bg-green-500' },
-                    { label: 'Tunai', value: cashPayments, color: 'bg-yellow-500' },
-                    { label: 'Cek', value: checkPayments, color: 'bg-red-500' }
+                    { 
+                        label: t('companies_header.total_payments'), 
+                        value: totalPayments, 
+                        color: 'bg-blue-500' 
+                    },
+                    { 
+                        label: t('companies_header.bank_transfer'), 
+                        value: bankTransfers, 
+                        color: 'bg-green-500' 
+                    },
+                    { 
+                        label: t('companies_header.cash'), 
+                        value: cashPayments, 
+                        color: 'bg-yellow-500' 
+                    },
+                    { 
+                        label: t('companies_header.check'), 
+                        value: checkPayments, 
+                        color: 'bg-red-500' 
+                    }
                 ];
             
             case 'project':
@@ -51,10 +116,26 @@ const CompanyHeader = ({ company, activeTab, data, statistics }) => {
                 const delayedProjects = data.projects?.filter(p => p.status === 'delayed').length || 0;
                 
                 return [
-                    { label: 'Total Proyek', value: totalProjects, color: 'bg-blue-500' },
-                    { label: 'Selesai', value: completedProjects, color: 'bg-green-500' },
-                    { label: 'Dalam Proses', value: inProgressProjects, color: 'bg-yellow-500' },
-                    { label: 'Terlambat', value: delayedProjects, color: 'bg-red-500' }
+                    { 
+                        label: t('companies_header.total_projects'), 
+                        value: totalProjects, 
+                        color: 'bg-blue-500' 
+                    },
+                    { 
+                        label: t('companies_header.completed'), 
+                        value: completedProjects, 
+                        color: 'bg-green-500' 
+                    },
+                    { 
+                        label: t('companies_header.in_progress'), 
+                        value: inProgressProjects, 
+                        color: 'bg-yellow-500' 
+                    },
+                    { 
+                        label: t('companies_header.delayed'), 
+                        value: delayedProjects, 
+                        color: 'bg-red-500' 
+                    }
                 ];
             
             case 'contact':
@@ -63,18 +144,34 @@ const CompanyHeader = ({ company, activeTab, data, statistics }) => {
                 const activeContacts = data.contacts?.filter(c => c.is_active).length || 0;
                 
                 return [
-                    { label: 'Total Kontak', value: totalContacts, color: 'bg-blue-500' },
-                    { label: 'Kontak Utama', value: primaryContacts, color: 'bg-green-500' },
-                    { label: 'Aktif', value: activeContacts, color: 'bg-yellow-500' },
-                    { label: 'Management', value: data.contacts?.filter(c => c.position?.toLowerCase().includes('manager')).length || 0, color: 'bg-red-500' }
+                    { 
+                        label: t('companies_header.total_contacts'), 
+                        value: totalContacts, 
+                        color: 'bg-blue-500' 
+                    },
+                    { 
+                        label: t('companies_header.primary_contacts'), 
+                        value: primaryContacts, 
+                        color: 'bg-green-500' 
+                    },
+                    { 
+                        label: t('companies_header.active'), 
+                        value: activeContacts, 
+                        color: 'bg-yellow-500' 
+                    },
+                    { 
+                        label: t('companies_header.management'), 
+                        value: data.contacts?.filter(c => c.position?.toLowerCase().includes('manager')).length || 0, 
+                        color: 'bg-red-500' 
+                    }
                 ];
             
             default:
                 return [
                     { label: 'Total', value: '0', color: 'bg-blue-500' },
-                    { label: 'Aktif', value: '0', color: 'bg-green-500' },
-                    { label: 'Pending', value: '0', color: 'bg-yellow-500' },
-                    { label: 'Non-Aktif', value: '0', color: 'bg-red-500' }
+                    { label: t('companies_header.active'), value: '0', color: 'bg-green-500' },
+                    { label: t('companies_header.pending'), value: '0', color: 'bg-yellow-500' },
+                    { label: t('companies_header.inactive_status'), value: '0', color: 'bg-red-500' }
                 ];
         }
     };
@@ -118,11 +215,11 @@ const CompanyHeader = ({ company, activeTab, data, statistics }) => {
         const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
         
         if (diffDays < 30) {
-            return `${diffDays} hari lalu`;
+            return `${diffDays} ${t('companies_header.days_ago')}`;
         } else if (diffDays < 365) {
-            return `${Math.floor(diffDays / 30)} bulan lalu`;
+            return `${Math.floor(diffDays / 30)} ${t('companies_header.months_ago')}`;
         } else {
-            return `${Math.floor(diffDays / 365)} tahun lalu`;
+            return `${Math.floor(diffDays / 365)} ${t('companies_header.years_ago')}`;
         }
     };
 
@@ -184,6 +281,7 @@ const CompanyHeader = ({ company, activeTab, data, statistics }) => {
                             {(company.city || company.province) && (
                                 <div className="flex items-center justify-center sm:justify-start space-x-1">
                                     <MapPin className="w-4 h-4 flex-shrink-0" />
+                                    <span className="sr-only">{t('companies_header.location')}: </span>
                                     <TruncatedText 
                                         text={`${company.city || ''}${company.province ? `, ${company.province}` : ''}${company.country ? `, ${company.country}` : ''}`}
                                         maxLength={30}
@@ -193,31 +291,31 @@ const CompanyHeader = ({ company, activeTab, data, statistics }) => {
                             {company.website && (
                                 <div className="flex items-center justify-center sm:justify-start space-x-1">
                                     <Globe className="w-4 h-4 flex-shrink-0" />
+                                    <span className="sr-only">{t('companies_header.website')}: </span>
                                     <TruncatedText text={company.website} maxLength={25} />
                                 </div>
                             )}
                             {company.primary_contact?.email && (
                                 <div className="flex items-center justify-center sm:justify-start space-x-1">
                                     <Mail className="w-4 h-4 flex-shrink-0" />
+                                    <span className="sr-only">{t('companies_header.email')}: </span>
                                     <TruncatedText text={company.primary_contact.email} maxLength={25} />
                                 </div>
                             )}
                             {company.primary_contact?.phone && (
                                 <div className="flex items-center justify-center sm:justify-start space-x-1">
                                     <Phone className="w-4 h-4 flex-shrink-0" />
+                                    <span className="sr-only">{t('companies_header.phone')}: </span>
                                     <TruncatedText text={company.primary_contact.phone} maxLength={20} />
                                 </div>
                             )}
                         </div>
-                        
-                        {/* Badges */}
-                        {/* Bagian badge dihapus sesuai permintaan */}
                     </div>
                 </div>
                 
                 {/* Outstanding Balance & Info */}
                 <div className="text-center sm:text-right">
-                    <p className="text-sm text-gray-500">Total Piutang</p>
+                    <p className="text-sm text-gray-500">{t('companies_header.total_outstanding')}</p>
                     <div className="relative inline-block">
                         <button
                             className="text-2xl sm:text-3xl font-bold text-red-600 cursor-pointer transition-all duration-200 hover:bg-gray-100 rounded px-2 py-1 flex items-center gap-2"
@@ -230,7 +328,9 @@ const CompanyHeader = ({ company, activeTab, data, statistics }) => {
                         {/* Expand/Collapse: tampilkan detail jika di-expand */}
                         {showTooltip === 'piutang' && (
                             <div className="absolute right-0 mt-2 w-64 bg-white border border-gray-200 rounded-lg shadow-lg z-50 p-4 text-left">
-                                <div className="mb-2 font-semibold text-gray-800">Detail Piutang</div>
+                                <div className="mb-2 font-semibold text-gray-800">
+                                    {t('companies_header.outstanding_details')}
+                                </div>
                                 {data.invoices?.filter(inv => inv.status !== 'paid').length > 0 ? (
                                     <ul className="text-sm text-gray-700 max-h-40 overflow-y-auto">
                                         {data.invoices.filter(inv => inv.status !== 'paid').map((inv, idx) => (
@@ -241,15 +341,16 @@ const CompanyHeader = ({ company, activeTab, data, statistics }) => {
                                         ))}
                                     </ul>
                                 ) : (
-                                    <div className="text-xs text-gray-500">Tidak ada invoice outstanding.</div>
+                                    <div className="text-xs text-gray-500">
+                                        {t('companies_header.no_outstanding_invoices')}
+                                    </div>
                                 )}
                             </div>
                         )}
                     </div>
                     <p className="text-xs sm:text-sm text-gray-500 mt-1">
-                        {data.invoices?.filter(inv => inv.status !== 'paid').length || 0} invoice belum dibayar
+                        {data.invoices?.filter(inv => inv.status !== 'paid').length || 0} {t('companies_header.unpaid_invoices')}
                     </p>
-                    {/* Bagian Klien sejak dan Dibuat dihapus sesuai permintaan */}
                 </div>
             </div>
 

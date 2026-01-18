@@ -6,8 +6,11 @@ import {
     Loader, Search, Filter, ChevronDown, TrendingUp, Percent,
     RefreshCw
 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 const PaymentTable = ({ data: initialData, companyId, showInvoiceAmount = false }) => {
+    const { t } = useTranslation();
+    
     // State untuk data payments
     const [payments, setPayments] = useState(initialData || []);
     const [loading, setLoading] = useState(false);
@@ -120,11 +123,11 @@ const PaymentTable = ({ data: initialData, companyId, showInvoiceAmount = false 
         
         switch (methodStr) {
             case 'transfer':
-                return <span className={`${baseClasses} bg-blue-100 text-blue-800`}>Transfer</span>;
+                return <span className={`${baseClasses} bg-blue-100 text-blue-800`}>{t('payment_table.transfer')}</span>;
             case 'cash':
-                return <span className={`${baseClasses} bg-green-100 text-green-800`}>Cash</span>;
+                return <span className={`${baseClasses} bg-green-100 text-green-800`}>{t('payment_table.cash')}</span>;
             case 'check':
-                return <span className={`${baseClasses} bg-purple-100 text-purple-800`}>Check</span>;
+                return <span className={`${baseClasses} bg-purple-100 text-purple-800`}>{t('payment_table.check')}</span>;
             default:
                 return <span className={`${baseClasses} bg-gray-100 text-gray-800`}>{methodStr || '-'}</span>;
         }
@@ -168,13 +171,16 @@ const PaymentTable = ({ data: initialData, companyId, showInvoiceAmount = false 
 
     const handleEditPayment = async () => {
         if (!selectedPayment || !companyId) {
-            showNotification('error', 'Missing data');
+            showNotification('error', t('payment_table.missing_data'));
             return;
         }
 
         // Validasi
         if (!formData.amount || !formData.date) {
-            setErrors({ amount: !formData.amount ? 'Amount is required' : '', date: !formData.date ? 'Date is required' : '' });
+            setErrors({ 
+                amount: !formData.amount ? t('payment_table.amount_required') : '', 
+                date: !formData.date ? t('payment_table.date_required') : '' 
+            });
             return;
         }
 
@@ -183,7 +189,6 @@ const PaymentTable = ({ data: initialData, companyId, showInvoiceAmount = false 
         try {
             const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
             
-            // Gunakan fetch dengan header X-Requested-With: XMLHttpRequest
             const response = await fetch(`/companies/${companyId}/payments/${selectedPayment.id}`, {
                 method: 'PUT',
                 headers: {
@@ -214,7 +219,7 @@ const PaymentTable = ({ data: initialData, companyId, showInvoiceAmount = false 
                     p.id === selectedPayment.id ? updatedPayment : p
                 ));
                 
-                showNotification('success', result.message || 'Payment updated successfully');
+                showNotification('success', result.message || t('payment_table.payment_updated'));
                 setShowEditModal(false);
                 setSelectedPayment(null);
                 
@@ -225,11 +230,11 @@ const PaymentTable = ({ data: initialData, companyId, showInvoiceAmount = false 
                 
             } else {
                 setErrors(result.errors || {});
-                showNotification('error', result.message || 'Failed to update payment');
+                showNotification('error', result.message || t('payment_table.update_failed'));
             }
         } catch (error) {
             console.error('Error:', error);
-            showNotification('error', 'Network error');
+            showNotification('error', t('payment_table.network_error'));
         } finally {
             setLoading(false);
         }
@@ -243,7 +248,7 @@ const PaymentTable = ({ data: initialData, companyId, showInvoiceAmount = false 
 
     const handleDeletePayment = async () => {
         if (!selectedPayment || !companyId) {
-            showNotification('error', 'Missing data');
+            showNotification('error', t('payment_table.missing_data'));
             return;
         }
 
@@ -272,7 +277,7 @@ const PaymentTable = ({ data: initialData, companyId, showInvoiceAmount = false 
                 // Update selected payments
                 setSelectedPayments(prev => prev.filter(id => id !== selectedPayment.id));
                 
-                showNotification('success', result.message || 'Payment deleted successfully');
+                showNotification('success', result.message || t('payment_table.payment_deleted'));
                 setShowDeleteModal(false);
                 setSelectedPayment(null);
                 
@@ -282,11 +287,11 @@ const PaymentTable = ({ data: initialData, companyId, showInvoiceAmount = false 
                 }, 1000);
                 
             } else {
-                showNotification('error', result.message || 'Failed to delete payment');
+                showNotification('error', result.message || t('payment_table.delete_failed'));
             }
         } catch (error) {
             console.error('Error:', error);
-            showNotification('error', 'Network error');
+            showNotification('error', t('payment_table.network_error'));
         } finally {
             setLoading(false);
         }
@@ -295,11 +300,13 @@ const PaymentTable = ({ data: initialData, companyId, showInvoiceAmount = false 
     // ==================== BULK DELETE ====================
     const handleBulkDelete = async () => {
         if (selectedPayments.length === 0) {
-            showNotification('warning', 'No payments selected');
+            showNotification('warning', t('payment_table.no_selection'));
             return;
         }
 
-        if (!window.confirm(`Delete ${selectedPayments.length} payment(s)?`)) {
+        const confirmMessage = t('payment_table.bulk_delete_confirm', { count: selectedPayments.length });
+        
+        if (!window.confirm(confirmMessage)) {
             return;
         }
 
@@ -327,7 +334,7 @@ const PaymentTable = ({ data: initialData, companyId, showInvoiceAmount = false 
                 setPayments(prev => prev.filter(p => !selectedPayments.includes(p.id)));
                 setSelectedPayments([]);
                 
-                showNotification('success', result.message || 'Payments deleted successfully');
+                showNotification('success', result.message || t('payment_table.payments_deleted'));
                 
                 // Refresh data setelah beberapa detik
                 setTimeout(() => {
@@ -335,11 +342,11 @@ const PaymentTable = ({ data: initialData, companyId, showInvoiceAmount = false 
                 }, 1000);
                 
             } else {
-                showNotification('error', result.message || 'Failed to delete payments');
+                showNotification('error', result.message || t('payment_table.delete_failed'));
             }
         } catch (error) {
             console.error('Error:', error);
-            showNotification('error', 'Network error');
+            showNotification('error', t('payment_table.network_error'));
         } finally {
             setLoading(false);
         }
@@ -375,10 +382,10 @@ const PaymentTable = ({ data: initialData, companyId, showInvoiceAmount = false 
             <div className="text-center py-12">
                 <CreditCard className="w-16 h-16 text-gray-300 mx-auto mb-4" />
                 <h3 className="text-lg font-medium text-gray-900 mb-2">
-                    No payments found
+                    {t('payment_table.no_payments_found')}
                 </h3>
                 <p className="text-gray-500">
-                    There are no payments recorded yet.
+                    {t('payment_table.no_payments_message')}
                 </p>
             </div>
         );
@@ -407,10 +414,10 @@ const PaymentTable = ({ data: initialData, companyId, showInvoiceAmount = false 
             {/* Header */}
             <div className="mb-6">
                 <h2 className="text-lg md:text-xl font-bold text-gray-900">
-                    Payment History
+                    {t('payment_table.payment_history')}
                 </h2>
                 <p className="text-sm text-gray-600">
-                    {totalPayments} payment{totalPayments !== 1 ? 's' : ''} • {formatCurrency(totalReceived)} total
+                    {totalPayments} {t('payment_table.total_payments').toLowerCase()}{totalPayments !== 1 ? 's' : ''} • {formatCurrency(totalReceived)} {t('payment_table.total_received').toLowerCase()}
                 </p>
             </div>
 
@@ -422,7 +429,7 @@ const PaymentTable = ({ data: initialData, companyId, showInvoiceAmount = false 
                             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                             <input
                                 type="text"
-                                placeholder="Search payments..."
+                                placeholder={t('payment_table.search_placeholder')}
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
                                 className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
@@ -438,10 +445,10 @@ const PaymentTable = ({ data: initialData, companyId, showInvoiceAmount = false 
                             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                             disabled={loading}
                         >
-                            <option value="all">All Methods</option>
-                            <option value="transfer">Transfer</option>
-                            <option value="cash">Cash</option>
-                            <option value="check">Check</option>
+                            <option value="all">{t('payment_table.all_methods')}</option>
+                            <option value="transfer">{t('payment_table.transfer')}</option>
+                            <option value="cash">{t('payment_table.cash')}</option>
+                            <option value="check">{t('payment_table.check')}</option>
                         </select>
                     </div>
                 </div>
@@ -453,7 +460,7 @@ const PaymentTable = ({ data: initialData, companyId, showInvoiceAmount = false 
                             <div className="flex items-center">
                                 <CheckCircle className="w-5 h-5 text-blue-600 mr-2" />
                                 <span className="font-medium text-blue-800">
-                                    {selectedPayments.length} selected
+                                    {selectedPayments.length} {t('payment_table.selected')}
                                 </span>
                             </div>
                             <button 
@@ -466,7 +473,7 @@ const PaymentTable = ({ data: initialData, companyId, showInvoiceAmount = false 
                                 ) : (
                                     <Trash2 className="w-4 h-4 mr-1" />
                                 )}
-                                Delete Selected
+                                {t('payment_table.delete_selected')}
                             </button>
                         </div>
                     </div>
@@ -488,25 +495,25 @@ const PaymentTable = ({ data: initialData, companyId, showInvoiceAmount = false 
                                 />
                             </th>
                             <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase">
-                                Invoice
+                                {t('payment_table.invoice')}
                             </th>
                             <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase">
-                                Date
+                                {t('payment_table.date')}
                             </th>
                             <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase">
-                                Amount
+                                {t('payment_table.amount')}
                             </th>
                             <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase">
-                                Method
+                                {t('payment_table.method')}
                             </th>
                             <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase">
-                                Bank
+                                {t('payment_table.bank')}
                             </th>
                             <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase">
-                                Notes
+                                {t('payment_table.notes')}
                             </th>
                             <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase">
-                                Actions
+                                {t('payment_table.actions')}
                             </th>
                         </tr>
                     </thead>
@@ -552,6 +559,7 @@ const PaymentTable = ({ data: initialData, companyId, showInvoiceAmount = false 
                                             onClick={() => openEditModal(payment)}
                                             disabled={loading}
                                             className="p-1 text-blue-600 hover:text-blue-900 hover:bg-blue-50 rounded disabled:opacity-50"
+                                            title={t('payment_table.edit_payment')}
                                         >
                                             <Edit className="w-4 h-4" />
                                         </button>
@@ -559,6 +567,7 @@ const PaymentTable = ({ data: initialData, companyId, showInvoiceAmount = false 
                                             onClick={() => openDeleteModal(payment)}
                                             disabled={loading}
                                             className="p-1 text-red-600 hover:text-red-900 hover:bg-red-50 rounded disabled:opacity-50"
+                                            title={t('payment_table.delete')}
                                         >
                                             <Trash2 className="w-4 h-4" />
                                         </button>
@@ -573,19 +582,19 @@ const PaymentTable = ({ data: initialData, companyId, showInvoiceAmount = false 
             {/* Statistics */}
             <div className="mt-6 grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div className="bg-blue-50 p-4 rounded-lg">
-                    <p className="text-sm text-gray-600">Total Payments</p>
+                    <p className="text-sm text-gray-600">{t('payment_table.total_payments')}</p>
                     <p className="text-2xl font-bold text-gray-900">{totalPayments}</p>
                 </div>
                 <div className="bg-green-50 p-4 rounded-lg">
-                    <p className="text-sm text-gray-600">Total Received</p>
+                    <p className="text-sm text-gray-600">{t('payment_table.total_received')}</p>
                     <p className="text-2xl font-bold text-gray-900">{formatCurrency(totalReceived)}</p>
                 </div>
                 <div className="bg-purple-50 p-4 rounded-lg">
-                    <p className="text-sm text-gray-600">Transfers</p>
+                    <p className="text-sm text-gray-600">{t('payment_table.transfers')}</p>
                     <p className="text-2xl font-bold text-gray-900">{transferCount}</p>
                 </div>
                 <div className="bg-yellow-50 p-4 rounded-lg">
-                    <p className="text-sm text-gray-600">Cash</p>
+                    <p className="text-sm text-gray-600">{t('payment_table.cash')}</p>
                     <p className="text-2xl font-bold text-gray-900">{cashCount}</p>
                 </div>
             </div>
@@ -596,7 +605,7 @@ const PaymentTable = ({ data: initialData, companyId, showInvoiceAmount = false 
                     <div className="bg-white rounded-lg shadow-xl max-w-md w-full">
                         <div className="p-6">
                             <div className="flex justify-between items-center mb-6">
-                                <h3 className="text-lg font-bold text-gray-900">Edit Payment</h3>
+                                <h3 className="text-lg font-bold text-gray-900">{t('payment_table.edit_payment')}</h3>
                                 <button
                                     onClick={() => setShowEditModal(false)}
                                     disabled={loading}
@@ -609,7 +618,7 @@ const PaymentTable = ({ data: initialData, companyId, showInvoiceAmount = false 
                             <div className="space-y-4">
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        Amount *
+                                        {t('payment_table.amount')} *
                                     </label>
                                     <input
                                         type="number"
@@ -625,7 +634,7 @@ const PaymentTable = ({ data: initialData, companyId, showInvoiceAmount = false 
                                 
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        Method *
+                                        {t('payment_table.method')} *
                                     </label>
                                     <select
                                         value={formData.method}
@@ -633,15 +642,15 @@ const PaymentTable = ({ data: initialData, companyId, showInvoiceAmount = false 
                                         className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                                         disabled={loading}
                                     >
-                                        <option value="transfer">Transfer</option>
-                                        <option value="cash">Cash</option>
-                                        <option value="check">Check</option>
+                                        <option value="transfer">{t('payment_table.transfer')}</option>
+                                        <option value="cash">{t('payment_table.cash')}</option>
+                                        <option value="check">{t('payment_table.check')}</option>
                                     </select>
                                 </div>
                                 
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        Date *
+                                        {t('payment_table.date')} *
                                     </label>
                                     <input
                                         type="date"
@@ -656,7 +665,7 @@ const PaymentTable = ({ data: initialData, companyId, showInvoiceAmount = false 
                                 
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        Bank
+                                        {t('payment_table.bank')}
                                     </label>
                                     <input
                                         type="text"
@@ -669,7 +678,7 @@ const PaymentTable = ({ data: initialData, companyId, showInvoiceAmount = false 
                                 
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        Notes
+                                        {t('payment_table.notes')}
                                     </label>
                                     <textarea
                                         value={formData.note}
@@ -687,7 +696,7 @@ const PaymentTable = ({ data: initialData, companyId, showInvoiceAmount = false 
                                     disabled={loading}
                                     className="px-4 py-2 border border-gray-300 text-gray-700 rounded hover:bg-gray-50"
                                 >
-                                    Cancel
+                                    {t('payment_table.cancel')}
                                 </button>
                                 <button
                                     onClick={handleEditPayment}
@@ -699,7 +708,7 @@ const PaymentTable = ({ data: initialData, companyId, showInvoiceAmount = false 
                                     ) : (
                                         <Save className="w-4 h-4 mr-2" />
                                     )}
-                                    Update
+                                    {t('payment_table.update')}
                                 </button>
                             </div>
                         </div>
@@ -714,15 +723,15 @@ const PaymentTable = ({ data: initialData, companyId, showInvoiceAmount = false 
                         <div className="p-6">
                             <div className="flex items-center mb-4">
                                 <AlertCircle className="w-8 h-8 text-red-600 mr-3" />
-                                <h3 className="text-lg font-bold text-gray-900">Confirm Delete</h3>
+                                <h3 className="text-lg font-bold text-gray-900">{t('payment_table.confirm_delete')}</h3>
                             </div>
                             
                             <p className="text-gray-600 mb-4">
-                                Are you sure you want to delete this payment?
+                                {t('payment_table.delete_confirm_message')}
                             </p>
                             
                             <div className="bg-gray-50 p-3 rounded mb-6">
-                                <p className="font-medium">Invoice: {getInvoiceNumber(selectedPayment)}</p>
+                                <p className="font-medium">{t('payment_table.invoice')}: {getInvoiceNumber(selectedPayment)}</p>
                                 <p className="text-sm text-gray-500">
                                     {formatDate(selectedPayment.date)} • {formatCurrency(selectedPayment.amount)}
                                 </p>
@@ -734,7 +743,7 @@ const PaymentTable = ({ data: initialData, companyId, showInvoiceAmount = false 
                                     disabled={loading}
                                     className="px-4 py-2 border border-gray-300 text-gray-700 rounded hover:bg-gray-50"
                                 >
-                                    Cancel
+                                    {t('payment_table.cancel')}
                                 </button>
                                 <button
                                     onClick={handleDeletePayment}
@@ -744,7 +753,7 @@ const PaymentTable = ({ data: initialData, companyId, showInvoiceAmount = false 
                                     {loading ? (
                                         <Loader className="w-4 h-4 animate-spin" />
                                     ) : (
-                                        'Delete'
+                                        t('payment_table.delete')
                                     )}
                                 </button>
                             </div>
