@@ -249,6 +249,11 @@ export default function Create({ id, template }) {
         };
     };
 
+    const withHTMLElement = (view, cb) => {
+        const el = view?.el;
+        if (el instanceof HTMLElement) cb(el);
+    };
+
     useEffect(() => {
         setLoading(true);
 
@@ -263,72 +268,22 @@ export default function Create({ id, template }) {
             selectable: true,
             blockManager: { appendTo: "#second-side" },
             traitManager: { appendTo: "#trait-editor-container" },
-            styleManager: {
+            styleManager: { 
                 appendTo: "#style-manager-container",
                 clearProperties: true,
                 sectors: [
-                    {
-                        name: "Typography",
-                        open: false,
-                        buildProps: [
-                            "font-family",
-                            "font-size",
-                            "font-weight",
-                            "letter-spacing",
-                            "color",
-                            "line-height",
-                            "text-align",
-                            "text-decoration",
-                            "text-transform",
-                        ],
-                    },
-                    {
-                        name: "Decorations",
-                        open: false,
-                        buildProps: [
-                            "background-color",
-                            "border-radius",
-                            "border-top-left-radius",
-                            "border-top-right-radius",
-                            "border-bottom-left-radius",
-                            "border-bottom-right-radius",
-                            "box-shadow",
-                            "background-image",
-                            "opacity",
-                        ],
-                    },
-                    {
-                        name: "Dimensions",
-                        open: false,
-                        buildProps: [
-                            "width",
-                            "height",
-                            "min-height",
-                            "padding",
-                            "margin",
-                            "padding-top",
-                            "padding-bottom",
-                            "padding-left",
-                            "padding-right",
-                        ],
-                    },
-                    {
-                        name: "Borders",
-                        open: false,
-                        buildProps: [
-                            "border-width",
-                            "border-style",
-                            "border-color",
-                        ],
-                    },
-                ],
+                    { name: 'Typography', open: false, buildProps: ['font-family', 'font-size', 'font-weight', 'letter-spacing', 'color', 'line-height', 'text-align', 'text-decoration', 'text-transform'] },
+                    { name: 'Decorations', open: false, buildProps: ['background-color', 'border-radius', 'border-top-left-radius', 'border-top-right-radius', 'border-bottom-left-radius', 'border-bottom-right-radius', 'box-shadow', 'background-image', 'opacity'] },
+                    { name: 'Dimensions', open: false, buildProps: ['width', 'height', 'min-height', 'padding', 'margin', 'padding-top', 'padding-bottom', 'padding-left', 'padding-right'] },
+                    { name: 'Borders', open: false, buildProps: ['border-width', 'border-style', 'border-color'] }
+                ]
             },
             panels: { defaults: [] },
-            canvas: {
+            canvas: { 
                 styles: [
                     "/templates/css/style.css",
                     "/templates/css/plugins/bootstrap.min.css",
-                    "/templates/css/font-awesome.min.css",
+                    '/templates/css/font-awesome.min.css',
                 ],
                 scripts: [],
                 style: `
@@ -370,7 +325,12 @@ export default function Create({ id, template }) {
 
         // Override Default Image
         editor.DomComponents.addType("image", {
-            model: { defaults: { traits: [] } },
+            extend: "image",
+            model: {
+                defaults: {
+                    traits: [],
+                },
+            },
         });
 
         editorRef.current = editor;
@@ -378,9 +338,9 @@ export default function Create({ id, template }) {
         editor.on("load", () => {
             // ... (Kode CSS Injection untuk content mode tetap sama) ...
             const canvasHead = editor.Canvas.getDocument().head;
-            const styleId = "mode-content-style";
+            const styleId = 'mode-content-style';
             if (!canvasHead.querySelector(`#${styleId}`)) {
-                const styleEl = document.createElement("style");
+                const styleEl = document.createElement('style');
                 styleEl.id = styleId;
                 styleEl.innerHTML = `
                     .mode-content-active * { pointer-events: none !important; cursor: default !important; }
@@ -391,155 +351,165 @@ export default function Create({ id, template }) {
                 canvasHead.appendChild(styleEl);
             }
 
-            // Command untuk Lihat Source Code per Element
-            editor.Commands.add("custom-view-code", {
-                run: (editor) => {
-                    const selected = editor.getSelected();
-                    if (selected) {
-                        const html = selected.toHTML();
-                        const css = editor.CodeManager.getCode(selected, "css"); // Ambil CSS terkait (opsional)
-                        setSourceCode(`${html}`); // Tampilkan HTML elemen itu saja
-                        setShowCode(true);
-                    }
-                },
-            });
-
             // Load Templates
             fetch(`/api/proposal/templates`)
                 .then((res) => res.json())
                 .then((templates) => {
-                    const rawCats = templates.map(
-                        (t) => t.category || "Templates"
-                    );
-                    const cats = ["All Blocks", ...new Set(rawCats)];
-
+                    const cats = [
+                        "All Blocks",
+                        ...new Set(templates.map((t) => t.category)),
+                    ];
                     setCategories(cats);
                     templates.forEach((tpl, index) => {
                         editor.BlockManager.add(`template-${index}`, {
                             category: tpl.category || "Templates",
                             media: `<img src="${tpl.preview}" style="width: 100%;" />`,
                             content: {
-                                content: `<input type="hidden" data-template-category="${
-                                    tpl.category || "Templates"
-                                }">${tpl.html}`,
-                                style: tpl.css,
-                            },
+                                content: tpl.html,
+                                attributes: {
+                                    "data-template-category": tpl.category,
+                                    "data-gjs-section": "true"
+                                }
+                            }
                         });
                     });
-                })
-                .finally(() => setLoading(false));
+                });
 
-            if (template) {
-                if (template.html_output)
-                    editor.setComponents(template.html_output);
-                if (template.css_output) editor.setStyle(template.css_output);
-            }
-            setTimeout(() => changeMode("elements"), 500);
+            Promise.resolve()
+                .then(() => {
+                    if (template?.html_output) editor.setComponents(template.html_output);
+                    if (template?.css_output) editor.setStyle(template.css_output);
+                })
+                .finally(() => {
+                    setLoading(false);
+                    setTimeout(() => changeMode("elements"), 300);
+                });
+                
         });
 
-        // ===============================================
-        // PERBAIKAN UTAMA DISINI (EVENT LISTENER)
-        // ===============================================
+        editor.on("component:select:before", (component, options) => {
+            if (activeModeRef.current !== "elements") return;
 
+            if (!isSectionRoot(component)) {
+                const parent = findSectionRoot(component);
+                options.abort = true;
+                if (parent) editor.select(parent);
+            }
+        });
+        
         // 1. SAAT ELEMEN DIPILIH
         editor.on("component:selected", (comp) => {
             if (!comp) return;
             const mode = activeModeRef.current;
 
             if (mode === "details") {
-                const sidebar = document.getElementById(
-                    "style-editor-container"
-                );
-                const sidebarTitle =
-                    document.getElementById("sidebar-title-text");
+                const sidebar = document.getElementById("style-editor-container");
+                const sidebarTitle = document.getElementById("sidebar-title-text");
                 const traitHeader = document.getElementById("trait-header");
 
-                // A. Tampilkan Sidebar
                 if (sidebar) sidebar.style.display = "flex";
 
-                // B. Ambil Config & Update Judul
                 const config = getConfigForElement(comp);
                 if (sidebarTitle) sidebarTitle.innerText = config.title;
 
-                // C. Update Traits (Settings)
-                comp.set("traits", config.traits);
-                // Sembunyikan header "ATTRIBUTES" jika traits kosong
+                comp.set("traits", config.traits || []);
                 if (traitHeader) {
-                    traitHeader.style.display =
-                        config.traits.length > 0 ? "block" : "none";
+                    traitHeader.style.display = config.traits.length ? "block" : "none";
                 }
 
-                // D. Filter Style CSS
                 const sm = editor.StyleManager;
-                const sectors = sm.getSectors();
-                sectors.forEach((sector) => {
-                    let hasVisibleProps = false;
+                sm.getSectors().forEach((sector) => {
+                    let visible = false;
                     sector.get("properties").forEach((prop) => {
-                        const propName = prop.get("property");
-                        const isAllowed = config.styles.some((allowed) => {
-                            if (allowed === propName) return true;
-                            if (
-                                allowed === "padding" &&
-                                propName.startsWith("padding")
-                            )
-                                return true;
-                            if (
-                                allowed === "margin" &&
-                                propName.startsWith("margin")
-                            )
-                                return true;
-                            if (
-                                allowed === "border-width" &&
-                                propName === "border-width"
-                            )
-                                return true;
-                            if (
-                                allowed === "border-style" &&
-                                propName === "border-style"
-                            )
-                                return true;
-                            if (
-                                allowed === "border-color" &&
-                                propName === "border-color"
-                            )
-                                return true;
-                            return false;
-                        });
-                        prop.set("visible", isAllowed);
-                        if (isAllowed) hasVisibleProps = true;
+                        const name = prop.get("property");
+                        const allowed = config.styles.some((a) =>
+                            a === name ||
+                            (a === "padding" && name.startsWith("padding")) ||
+                            (a === "margin" && name.startsWith("margin")) ||
+                            (a === "border" && name.startsWith("border"))
+                        );
+                        prop.set("visible", allowed);
+                        if (allowed) visible = true;
                     });
-                    sector.set("visible", hasVisibleProps);
-                    sector.set("open", hasVisibleProps);
+                    sector.set({ visible, open: visible });
                 });
-            } else if (mode === "content") {
-                // Logic content mode (biarkan seperti sebelumnya)
-                const view = comp.getView();
-                if (view?.el && comp.get("editable")) {
-                    view.el.setAttribute("contenteditable", "true");
-                    view.el.focus();
-                }
             }
-            markDirty();
+
+            if (mode === "content") {
+                withHTMLElement(comp.getView(), (el) => {
+                    if (comp.get("editable")) {
+                        el.setAttribute("contenteditable", "true");
+                        el.focus({ preventScroll: true });
+                    }
+                });
+            }
         });
 
-        // 2. SAAT KLIK RUANG KOSONG (DESELECT) -> TUTUP SIDEBAR
         editor.on("component:deselected", () => {
-            markDirty();
             const sidebar = document.getElementById("style-editor-container");
             if (sidebar) sidebar.style.display = "none";
         });
 
         editor.on("component:add", (component) => {
-            markDirty();
-            setTimeout(
-                () => applyComponentSettings(component, activeModeRef.current),
-                50
-            );
+            const attrs = component.getAttributes?.() || {};
+
+            if (attrs["data-template-category"] && !component.get("initialContent")) {
+                component.set({
+                    initialContent: component.toHTML(),
+                    initialStyle: editor.getCss({ component }),
+                });
+            }
+        });
+
+        editor.Commands.add('custom-view-code', {
+            run: (editor) => {
+                const selected = editor.getSelected();
+                if (selected) {
+                    const html = selected.toHTML();
+                    const css = editor.CodeManager.getCode(selected, 'css'); // Ambil CSS terkait (opsional)
+                    setSourceCode(`${html}`); // Tampilkan HTML elemen itu saja
+                    setShowCode(true);
+                }
+            }
+        });
+
+        editor.Commands.add("reset-section", {
+            run(editor) {
+                if (activeModeRef.current !== "elements") return;
+
+                const selected = editor.getSelected();
+                if (!selected) return;
+
+                const html = selected.get("initialContent");
+                const css = selected.get("initialStyle");
+
+                if (!html) {
+                    alert("Reset tidak tersedia untuk elemen ini");
+                    return;
+                }
+
+                selected.components(html);
+
+                if (css) {
+                    editor.CssComposer.add(css);
+                }
+            },
         });
 
         const markDirty = () => setIsDirty(true);
 
-        return () => editor.destroy();
+        editor.on("component:add", markDirty);
+        editor.on("component:remove", markDirty);
+        editor.on("component:update", markDirty);
+        editor.on("style:property:update", markDirty);
+
+        return () => {
+            if (editorRef.current) {
+                editorRef.current.destroy();
+                editorRef.current = null;
+            }
+        };
+
     }, []);
 
     useEffect(() => {
@@ -553,303 +523,101 @@ export default function Create({ id, template }) {
         return () => window.removeEventListener("beforeunload", handler);
     }, [isDirty]);
 
-    const savePage = async () => {
-        if (!editorRef.current) return;
-
-        const editor = editorRef.current;
-
-        const html = editor.getHtml();
-
-        const parser = new DOMParser();
-        const doc = parser.parseFromString(html, "text/html");
-
-        const categoriesUsed = [
-            ...new Set(
-                [...doc.querySelectorAll("[data-template-category]")].map(
-                    (el) => el.dataset.templateCategory
-                )
-            ),
-        ];
-
-        const canvasConfig = editor.getConfig().canvas;
-
-        const getFilteredCss = async (url) => {
-            try {
-                const response = await fetch(url);
-                const text = await response.text();
-
-                // JANGAN FILTER FONT AWESOME
-                if (url.includes("font-awesome")) {
-                    return text;
-                }
-
-                return filterCssRules(text, doc);
-            } catch (err) {
-                console.error("Gagal mengambil CSS:", url);
-                return "";
-            }
-        };
-
-        const externalPromises = canvasConfig.styles.map((url) =>
-            getFilteredCss(url)
-        );
-        const externalResults = await Promise.all(externalPromises);
-
-        const internalCss = filterCssRules(editor.getCss(), doc);
-
-        const finalUsedCss = externalResults.join("\n") + "\n" + internalCss;
-
-        const iframe = editor.Canvas.getFrameEl();
-        const iframeBody = iframe.contentDocument.body;
-
-        const imageBlob = await htmlToImage.toBlob(iframeBody, {
-            backgroundColor: "#ffffff",
-            pixelRatio: 2, // HD thumbnail
-        });
-
-        // Convert ke Base64 (untuk dikirim)
-        const imageBase64 = await new Promise((resolve) => {
-            const reader = new FileReader();
-            reader.onloadend = () => resolve(reader.result);
-            reader.readAsDataURL(imageBlob);
-        });
-
-        const form = new FormData();
-        form.append("id", id);
-        form.append("html", html);
-        form.append("css", finalUsedCss);
-        form.append("image", imageBase64);
-        categoriesUsed.forEach((c) => form.append("categories[]", c));
-
-        const res = await fetch("/proposal", {
-            method: "POST",
-            headers: {
-                Accept: "application/json",
-                "X-CSRF-TOKEN": document.querySelector(
-                    'meta[name="csrf-token"]'
-                ).content,
-            },
-            body: form,
-        });
-
-        const savePage = await res.json();
-
-        if (savePage.success) {
-            alert("Simpan Berhasil!");
-            window.location.href = savePage.redirect;
-        }
-    };
-
-    const handleViewCode = () => {
-        const editor = editorRef.current;
-        if (!editor) return;
-
-        const html = editor.getHtml();
-        const css = editor.getCss();
-
-        const fullCode = `\n${html}\n\n/* CSS */\n<style>\n${css}\n</style>`;
-
-        setSourceCode(fullCode);
-        setShowCode(true);
-    };
-
-    // =========================================================
-    // BAGIAN 3: UPDATE COMPONENT SETTINGS
-    // =========================================================
     const applyComponentSettings = (comp, mode) => {
         if (!comp || typeof comp.get !== "function") return;
 
-        // const tagName = comp.get("tagName")?.toUpperCase();
         const type = comp.get("type");
-        const isWrapper = type === "wrapper";
-
-        const parent = comp.parent();
-        const isRootBlock =
-            (parent && parent.get("type") === "wrapper") ||
-            (!parent && !isWrapper);
-
         const view = comp.getView();
-        if (view?.el && typeof view.el.removeAttribute === "function") {
-            view.el.removeAttribute("contenteditable");
-        }
+        const isText = comp.is("text") || type === "text";
 
         let props = {};
 
         if (mode === "elements") {
-            const customToolbar = [
-                {
-                    attributes: {
-                        class: "fa fa-arrows",
-                        title: "Drag Element",
-                    },
-                    command: "tlb-move",
-                },
-                {
-                    attributes: { class: "fa fa-code", title: "View Source" },
-                    command: "custom-view-code",
-                },
-                {
-                    attributes: { class: "fa fa-undo", title: "Reset" },
-                    command: (e) => e.runCommand("core:undo"),
-                },
-                {
-                    attributes: { class: "fa fa-trash", title: "Remove" },
-                    command: "tlb-delete",
-                },
-            ];
+            const isRoot = isSectionRoot(comp);
 
-            if (isWrapper) {
-                // Wrapper (Kanvas Putih)
-                props = {
-                    selectable: false, // Jangan seleksi kanvasnya
-                    draggable: false, // Kanvas tidak bisa digeser
-                    droppable: true, // TAPI harus bisa menerima drop elemen
-                    hoverable: false,
-                };
-            } else if (isRootBlock) {
-                // ELEMEN UTAMA (Contoh: Section, Container besar)
-                props = {
-                    draggable: true, // BISA DIGESER (Penting!)
-                    droppable: true, // Bisa terima elemen lain (opsional)
-                    selectable: true, // Bisa diklik untuk muncul toolbar
-                    removable: true, // Bisa dihapus
-                    hoverable: true,
-                    highlightable: true,
-                    editable: false, // Teks tidak bisa diedit
-                    badgable: true, // Muncul label nama elemen
-                    toolbar: customToolbar, // Toolbar muncul DI SINI
-                };
-            } else {
-                // ANAK ELEMEN (Teks, Tombol kecil di dalam box)
-                props = {
-                    draggable: false, // TIDAK BISA DIGESER keluar induknya
-                    droppable: false,
-                    selectable: true, // Masih bisa diklik (agar user sadar ini bagian dari grup)
-                    removable: false, // Tidak bisa dihapus satuan
-                    hoverable: true,
-                    editable: false,
-                    toolbar: [], // Toolbar KOSONG (User harus klik induknya jika mau hapus/geser)
-                };
+            // Pastikan contenteditable mati
+            if (view?.el instanceof HTMLElement) {
+                view.el.removeAttribute("contenteditable");
             }
+
+            props = {
+                selectable: isRoot,
+                draggable: isRoot,
+                removable: isRoot,
+                copyable: isRoot,
+                hoverable: isRoot,
+                highlightable: isRoot,
+                editable: false,
+                stylable: false,
+
+                toolbar: isRoot
+                    ? [
+                          { attributes: { class: "fa fa-arrows", title: "Move Section" }, command: "tlb-move" },
+                          { attributes: { class: "fa fa-code", title: "View Source" }, command: "custom-view-code" },
+                          { attributes: { class: "fa fa-refresh", title: "Reset Section" }, command: "reset-section" },
+                          { attributes: { class: "fa fa-trash", title: "Remove Section" }, command: "tlb-delete" },
+                      ]
+                    : [],
+            };
         } else if (mode === "content") {
-            if (
-                view?.el &&
-                typeof view.el.setAttribute === "function" &&
-                (comp.is("text") || type === "text")
-            ) {
+            if (view?.el && isText) {
                 view.el.setAttribute("contenteditable", "true");
             }
 
             props = {
-                // KUNCI STRUKTUR:
                 draggable: false,
                 droppable: false,
                 removable: false,
                 copyable: false,
 
-                // IZINKAN EDIT KONTEN
                 selectable: true,
                 hoverable: true,
-                editable: true, // Boleh edit teks
+                editable: true,
+                stylable: false,
+                highlightable: false,
 
-                // Toolbar Hilang (Agar user fokus konten)
                 toolbar: [],
             };
 
-            // Khusus Gambar: Izinkan upload saat didouble-click
             if (type === "image") {
-                props.editable = true; // Double click memicu Asset Manager
+                props.editable = true;
             }
         } else if (mode === "details") {
+            if (view?.el instanceof HTMLElement) {
+                view.el.removeAttribute("contenteditable");
+            }
+
             props = {
                 draggable: false,
                 droppable: false,
                 removable: false,
                 copyable: false,
-                selectable: true, // Wajib TRUE agar event 'selected' jalan
+
+                selectable: true,
                 hoverable: true,
-                editable: false, // Matikan edit teks (biar gak tabrakan sama klik)
+                editable: false,
                 highlightable: true,
+                stylable: true,
+
                 toolbar: [],
-                stylable: true, // Wajib TRUE agar CSS bisa diedit
             };
         }
+
         comp.set(props);
-    };
-
-    const injectElementToolbar = (editor, comp) => {
-        const view = comp.getView();
-        if (!view || !view.el) return;
-
-        const el = view.el;
-        if (el.querySelector(".el-toolbar")) return;
-
-        const bar = document.createElement("div");
-        bar.className = "el-toolbar";
-        bar.innerHTML = `
-            <button data-act="source">⧉</button>
-            <button data-act="reset">↺</button>
-            <button data-act="remove">✕</button>
-        `;
-
-        el.style.position = "relative";
-        el.appendChild(bar);
-
-        bar.onclick = (e) => {
-            e.stopPropagation();
-            const act = e.target.dataset.act;
-
-            if (act === "source") {
-                editor.Modal.setTitle("Source Code")
-                    .setContent(`<pre>${comp.toHTML()}</pre>`)
-                    .open();
-            }
-
-            if (act === "reset") {
-                const original = comp.get("initialContent");
-                if (original) comp.components(original);
-            }
-
-            if (act === "remove") comp.remove();
-        };
-        el.addEventListener("mouseenter", () => {
-            if (activeModeRef.current === "elements" && isSectionRoot(comp)) {
-                injectElementToolbar(editor, comp);
-            }
-        });
-    };
-
-    const removeElementToolbar = (comp) => {
-        const el = comp.getView()?.el;
-        el?.querySelector(".el-toolbar")?.remove();
-    };
-
-    const isSectionRoot = (comp) => {
-        return (
-            comp.getAttributes()?.["data-gjs-section"] === "true" ||
-            ["HEADER", "SECTION", "FOOTER"].includes(
-                comp.get("tagName")?.toUpperCase()
-            )
-        );
-    };
-
-    const hideElementToolbar = (editor) => {
-        const toolbar = editor.Canvas.getBody().querySelector(".el-toolbar");
-        if (toolbar) toolbar.style.display = "none";
     };
 
     const changeMode = (mode) => {
         // 1. Update State React
         setActiveMode(mode);
         activeModeRef.current = mode;
-
+        
         const editor = editorRef.current;
         if (!editor) return;
 
         // 2. Reset Seleksi & Sidebar UI
-        editor.select(null);
+        editor.select(null); 
         const sidebar = document.getElementById("style-editor-container");
-        if (sidebar) sidebar.style.display = "none";
+        if (sidebar) sidebar.style.display = 'none';
 
         // 3. Terapkan Aturan ke Wrapper (Canvas Utama)
         const wrapper = editor.getWrapper();
@@ -857,53 +625,63 @@ export default function Create({ id, template }) {
             // Tentukan aturan Wrapper berdasarkan mode
             if (mode === "content" || mode === "details") {
                 // Di mode Content/Details, Canvas tidak boleh terima drop elemen baru
-                wrapper.set({
-                    selectable: false,
-                    hoverable: false,
+                wrapper.set({ 
+                    selectable: false, 
+                    hoverable: false, 
                     droppable: false,
-                    draggable: false,
+                    draggable: false
                 });
             } else {
                 // Di mode Elements, Canvas boleh terima drop
-                wrapper.set({
+                wrapper.set({ 
                     droppable: true,
                     selectable: false,
-                    draggable: false,
-                });
+                    draggable: false
+                }); 
             }
-
+            
             // 4. Update Anak Elemen secara Rekursif
             // Fungsi helper untuk loop ke dalam
             const updateRecursively = (component) => {
                 applyComponentSettings(component, mode); // Terapkan logic (editable/draggable)
-
+                
                 // Cek apakah punya anak
                 const children = component.get("components");
                 if (children) {
-                    children.forEach((child) => updateRecursively(child));
+                    children.forEach(child => updateRecursively(child));
                 }
             };
-
+            
             // Jalankan loop mulai dari komponen di dalam wrapper
             const components = wrapper.get("components");
-            if (components) {
-                components.forEach((child) => updateRecursively(child));
+            if(components) {
+                components.forEach(child => updateRecursively(child));
             }
         }
-
+        
         // 5. Visual Helper (Garis Putus-putus)
         if (mode === "elements") {
-            try {
-                editor.runCommand("core:component-outline");
-            } catch (e) {}
+            try { editor.runCommand("core:component-outline"); } catch(e){}
         } else {
-            try {
-                editor.stopCommand("core:component-outline");
-            } catch (e) {}
+            try { editor.stopCommand("core:component-outline"); } catch(e){}
         }
 
         // 6. Refresh Canvas
         editor.refresh();
+    };
+
+    const isSectionRoot = (comp) => {
+        if (!comp) return false;
+        const attrs = comp.getAttributes?.() || {};
+        return !!attrs["data-template-category"];
+    };
+
+    const findSectionRoot = (comp) => {
+        let current = comp;
+        while (current && !isSectionRoot(current)) {
+            current = current.parent();
+        }
+        return current;
     };
 
     const isStructural = (comp) => {
@@ -996,6 +774,91 @@ export default function Create({ id, template }) {
             return true;
         }
     }
+
+    const savePage = async () => {
+        if (!editorRef.current) return;
+
+        const editor = editorRef.current;
+
+        const html = editor.getHtml();
+
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(html, "text/html");
+
+        const categoriesUsed = [
+            ...new Set(
+                [...doc.querySelectorAll("[data-template-category]")].map(
+                    (el) => el.dataset.templateCategory
+                )
+            ),
+        ];
+
+        const canvasConfig = editor.getConfig().canvas;
+
+        const getFilteredCss = async (url) => {
+            try {
+                const response = await fetch(url);
+                const text = await response.text();
+
+                // JANGAN FILTER FONT AWESOME
+                if (url.includes("font-awesome")) {
+                    return text;
+                }
+
+                return filterCssRules(text, doc);
+            } catch (err) {
+                console.error("Gagal mengambil CSS:", url);
+                return "";
+            }
+        };
+
+        const externalPromises = canvasConfig.styles.map((url) =>
+            getFilteredCss(url)
+        );
+        const externalResults = await Promise.all(externalPromises);
+
+        const internalCss = filterCssRules(editor.getCss(), doc);
+
+        const finalUsedCss = externalResults.join("\n") + "\n" + internalCss;
+
+        const iframe = editor.Canvas.getFrameEl();
+        const iframeBody = iframe.contentDocument.body;
+
+        const imageBlob = await htmlToImage.toBlob(iframeBody, {
+            backgroundColor: "#ffffff",
+            pixelRatio: 2, // HD thumbnail
+        });
+
+        // Convert ke Base64 (untuk dikirim)
+        const imageBase64 = await new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.onloadend = () => resolve(reader.result);
+            reader.readAsDataURL(imageBlob);
+        });
+
+        const form = new FormData();
+        form.append("id", id);
+        form.append("html", html);
+        form.append("css", finalUsedCss);
+        form.append("image", imageBase64);
+        categoriesUsed.forEach(c => form.append("categories[]", c));
+
+        const res = await fetch("/proposal", {
+            method: "POST",
+            headers: {
+                "Accept": "application/json",
+                "X-CSRF-TOKEN": document.querySelector('meta[name="csrf-token"]').content,
+            },
+            body: form,
+        });
+
+        const savePage = await res.json();
+
+        if (savePage.success) {
+            alert("Simpan Berhasil!");
+            window.location.href = savePage.redirect;
+        }
+    };
 
     const exportPage = async () => {
         if (!editorRef.current) return;
@@ -1239,11 +1102,9 @@ export default function Create({ id, template }) {
                             className={`
                                 inline-flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium
                                 transition
-                                ${
-                                    isDirty
-                                        ? "bg-emerald-600 text-white hover:bg-emerald-700"
-                                        : "cursor-not-allowed bg-emerald-200 text-emerald-700"
-                                }
+                                ${isDirty
+                                    ? "bg-emerald-600 text-white hover:bg-emerald-700"
+                                    : "cursor-not-allowed bg-emerald-200 text-emerald-700"}
                             `}
                         >
                             ✓ {isDirty ? "Save Page" : "Nothing new to save"}
@@ -1288,7 +1149,9 @@ export default function Create({ id, template }) {
                         <button
                             onClick={() =>
                                 document
-                                    .getElementById("style-editor-container")
+                                    .getElementById(
+                                        "style-editor-container"
+                                    )
                                     .classList.remove("open")
                             }
                         >
