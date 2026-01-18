@@ -23,6 +23,18 @@ const Show = ({ company, quotations, invoices, payments, projects, contacts, sta
     const [selectedProject, setSelectedProject] = useState(null);
     const [modalMode, setModalMode] = useState('create'); // 'create' atau 'edit'
     
+    // State untuk edit project
+    const [showEditModal, setShowEditModal] = useState(false);
+    const [editingProject, setEditingProject] = useState(null);
+    const [editFormData, setEditFormData] = useState({
+        project_description: '',
+        start_date: '',
+        deadline: '',
+        status: 'pending',
+        note: ''
+    });
+    const [isSavingProject, setIsSavingProject] = useState(false);
+    
     // State untuk contacts yang bisa diupdate
     const [contactData, setContactData] = useState(contacts || []);
     const [isLoadingContacts, setIsLoadingContacts] = useState(false);
@@ -122,11 +134,58 @@ const Show = ({ company, quotations, invoices, payments, projects, contacts, sta
         }, 3000);
     };
 
-    // Function untuk handle edit project
-    const handleProjectEdit = (project) => {
-        console.log('Editing project:', project);
-        setSelectedProject(project);
-        setModalMode('edit');
+    // Function untuk handle edit project - UPDATED VERSION
+    const handleProjectEdit = async (updatedProjectData) => {
+        console.log('handleProjectEdit called with:', updatedProjectData);
+        
+        try {
+            setIsSavingProject(true);
+            
+            // Kirim request update ke backend
+            const response = await axios.put(
+                `/companies/${company.id}/projects/${updatedProjectData.id}`,
+                updatedProjectData,
+                {
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                }
+            );
+            
+            console.log('Update response:', response.data);
+            
+            if (response.data.success) {
+                // Show success toast
+                showToast(t('companies_show.project_updated_successfully'), 'success');
+                
+                // Refresh halaman untuk mendapatkan data terbaru
+                router.reload({ preserveScroll: true });
+                
+                return true; // Return true untuk menutup modal di ProjectTable
+            } else {
+                showToast(response.data.message || t('companies_show.failed_to_update_project'), 'error');
+                return false; // Return false untuk tetap membuka modal
+            }
+        } catch (error) {
+            console.error('Error updating project:', error);
+            
+            if (error.response?.status === 422) {
+                // Validation errors
+                const errors = error.response.data.errors;
+                let errorMessage = t('companies_show.validation_errors') + ':\n';
+                Object.keys(errors).forEach(key => {
+                    errorMessage += `- ${errors[key].join(', ')}\n`;
+                });
+                showToast(errorMessage, 'error');
+            } else {
+                showToast(error.response?.data?.message || t('companies_show.failed_to_update_project'), 'error');
+            }
+            
+            return false; // Return false untuk tetap membuka modal
+        } finally {
+            setIsSavingProject(false);
+        }
     };
 
     // Function untuk handle delete project
@@ -257,7 +316,7 @@ const Show = ({ company, quotations, invoices, payments, projects, contacts, sta
                 return (
                     <ProjectTable 
                         data={displayData.projects} 
-                        onEdit={handleProjectEdit}
+                        onEdit={handleProjectEdit} // Pass the updated function
                         onDelete={handleProjectDelete}
                     />
                 );
@@ -433,6 +492,16 @@ const Show = ({ company, quotations, invoices, payments, projects, contacts, sta
                                 </button>
                             </div>
                         </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Loading overlay untuk project edit */}
+            {isSavingProject && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                    <div className="bg-white rounded-lg p-6 flex flex-col items-center">
+                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mb-4"></div>
+                        <p className="text-gray-700">{t('companies_show.saving_project')}</p>
                     </div>
                 </div>
             )}

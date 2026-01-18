@@ -183,9 +183,15 @@ export default function Index({ auth_permissions }) {
             key: 'no',
             label: t('invoices.table.no_date') || 'Invoice',
             render: (value, row, idx) => (
+                console.log(row),
                 <div>
-                    <div className="text-teal-700 font-semibold hover:text-teal-900 cursor-pointer" onClick={() => handlePreview(row.original)}>{value}</div>
-                    <div className="text-xs text-gray-500">{row.date}</div>
+                    <a className="text-blue-600 font-semibold hover:underline flex items-center gap-1 cursor-pointer" 
+                        href={`/storage/${row.pdf_path}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        >{value}
+                    </a>
+                    <div className="text-xs text-gray-500">{new Date(row.date || "-").toLocaleDateString()}</div>
                 </div>
             )
         },
@@ -236,6 +242,7 @@ export default function Index({ auth_permissions }) {
         date: inv.date,
         company_name: inv.company,
         amount: formatRp(inv.amount),
+        pdf_path: inv.pdf_path || null,
         payment: formatRp(inv.paid_amount || 0),
         tax: `PPN ${inv.tax?.ppn ? inv.tax.ppn.toLocaleString() : 0} / PPh ${inv.tax?.pph ? inv.tax.pph.toLocaleString() : 0}`,
         due_amount: formatRp(inv.due_amount),

@@ -305,7 +305,7 @@ export default function QoutationsIndex({
         date: q.date,
         subject: q.subject || "-",
         company_name: q.lead?.company_name || "-",
-        contact: q.lead?.contact_person || "-",
+        contact: q.company_contact_person?.name || q.lead?.contact_person || "-",
         created_by: q.creator?.name || "Admin", // Sesuaikan field ini
         total: new Intl.NumberFormat("id-ID", {
             style: "currency",

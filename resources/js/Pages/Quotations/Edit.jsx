@@ -34,6 +34,20 @@ export default function Edit({
         setData("services", [...data.services, itemWithId]);
     };
 
+    let initialContactId = "";
+    if (quotation.company_contact_person_id) {
+        // Jika data tersimpan sebagai Client Contact Person
+        initialContactId = String(quotation.company_contact_person_id);
+    }else if (!quotation.is_client) {
+        initialContactId = String(quotation.lead_id || quotation.company_id || "");
+    }
+
+    console.log("INITIAL CONTACT: ", initialContactId);
+
+    let savedContact = quotation.contactPerson || {};
+
+    console.log("saved contact: ", savedContact);
+
     const {
         data,
         setData,
@@ -50,27 +64,19 @@ export default function Edit({
 
         date: quotation.date || "",
         number: quotation.quotation_number || "",
-        company_id: (() => {
-            if (quotation.is_client) {
-                const company = companies.find(
-                    (c) => String(c.lead_id) === String(quotation.lead_id)
-                );
-                return company ? company.id : null;
-            }
-            return quotation.lead_id || null;
-        })(),
-        contact_person_id: quotation.contact_person_id
-            ? String(quotation.contact_person_id)
+        company_id: quotation.is_client
+            ? quotation.company?.id
+            : (quotation.lead_id || quotation.company_id),
+
+        company_contact_person_id: quotation.company_contact_person_id 
+            ? String(quotation.company_contact_person_id) 
             : "",
         company_name: quotation.lead?.company_name || null,
         address: quotation.lead?.address || "",
-        contact_person:
-            quotation.lead?.contact_person ||
-            quotation.company?.lead?.contact_person ||
-            "",
-        position: quotation.lead?.position || "",
-        email: quotation.lead?.email || "",
-        phone: quotation.lead?.phone || "",
+        contact_person: savedContact.name || savedContact.contact_person || "",
+        email: savedContact.email || "",
+        phone: savedContact.phone || savedContact.mobile || "",
+        position: savedContact.position || savedContact.job_title || "",
         subject: quotation.subject || "",
         payment_terms: quotation.payment_terms || "",
         note: quotation.note || "",
@@ -213,8 +219,6 @@ export default function Edit({
     });
 
     console.log("full data :", data);
-
-    console.log("data tax :", data.tax);
 
     // useEffect(() => {
     //     const subTotal = data.services.reduce(
@@ -636,54 +640,11 @@ export default function Edit({
                 renderEditor={({ updateField: builderUpdate }) => {
                     const nameIsLocked = !data.client_type;
 
-                    const handleSelectionChange = (id) => {
-                        const isClient = data.client_type === "Client";
-                        const source = isClient ? companies : leads;
-
-                        const selected = source.find(
-                            (item) => String(item.id) === String(id)
-                        );
-
-                        if (selected) {
-                            const dataSource = isClient
-                                ? selected.lead
-                                : selected;
-
-                            const updateData = {
-                                // Gunakan ID asli dari record yang dipilih agar dropdown tersinkron
-                                company_id: selected.id,
-                                lead_id: isClient
-                                    ? selected.lead_id
-                                    : selected.id,
-                                company_name: isClient
-                                    ? selected.lead?.company_name ||
-                                      selected.client_code
-                                    : selected.company_name,
-                                address: dataSource?.address || "",
-                                // Reset contact setiap kali ganti company
-                                contact_person_id: "",
-                                contact_person: "",
-                                email: "",
-                                phone: "",
-                                position: "",
-                            };
-
-                            // Update UI Builder dan Local State
-                            Object.entries(updateData).forEach(
-                                ([field, value]) => builderUpdate(field, value)
-                            );
-                            setData((prev) => ({ ...prev, ...updateData }));
-                        }
-                    };
-                    const currentOptions =
-                        data.client_type === "Client"
-                            ? companies || []
-                            : leads || [];
-
+                    // 1. Helper: Mengambil list kontak dengan aman (Support Company & Lead)
                     const getContactList = (org) => {
                         if (!org) return [];
 
-                        // Prefer explicit contacts arrays from company objects
+                        // Cek berbagai kemungkinan key untuk array kontak (khusus Company)
                         const contactsArr =
                             org.contacts ||
                             org.contact_persons ||
@@ -694,115 +655,138 @@ export default function Edit({
                             contactsArr.length > 0
                         ) {
                             return contactsArr.map((c) => ({
-                                id:
-                                    c.id ??
-                                    c.contact_id ??
-                                    c.lead_id ??
-                                    c.email ??
-                                    "",
+                                id: c.id,
+                                // Prioritas nama: name -> contact_person -> full_name
                                 name:
-                                    c.name ??
-                                    c.contact_person ??
-                                    c.full_name ??
-                                    (c.lead && c.lead.contact_person) ??
-                                    "",
-                                email:
-                                    c.email ?? (c.lead && c.lead.email) ?? "",
-                                phone:
-                                    c.phone ??
-                                    (c.lead && c.lead.phone) ??
-                                    c.mobile ??
-                                    "",
-                                position: c.position ?? c.job_title ?? "",
+                                    c.name ||
+                                    c.contact_person ||
+                                    c.full_name ||
+                                    "No Name",
+                                email: c.email || "",
+                                phone: c.phone || c.mobile || "",
+                                position: c.position || c.job_title || "",
                                 raw: c,
                             }));
                         }
 
-                        // Fallback: treat the org itself (Lead) as a single contact
+                        // Fallback: Jika Tipe Lead (atau Company tanpa kontak array),
+                        // gunakan data organisasi itu sendiri sebagai satu-satunya kontak.
                         return [
                             {
-                                id: org.id,
+                                id: org.id, // Gunakan ID Lead sebagai ID kontak sementara
                                 name:
-                                    org.contact_person ??
-                                    org.name ??
-                                    org.company_name ??
-                                    "",
-                                email: org.email ?? "",
-                                phone: org.phone ?? "",
-                                position: org.position ?? "",
+                                    org.contact_person ||
+                                    org.company_name ||
+                                    "Main Contact",
+                                email: org.email || "",
+                                phone: org.phone || "",
+                                position: org.position || data.position || "Owner/PIC",
                                 raw: org,
                             },
                         ];
                     };
 
+                    // 2. Handle saat Perusahaan/Lead dipilih dari dropdown utama
+                    const handleSelectionChange = (id) => {
+                        const isClient = data.client_type === "Client";
+                        const source = isClient ? companies : leads;
+
+                        const selected = source.find(
+                            (item) => String(item.id) === String(id)
+                        );
+
+                        if (selected) {
+                            const contactList = selected.contacts || [];
+                            let autoContact = null;
+                            if(contactList.length === 1) autoContact = contactList[0];
+
+                            const updateData = {
+                                company_id: selected.id,
+                                lead_id: isClient ? selected.lead_id : selected.id,
+                                company_name: isClient 
+                                    ? (selected.lead?.company_name || selected.client_code) 
+                                    : selected.company_name,
+                                address: (isClient ? selected.lead?.address : selected.address) || "",
+
+                                company_contact_person_id: autoContact ? String(autoContact.id) : "",
+                                contact_person: autoContact?.name || "",
+                                position: autoContact?.position || "",
+                                email: autoContact?.email || "",
+                                phone: autoContact?.phone || "",
+                            };
+
+                            // Update ke Builder & State
+                            Object.entries(updateData).forEach(
+                                ([field, value]) => builderUpdate(field, value)
+                            );
+                            setData((prev) => ({ ...prev, ...updateData }));
+                        }
+                    };
+
+                    // 3. Handle saat Contact Person dipilih
                     const handleContactChange = (contactId) => {
                         const isClient = data.client_type === "Client";
                         const source = isClient ? companies : leads;
 
+                        // Cari Organisasi yang sedang aktif
                         const selectedOrg = source.find(
                             (c) => String(c.id) === String(data.company_id)
                         );
 
-                        if (!selectedOrg) return;
+                        if (selectedOrg) {
+                            // Cari data orang di dalam array contacts milik organisasi terpilih
+                            const contacts = selectedOrg.contacts || [];
+                            const person = contacts.find(p => String(p.id) === String(contactId));
 
-                        const list = getContactList(selectedOrg);
-                        const selectedContact = list.find(
-                            (p) => String(p.id) === String(contactId)
-                        );
+                            if (person) {
+                                const finalData = {
+                                    company_contact_person_id: contactId,
+                                    contact_person: person.name || "",
+                                    email: person.email || "",
+                                    phone: person.phone || "",
+                                    position: person.position || "",
+                                };
+                                Object.entries(finalData).forEach(([k, v]) => builderUpdate(k, v));
+                                setData((prev) => ({ ...prev, ...finalData }));
+                            }
+                        }
 
-                        if (!selectedContact) return;
+                        // const list = getContactList(selectedOrg);
 
-                        const finalData = {
-                            contact_person_id: selectedContact.id,
-                            contact_person: selectedContact.name || "",
-                            email: selectedContact.email || "",
-                            phone: selectedContact.phone || "",
-                            position: selectedContact.position || "",
-                        };
+                        // const selectedContact = list.find(
+                        //     (p) => String(p.id) === String(contactId)
+                        // );
 
-                        Object.entries(finalData).forEach(([f, v]) => {
-                            if (typeof builderUpdate === "function")
-                                builderUpdate(f, v);
-                        });
+                        // if (!selectedContact) return;
 
-                        setData((prev) => ({ ...prev, ...finalData }));
+                        // const finalData = {
+                        //     company_contact_person_id: String(
+                        //         selectedContact.id
+                        //     ),
+                        //     contact_person: selectedContact.name || "",
+                        //     email: selectedContact.email || "",
+                        //     phone: selectedContact.phone || "",
+                        //     position: selectedContact.position || data.position || "",
+                        // };
+
+                        // Object.entries(finalData).forEach(([f, v]) => {
+                        //     if (typeof builderUpdate === "function")
+                        //         builderUpdate(f, v);
+                        // });
+
+                        // setData((prev) => ({ ...prev, ...finalData }));
                     };
 
-                    // Auto-select a contact when company_id is present but contact_person_id is not
-                    useEffect(() => {
-                        if (!data.company_id) return;
-                        if (data.contact_person_id) return;
+                    // [DIHAPUS] useEffect untuk auto-select contact telah dihapus.
+                    // Ini menyelesaikan masalah Preview terisi otomatis sebelum user memilih.
 
-                        const isClient = data.client_type === "Client";
-                        const source = isClient ? companies : leads;
-                        const selectedOrg = source.find(
-                            (c) => String(c.id) === String(data.company_id)
-                        );
-                        if (!selectedOrg) return;
+                    // Helper UI
+                    const currentOptions =
+                        data.client_type === "Client"
+                            ? companies || []
+                            : leads || [];
 
-                        const list = getContactList(selectedOrg);
-                        if (!list || list.length === 0) return;
-
-                        const first = list[0];
-                        const id = first.id;
-
-                        const finalData = {
-                            contact_person_id: String(id),
-                            contact_person: first.name || "",
-                            email: first.email || "",
-                            phone: first.phone || "",
-                            position: first.position || "",
-                        };
-
-                        Object.entries(finalData).forEach(([f, v]) => {
-                            if (typeof builderUpdate === "function")
-                                builderUpdate(f, v);
-                        });
-
-                        setData((prev) => ({ ...prev, ...finalData }));
-                    }, [data.company_id, data.client_type]);
-
-                    // Sync date and valid_until into builder so inputs show existing values
+                    // Sync date and valid_until manually if needed
                     useEffect(() => {
                         if (typeof builderUpdate !== "function") return;
                         if (data.date) builderUpdate("date", data.date);
@@ -810,18 +794,13 @@ export default function Edit({
                             builderUpdate("valid_until", data.valid_until);
                     }, [data.date, data.valid_until]);
 
+                    // ... (Fungsi discount & tax handle tetap sama) ...
                     const handleDiscountChange = (value) => {
                         builderUpdate("discount", value);
                         setData("discount", value);
                         if (value === "no") {
                             builderUpdate("discount_amount", 0);
                             setData("discount_amount", 0);
-                            // calculateAndSyncTotals(
-                            //     data.services,
-                            //     data.tax,
-                            //     data.tax_type,
-                            //     0
-                            // );
                         }
                     };
 
@@ -829,45 +808,12 @@ export default function Edit({
                         const amount = Number(val) || 0;
                         builderUpdate("discount_amount", amount);
                         setData("discount_amount", amount);
-                        // calculateAndSyncTotals(
-                        //     data.services,
-                        //     data.tax,
-                        //     data.tax_type,
-                        //     amount
-                        // );
                     };
-
-                    // const handleTaxTypeChange = (valueString) => {
-                    //     let taxName = null;
-                    //     let taxRate = 0;
-
-                    //     if (valueString && valueString !== "|0") {
-                    //         const [name, rate] = valueString.split("|");
-                    //         taxName = name;
-                    //         taxRate = Number(rate);
-                    //     }
-                    //     builderUpdate("tax_type", taxName);
-                    //     builderUpdate("tax", taxRate);
-
-                    //     setData((prev) => ({
-                    //         ...prev,
-                    //         tax_type: taxName,
-                    //         tax: taxRate,
-                    //     }));
-
-                    //     // calculateAndSyncTotals(
-                    //     //     data.services,
-                    //     //     taxRate,
-                    //     //     taxName,
-                    //     //     data.discount_amount
-                    //     // );
-                    // };
 
                     const handleTaxTypeChange = (valueString) => {
                         let taxName = null;
                         let taxRate = 0;
 
-                        // Jika valueString adalah "|0" atau tidak valid, biarkan default (null dan 0)
                         if (
                             valueString &&
                             valueString.includes("|") &&
@@ -878,16 +824,13 @@ export default function Edit({
                             taxRate = parseFloat(parts[1]) || 0;
                         }
 
-                        // Hitung nilai tax_amount dari sub_total saat ini
                         const currentSubTotal = Number(data.sub_total || 0);
                         const calculatedTaxAmount = currentSubTotal * taxRate;
 
-                        // Update Builder (untuk Preview)
                         builderUpdate("tax_type", taxName);
                         builderUpdate("tax", taxRate);
                         builderUpdate("tax_amount", calculatedTaxAmount);
 
-                        // Update State Utama (Inertia useForm)
                         setData((prev) => ({
                             ...prev,
                             tax_type: taxName,
@@ -895,8 +838,10 @@ export default function Edit({
                             tax_amount: calculatedTaxAmount,
                         }));
                     };
+
                     return (
                         <div className="space-y-5">
+                            {/* INPUT TANGGAL */}
                             <div className="flex flex-col">
                                 <label className="text-[10px] font-bold text-gray-400 uppercase">
                                     {t("quotations.builder.date")}
@@ -912,39 +857,37 @@ export default function Edit({
                                     }}
                                 />
                             </div>
+
+                            {/* TAB CLIENT TYPE */}
                             <div className="flex bg-gray-100 p-1 rounded-xl">
                                 {["Client", "Lead"].map((type) => {
                                     const isActive = data.client_type === type;
-
                                     return (
                                         <button
                                             key={type}
                                             type="button"
                                             onClick={(e) => {
                                                 e.preventDefault();
-                                                const newType = type;
-
-                                                // Update builder jika Anda menggunakan plugin builder
+                                                // Reset total saat ganti tab
                                                 if (
                                                     typeof builderUpdate ===
                                                     "function"
                                                 ) {
                                                     builderUpdate(
                                                         "client_type",
-                                                        newType
+                                                        type
                                                     );
                                                 }
-
-                                                // Reset data terkait saat pindah tipe agar tidak terjadi salah ID
                                                 setData((prev) => ({
                                                     ...prev,
-                                                    client_type: newType,
+                                                    client_type: type,
                                                     company_id: null,
                                                     company_name: null,
                                                     contact_person: "",
                                                     email: "",
                                                     phone: "",
-                                                    contact_person_id: null,
+                                                    company_contact_person_id:
+                                                        "", // Reset ID Contact
                                                 }));
                                             }}
                                             className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${
@@ -959,6 +902,7 @@ export default function Edit({
                                 })}
                             </div>
 
+                            {/* SELECT COMPANY / LEAD */}
                             <div
                                 className={
                                     nameIsLocked
@@ -1002,7 +946,10 @@ export default function Edit({
                                 </label>
                                 <select
                                     className="w-full border-gray-300 rounded text-sm"
-                                    value={String(data.contact_person_id || "")}
+                                    // Gunakan String() untuk memastikan value sesuai dengan option
+                                    value={String(
+                                        data.company_contact_person_id || ""
+                                    )}
                                     onChange={(e) =>
                                         handleContactChange(e.target.value)
                                     }
@@ -1012,47 +959,26 @@ export default function Edit({
                                         -- Choose Person --
                                     </option>
                                     {(() => {
-                                        const isClient =
-                                            data.client_type === "Client";
-                                        const source = isClient
-                                            ? companies
-                                            : leads;
-
+                                        const isClient = data.client_type === "Client";
+                                        const source = isClient ? companies : leads;
+                                        
                                         const selectedOrg = source.find(
-                                            (c) =>
-                                                String(c.id) ===
-                                                String(data.company_id)
+                                            (c) => String(c.id) === String(data.company_id)
                                         );
 
                                         if (!selectedOrg) return null;
 
-                                        const list =
-                                            getContactList(selectedOrg);
+                                        const contacts = selectedOrg.contacts || [];
 
-                                        if (!list || list.length === 0)
-                                            return null;
-
-                                        return list.map((ct) => {
-                                            const labelName =
-                                                ct.name ||
-                                                ct.contact_person ||
-                                                "No Name";
-                                            const positionDisplay = ct.position
-                                                ? ` (${ct.position})`
-                                                : "";
-                                            return (
-                                                <option
-                                                    key={ct.id}
-                                                    value={ct.id}
-                                                >
-                                                    {labelName}
-                                                    {positionDisplay}
-                                                </option>
-                                            );
-                                        });
+                                        return contacts.map((ct) => (
+                                            <option key={ct.id} value={ct.id}>
+                                                {ct.name} {ct.position ? `(${ct.position})` : ""}
+                                            </option>
+                                        ));
                                     })()}
                                 </select>
                             </div>
+
                             <div className="grid grid-cols-1 gap-3">
                                 <div className="flex flex-col justify-start">
                                     <label className="text-[10px] font-bold text-gray-400 uppercase">
@@ -1070,6 +996,7 @@ export default function Edit({
                                         }}
                                     />
                                 </div>
+                                {/* ... Bagian Discount, Tax, Payment Terms, Note, Valid Until copy paste dari kode lama Anda ... */}
                                 <div className="flex flex-col justify-start">
                                     <label className="text-[10px] font-bold text-gray-400 uppercase">
                                         {t("quotations.builder.discount")}
@@ -1124,11 +1051,9 @@ export default function Edit({
                                                             currentTax
                                                     ) < 0.0001
                                             );
-
                                             if (matchedPpn) {
                                                 return `PPN ${matchedPpn.name}|${matchedPpn.rate}`;
                                             }
-
                                             return "|0";
                                         })()}
                                         onChange={(e) =>
@@ -1150,8 +1075,16 @@ export default function Edit({
                                     <label className="text-[10px] font-bold text-gray-400 uppercase">
                                         {t("quotations.builder.payment_terms")}
                                         <span className="text-red-600">* </span>
-                                        <span className={`text-[9px] font-bold ${data.payment_terms?.length >= 250 ? 'text-red-500' : 'text-gray-400'}`}>
-                                            {data.payment_terms?.length || 0} / 255
+                                        <span
+                                            className={`text-[9px] font-bold ${
+                                                data.payment_terms?.length >=
+                                                250
+                                                    ? "text-red-500"
+                                                    : "text-gray-400"
+                                            }`}
+                                        >
+                                            {data.payment_terms?.length || 0} /
+                                            255
                                         </span>
                                     </label>
                                     <textarea
@@ -1161,7 +1094,10 @@ export default function Edit({
                                         onChange={(e) => {
                                             const val = e.target.value;
                                             if (val.length <= 255) {
-                                                builderUpdate("payment_terms", val);
+                                                builderUpdate(
+                                                    "payment_terms",
+                                                    val
+                                                );
                                                 setData("payment_terms", val);
                                             }
                                         }}
@@ -1171,7 +1107,13 @@ export default function Edit({
                                     <label className="text-[10px] font-bold text-gray-400 uppercase">
                                         {t("quotations.builder.note")}
                                         <span className="text-red-600">* </span>
-                                        <span className={`text-[9px] font-bold ${data.note?.length >= 250 ? 'text-red-500' : 'text-gray-400'}`}>
+                                        <span
+                                            className={`text-[9px] font-bold ${
+                                                data.note?.length >= 250
+                                                    ? "text-red-500"
+                                                    : "text-gray-400"
+                                            }`}
+                                        >
                                             {data.note?.length || 0} / 255
                                         </span>
                                     </label>
@@ -1196,7 +1138,7 @@ export default function Edit({
                                     <input
                                         type="date"
                                         className="w-full border-gray-300 rounded text-sm"
-                                        value={data.valid_until}
+                                        value={data.valid_until || ""}
                                         onChange={(e) => {
                                             builderUpdate(
                                                 "valid_until",
@@ -1220,7 +1162,6 @@ export default function Edit({
                     updateField: builderUpdate,
                 }) => {
                     if (!builderAddItem) setBuilderAddItem(() => addItem);
-
                     // useEffect(() => {
                     //     const calculatedSubTotal = data.services.reduce(
                     //         (acc, curr) => acc + parseFloat(curr.price || 0),

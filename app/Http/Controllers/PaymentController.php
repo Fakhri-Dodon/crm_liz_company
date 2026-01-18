@@ -68,8 +68,9 @@ class PaymentController extends Controller
 
             return [
                 'id' => $payment->id,
+                'invoice_id' => $payment->invoice_id,
                 'invoice_number' => $payment->invoice->invoice_number ?? 'N/A',
-                'payment_date' => $payment->date->format('d-m-Y'),
+                'payment_date' => $payment->date->format('d/m/Y'),
                 'company_name' => $companyName,
                 'company_id' => $companyId,
                 'amount' => (float) $payment->amount,
@@ -196,10 +197,15 @@ class PaymentController extends Controller
             } elseif ($totalPaid > 0) {
                 $status = 'Partial';
             }
-            $invoice->update([
+            $invoiceData = [
                 'amount_due' => $amountDue,
                 'status' => $status
-            ]);
+            ];
+            $statusObj = \App\Models\InvoiceStatuses::where('name', $status)->first();
+            if ($statusObj) {
+                $invoiceData['invoice_statuses_id'] = $statusObj->id;
+            }
+            $invoice->update($invoiceData);
 
             DB::commit();
 
@@ -250,10 +256,15 @@ class PaymentController extends Controller
                 } elseif ($oldTotalPaid > 0) {
                     $oldStatus = 'Partial';
                 }
-                $oldInvoice->update([
+                $oldInvoiceData = [
                     'amount_due' => $oldAmountDue,
                     'status' => $oldStatus
-                ]);
+                ];
+                $oldStatusObj = \App\Models\InvoiceStatuses::where('name', $oldStatus)->first();
+                if ($oldStatusObj) {
+                    $oldInvoiceData['invoice_statuses_id'] = $oldStatusObj->id;
+                }
+                $oldInvoice->update($oldInvoiceData);
             }
 
             // Update payment info for new invoice
@@ -266,10 +277,15 @@ class PaymentController extends Controller
             } elseif ($newTotalPaid > 0) {
                 $newStatus = 'Partial';
             }
-            $newInvoice->update([
+            $newInvoiceData = [
                 'amount_due' => $newAmountDue,
                 'status' => $newStatus
-            ]);
+            ];
+            $newStatusObj = \App\Models\InvoiceStatuses::where('name', $newStatus)->first();
+            if ($newStatusObj) {
+                $newInvoiceData['invoice_statuses_id'] = $newStatusObj->id;
+            }
+            $newInvoice->update($newInvoiceData);
 
             DB::commit();
 
@@ -309,10 +325,15 @@ class PaymentController extends Controller
             } elseif ($totalPaid > 0) {
                 $status = 'Partial';
             }
-            $invoice->update([
+            $invoiceData = [
                 'amount_due' => $amountDue,
                 'status' => $status
-            ]);
+            ];
+            $statusObj = \App\Models\InvoiceStatuses::where('name', $status)->first();
+            if ($statusObj) {
+                $invoiceData['invoice_statuses_id'] = $statusObj->id;
+            }
+            $invoice->update($invoiceData);
 
             DB::commit();
 

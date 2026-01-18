@@ -97,7 +97,11 @@ class ProposalElementController extends Controller
             });
         } catch (\Exception $e) {
             if (isset($oldPath)) Storage::disk('public')->delete($oldPath);
-            return back()->withErrors(['error' => 'Gagal Simpan: ' . $e->getMessage()]);
+            return response()->json([
+                'success'   => false,
+                'message'   => $e->getMessage(),
+                'error'     => 'Gagal Simpan: ' . $e->getMessage()
+            ], 500);
         }
 
     }

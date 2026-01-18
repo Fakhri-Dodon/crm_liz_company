@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useForm, router } from '@inertiajs/react';
+import { useForm } from '@inertiajs/react';
 import { X, Calendar, FileText, Clock, MessageSquare, ChevronDown, Users, Loader2 } from 'lucide-react';
 import axios from 'axios';
 
@@ -7,20 +7,23 @@ const ProjectModal = ({
     show, 
     onClose, 
     projectId,
-    companies: initialCompanies, // Rename prop untuk clarity
+    companies: initialCompanies,
     quotations, 
     statusOptions, 
     isEdit = false,
-    title = "Add Project"
+    title = "Add Project",
+    onSuccess
 }) => {
     const [isLoading, setIsLoading] = useState(false);
-    const [clients, setClients] = useState([]); // Simpan sebagai clients
+    const [clients, setClients] = useState([]);
     const [projectData, setProjectData] = useState(null);
     const [loadingClients, setLoadingClients] = useState(false);
+    const [isSubmitting, setIsSubmitting] = useState(false);
     
+    // Gunakan useForm dengan initial state kosong
     const { data, setData, post, put, processing, errors, reset } = useForm({
         quotation_id: '',
-        company_id: '', // Tetap company_id untuk form submission
+        company_id: '',
         project_description: '',
         start_date: '',
         deadline: '',
@@ -32,7 +35,6 @@ const ProjectModal = ({
     useEffect(() => {
         if (show) {
             if (initialCompanies && initialCompanies.length > 0) {
-                // Transform data dari prop
                 const transformedClients = initialCompanies.map(company => ({
                     id: company.id,
                     name: company.name || company.full_display || company.display_name,
@@ -43,9 +45,7 @@ const ProjectModal = ({
                     has_lead: company.has_lead
                 }));
                 setClients(transformedClients);
-                console.log('Clients loaded from props:', transformedClients.length);
             } else {
-                // Fetch dari API
                 fetchClients();
             }
         }
@@ -54,62 +54,49 @@ const ProjectModal = ({
     // Fetch project data saat modal edit dibuka
     useEffect(() => {
         if (show && isEdit && projectId) {
+            console.log('Fetching project data for edit mode');
             fetchProjectData();
         }
     }, [show, isEdit, projectId]);
 
-    // Reset form ketika modal create dibuka
+    // RESET FORM KETIKA MODAL CREATE DIBUKA
     useEffect(() => {
         if (show && !isEdit) {
+            console.log('Resetting form for create mode');
             resetForm();
         }
     }, [show, isEdit]);
 
-    // Fetch clients dari API
+    // RESET FORM KETIKA MODAL TERTUTUP
+    useEffect(() => {
+        if (!show) {
+            console.log('Modal closed, resetting form');
+            resetForm();
+        }
+    }, [show]);
+
     const fetchClients = async () => {
         setLoadingClients(true);
         try {
             const response = await axios.get('/api/clients');
-            console.log('Clients API Response:', response.data);
-            
             if (response.data.success) {
                 setClients(response.data.data);
-                
-                // Debug log
-                if (response.data.data && response.data.data.length > 0) {
-                    console.log('Sample clients:');
-                    response.data.data.slice(0, 3).forEach((client, index) => {
-                        console.log(`Client ${index + 1}:`, {
-                            id: client.id,
-                            name: client.name,
-                            full_display: client.full_display,
-                            lead_company_name: client.lead_company_name,
-                            client_code: client.client_code
-                        });
-                    });
-                }
-            } else {
-                console.error('Failed to fetch clients:', response.data.message);
             }
         } catch (error) {
             console.error('Error fetching clients:', error);
-            console.error('Error response:', error.response?.data);
         } finally {
             setLoadingClients(false);
         }
     };
 
-    // Fetch data project dari API
     const fetchProjectData = async () => {
         setIsLoading(true);
-        
         try {
             const response = await axios.get(`/projects/${projectId}/edit`);
             const project = response.data;
             
             setProjectData(project);
             
-            // Set data ke form
             const formData = {
                 quotation_id: project.quotation_id || '',
                 company_id: project.company_id || '',
@@ -122,19 +109,11 @@ const ProjectModal = ({
             
             setData(formData);
             
-            // Debug log
-            console.log('Project data loaded:', {
-                company_id: project.company_id,
-                company_name: project.company?.name,
-                company_full_display: project.company?.full_display
-            });
-            
         } catch (error) {
             console.error('Error fetching project data:', error);
-            
             if (error.response?.status === 404) {
                 alert('Project not found. It may have been deleted.');
-                handleClose();
+                handleCloseModal();
             }
         } finally {
             setIsLoading(false);
@@ -142,6 +121,7 @@ const ProjectModal = ({
     };
 
     const resetForm = () => {
+        console.log('Resetting form to empty state');
         reset({
             quotation_id: '',
             company_id: '',
@@ -152,58 +132,96 @@ const ProjectModal = ({
             status: 'in_progress'
         });
         setProjectData(null);
+        setIsSubmitting(false);
     };
-
-    // Filter hanya 4 status yang diinginkan
-    const filteredStatusOptions = statusOptions?.filter(option => 
-        ['in_progress', 'completed', 'pending', 'cancelled'].includes(option.value)
-    ) || [];
 
     const handleSubmit = (e) => {
         e.preventDefault();
         
+        // TUTUP MODAL LANGSUNG SETELAH SUBMIT DITEKAN
+        // Panggil onSuccess untuk menutup modal segera
+        if (onSuccess && typeof onSuccess === 'function') {
+            console.log('Calling onSuccess to close modal immediately');
+            onSuccess();
+        }
+        
+        // Set submitting state untuk UI feedback
+        setIsSubmitting(true);
+        
+        // Kirim data ke server
         if (isEdit && projectId) {
             put(route('projects.update', projectId), {
                 preserveScroll: true,
                 preserveState: true,
                 onSuccess: () => {
-                    reset();
+                    console.log('Project updated successfully on server');
+                    // Reset form setelah sukses
                     resetForm();
-                    onClose();
-                    router.reload({ 
-                        only: ['projects', 'summary', 'filters'],
-                        preserveScroll: true 
-                    });
+                    // Tidak perlu panggil onSuccess lagi karena sudah dipanggil di atas
                 },
                 onError: (errors) => {
                     console.error('Update errors:', errors);
+                    setIsSubmitting(false);
+                    // Jika error, modal tetap tertutup (karena sudah ditutup di awal)
+                    // Bisa tambahkan logika untuk membuka modal kembali jika perlu
+                },
+                onFinish: () => {
+                    setIsSubmitting(false);
                 }
             });
         } else {
-            post(route('projects.store'), {
+            const submitData = {
+                ...data,
+                status: 'in_progress'
+            };
+            
+            post(route('projects.store'), submitData, {
                 preserveScroll: true,
                 preserveState: true,
                 onSuccess: () => {
+                    console.log('Project created successfully on server');
+                    // Reset form setelah sukses
                     resetForm();
-                    reset();
-                    onClose();
-                    router.reload({ 
-                        only: ['projects', 'summary', 'filters'],
-                        preserveScroll: true 
-                    });
+                    // Tidak perlu panggil onSuccess lagi karena sudah dipanggil di atas
                 },
                 onError: (errors) => {
                     console.error('Store errors:', errors);
+                    setIsSubmitting(false);
+                    // Jika error, modal tetap tertutup (karena sudah ditutup di awal)
+                    // Bisa tambahkan logika untuk membuka modal kembali jika perlu
+                },
+                onFinish: () => {
+                    setIsSubmitting(false);
                 }
             });
         }
     };
 
-    const handleClose = () => {
-        resetForm();
-        reset();
-        onClose();
+    // Fungsi untuk menutup modal dengan aman
+    const handleCloseModal = () => {
+        if (!processing && !isLoading && !isSubmitting) {
+            console.log('Manual close modal, resetting form');
+            resetForm();
+            // Panggil onClose yang diberikan dari parent
+            if (onClose && typeof onClose === 'function') {
+                onClose();
+            }
+        }
     };
+
+    // Handle ESC key press
+    useEffect(() => {
+        const handleEsc = (e) => {
+            if (e.key === 'Escape' && show) {
+                handleCloseModal();
+            }
+        };
+        
+        window.addEventListener('keydown', handleEsc);
+        return () => {
+            window.removeEventListener('keydown', handleEsc);
+        };
+    }, [show, processing, isLoading, isSubmitting]);
 
     if (!show) return null;
 
@@ -227,9 +245,9 @@ const ProjectModal = ({
                             </div>
                         </div>
                         <button
-                            onClick={handleClose}
-                            className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
-                            disabled={processing || isLoading}
+                            onClick={handleCloseModal}
+                            className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            disabled={processing || isLoading || isSubmitting}
                         >
                             <X className="w-5 h-5" />
                         </button>
@@ -242,7 +260,6 @@ const ProjectModal = ({
                             <p className="text-gray-600">Loading project data...</p>
                         </div>
                     ) : (
-                        /* Form */
                         <form onSubmit={handleSubmit} className="p-6 space-y-6 max-h-[70vh] overflow-y-auto">
                             {/* Project Description */}
                             <div>
@@ -260,7 +277,7 @@ const ProjectModal = ({
                                         maxLength={250}
                                         required
                                         placeholder="Describe the project scope and objectives..."
-                                        disabled={processing}
+                                        disabled={isSubmitting}
                                     />
                                     <div className="flex justify-between items-center mt-2">
                                         {errors.project_description ? (
@@ -300,7 +317,7 @@ const ProjectModal = ({
                                                         errors.company_id ? 'border-red-300' : 'border-gray-300'
                                                     }`}
                                                     required
-                                                    disabled={processing || loadingClients}
+                                                    disabled={loadingClients || isSubmitting}
                                                 >
                                                     <option value="" className="text-gray-400">Select a client</option>
                                                     {clients.map(client => (
@@ -318,11 +335,6 @@ const ProjectModal = ({
                                     {errors.company_id && (
                                         <p className="mt-1 text-sm text-red-600">{errors.company_id}</p>
                                     )}
-                                    {clients.length > 0 && (
-                                        <div className="mt-1 text-xs text-gray-500">
-                                            {clients.length} clients available
-                                        </div>
-                                    )}
                                 </div>
 
                                 {/* Quotation Selection */}
@@ -337,7 +349,7 @@ const ProjectModal = ({
                                             onChange={e => setData('quotation_id', e.target.value)}
                                             className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#005954] focus:border-transparent appearance-none transition-colors"
                                             required
-                                            disabled={processing}
+                                            disabled={isSubmitting}
                                         >
                                             <option value="" className="text-gray-400">Select a quotation</option>
                                             {quotations && quotations.map(quote => (
@@ -369,7 +381,7 @@ const ProjectModal = ({
                                             errors.start_date ? 'border-red-300' : 'border-gray-300'
                                         }`}
                                         required
-                                        disabled={processing}
+                                        disabled={isSubmitting}
                                     />
                                     {errors.start_date && (
                                         <p className="mt-1 text-sm text-red-600">{errors.start_date}</p>
@@ -391,7 +403,7 @@ const ProjectModal = ({
                                             errors.deadline ? 'border-red-300' : 'border-gray-300'
                                         }`}
                                         required
-                                        disabled={processing}
+                                        disabled={isSubmitting}
                                     />
                                     {errors.deadline && (
                                         <p className="mt-1 text-sm text-red-600">{errors.deadline}</p>
@@ -399,34 +411,54 @@ const ProjectModal = ({
                                 </div>
                             </div>
 
-                            {/* Status and Note Row */}
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                {/* Status */}
-                                <div>
+                            {/* Note */}
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
+                                    <MessageSquare className="w-4 h-4" />
+                                    Note (Optional)
+                                </label>
+                                <textarea
+                                    value={data.note}
+                                    onChange={e => setData('note', e.target.value)}
+                                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#005954] focus:border-transparent min-h-[100px] resize-none transition-colors"
+                                    maxLength={250}
+                                    placeholder="Additional notes or requirements..."
+                                    disabled={isSubmitting}
+                                />
+                                <div className="text-right text-xs text-gray-500 mt-2">
+                                    {data.note?.length || 0}/250 characters
+                                </div>
+                            </div>
+
+                            {/* Status - Hanya untuk edit mode */}
+                            {isEdit && (
+                                <div className="p-4 bg-gray-50 rounded-xl border border-gray-200">
                                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                                        Status *
+                                        Project Status
                                     </label>
                                     <div className="grid grid-cols-2 gap-2">
-                                        {filteredStatusOptions.map(option => {
+                                        {statusOptions?.filter(option => 
+                                            ['in_progress', 'completed', 'pending', 'cancelled'].includes(option.value)
+                                        ).map(option => {
                                             const colors = {
-                                                in_progress: 'bg-blue-50 text-blue-700 border-blue-200',
-                                                completed: 'bg-green-50 text-green-700 border-green-200',
-                                                pending: 'bg-yellow-50 text-yellow-700 border-yellow-200',
-                                                cancelled: 'bg-red-50 text-red-700 border-red-200'
+                                                in_progress: 'bg-blue-50 text-blue-700 border-blue-500',
+                                                completed: 'bg-green-50 text-green-700 border-green-500',
+                                                pending: 'bg-yellow-50 text-yellow-700 border-yellow-500',
+                                                cancelled: 'bg-red-50 text-red-700 border-red-500'
                                             };
-                                            const colorClass = colors[option.value] || 'bg-gray-50 text-gray-700 border-gray-200';
+                                            const colorClass = colors[option.value] || 'bg-gray-50 text-gray-700 border-gray-500';
                                             
                                             return (
                                                 <button
                                                     type="button"
                                                     key={option.value}
                                                     onClick={() => setData('status', option.value)}
-                                                    className={`p-3 border rounded-lg text-sm font-medium transition-all ${
+                                                    className={`p-3 border-2 rounded-lg text-sm font-medium transition-all ${
                                                         data.status === option.value 
                                                             ? `${colorClass} ring-2 ring-offset-1 ring-[#005954]` 
                                                             : `${colorClass} hover:opacity-90`
                                                     }`}
-                                                    disabled={processing}
+                                                    disabled={isSubmitting}
                                                 >
                                                     {option.label}
                                                 </button>
@@ -437,47 +469,28 @@ const ProjectModal = ({
                                         <p className="mt-1 text-sm text-red-600">{errors.status}</p>
                                     )}
                                 </div>
-
-                                {/* Note */}
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
-                                        <MessageSquare className="w-4 h-4" />
-                                        Note (Optional)
-                                    </label>
-                                    <textarea
-                                        value={data.note}
-                                        onChange={e => setData('note', e.target.value)}
-                                        className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#005954] focus:border-transparent min-h-[100px] resize-none transition-colors"
-                                        maxLength={250}
-                                        placeholder="Additional notes or requirements..."
-                                        disabled={processing}
-                                    />
-                                    <div className="text-right text-xs text-gray-500 mt-2">
-                                        {data.note?.length || 0}/250 characters
-                                    </div>
-                                </div>
-                            </div>
+                            )}
 
                             {/* Form Actions */}
                             <div className="flex flex-col-reverse sm:flex-row gap-3 pt-6 border-t border-gray-100">
                                 <button
                                     type="button"
-                                    onClick={handleClose}
-                                    className="px-6 py-3 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 transition-colors font-medium flex-1"
-                                    disabled={processing || isLoading}
+                                    onClick={handleCloseModal}
+                                    className="px-6 py-3 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 transition-colors font-medium flex-1 disabled:opacity-50 disabled:cursor-not-allowed"
+                                    disabled={isLoading || isSubmitting}
                                 >
                                     Cancel
                                 </button>
                                 <button
                                     type="submit"
-                                    className="px-6 py-3 bg-[#005954] text-white rounded-xl hover:bg-[#004d47] transition-colors font-medium flex-1 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm hover:shadow-md"
-                                    disabled={processing || isLoading || (clients.length === 0 && loadingClients)}
+                                    className="px-6 py-3 bg-[#005954] text-white rounded-xl hover:bg-[#004d47] transition-colors font-medium flex-1 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm hover:shadow-md flex items-center justify-center gap-2"
+                                    disabled={isLoading || isSubmitting || (clients.length === 0 && loadingClients)}
                                 >
-                                    {(processing || isLoading) ? (
-                                        <span className="flex items-center justify-center gap-2">
-                                            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                                            {isLoading ? 'Loading...' : 'Processing...'}
-                                        </span>
+                                    {isSubmitting ? (
+                                        <>
+                                            <Loader2 className="w-4 h-4 animate-spin" />
+                                            Processing...
+                                        </>
                                     ) : (
                                         isEdit ? 'Update Project' : 'Create Project'
                                     )}

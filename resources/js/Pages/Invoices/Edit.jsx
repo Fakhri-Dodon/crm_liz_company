@@ -15,6 +15,9 @@ export default function Edit({ leads = [], companies = [], quotations = [], invo
         price: "",
     });
 
+    const { props } = usePage();
+    const { auth, app_config } = props;
+
     const builderAddItem = (newItem) => {
         const itemWithId = {
             ...newItem,
@@ -37,6 +40,12 @@ export default function Edit({ leads = [], companies = [], quotations = [], invo
         client_type: invoice.is_client ? "Client" : "Lead",
         date: invoice.date || "",
         number: invoice.invoice_number || "",
+
+        // Use current logged-in user as preparer by default (fallback to invoice.creator)
+        prepared_by_name: auth?.user?.name || invoice.creator?.name || "",
+        prepared_by_role: auth?.user?.role_name || invoice.creator?.role?.name || "",
+        my_company_name: app_config?.company_name || "",
+
         company_id: invoice.company_id || null,
         contact_person_id: invoice.contact_person_id || null,
         company_name: invoice.company_name || "",
@@ -93,6 +102,30 @@ export default function Edit({ leads = [], companies = [], quotations = [], invo
             }));
         }
     }, [data.services, data.ppn, data.pph, data.payment_percentage]);
+
+    // Auto-select contact person from lead when company/lead selection changes (if a contact isn't already chosen)
+    useEffect(() => {
+        if (!data.company_id) return;
+
+        const isClient = data.client_type === "Client";
+        const source = isClient ? companies : leads;
+        const selectedOrg = source.find((c) => String(c.id) === String(data.company_id));
+        if (!selectedOrg) return;
+
+        const leadObj = isClient ? selectedOrg.lead : selectedOrg;
+
+        // Selalu set contact_person_id ke id dari leadObj saat company berubah
+        if (leadObj) {
+            setData((prev) => ({
+                ...prev,
+                contact_person_id: leadObj.id,
+                contact_person: leadObj.contact_person || leadObj.name || '',
+                email: leadObj.email || '',
+                phone: leadObj.phone || '',
+                position: leadObj.position || '',
+            }));
+        }
+    }, [data.company_id, data.client_type]);
 
     const handleSave = async () => {
         if (data.services.length === 0) {
@@ -175,9 +208,8 @@ export default function Edit({ leads = [], companies = [], quotations = [], invo
             maximumFractionDigits: 0,
         }).format(num);
 
-    const { props } = usePage();
-    const logoUrl = props.app_config?.doc_logo_path 
-                    ? `/storage/${props.app_config.doc_logo_path}` 
+    const logoUrl = app_config?.doc_logo_path 
+                    ? `/storage/${app_config.doc_logo_path}` 
                     : null;
 
     return (
@@ -327,6 +359,9 @@ export default function Edit({ leads = [], companies = [], quotations = [], invo
                                 ? selected.lead
                                 : selected;
 
+                            console.log("handleSelectionChange - selected:", selected);
+                            console.log("handleSelectionChange - dataSource:", dataSource);
+
                             const updateData = {
                                 company_id: selected.id,
                                 lead_id: isClient
@@ -337,12 +372,20 @@ export default function Edit({ leads = [], companies = [], quotations = [], invo
                                       selected.client_code
                                     : selected.company_name,
                                 address: dataSource?.address || "",
-                                contact_person_id: "",
-                                contact_person: "",
-                                email: "",
-                                phone: "",
-                                position: "",
+                                // Auto-fill contact person from lead (if available) so option shows up immediately
+                                contact_person_id: dataSource?.id || "",
+                                contact_person: dataSource?.contact_person || dataSource?.name || "",
+                                email: dataSource?.email || "",
+                                phone: dataSource?.phone || "",
+                                position: dataSource?.position || "",
                             };
+
+                            console.log("handleSelectionChange - auto-fill contact from dataSource:", {
+                                contact_person_id: updateData.contact_person_id,
+                                contact_person: updateData.contact_person,
+                                email: updateData.email,
+                                phone: updateData.phone,
+                            });
 
                             Object.entries(updateData).forEach(
                                 ([field, value]) => builderUpdate(field, value)
@@ -365,44 +408,50 @@ export default function Edit({ leads = [], companies = [], quotations = [], invo
                         );
 
                         if (selectedOrg) {
+                            // Prefer lead object as source of contact info (for both Client and Lead)
+                            const leadObj = isClient ? selectedOrg.lead : selectedOrg;
+                            console.log("handleContactChange - test:", leadObj);
+
+                            console.log("handleContactChange - apaaj:", data.company_id, "contactId:", contactId);
+                            console.log("handleContactChange - apaaka:", selectedOrg);
+                            console.log("handleContactChange - leadObj:", leadObj);
+
                             let personRow = null;
 
-                            if (isClient) {
-                                personRow = selectedOrg.contact_persons?.find(
+                            // If lead exists, use the lead as the contact row (single option)
+                            if (leadObj) {
+                                // contactId will be leadObj.id when selected from lead-based list
+                                if (String(leadObj.id) === String(contactId)) {
+                                    personRow = leadObj;
+                                    console.log("handleContactChange - personRow set from leadObj:", personRow);
+                                }
+                            }
+
+                            // Fallback: if no lead but company has contact_persons, use matching contact person
+                            if (!personRow && selectedOrg.contact_persons) {
+                                personRow = selectedOrg.contact_persons.find(
                                     (p) => String(p.id) === String(contactId)
                                 );
-                            } else {
-                                personRow = selectedOrg;
+                                console.log("handleContactChange - personRow set from contact_persons:", personRow);
                             }
 
                             if (personRow) {
                                 const finalData = {
                                     contact_person_id: contactId,
-                                    contact_person: isClient 
-                                        ? (personRow.lead?.contact_person || selectedOrg.lead?.contact_person || "---") 
-                                        : (selectedOrg.contact_person || ""),
-                                    
-                                    email: isClient 
-                                        ? (personRow.lead?.email || selectedOrg.lead?.email || "") 
-                                        : (personRow.email || ""),
-                                    
-                                    phone: isClient 
-                                        ? (personRow.lead?.phone || selectedOrg.lead?.phone || "") 
-                                        : (personRow.phone || ""),
-
-                                    position: isClient 
-                                        ? (personRow.position || "") 
-                                        : (selectedOrg.job_title || selectedOrg.position || ""),
+                                    contact_person: personRow.contact_person || personRow.name || "",
+                                    email: personRow.email || "",
+                                    phone: personRow.phone || "",
+                                    position: personRow.position || "",
                                 };
 
-                                console.log("Data yang dikirim ke builder:", finalData);
+                                console.log("Data yang dikirim ke builder (lead-first):", finalData);
 
                                 Object.entries(finalData).forEach(([f, v]) => {
                                     if (typeof builderUpdate === 'function') {
                                         builderUpdate(f, v);
                                     }
                                 });
-                                
+
                                 setData((prev) => ({ ...prev, ...finalData }));
                             }
                         }
@@ -548,55 +597,50 @@ export default function Edit({ leads = [], companies = [], quotations = [], invo
                                         handleContactChange(e.target.value)
                                     }
                                 >
-                                    <option value="">
-                                        -- Choose Person --
-                                    </option>
+                                    <option value="">-- Choose Contact Person --</option>
                                     {(() => {
-                                        const isClient =
-                                            data.client_type === "Client";
-                                        const source = isClient
-                                            ? companies
-                                            : leads;
+                                        const isClient = data.client_type === "Client";
+                                        const source = isClient ? companies : leads;
                                         const selectedOrg = source.find(
-                                            (c) =>
-                                                String(c.id) ===
-                                                String(data.company_id)
+                                            (c) => String(c.id) === String(data.company_id)
                                         );
 
                                         if (!selectedOrg) return null;
 
-                                        let contacts =
-                                            selectedOrg.contact_persons || [];
-                                        if (
-                                            contacts.length === 0 &&
-                                            !isClient
-                                        ) {
-                                            contacts = [{ id: selectedOrg.id }];
+                                        console.log("Rendering contact options - selectedOrg:", selectedOrg);
+                                        const leadObj = isClient ? selectedOrg.lead : selectedOrg;
+
+                                        // Build unique options list (lead first, then company contact persons without duplicates)
+                                        const options = [];
+
+                                        if (leadObj) {
+                                            options.push({
+                                                id: leadObj.id,
+                                                label: leadObj.contact_person || leadObj.name || leadObj.company_name || "No Name",
+                                                position: leadObj.position || "",
+                                            });
                                         }
 
-                                        return contacts.map((ct) => {
-                                            const labelName = isClient
-                                                ? selectedOrg.lead
-                                                      ?.contact_person ||
-                                                  "No Name"
-                                                : selectedOrg.contact_person ||
-                                                  "No Name";
-
-                                            const positionDisplay =
-                                                isClient && ct.position
-                                                    ? ` (${ct.position})`
-                                                    : "";
-
-                                            return (
-                                                <option
-                                                    key={ct.id}
-                                                    value={ct.id}
-                                                >
-                                                    {labelName}
-                                                    {positionDisplay}
-                                                </option>
-                                            );
+                                        const contacts = selectedOrg.contact_persons || [];
+                                        contacts.forEach((ct) => {
+                                            if (!options.find((o) => String(o.id) === String(ct.id))) {
+                                                options.push({
+                                                    id: ct.id,
+                                                    label: ct.contact_person || ct.name || ct.company_name || "No Name",
+                                                    position: ct.position || "",
+                                                });
+                                            }
                                         });
+
+                                        console.log("Rendering contact options - options:", options);
+
+                                        if (options.length === 0) return null;
+
+                                        return options.map((o) => (
+                                            <option key={o.id} value={o.id}>
+                                                {o.label}{o.position ? ` (${o.position})` : ""}
+                                            </option>
+                                        ));
                                     })()}
                                 </select>
                             </div>
@@ -631,8 +675,44 @@ export default function Edit({ leads = [], companies = [], quotations = [], invo
                                         className="w-full border-gray-300 rounded text-sm"
                                         value={data.payment_type || ""}
                                         onChange={(e) => {
-                                            builderUpdate("payment_type", e.target.value);
-                                            setData("payment_type", e.target.value);
+                                            const val = e.target.value;
+                                            builderUpdate("payment_type", val);
+                                            setData("payment_type", val);
+
+                                            // If user selects a payment type that implies full payment,
+                                            // automatically set payment_percentage to 100% (1.0)
+                                            const selected = (props.paymentTypes || []).find(
+                                                (pt) => pt.name === val || pt.slug === val
+                                            );
+                                            // Debug: show selected payment type
+                                            console.log('Selected payment type:', selected);
+
+                                            const isFullPayment = !!selected && (
+                                                selected.slug === 'full_payment' ||
+                                                selected.slug === 'full-payment' ||
+                                                String(selected.name || '').toLowerCase().includes('full')
+                                            );
+
+                                            if (isFullPayment) {
+                                                builderUpdate("payment_percentage", 1);
+                                                setData("payment_percentage", 1);
+                                                calculateAndSyncTotals(
+                                                    data.services,
+                                                    data.ppn,
+                                                    data.pph,
+                                                    1
+                                                );
+                                            } else {
+                                                // Reset payment_percentage jika bukan full payment
+                                                builderUpdate("payment_percentage", 0);
+                                                setData("payment_percentage", 0);
+                                                calculateAndSyncTotals(
+                                                    data.services,
+                                                    data.ppn,
+                                                    data.pph,
+                                                    0
+                                                );
+                                            }
                                         }}
                                     >
                                         <option value="">-- Choose Payment --</option>
@@ -955,7 +1035,24 @@ export default function Edit({ leads = [], companies = [], quotations = [], invo
                                     </div>
 
                                     <div className="flex justify-between">
-                                        <span>Down Payment {data.payment_percentage ? `${(data.payment_percentage * 100).toFixed(0)}%` : ''}</span>
+                                        <span>
+                                            {(() => {
+                                                const percent = data.payment_percentage ? `${(data.payment_percentage * 100).toFixed(0)}%` : '';
+                                                const isFullPercent = Number(data.payment_percentage) === 1;
+                                                const selected = (props.paymentTypes || []).find(
+                                                    (pt) => pt.name === data.payment_type || pt.slug === data.payment_type || pt.name === (data.payment_type)
+                                                );
+                                                const isFullPayment = isFullPercent || (selected && (
+                                                    selected.slug === 'full_payment' ||
+                                                    selected.slug === 'full-payment' ||
+                                                    String(selected.name || '').toLowerCase().includes('full')
+                                                ));
+
+                                                return isFullPayment
+                                                    ? `Paid in Full ${percent ? `(${percent})` : ''}`
+                                                    : `Down Payment ${percent}`;
+                                            })()}
+                                        </span>
                                         <span>
                                             {formatIDR(data.down_payment || 0)}
                                         </span>
@@ -992,16 +1089,21 @@ export default function Edit({ leads = [], companies = [], quotations = [], invo
                                         </span>
                                     </div>
                                     
-                                    <p className="text-[17px] uppercase font-black pt-[0.9rem] pb-[5.2rem]">
-                                        {data.company_name || "---"}
-                                    </p>
                                     <div className="text-left">
-                                        <p className="text-[15px] uppercase font-black pt-[0.9rem]">
-                                            {data.contact_person || "---"}
+                                        <p className="text-[16px] uppercase font-black">
+                                            {data.my_company_name || app_config?.company_name || "---"}
                                         </p>
-                                        <p className="text-[15px] text-gray-400">
-                                            {data.position || "---"}
-                                        </p>
+
+                                        <div className="h-20"></div>
+
+                                        <div>
+                                            <p className="text-[14px] uppercase font-black leading-tight">
+                                                {data.prepared_by_name || auth?.user?.name || invoice.creator?.name || "---"}
+                                            </p>
+                                            <p className="text-[13px] text-gray-500 leading-tight">
+                                                {data.prepared_by_role || auth?.user?.role_name || invoice.creator?.role?.name || "---"}
+                                            </p>
+                                        </div>
                                     </div>
                                 </div>
                             </div>

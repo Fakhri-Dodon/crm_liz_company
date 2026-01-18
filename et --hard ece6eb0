@@ -1,0 +1,272 @@
+[33md9df232[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mdev-azmi[m[33m, [m[1;31morigin/dev-azmi[m[33m)[m UPDATE
+[33m33886ef[m[33m ([m[1;31morigin/fakhri[m[33m)[m Merge branch 'abece' of https://github.com/Fakhri-Dodon/crm_liz_company into fakhri
+[33m6da6bc3[m fix appearance update status client and client modal and project modal
+[33m85cb8b6[m Merge branch 'abece' of https://github.com/Fakhri-Dodon/crm_liz_company into fakhri
+[33m984bd9f[m fix appearance update status client and client modal and project modal
+[33me10390a[m update 15/01/2026
+[33m14c2558[m Merge branch 'dev-azmi' of https://github.com/Fakhri-Dodon/crm_liz_company into fakhri
+[33m563e2d8[m UPDATE
+[33mc2a8e18[m Merge branch 'abece' of https://github.com/Fakhri-Dodon/crm_liz_company into fakhri
+[33mece6eb0[m Merge branch 'dev-azmi' of https://github.com/Fakhri-Dodon/crm_liz_company into fakhri
+[33mc77f30b[m fix appearance update status lead
+[33m2f158e6[m UPDATE
+[33m13d2869[m fix bug in feat notif
+[33m2378a23[m Merge branch 'abece' of https://github.com/Fakhri-Dodon/crm_liz_company into fakhri
+[33m2286aee[m Merge branch 'dev-azmi' of https://github.com/Fakhri-Dodon/crm_liz_company into fakhri
+[33ma7fc14f[m fix modal add projects get name company name
+[33m5f09ad2[m update
+[33m6241648[m Merge branch 'abece' of https://github.com/Fakhri-Dodon/crm_liz_company into fakhri
+[33m234e720[m update 14/01/2026
+[33m3d1b4e8[m fix preview
+[33m1fbc433[m Merge branch 'abece' of https://github.com/Fakhri-Dodon/crm_liz_company into fakhri
+[33mdc4e2ec[m fix preview
+[33mc7b5afa[m update ui proposal builder
+[33m33a5893[m fix preview
+[33meb5d8f0[m fix preview
+[33mf84bf34[m fix preview
+[33m346b20a[m[33m ([m[1;32mmaster[m[33m)[m fix bug in users menu and update proposal
+[33mc0964bf[m fix error 419 at logout
+[33mac9224e[m update builder pdf, create, and edit quotation
+[33mda946b2[m update quotation tax option
+[33m586c547[m[33m ([m[1;31morigin/alif[m[33m)[m fix bg-video preview
+[33m70fba95[m add migration and add menu tax settings
+[33m0d5fc3b[m Merge branch 'abece' of https://github.com/Fakhri-Dodon/crm_liz_company into fakhri
+[33m5d797a5[m update 10/01/2026
+[33m4c1a188[m[33m ([m[1;31morigin/abece[m[33m)[m solve quotation table
+[33m1438efc[m solve quotation table
+[33m5ffd869[m Merge branch 'fakhri' of https://github.com/Fakhri-Dodon/crm_liz_company into abece
+[33m5ff1566[m update 09/01/2026
+[33m6768a5d[m Merge branch 'fakhri' of https://github.com/Fakhri-Dodon/crm_liz_company into abece
+[33maf4b589[m Merge branch 'alif' of https://github.com/Fakhri-Dodon/crm_liz_company into fakhri
+[33ma1cd28e[m Merge branch 'dev-azmi' of https://github.com/Fakhri-Dodon/crm_liz_company into fakhri
+[33mbcaf2e2[m Merge branch 'abece' of https://github.com/Fakhri-Dodon/crm_liz_company into fakhri
+[33m67d0dd5[m update video
+[33m7b926dc[m update
+[33mf4fef55[m fix edit modal client
+[33m3f92b4b[m Merge branch 'fakhri' of https://github.com/Fakhri-Dodon/crm_liz_company into dev-azmi
+[33mc6e99fa[m update column in migration Invoices and Quotations
+[33mf9b9e10[m[33m ([m[1;31morigin/master[m[33m, [m[1;31morigin/HEAD[m[33m)[m update
+[33m5a84119[m Merge branch 'fakhri'
+[33m9f77bb5[m update deploy hostinger
+[33mb5ca735[m client code -> client name
+[33mb09d86f[m client code -> client name
+[33m9c34ea7[m Merge branch 'fakhri'
+[33m311e2b0[m add feat auth permissions to all menus except client menu
+[33ma99ea3e[m Merge branch 'fakhri'
+[33mcf48279[m update 07/01/2026
+[33m710acde[m Merge branch 'abece' of https://github.com/Fakhri-Dodon/crm_liz_company into fakhri
+[33m8d4c02a[m fix table layouts project
+[33mb245c85[m Merge branch 'fakhri'
+[33m5d8b1be[m update proposal, lead, and client
+[33mbc28a43[m update again
+[33m49cc56a[m update
+[33md369bfb[m update 07/01/2026
+[33m3cb773a[m Merge branch 'alif' of https://github.com/Fakhri-Dodon/crm_liz_company into fakhri
+[33m7334d9c[m fix slug
+[33m0b2d4b7[m Merge branch 'abece' of https://github.com/Fakhri-Dodon/crm_liz_company into fakhri
+[33mb7e17e4[m fix layout
+[33m439e0c4[m drop slug from element
+[33me4eb2a8[m UPDATE
+[33mbb4944b[m Merge branch 'dev-azmi' of https://github.com/Fakhri-Dodon/crm_liz_company into fakhri
+[33m97c308d[m update
+[33m9f1608e[m Merge branch 'alif' of https://github.com/Fakhri-Dodon/crm_liz_company into fakhri
+[33m51b7d4f[m update
+[33m456d98e[m fix index proposal
+[33m5b005f7[m Merge branch 'dev-azmi' of https://github.com/Fakhri-Dodon/crm_liz_company into fakhri
+[33ma7753fd[m UPDATE
+[33md7f8770[m UPDATE
+[33m3f7aa1b[m Merge branch 'dev-azmi' of https://github.com/Fakhri-Dodon/crm_liz_company into fakhri
+[33m49d9a68[m UPDATE
+[33m88e8e79[m Merge branch 'alif' of https://github.com/Fakhri-Dodon/crm_liz_company into fakhri
+[33meb272be[m fix back button
+[33m8628718[m Merge branch 'abece' of https://github.com/Fakhri-Dodon/crm_liz_company into fakhri
+[33me0a435a[m fix image canvas
+[33m0452287[m improve style
+[33m9a41feb[m Merge branch 'alif' of https://github.com/Fakhri-Dodon/crm_liz_company into fakhri
+[33mea2c100[m fix image and pagination canvas
+[33mc0d9dd3[m Merge branch 'alif' of https://github.com/Fakhri-Dodon/crm_liz_company into fakhri
+[33mc7e8faf[m update proposal list
+[33mc714374[m Merge branch 'alif' of https://github.com/Fakhri-Dodon/crm_liz_company into fakhri
+[33m92668ec[m improve style
+[33ma53be4e[m update create template setting
+[33m8aa90c0[m update Dockerfile
+[33m3a5412e[m fix error
+[33m5947207[m Merge branch 'fakhri'
+[33m3690335[m add feature payment
+[33m0ab35a2[m update project menu
+[33m358e1b3[m Merge branch 'abece' of https://github.com/Fakhri-Dodon/crm_liz_company into fakhri
+[33m7839fe7[m add feature payment
+[33mda07a4a[m Merge branch 'dev-azmi' of https://github.com/Fakhri-Dodon/crm_liz_company into fakhri
+[33m0420d63[m UPDATE
+[33m84e0fd7[m Merge branch 'fakhri'
+[33m2950398[m fix error create client
+[33m474b6a4[m add feature payment
+[33m894a598[m fix error
+[33m6ce183b[m update locales payments
+[33mb3cfbbc[m Merge branch 'abece' of https://github.com/Fakhri-Dodon/crm_liz_company into fakhri
+[33m5fb31c6[m Merge branch 'dev-azmi' of https://github.com/Fakhri-Dodon/crm_liz_company into fakhri
+[33m244100c[m fix conflict database.php and update feat send to client by email
+[33m86d9fa8[m add feature translate in client page and sub modal
+[33md1c89b0[m UPDATE
+[33m6a6bb32[m add contact feature in client
+[33mf736701[m UPDATE
+[33m2c691f6[m update table and feat contact person
+[33m5433b64[m Merge branch 'abece' of https://github.com/Fakhri-Dodon/crm_liz_company into fakhri
+[33m2edc2f4[m fix page project get data company
+[33m5d38c6b[m fix page project get data company
+[33mafa93c6[m fix page project get data company
+[33m5eb6fcb[m Merge branch 'abece' of https://github.com/Fakhri-Dodon/crm_liz_company into fakhri
+[33mf73daf6[m fix page project get data company
+[33mee69af2[m update index proposal page & visibility
+[33m530bb67[m fix error in deploy app 5
+[33mb7c8f4c[m fix error in deploy app 4
+[33ma392127[m fix error in deploy app 3
+[33m6bf5a8c[m fix error in deploy app 2
+[33m027a5be[m fix error in deploy app
+[33m0ce9820[m update feat allow language change
+[33me4fded7[m update grapejs page
+[33me3c2a91[m fix page project get data company
+[33m4db5bb9[m redeploy
+[33m375f1a5[m lead assign to
+[33m7a3ce3b[m add feat auth permissions
+[33m8610e52[m Merge branch 'alif' of https://github.com/Fakhri-Dodon/crm_liz_company into fakhri
+[33m75cf42b[m update edit proposal
+[33m30f3470[m Merge branch 'abece' of https://github.com/Fakhri-Dodon/crm_liz_company into fakhri
+[33m657b9db[m lead assign to
+[33m47edb32[m Merge branch 'abece' of https://github.com/Fakhri-Dodon/crm_liz_company into fakhri
+[33mb7e8306[m fix conclict in Models/Payment.php and web.php. Update Dashboard
+[33m138dd94[m lead assign to
+[33m32caa96[m UPDATE
+[33mf0f3745[m Merge branch 'alif' of https://github.com/Fakhri-Dodon/crm_liz_company into fakhri
+[33mdda536d[m Merge branch 'dev-azmi' of https://github.com/Fakhri-Dodon/crm_liz_company into fakhri
+[33m8fca54f[m fix conflict in web.php and update edit quotation
+[33macfe32e[m Merge branch 'abece' of https://github.com/Fakhri-Dodon/crm_liz_company into fakhri
+[33m712be64[m get data invoices
+[33m22b1537[m update add status
+[33macebe96[m Merge branch 'alif' of https://github.com/Fakhri-Dodon/crm_liz_company into fakhri
+[33m32943af[m fix: resolve merge conflicts from alif branch
+[33md36d737[m fix addProposal
+[33me6f7f23[m UPDATE
+[33m43d90e5[m fix: resolve merge conflicts from alif branch
+[33mca86070[m update proposal page create
+[33ma1deba4[m UPDATE INVOICE
+[33m595acd5[m perbaiki get quotation di client
+[33m8a5d39e[m perbaiki get quotation di client
+[33m3cbeb88[m Merge branch 'fakhri' of https://github.com/Fakhri-Dodon/crm_liz_company into abece
+[33mf8563f1[m Merge branch 'fakhri' of https://github.com/Fakhri-Dodon/crm_liz_company into abece
+[33m39401a2[m Merge branch 'master' of https://github.com/Fakhri-Dodon/crm_liz_company into fakhri
+[33m54633c1[m Merge branch 'abece' of https://github.com/Fakhri-Dodon/crm_liz_company into fakhri
+[33mbef9e20[m fix bug in quotation menu, add email menu, and update feat notification
+[33me7993e4[m client menu quotation
+[33m4c521b9[m fix error koyeb
+[33m84bfc9e[m UPDATE
+[33m5a84d95[m responsive
+[33mdb692be[m reponsive at headerLayout and quotation
+[33mdc04bff[m Merge branch 'dev-azmi' of https://github.com/Fakhri-Dodon/crm_liz_company into fakhri
+[33mb1eb050[m pull again
+[33m2a614fb[m update
+[33mf39b2eb[m fix conflict
+[33m30377f7[m UPDATE
+[33m6d2ae10[m fix conflict in route/web.php
+[33ma791f60[m UPDATE
+[33me14ddad[m UPDATE
+[33m4976e14[m fix error deploy 6
+[33m51835bd[m fix error deploy 5
+[33m29fd354[m fix error deploy 4
+[33m726d627[m fix error deploy 3
+[33m0df75c7[m fix error deploy 2
+[33mc814a82[m fix error deploy
+[33mbb1c01a[m add .dockerignore and update Dockerfile
+[33maf83725[m Merge branch 'abece' of https://github.com/Fakhri-Dodon/crm_liz_company into fakhri
+[33m87ad733[m add feat notification and fix bug in menu quotation
+[33m68f0777[m get menu client
+[33mfedf48d[m fix error in koyeb hosting
+[33m89c164c[m fix error in koyeb hosting
+[33mfa27306[m Merge branch 'fakhri'
+[33m75bccfe[m fix bug and error
+[33m3a96b32[m update vercel.json
+[33m2a25c99[m update proposal menu
+[33md3dc592[m try to hosting at vercel
+[33m7eddd1a[m try to hosting at vercel
+[33mf181ff4[m try to hosting at vercel
+[33m4a72434[m add feature change language and try deploy at vercel
+[33m28e9d7e[m update menu in clients
+[33m7abdd16[m add User Modul and update Quotation Modul
+[33mb420e06[m Merge branch 'abece' of https://github.com/Fakhri-Dodon/crm_liz_company into fakhri
+[33m7de31b4[m crud companies selesai
+[33m4ef64b0[m Merge branch 'abece' of https://github.com/Fakhri-Dodon/crm_liz_company into fakhri
+[33mecf371a[m fix error at deploy
+[33m1de10f2[m fix error at deploy
+[33mc651568[m fix error at deploy
+[33m5a05866[m fix error at deploy 2
+[33mf816465[m fix error at deploy 1
+[33m23cb62e[m fix error at deploy
+[33mdaf76d7[m fix error at deploy
+[33m47e7cb4[m fix error at deploy
+[33mc070be1[m fix error at deploy
+[33m5be8d19[m fix error at deploy
+[33mecba1a8[m fix error at deploy
+[33mc821edf[m fix error at deploy
+[33mada3b74[m fix error deploy
+[33m59ed16c[m get quotations in create client and update statuses lead
+[33m4f1176b[m chore: add pdo_mysql extension for database connection
+[33mdd52f40[m fix error deploy 7
+[33m35763e5[m fix error deploy 6
+[33m932f7a2[m fix error deploy 5
+[33m1f32287[m fix error deploy 4
+[33mfadbb39[m fix error deploy 3
+[33m67a81b5[m fix error deploy 2
+[33m306cf09[m fix error deploy
+[33m35378a8[m fix error deploy
+[33m3c36a21[m update Dockerfile
+[33m7315bac[m update Dockerfile
+[33md653455[m FIX: Benar-benar mengubah menjadi Dockerfile
+[33m0b30147[m Rename sementara
+[33m5a4cfe4[m update Dockerfile and nginx.conf
+[33mba96d9e[m Fix Dockerfile naming case sensitivity
+[33m46dc8dd[m add DockerFile and nginx.conf
+[33m1932472[m update package.json 2
+[33mc3da258[m update package.json
+[33m10d23b5[m add deleted to table email_logs and mail_settings
+[33m15f6708[m migration and seeder
+[33m6b3cde6[m add Modul Quotation
+[33mdaa9c52[m add lead_id and quotation_id in database
+[33m476a738[m get data quotation
+[33m6d4514c[m UPDATE
+[33m5817395[m get data quotation
+[33md684e70[m update backend proposal
+[33m15ffe31[m Merge branch 'abece' of https://github.com/Fakhri-Dodon/crm_liz_company into abece
+[33m3f3870d[m dashboard clients
+[33m8fe1925[m update theme color navbar and table
+[33ma6125b1[m Update Settings: Setting Leads #DONE, Proposal and  Email 80%. color theme customization
+[33m5956153[m fix update status
+[33mfbdb742[m fix conflik
+[33m4aa5c70[m Proposal Setting #Done
+[33mbf6928a[m add crud proects, update status NEED TO CHECK
+[33m15bcffe[m UPDATE BUTTON LOGOUT FIX PROFILE AND DASHBOARD LAYOUT
+[33mffc43ba[m Merge branch 'master' of https://github.com/Fakhri-Dodon/crm_liz_company into dev-azmi
+[33ma2b02f1[m update menu Proposal in modul Setting
+[33mcacf30c[m Merge branch 'master' of https://github.com/Fakhri-Dodon/crm_liz_company into dev-azmi
+[33m9c69785[m Merge branch 'master' of https://github.com/Fakhri-Dodon/crm_liz_company into fakhri
+[33m463c504[m fix bug in User Roles Menu
+[33m04c5fe9[m UPDATE ROUTE HEADER LAYOUT
+[33m90182a0[m UPDATE LOGIN PAGE
+[33me550cfa[m add menu General(80%), Leads#DONE, Proposal(40%)
+[33m4bb89c7[m fix bug in User Roles Menu
+[33me1e21b4[m Merge branch 'dev-azmi' of https://github.com/Fakhri-Dodon/crm_liz_company into fakhri
+[33m9e0092f[m add menu General(80%), Leads#DONE, Proposal(40%)
+[33md24230f[m improve style code
+[33m8470dcb[m test
+[33m2456e30[m test
+[33m438fead[m zacky
+[33m342bf2c[m add style and fix function crud lead
+[33m94cb9e6[m UPDATE ROUTE HEADER LAYOUT
+[33m3444a84[m UPDATE LOGIN PAGE
+[33mbac5ead[m[33m ([m[1;31morigin/test[m[33m)[m add frontend menu Settings
+[33m0fbc598[m frontend lead need to check
+[33me706c9c[m backend lead
+[33m71bf1e9[m backend lead
+[33m27c7c82[m add table layout
+[33m343bd51[m add table layout
+[33mc282839[m add component: DateTime. Add layouts: HeaderLayout
+[33me880159[m first commit

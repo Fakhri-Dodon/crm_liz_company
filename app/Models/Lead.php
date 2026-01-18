@@ -71,6 +71,11 @@ class Lead extends Model
         return $this->hasOne(Company::class, 'lead_id');
     }
 
+    public function contacts()
+    {
+        return $this->hasMany(CompanyContactPerson::class, 'lead_id', 'id');
+    }
+
     // TAMBAHKAN RELATIONSHIP INI
     public function assignedUser()
     {
