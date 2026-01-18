@@ -9,7 +9,7 @@ import {
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
-const InvoiceTable = ({ data: initialData, companyId }) => {
+const InvoiceTable = ({ data: initialData, companyId, auth_permissions }) => {
     const { t } = useTranslation();
     
     // State untuk data invoices
@@ -38,6 +38,13 @@ const InvoiceTable = ({ data: initialData, companyId }) => {
         autoClose: true,
         duration: 5000
     });
+
+    const perms = auth_permissions || {}; 
+    
+    const canRead = perms.can_read === 1;
+    const canCreate = perms.can_create === 1;
+    const canUpdate = perms.can_update === 1;
+    const canDelete = perms.can_delete === 1;
 
     // Update local data ketika initialData berubah
     useEffect(() => {
@@ -533,15 +540,18 @@ const InvoiceTable = ({ data: initialData, companyId }) => {
                 </div>
                 
                 <div className="flex justify-between space-x-2">
-                    <button 
-                        className="flex items-center space-x-1 px-3 py-1 bg-blue-50 text-blue-700 rounded text-xs hover:bg-blue-100 disabled:opacity-50 disabled:cursor-not-allowed"
-                        onClick={() => openEditPage(invoice)}
-                        disabled={loading || isDeleting}
-                    >
-                        <Edit className="w-3 h-3" />
-                        <span>{t('invoice_table.edit')}</span>
-                    </button>
-                    <button 
+                    { canUpdate && (
+                        <button 
+                            className="flex items-center space-x-1 px-3 py-1 bg-blue-50 text-blue-700 rounded text-xs hover:bg-blue-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                            onClick={() => openEditPage(invoice)}
+                            disabled={loading || isDeleting}
+                        >
+                            <Edit className="w-3 h-3" />
+                            <span>{t('invoice_table.edit')}</span>
+                        </button>
+                    )}
+                    { canDelete && (
+                        <button 
                         className="flex items-center space-x-1 px-3 py-1 bg-red-50 text-red-700 rounded text-xs hover:bg-red-100 disabled:opacity-50 disabled:cursor-not-allowed"
                         onClick={() => handleDeleteInvoice(invoice)}
                         disabled={loading || isDeleting}
@@ -549,6 +559,7 @@ const InvoiceTable = ({ data: initialData, companyId }) => {
                         <Trash2 className="w-3 h-3" />
                         <span>{t('invoice_table.delete')}</span>
                     </button>
+                    )}
                 </div>
             </div>
         );
@@ -664,15 +675,17 @@ const InvoiceTable = ({ data: initialData, companyId }) => {
                     <table className="min-w-full divide-y divide-gray-200">
                         <thead>
                             <tr className="bg-[#eaf6f6]">
-                                <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase border-r border-gray-200">
-                                    <input
-                                        type="checkbox"
-                                        checked={selectedInvoices.length === filteredData.length && filteredData.length > 0}
-                                        onChange={handleSelectAll}
-                                        className="h-4 w-4 text-blue-600 rounded"
-                                        disabled={loading || isDeleting}
-                                    />
-                                </th>
+                                { canDelete && (
+                                    <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase border-r border-gray-200">
+                                        <input
+                                            type="checkbox"
+                                            checked={selectedInvoices.length === filteredData.length && filteredData.length > 0}
+                                            onChange={handleSelectAll}
+                                            className="h-4 w-4 text-blue-600 rounded"
+                                            disabled={loading || isDeleting}
+                                        />
+                                    </th>
+                                )}                            
                                 <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase border-r border-gray-200">
                                     {t('invoice_table.invoice')}
                                 </th>
@@ -691,9 +704,11 @@ const InvoiceTable = ({ data: initialData, companyId }) => {
                                 <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase border-r border-gray-200">
                                     {t('invoice_table.status')}
                                 </th>
-                                <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase">
-                                    {t('invoice_table.actions')}
-                                </th>
+                                { (canDelete || canUpdate) && ( 
+                                    <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase">
+                                        {t('invoice_table.actions')}
+                                    </th>
+                                )}                                
                             </tr>
                         </thead>
                         <tbody className="bg-white divide-y divide-gray-200">
@@ -703,15 +718,17 @@ const InvoiceTable = ({ data: initialData, companyId }) => {
                                         key={invoice.id} 
                                         className={`hover:bg-gray-50 ${selectedInvoices.includes(invoice.id) ? 'bg-blue-50' : ''}`}
                                     >
-                                        <td className="px-4 py-3">
-                                            <input
-                                                type="checkbox"
-                                                checked={selectedInvoices.includes(invoice.id)}
-                                                onChange={() => handleSelectInvoice(invoice.id)}
-                                                className="h-4 w-4 text-blue-600 rounded disabled:opacity-50 disabled:cursor-not-allowed"
-                                                disabled={loading || isDeleting}
-                                            />
-                                        </td>
+                                        { canDelete && (
+                                            <td className="px-4 py-3">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={selectedInvoices.includes(invoice.id)}
+                                                    onChange={() => handleSelectInvoice(invoice.id)}
+                                                    className="h-4 w-4 text-blue-600 rounded disabled:opacity-50 disabled:cursor-not-allowed"
+                                                    disabled={loading || isDeleting}
+                                                />
+                                            </td>
+                                        )}                                
                                         <td className="px-4 py-3">
                                             <div className="font-medium text-gray-900">
                                                 {invoice.invoice_number || t('invoice_table.not_available')}
@@ -744,26 +761,32 @@ const InvoiceTable = ({ data: initialData, companyId }) => {
                                         <td className="px-4 py-3">
                                             {getStatusBadge(invoice.status)}
                                         </td>
-                                        <td className="px-4 py-3">
-                                            <div className="flex space-x-2">
-                                                <button 
-                                                    title={t('invoice_table.edit_invoice')}
-                                                    className="p-1 text-blue-600 hover:text-blue-900 hover:bg-blue-50 rounded disabled:opacity-50 disabled:cursor-not-allowed"
-                                                    onClick={() => openEditPage(invoice)}
-                                                    disabled={loading || isDeleting}
-                                                >
-                                                    <Edit className="w-4 h-4" />
-                                                </button>
-                                                <button 
-                                                    title={t('invoice_table.delete_invoice')}
-                                                    className="p-1 text-red-600 hover:text-red-900 hover:bg-red-50 rounded disabled:opacity-50 disabled:cursor-not-allowed"
-                                                    onClick={() => handleDeleteInvoice(invoice)}
-                                                    disabled={loading || isDeleting}
-                                                >
-                                                    <Trash2 className="w-4 h-4" />
-                                                </button>
-                                            </div>
-                                        </td>
+                                        { (canUpdate || canDelete) && (
+                                            <td className="px-4 py-3">
+                                                <div className="flex space-x-2">
+                                                    { canUpdate && (
+                                                        <button 
+                                                            title={t('invoice_table.edit_invoice')}
+                                                            className="p-1 text-blue-600 hover:text-blue-900 hover:bg-blue-50 rounded disabled:opacity-50 disabled:cursor-not-allowed"
+                                                            onClick={() => openEditPage(invoice)}
+                                                            disabled={loading || isDeleting}
+                                                        >
+                                                            <Edit className="w-4 h-4" />
+                                                        </button>
+                                                    )} 
+                                                    { canDelete && (
+                                                         <button 
+                                                            title={t('invoice_table.delete_invoice')}
+                                                            className="p-1 text-red-600 hover:text-red-900 hover:bg-red-50 rounded disabled:opacity-50 disabled:cursor-not-allowed"
+                                                            onClick={() => handleDeleteInvoice(invoice)}
+                                                            disabled={loading || isDeleting}
+                                                        >
+                                                            <Trash2 className="w-4 h-4" />
+                                                        </button>
+                                                    )}                                                                                                      
+                                                </div>
+                                            </td>
+                                        )}                                        
                                     </tr>
                                 );
                             })}

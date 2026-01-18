@@ -1346,7 +1346,7 @@
             "footer": "Terminated projects"
         },
         "filters": {
-            "search_placeholder": "Search by subject or client",
+            "search_placeholder": "Search by client",
             "status": "Status",
             "all_status": "All Status",
             "month": "Month",

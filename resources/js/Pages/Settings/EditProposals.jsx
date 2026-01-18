@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from "react";
-import { Head, usePage, router, useForm } from '@inertiajs/react';
+import { Head, usePage, router, useForm } from "@inertiajs/react";
 import grapesjs from "grapesjs";
 import "grapesjs/dist/css/grapes.min.css";
 import "@/assets/css/grapes-custom.css";
-import * as htmlToImage from 'html-to-image';
+import * as htmlToImage from "html-to-image";
 
 const TEXT_CANDIDATES = [
     "H1",
@@ -25,21 +25,31 @@ const TEXT_CANDIDATES = [
 ];
 
 const STYLE_GROUPS = {
+    // Teks Biasa: Warna, Font, Background
     text: [
         "color",
         "font-size",
         "background-color",
         "font-family",
         "font-weight",
+        "text-align",
+        "line-height",
+        "letter-spacing",
     ],
-    btn: ["font-weight", "font-size", "background-color", "color"], // Button biasanya butuh color text juga
-    link: [
+
+    // Link Navigasi: Font, Warna, Transform
+    linkNav: ["font-weight", "font-size", "text-transform", "color"],
+
+    // Tombol Navigasi: Font, Background, Radius
+    btnNav: [
         "font-weight",
         "font-size",
-        "text-transform",
+        "background-color",
         "color",
-        "text-decoration",
+        "border-radius",
     ],
+
+    // Gambar (General): Border & Radius
     img: [
         "border-top-left-radius",
         "border-top-right-radius",
@@ -48,14 +58,18 @@ const STYLE_GROUPS = {
         "border-color",
         "border-style",
         "border-width",
+        "width",
+        "height",
     ],
+
+    // Icon: Warna & Ukuran
     icon: ["color", "font-size"],
 };
 
-export default function EditProposals({ id, name, template }) {
+export default function Create({ id, template }) {
     const editorRef = useRef(null);
     const activeModeRef = useRef("elements");
-    
+
     const [categories, setCategories] = useState([]);
     const [activeCat, setActiveCat] = useState("All Blocks");
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -63,125 +77,58 @@ export default function EditProposals({ id, name, template }) {
     const [isDirty, setIsDirty] = useState(false);
     const [loading, setLoading] = useState(false);
     const [activeMode, setActiveMode] = useState("elements");
+    const [showCode, setShowCode] = useState(false);
+    const [sourceCode, setSourceCode] = useState("");
 
     // =========================================================
-    // 1. LOGIKA UNTUK MENENTUKAN CSS & SETTINGS (TRAITS)
+    // BAGIAN 1: LOGIKA SKENARIO (Insert sebelum useEffect)
     // =========================================================
     const getConfigForElement = (comp) => {
         const el = comp.getEl();
-        if (!el) return { styles: [], traits: [] };
+        if (!el) return { title: "Settings", styles: [], traits: [] };
 
         const tagName = comp.get("tagName")?.toUpperCase();
         const classes = comp.getClasses();
-        const type = comp.get("type");
 
-        // Helper Checks
+        // Deteksi Lokasi & Tipe
         const isNav =
             el.closest("nav") !== null || el.closest(".navbar") !== null;
         const isFooter = el.closest("footer") !== null;
-        const isBtn = classes.includes("btn") || classes.includes("btn-nav");
+        const isBtn =
+            classes.includes("btn") ||
+            classes.includes("btn-nav") ||
+            tagName === "BUTTON";
         const isIcon =
             tagName === "I" ||
-            classes.some((c) => c.startsWith("fa-") || c === "fa");
+            classes.some((c) => c.startsWith("fa") || c.startsWith("icon-"));
 
-        // -----------------------------------------------------
-        // SKENARIO 1: IMAGE di dalam NAV
-        // -----------------------------------------------------
+        // ------------------------------------------------
+        // SKENARIO 1: IMAGE DI DALAM NAV
+        // ------------------------------------------------
         if (tagName === "IMG" && isNav) {
             return {
-                title: "Image Navigation",
-                styles: STYLE_GROUPS.img,
+                title: "NAVIGATION IMAGE",
+                styles: STYLE_GROUPS.img, // Bisa edit border
                 traits: [
-                    { type: "text", name: "src", label: "Image Source" }, // Ganti Gambar
-                    { type: "text", name: "href", label: "Link URL" }, // Tambah Link
+                    { type: "text", name: "src", label: "Image Source" },
+                    { type: "text", name: "href", label: "Link URL" }, // Bisa tambah link
                     {
-                        type: "select",
-                        name: "target",
-                        label: "Target",
-                        options: [
-                            { value: "", name: "Same Tab" },
-                            { value: "_blank", name: "New Tab" },
-                        ],
+                        type: "button",
+                        label: "Assets",
+                        text: "Change Image",
+                        command: (e) => e.runCommand("open-assets"),
                     },
                 ],
             };
         }
 
-        // -----------------------------------------------------
-        // SKENARIO 2: TAG A (Bukan Button) di dalam NAV
-        // -----------------------------------------------------
+        // ------------------------------------------------
+        // SKENARIO 2: LINK TEKS DI NAV (Bukan Tombol)
+        // ------------------------------------------------
         if (tagName === "A" && !isBtn && isNav) {
             return {
-                title: "Nav Link",
-                styles: STYLE_GROUPS.link,
-                traits: [
-                    { type: "text", name: "href", label: "Link URL" }, // Ganti Link
-                    { type: "text", name: "content", label: "Text" }, // Ganti Teks Link (opsional, via trait)
-                ],
-            };
-        }
-
-        // -----------------------------------------------------
-        // SKENARIO 3: TAG A.BTN (Button) di dalam NAV
-        // -----------------------------------------------------
-        if (tagName === "A" && isBtn && isNav) {
-            return {
-                title: "Nav Button",
-                styles: STYLE_GROUPS.btn,
-                traits: [
-                    { type: "text", name: "href", label: "Link URL" }, // Ganti Link
-                    { type: "text", name: "class", label: "Classes" }, // Opsional: edit class
-                ],
-            };
-        }
-
-        // -----------------------------------------------------
-        // SKENARIO 4: TEXT (H1-H6, P, SPAN, dll)
-        // -----------------------------------------------------
-        const TEXT_TAGS = [
-            "H1",
-            "H2",
-            "H3",
-            "H4",
-            "H5",
-            "H6",
-            "P",
-            "SPAN",
-            "STRONG",
-            "B",
-            "EM",
-            "SMALL",
-            "DIV",
-            "LI",
-        ];
-        // Cek apakah ini text node murni atau elemen pembungkus teks
-        // Kita anggap text jika dia masuk list di atas DAN bukan button DAN bukan icon
-        if (TEXT_TAGS.includes(tagName) && !isBtn && !isIcon) {
-            // Pastikan tidak punya anak elemen blok (agar tidak menyeleksi wrapper besar)
-            const hasBlockChildren = comp
-                .find("*")
-                .some(
-                    (c) =>
-                        c.get("type") === "default" ||
-                        c.get("tagName") === "DIV"
-                );
-
-            if (!hasBlockChildren) {
-                return {
-                    title: "Typography",
-                    styles: STYLE_GROUPS.text,
-                    traits: [], // User TIDAK BISA tambah image/link (Traits kosong)
-                };
-            }
-        }
-
-        // -----------------------------------------------------
-        // SKENARIO 5: BUTTON (Bukan di Nav)
-        // -----------------------------------------------------
-        if (isBtn && !isNav) {
-            return {
-                title: "Button Component",
-                styles: STYLE_GROUPS.btn,
+                title: "NAVIGATION LINK",
+                styles: STYLE_GROUPS.linkNav, // Font, Weight, Transform
                 traits: [
                     { type: "text", name: "href", label: "Link URL" },
                     {
@@ -197,41 +144,114 @@ export default function EditProposals({ id, name, template }) {
             };
         }
 
-        // -----------------------------------------------------
-        // SKENARIO 6: IMAGE (Bukan di Nav)
-        // -----------------------------------------------------
+        // ------------------------------------------------
+        // SKENARIO 3: TOMBOL DI NAV (Class .btn / .btn-nav)
+        // ------------------------------------------------
+        if ((tagName === "A" || tagName === "BUTTON") && isBtn && isNav) {
+            return {
+                title: "NAVIGATION BUTTON",
+                styles: STYLE_GROUPS.btnNav, // Font, Bg, Radius
+                traits: [
+                    { type: "text", name: "href", label: "Link URL" },
+                    { type: "text", name: "class", label: "Classes" },
+                ],
+            };
+        }
+
+        // ------------------------------------------------
+        // SKENARIO 4: TEKS BIASA (Content)
+        // ------------------------------------------------
+        // Cek apakah ini teks murni (tidak punya anak elemen layout)
+        if (
+            TEXT_CANDIDATES.includes(tagName) &&
+            !isBtn &&
+            !isIcon &&
+            tagName !== "IMG"
+        ) {
+            const hasBlockChildren = comp
+                .find("*")
+                .some(
+                    (c) =>
+                        c.get("type") === "default" ||
+                        c.get("tagName") === "DIV"
+                );
+            if (!hasBlockChildren) {
+                return {
+                    title: "TYPOGRAPHY",
+                    styles: STYLE_GROUPS.text,
+                    traits: [], // TIDAK ADA TRAITS (Tidak bisa tambah link/img)
+                };
+            }
+        }
+
+        // ------------------------------------------------
+        // SKENARIO 5: TOMBOL BIASA (Di luar Nav)
+        // ------------------------------------------------
+        if (isBtn && !isNav) {
+            return {
+                title: "BUTTON STYLE",
+                styles: STYLE_GROUPS.btnNav,
+                traits: [
+                    { type: "text", name: "href", label: "Link URL" },
+                    {
+                        type: "select",
+                        name: "target",
+                        label: "Target",
+                        options: [
+                            { value: "", name: "Same Tab" },
+                            { value: "_blank", name: "New Tab" },
+                        ],
+                    },
+                ],
+            };
+        }
+
+        // ------------------------------------------------
+        // SKENARIO 6: IMAGE BIASA (Di luar Nav)
+        // ------------------------------------------------
         if (tagName === "IMG" && !isNav) {
             return {
-                title: "Image Component",
+                title: "IMAGE STYLE",
                 styles: STYLE_GROUPS.img,
                 traits: [
-                    { type: "text", name: "src", label: "Image Source" },
+                    { type: "text", name: "src", label: "Source" },
                     { type: "text", name: "alt", label: "Alt Text" },
+                    {
+                        type: "button",
+                        label: "Assets",
+                        text: "Change Image",
+                        command: (e) => e.runCommand("open-assets"),
+                    },
+                    // TIDAK ADA HREF (Sesuai request: tidak bisa tambah link)
                 ],
             };
         }
 
-        // Logicnya: Bisa ganti warna, size, link, dan icon class
+        // ------------------------------------------------
+        // SKENARIO 7 & 8: ICON
+        // ------------------------------------------------
         if (isIcon) {
             return {
-                title: isFooter ? "Footer Icon" : "Icon Component",
+                title: isFooter ? "FOOTER ICON" : "ICON STYLE",
                 styles: STYLE_GROUPS.icon,
                 traits: [
-                    { type: "text", name: "href", label: "Link URL" }, 
-                    {
-                        type: "text",
-                        name: "class",
-                        label: "Icon Class (fa fa-xxx)",
-                    }, 
+                    { type: "text", name: "href", label: "Link URL" },
+                    { type: "text", name: "class", label: "Icon Class (fa-*)" },
                 ],
             };
         }
 
+        // Fallback default
         return {
-            title: "Element Settings",
-            styles: ["padding", "margin", "background-color", "height"],
-            traits: [],
+            title: "ELEMENT SETTINGS",
+            styles: ["padding", "margin", "background-color", "display"],
+            traits: [{ type: "text", name: "id", label: "ID" }],
         };
+    };
+
+    const withHTMLElement = (view, cb) => {
+        const el = view?.el;
+        if (el instanceof HTMLElement) cb(el);
     };
 
     useEffect(() => {
@@ -243,187 +263,89 @@ export default function EditProposals({ id, name, template }) {
             width: "100%",
             storageManager: false,
             allowScripts: 1,
+            assetManager: {
+                autoAdd: true,
+                openAssetsOnDrop: true,
+            },
             avoidInlineStyle: true,
             forceClass: false,
             selectable: true,
             blockManager: { appendTo: "#second-side" },
-
             traitManager: { appendTo: "#trait-editor-container" },
-            styleManager: {
+            styleManager: { 
                 appendTo: "#style-manager-container",
                 clearProperties: true,
                 sectors: [
-                    {
-                        name: "Typography",
-                        open: false,
-                        buildProps: [
-                            "font-family",
-                            "font-size",
-                            "font-weight",
-                            "color",
-                            "text-align",
-                            "text-transform",
-                            "line-height",
-                            "letter-spacing",
-                        ],
-                    },
-                    {
-                        name: "Decorations",
-                        open: false,
-                        buildProps: [
-                            "background-color",
-                            "border-radius",
-                            "border-top-left-radius",
-                            "border-top-right-radius",
-                            "border-bottom-left-radius",
-                            "border-bottom-right-radius",
-                            "box-shadow",
-                            "background-image",
-                        ],
-                    },
-                    {
-                        name: "Dimensions",
-                        open: false,
-                        buildProps: [
-                            "width",
-                            "height",
-                            "min-height",
-                            "padding",
-                            "margin",
-                            "padding-top",
-                            "padding-bottom",
-                            "padding-left",
-                            "padding-right",
-                        ],
-                    },
-                    {
-                        name: "Borders",
-                        open: false,
-                        buildProps: [
-                            "border-width",
-                            "border-style",
-                            "border-color",
-                        ],
-                    },
-                ],
+                    { name: 'Typography', open: false, buildProps: ['font-family', 'font-size', 'font-weight', 'letter-spacing', 'color', 'line-height', 'text-align', 'text-decoration', 'text-transform'] },
+                    { name: 'Decorations', open: false, buildProps: ['background-color', 'border-radius', 'border-top-left-radius', 'border-top-right-radius', 'border-bottom-left-radius', 'border-bottom-right-radius', 'box-shadow', 'background-image', 'opacity'] },
+                    { name: 'Dimensions', open: false, buildProps: ['width', 'height', 'min-height', 'padding', 'margin', 'padding-top', 'padding-bottom', 'padding-left', 'padding-right'] },
+                    { name: 'Borders', open: false, buildProps: ['border-width', 'border-style', 'border-color'] }
+                ]
             },
             panels: { defaults: [] },
-            canvas: {
+            canvas: { 
                 styles: [
                     "/templates/css/style.css",
                     "/templates/css/plugins/bootstrap.min.css",
                     '/templates/css/font-awesome.min.css',
                 ],
-            },
-        });
+                scripts: [],
+                style: `
+                    /* Container Toolbar */
+                    .gjs-toolbar {
+                        background-color: #2c3e50 !important;
+                        border: 1px solid #fff !important;
+                        border-radius: 4px !important;
+                        box-shadow: 0 4px 10px rgba(0,0,0,0.3) !important;
+                        top: -35px !important; /* Geser ke atas elemen */
+                        left: 0 !important;
+                        z-index: 99999 !important; /* PASTI DI PALING ATAS */
+                        opacity: 1 !important;
+                        display: flex !important;
+                        visibility: visible !important;
+                    }
+                    
+                    /* Item/Ikon Toolbar */
+                    .gjs-toolbar-item {
+                        color: #ffffff !important;
+                        width: 35px !important;
+                        height: 35px !important;
+                        cursor: pointer !important;
+                    }
 
-        const defaultType = editor.DomComponents.getType("default");
-        const defaultModel = defaultType.model;
+                    /* Hover Effect */
+                    .gjs-toolbar-item:hover {
+                        background-color: #1abc9c !important; 
+                    }
 
-        // override image agar traits-nya dinamis nanti
-        editor.DomComponents.addType("image", {
-            model: {
-                defaults: {
-                    traits: [],
-                },
+                    /* Garis Seleksi Biru */
+                    .gjs-cv-canvas .gjs-highlighter,
+                    .gjs-cv-canvas .gjs-comp-selected {
+                        border: 2px solid #3498db !important;
+                    }
+                `,
             },
         });
 
         editorRef.current = editor;
 
         editor.on("load", () => {
-            const body = editor.Canvas.getBody();
-
-            if (!body.querySelector(".el-toolbar")) {
-                const toolbar = document.createElement("div");
-                toolbar.className = "el-toolbar";
-                toolbar.style.display = "none";
-
-                toolbar.innerHTML = `
-                    <button class="el-btn source"><i class="fa fa-code"></i></button>
-                    <button class="el-btn reset"><i class="fa fa-refresh"></i></button>
-                    <button class="el-btn remove"><i class="fa fa-trash"></i></button>
-                `;
-
-                body.appendChild(toolbar);
-            }
-            // CSS Injection (Pointer Events Locking)
+            // ... (Kode CSS Injection untuk content mode tetap sama) ...
             const canvasHead = editor.Canvas.getDocument().head;
-            const styleId = "mode-content-style";
+            const styleId = 'mode-content-style';
             if (!canvasHead.querySelector(`#${styleId}`)) {
-                const styleEl = document.createElement("style");
+                const styleEl = document.createElement('style');
                 styleEl.id = styleId;
                 styleEl.innerHTML = `
                     .mode-content-active * { pointer-events: none !important; cursor: default !important; }
-                    .mode-content-active [contenteditable="true"], 
-                    .mode-content-active [data-gjs-type="text"],
-                    .mode-content-active h1, .mode-content-active h2, .mode-content-active h3, 
-                    .mode-content-active h4, .mode-content-active h5, .mode-content-active h6, 
-                    .mode-content-active p, .mode-content-active span, .mode-content-active a, 
-                    .mode-content-active li, .mode-content-active b, .mode-content-active strong, 
-                    .mode-content-active i, .mode-content-active small { 
+                    .mode-content-active [contenteditable="true"], .mode-content-active [data-gjs-type="text"] { 
                         pointer-events: auto !important; cursor: text !important; outline: 2px dashed #4cd137 !important; 
-                    }
-                    .gjs-rte-toolbar, .gjs-rte-toolbar * { pointer-events: auto !important; }
-                    
-                    .fa,
-                    .fa:before {
-                        font-family: FontAwesome !important;
                     }
                 `;
                 canvasHead.appendChild(styleEl);
             }
 
-            editor.addStyle(`
-                .el-toolbar {
-                    position: absolute !important;
-                    top: -18px !important;
-                    right: 10px !important;
-                    display: inline-flex !important;
-                    border-radius: 6px !important;
-                    overflow: hidden !important;
-                    box-shadow: 0 4px 10px rgba(0,0,0,0.15) !important;
-                    z-index: 9999 !important;
-                    font-family: Arial, sans-serif;
-                }
-
-                .el-toolbar .el-btn {
-                    border: none !important;
-                    padding: 6px 12px !important;
-                    font-size: 12px !important;
-                    color: #fff !important;
-                    cursor: pointer !important;
-                    display: flex !important;
-                    align-items: center !important;
-                    gap: 6px !important;
-                    background: #333 !important;
-                }
-
-                .el-toolbar .el-btn.source {
-                    background: #2c3e50 !important;
-                }
-
-                .el-toolbar .el-btn.reset {
-                    background: #f39c12 !important;
-                }
-
-                .el-toolbar .el-btn.remove {
-                    background: #e74c3c !important;
-                }
-
-                .el-toolbar .el-btn:hover {
-                    filter: brightness(1.1) !important;
-                }
-
-                .el-toolbar i {
-                    font-size: 12px !important;
-                }
-
-                section, header, footer {
-                    overflow: visible !important;
-                }
-            `);
-
+            // Load Templates
             fetch(`/api/proposal/templates`)
                 .then((res) => res.json())
                 .then((templates) => {
@@ -437,155 +359,204 @@ export default function EditProposals({ id, name, template }) {
                             category: tpl.category || "Templates",
                             media: `<img src="${tpl.preview}" style="width: 100%;" />`,
                             content: {
-                                content: `<input type="hidden" data-template-category="${tpl.category || 'Templates'}">${tpl.html}`,
+                                content: tpl.html,
                                 attributes: {
-                                    "data-gjs-section": "true",
-                                    "data-section-type": tpl.category
+                                    "data-template-category": tpl.category,
+                                    "data-gjs-section": "true"
                                 }
                             }
                         });
                     });
+                });
+
+            Promise.resolve()
+                .then(() => {
+                    if (template?.html_output) editor.setComponents(template.html_output);
+                    if (template?.css_output) editor.setStyle(template.css_output);
                 })
-                .finally(() => setLoading(false));
+                .finally(() => {
+                    setLoading(false);
+                    setTimeout(() => changeMode("elements"), 300);
+                });
+                
+        });
 
-            if (template) {
-                if (template.html_output)
-                    editor.setComponents(template.html_output);
-                if (template.css_output) editor.setStyle(template.css_output);
+        editor.on("component:select:before", (component, options) => {
+            if (activeModeRef.current !== "elements") return;
+
+            // ROOT boleh dipilih
+            if (isSectionRoot(component)) return;
+
+            // Selain ROOT → naikkan ke parent ROOT
+            const parentRoot = findSectionRoot(component);
+
+            if (parentRoot) {
+                options.abort = true;
+                editor.select(parentRoot);
+            } else {
+                // elemen liar tanpa root → tidak bisa select
+                options.abort = true;
             }
-
-            setTimeout(() => changeMode("elements"), 500);
         });
-
-        editor.on("component:dblclick", (comp) => {
-            if (activeModeRef.current !== "content") return;
-
-            const tag = comp.get("tagName")?.toUpperCase();
-            const isText =
-                TEXT_CANDIDATES.includes(tag) || comp.get("type") === "text";
-
-            if (!isText) return;
-
-            editor.Modal.setTitle("Edit Content");
-            editor.Modal.setContent(`
-                <textarea id="content-editor"
-                    style="width:100%;height:200px;">
-                    ${comp.view.el.innerText}
-                </textarea>
-                <button id="save-content">Save</button>
-            `);
-            editor.Modal.open();
-
-            setTimeout(() => {
-                document.getElementById("save-content").onclick = () => {
-                    const val =
-                        document.getElementById("content-editor").value;
-                    comp.components(val);
-                    editor.Modal.close();
-                };
-            }, 0);
-        });
-
-        // =========================================================
-        // LOGIC UTAMA: SAAT ELEMEN DIKLIK
-        // =========================================================
+        
+        // 1. SAAT ELEMEN DIPILIH
         editor.on("component:selected", (comp) => {
             if (!comp) return;
             const mode = activeModeRef.current;
 
             if (mode === "details") {
-                const sidebar = document.getElementById(
-                    "style-editor-container"
-                );
-                const sidebarTitle =
-                    document.getElementById("sidebar-title-text");
+                const sidebar = document.getElementById("style-editor-container");
+                const sidebarTitle = document.getElementById("sidebar-title-text");
+                const traitHeader = document.getElementById("trait-header");
 
-                // 1. Buka Sidebar Kiri
-                if (sidebar) sidebar.classList.add("open");
+                if (sidebar) sidebar.style.display = "flex";
 
-                // 2. Ambil Config
                 const config = getConfigForElement(comp);
-
-                // Update Judul Sidebar
                 if (sidebarTitle) sidebarTitle.innerText = config.title;
 
-                // 3. Set Traits (Settings)
-                comp.set("traits", config.traits);
+                comp.set("traits", config.traits || []);
+                if (traitHeader) {
+                    traitHeader.style.display = config.traits.length ? "block" : "none";
+                }
 
-                // 4. Set Styles (CSS)
                 const sm = editor.StyleManager;
-                const sectors = sm.getSectors();
-
-                sectors.forEach((sector) => {
-                    let hasVisibleProps = false;
+                sm.getSectors().forEach((sector) => {
+                    let visible = false;
                     sector.get("properties").forEach((prop) => {
-                        const propName = prop.get("property");
-
-                        // Logic pencocokan style yang lebih longgar untuk properti compound
-                        const isAllowed = config.styles.some((allowed) => {
-                            if (allowed === propName) return true;
-                            if (
-                                allowed === "padding" &&
-                                propName.startsWith("padding")
-                            )
-                                return true;
-                            if (
-                                allowed === "margin" &&
-                                propName.startsWith("margin")
-                            )
-                                return true;
-                            return false;
-                        });
-
-                        prop.set("visible", isAllowed);
-                        if (isAllowed) hasVisibleProps = true;
+                        const name = prop.get("property");
+                        const allowed = config.styles.some((a) =>
+                            a === name ||
+                            (a === "padding" && name.startsWith("padding")) ||
+                            (a === "margin" && name.startsWith("margin")) ||
+                            (a === "border" && name.startsWith("border"))
+                        );
+                        prop.set("visible", allowed);
+                        if (allowed) visible = true;
                     });
+                    sector.set({ visible, open: visible });
+                });
+            }
 
-                    sector.set("visible", hasVisibleProps);
-                    sector.set("open", hasVisibleProps); // Buka sector jika ada isinya
+            if (mode === "content") {
+                withHTMLElement(comp.getView(), (el) => {
+                    if (comp.get("editable")) {
+                        el.setAttribute("contenteditable", "true");
+                        el.focus({ preventScroll: true });
+                    }
+                });
+
+                const isImage =
+                    comp.is('image') ||
+                    comp.get('type') === 'image' ||
+                    comp.get('tagName') === 'IMG';
+
+                if (!isImage) return;
+
+                editor.runCommand('core:open-assets', {
+                    target: comp,
+                    select: true,
                 });
             }
         });
 
-        // Tutup sidebar jika deselect
         editor.on("component:deselected", () => {
             const sidebar = document.getElementById("style-editor-container");
-            if (sidebar) sidebar.classList.remove("open");
-            markDirty();
+            if (sidebar) sidebar.style.display = "none";
         });
 
         editor.on("component:add", (component) => {
-            setTimeout(() => applyComponentSettings(component, activeModeRef.current), 50);
-            markDirty();
+            const attrs = component.getAttributes?.() || {};
+
+            if (attrs["data-template-category"] && !component.get("initialContent")) {
+                component.set({
+                    initialContent: component.toHTML(),
+                    initialStyle: editor.getCss({ component }),
+                });
+            }
+        });
+
+        editor.on("rte:enable", () => {
+            if (activeModeRef.current === "details") {
+                editor.stopCommand("rte:enable");
+            }
+        });
+
+        editor.on('component:dblclick', (comp) => {
+            const isImage =
+                comp.is('image') ||
+                comp.get('type') === 'image' ||
+                comp.get('tagName') === 'IMG';
+
+            if (!isImage) return;
+
+            editor.runCommand('core:open-assets', {
+                target: comp,
+                select: true,
+            });
+        });
+
+        editor.Commands.add('custom-view-code', {
+            run: (editor) => {
+                const selected = editor.getSelected();
+                if (selected) {
+                    const html = selected.toHTML();
+                    const css = editor.CodeManager.getCode(selected, 'css'); // Ambil CSS terkait (opsional)
+                    setSourceCode(`${html}`); // Tampilkan HTML elemen itu saja
+                    setShowCode(true);
+                }
+            }
+        });
+
+        editor.Commands.add("reset-section", {
+            run(editor) {
+                if (activeModeRef.current !== "elements") return;
+
+                const selected = editor.getSelected();
+                if (!selected) return;
+
+                const html = selected.get("initialContent");
+                const css = selected.get("initialStyle");
+
+                if (!html) {
+                    alert("Reset tidak tersedia untuk elemen ini");
+                    return;
+                }
+
+                selected.components(html);
+
+                if (css) {
+                    editor.CssComposer.add(css);
+                }
+            },
+        });
+
+        editor.DomComponents.addType('image', {
+            model: {
+                defaults: {
+                    selectable: true,
+                    hoverable: true,
+                    draggable: false,
+                    removable: false,
+                    traits: ['src'],
+                }
+            }
         });
 
         const markDirty = () => setIsDirty(true);
 
+        editor.on("component:add", markDirty);
         editor.on("component:remove", markDirty);
         editor.on("component:update", markDirty);
         editor.on("style:property:update", markDirty);
-        editor.on("component:styleUpdate", markDirty);
-        editor.on("trait:value:update", markDirty);
 
-        return () => editor.destroy();
+        return () => {
+            if (editorRef.current) {
+                editorRef.current.destroy();
+                editorRef.current = null;
+            }
+        };
+
     }, []);
-
-    // useEffect(() => {
-    //     if (!editorRef.current) return;
-
-    //     const editor = editorRef.current;
-
-    //     const traitContainer = document.getElementById("trait-editor-container");
-    //     const styleContainer = document.getElementById("style-manager-container");
-
-    //     // TRAITS
-    //     const traitsEl = editor.TraitManager.getTraitsViewer().el;
-    //     traitContainer.appendChild(traitsEl);
-
-    //     // STYLE
-    //     const styleEl = editor.StyleManager.getContainer().el;
-    //     styleContainer.appendChild(styleEl);
-    // }, []);
 
     useEffect(() => {
         const handler = (e) => {
@@ -597,6 +568,255 @@ export default function EditProposals({ id, name, template }) {
         window.addEventListener("beforeunload", handler);
         return () => window.removeEventListener("beforeunload", handler);
     }, [isDirty]);
+
+    const applyComponentSettings = (comp, mode) => {
+        if (!comp || typeof comp.get !== "function") return;
+
+        if (comp.__appliedMode === mode) return;
+        comp.__appliedMode = mode;
+
+        let props = {};
+
+        if (mode === 'elements') {
+            const isRoot = isSectionRoot(comp);
+
+            props = {
+                selectable: isRoot,
+                draggable: isRoot,
+                removable: isRoot,
+                copyable: isRoot,
+                hoverable: isRoot,
+                editable: false,
+                highlightable: isRoot,
+                toolbar: isRoot
+                    ? [
+                        { attributes: { class: 'fa fa-arrows', title: 'Move' }, command: 'tlb-move' },
+                        { attributes: { class: 'fa fa-code', title: 'View Code' }, command: 'custom-view-code' },
+                        { attributes: { class: 'fa fa-refresh', title: 'Reset' }, command: 'reset-section' },
+                        { attributes: { class: 'fa fa-trash', title: 'Remove' }, command: 'tlb-delete' },
+                    ]
+                    : [],
+            };
+        }
+
+        if (mode === 'content') {
+            props = {
+                draggable: false,
+                droppable: false,
+                removable: false,
+                copyable: false,
+
+                selectable: true,
+                hoverable: true,
+                editable: true, // ⬅️ BIARKAN GRAPESJS HANDLE
+                toolbar: [],
+            };
+        }
+
+        if (mode === 'details') {
+            props = {
+                draggable: false,
+                droppable: false,
+                removable: false,
+                copyable: false,
+
+                selectable: true,
+                hoverable: true,
+                editable: false,
+                highlightable: true,
+                stylable: true,
+                toolbar: [],
+            };
+        }
+
+        comp.set(props);
+    };
+
+    const changeMode = (mode) => {
+        // 1. Update State React
+        setActiveMode(mode);
+        activeModeRef.current = mode;
+        
+        const editor = editorRef.current;
+        if (!editor) return;
+
+        resetAllComponentsForMode(editorRef.current, mode);
+
+        // 2. Reset Seleksi & Sidebar UI
+        editor.select(null); 
+        const sidebar = document.getElementById("style-editor-container");
+        if (sidebar) sidebar.style.display = 'none';
+
+        // 3. Terapkan Aturan ke Wrapper (Canvas Utama)
+        const wrapper = editor.getWrapper();
+        if (wrapper) {
+            // Tentukan aturan Wrapper berdasarkan mode
+            if (mode === "content" || mode === "details") {
+                // Di mode Content/Details, Canvas tidak boleh terima drop elemen baru
+                wrapper.set({ 
+                    selectable: false, 
+                    hoverable: false, 
+                    droppable: false,
+                    draggable: false
+                });
+            } else {
+                // Di mode Elements, Canvas boleh terima drop
+                wrapper.set({ 
+                    droppable: true,
+                    selectable: false,
+                    draggable: false
+                }); 
+            }
+            
+            // 4. Update Anak Elemen secara Rekursif
+            // Fungsi helper untuk loop ke dalam
+            const updateRecursively = (component) => {
+                applyComponentSettings(component, mode); // Terapkan logic (editable/draggable)
+                
+                // Cek apakah punya anak
+                const children = component.get("components");
+                if (children) {
+                    children.forEach(child => updateRecursively(child));
+                }
+            };
+            
+            // Jalankan loop mulai dari komponen di dalam wrapper
+            const components = wrapper.get("components");
+            if(components) {
+                components.forEach(child => updateRecursively(child));
+            }
+        }
+        
+        // 5. Visual Helper (Garis Putus-putus)
+        if (mode === "elements") {
+            try { editor.runCommand("core:component-outline"); } catch(e){}
+        } else {
+            try { editor.stopCommand("core:component-outline"); } catch(e){}
+        }
+
+        // 6. Refresh Canvas
+        editor.refresh();
+    };
+
+    const isSectionRoot = (comp) => {
+        const attrs = comp.getAttributes?.() || {};
+        return !!attrs['data-template-category'];
+    };
+
+    const findSectionRoot = (comp) => {
+        let current = comp;
+        while (current && !isSectionRoot(current)) {
+            current = current.parent();
+        }
+        return current;
+    };
+
+    const isStructural = (comp) => {
+        const cls = comp.getClasses();
+        return (
+            cls.includes("container") ||
+            cls.includes("row") ||
+            cls.some((c) => c.startsWith("col-"))
+        );
+    };
+
+    const resetAllComponentsForMode = (editor, mode) => {
+        const all = editor.DomComponents.getWrapper().find('*');
+
+        all.forEach(comp => {
+            // HENTIKAN EDIT TEXT TOTAL
+            comp.set({
+                editable: false,
+                selectable: mode !== 'content',
+                hoverable: true,
+            }, { silent: true });
+
+            // HAPUS MODE FLAG
+            delete comp.__appliedMode;
+        });
+    };
+
+    const filterCategory = (cat) => {
+        setIsCatSelected(true);
+        setActiveCat(cat);
+        setTimeout(() => {
+            if (!editorRef.current) return;
+            const bm = editorRef.current.BlockManager;
+            const allBlocks = bm.getAll();
+            if (cat === "All Blocks") bm.render(allBlocks.models);
+            else
+                bm.render(
+                    allBlocks.filter((b) => {
+                        const c = b.get("category");
+                        return (c.id || c) === cat;
+                    })
+                );
+        }, 50);
+    };
+
+    function filterCssRules(cssText, doc) {
+        if (!cssText) return "";
+
+        const styleSheet = new CSSStyleSheet();
+        // Gunakan try-catch karena CSS mentah mungkin punya karakter yang tidak valid bagi parser browser
+        try {
+            // Catatan: replace ini untuk menangani karakter escape atau baris baru jika perlu
+            styleSheet.replaceSync(cssText);
+        } catch (e) {
+            return cssText; // Jika gagal parsing, kembalikan apa adanya agar aman
+        }
+
+        let filtered = "";
+        const rules = styleSheet.cssRules;
+
+        for (let i = 0; i < rules.length; i++) {
+            const rule = rules[i];
+
+            // Jika aturan adalah Media Query (@media)
+            if (rule instanceof CSSMediaRule) {
+                let innerFiltered = "";
+                for (let j = 0; j < rule.cssRules.length; j++) {
+                    const subRule = rule.cssRules[j];
+                    if (isSelectorUsed(subRule.selectorText, doc)) {
+                        innerFiltered += subRule.cssText + "\n";
+                    }
+                }
+                if (innerFiltered) {
+                    filtered += `@media ${rule.conditionText} {\n${innerFiltered}}\n`;
+                }
+            }
+            // Jika aturan CSS biasa
+            else if (rule.selectorText) {
+                if (isSelectorUsed(rule.selectorText, doc)) {
+                    filtered += rule.cssText + "\n";
+                }
+            }
+            // Tetap masukkan @font-face dan @keyframes agar desain tidak rusak
+            else {
+                filtered += rule.cssText + "\n";
+            }
+        }
+        return filtered;
+    }
+
+    function isSelectorUsed(selector, doc) {
+        if (!selector) return false;
+
+        // Hapus pseudo-classes seperti :hover, :after agar querySelector tidak error
+        const cleanSelector = selector
+            .split(":")[0]
+            .split(",")[0] // Ambil bagian pertama jika multiple selector
+            .trim();
+
+        if (!cleanSelector) return true; // Biarkan selector kosong/universal lolos
+
+        try {
+            return doc.querySelector(cleanSelector) !== null;
+        } catch (e) {
+            // Jika selector kompleks (misal :nth-child), anggap saja digunakan agar aman
+            return true;
+        }
+    }
 
     const savePage = async () => {
 
@@ -689,337 +909,6 @@ export default function EditProposals({ id, name, template }) {
 
     };
 
-    const applyComponentSettings = (comp, mode) => {
-        // 1. Validasi dasar: Pastikan comp adalah objek komponen GrapesJS yang valid
-        if (!comp || typeof comp.get !== "function") return;
-
-        const tagName = comp.get("tagName")?.toUpperCase();
-        const type = comp.get("type");
-        const isWrapper = type === "wrapper";
-
-        // 2. Tentukan kandidat elemen teks
-        const isCandidate =
-            TEXT_CANDIDATES.includes(tagName) ||
-            type === "text" ||
-            type === "textnode";
-
-        // 3. PERBAIKAN HASBLOCK: Gunakan pengecekan tipe data dan method yang aman
-        const hasBlockChildren = (() => {
-            // Jika komponen tidak punya method 'find' (seperti textnode), pasti tidak punya block children
-            if (typeof comp.find !== 'function') return false;
-
-            try {
-                // Kita cari apakah di dalamnya ada elemen default (blok) atau DIV
-                // Gunakan find("*") tapi dengan proteksi try-catch
-                return comp.find("*").some(c => {
-                    const cTag = c.get("tagName")?.toUpperCase();
-                    const cType = c.get("type");
-                    return cType === "default" || cTag === "DIV" || cTag === "SECTION";
-                });
-            } catch (e) {
-                // Jika terjadi error saat query (misal context issue), anggap false
-                return false;
-            }
-        })();
-
-        // 4. Tentukan apakah ini teks murni yang bisa diedit isinya
-        const isText = isCandidate && !hasBlockChildren;
-
-        let props = {};
-        const view = comp.getView();
-        
-        // Reset attribute contenteditable agar tidak bentrok dengan logic mode
-        if (view?.el && typeof view.el.removeAttribute === 'function') {
-            view.el.removeAttribute("contenteditable");
-        }
-
-        // 5. Logika Mode
-        if (mode === "elements") {
-            if (isSectionRoot(comp)) {
-                props = {
-                    selectable: true,
-                    hoverable: true,
-                    draggable: true,
-                    droppable: false,
-                    removable: true,
-                    highlightable: true,
-                    editable: false,
-                };
-            } else {
-                props = {
-                    selectable: false,
-                    hoverable: false,
-                    draggable: false,
-                    droppable: false,
-                    removable: false,
-                    highlightable: false,
-                    editable: false,
-                };
-            }
-        } else if (mode === "content") {
-            // Di mode content, hanya teks, gambar, dan link yang aktif
-            if (isText || tagName === "IMG" || tagName === "A") {
-                props = {
-                    selectable: true,
-                    hoverable: true,
-                    editable: true,
-                    draggable: false,
-                    droppable: false,
-                };
-            } else {
-                props = {
-                    selectable: false,
-                    hoverable: false,
-                    editable: false,
-                    draggable: false,
-                    droppable: false,
-                };
-            }
-        } else if (mode === "details") {
-            // Mode detail mengaktifkan trait editor (untuk ganti src gambar, href link, dll)
-            props = {
-                draggable: false,
-                droppable: false,
-                removable: false,
-                copyable: false,
-                selectable: true,
-                hoverable: true,
-                editable: false,
-                highlightable: true,
-                toolbar: [], // Sembunyikan toolbar agar fokus ke sidebar detail
-                stylable: true,
-            };
-        }
-
-        // 6. Terapkan properti ke komponen
-        comp.set(props);
-    };
-
-    const injectElementToolbar = (editor, comp) => {
-        const view = comp.getView();
-        if (!view || !view.el) return;
-
-        const el = view.el;
-        if (el.querySelector(".el-toolbar")) return;
-
-        const bar = document.createElement("div");
-        bar.className = "el-toolbar";
-        bar.innerHTML = `
-            <button data-act="source">⧉</button>
-            <button data-act="reset">↺</button>
-            <button data-act="remove">✕</button>
-        `;
-
-        el.style.position = "relative";
-        el.appendChild(bar);
-
-        bar.onclick = (e) => {
-            e.stopPropagation();
-            const act = e.target.dataset.act;
-
-            if (act === "source") {
-                editor.Modal
-                    .setTitle("Source Code")
-                    .setContent(`<pre>${comp.toHTML()}</pre>`)
-                    .open();
-            }
-
-            if (act === "reset") {
-                const original = comp.get("initialContent");
-                if (original) comp.components(original);
-            }
-
-            if (act === "remove") comp.remove();
-        };
-        el.addEventListener("mouseenter", () => {
-            if (
-                activeModeRef.current === "elements" &&
-                isSectionRoot(comp)
-            ) {
-                injectElementToolbar(editor, comp);
-            }
-        });
-    };
-
-    const removeElementToolbar = (comp) => {
-        const el = comp.getView()?.el;
-        el?.querySelector(".el-toolbar")?.remove();
-    };
-
-    const isSectionRoot = (comp) => {
-        return (
-            comp.getAttributes()?.["data-gjs-section"] === "true" ||
-            ["HEADER", "SECTION", "FOOTER"].includes(
-                comp.get("tagName")?.toUpperCase()
-            )
-        );
-    };
-
-    const hideElementToolbar = (editor) => {
-        const toolbar = editor.Canvas.getBody().querySelector(".el-toolbar");
-        if (toolbar) toolbar.style.display = "none";
-    };
-
-    const changeMode = (mode) => {
-        setActiveMode(mode);
-        activeModeRef.current = mode;
-        const editor = editorRef.current;
-        if (!editor) return;
-
-        // Tutup Sidebar & Deselect
-        const sidebar = document.getElementById("style-editor-container");
-        if (sidebar) sidebar.classList.remove("open");
-        editor.select(null);
-
-        const canvasBody = editor.Canvas.getBody();
-        if (canvasBody) {
-            if (mode === "content") {
-                canvasBody.classList.add("mode-content-active");
-                editor.stopCommand("core:component-outline");
-            } else {
-                canvasBody.classList.remove("mode-content-active");
-                if (mode === "elements")
-                    editor.runCommand("core:component-outline");
-            }
-        }
-
-        const wrapper = editor.getWrapper();
-        if (wrapper) {
-            // Tentukan aturan Wrapper berdasarkan mode
-            if (mode === "content" || mode === "details") {
-                // Di mode Content/Details, Canvas tidak boleh terima drop elemen baru
-                wrapper.set({ 
-                    selectable: false, 
-                    hoverable: false, 
-                    droppable: false,
-                    draggable: false
-                });
-            } else {
-                // Di mode Elements, Canvas boleh terima drop
-                wrapper.set({ 
-                    droppable: true,
-                    selectable: false,
-                    draggable: false
-                }); 
-            }
-            
-            // 4. Update Anak Elemen secara Rekursif
-            // Fungsi helper untuk loop ke dalam
-            const updateRecursively = (component) => {
-                applyComponentSettings(component, mode); // Terapkan logic (editable/draggable)
-                
-                // Cek apakah punya anak
-                const children = component.get("components");
-                if (children) {
-                    children.forEach(child => updateRecursively(child));
-                }
-            };
-            
-            // Jalankan loop mulai dari komponen di dalam wrapper
-            const components = wrapper.get("components");
-            if(components) {
-                components.forEach(child => updateRecursively(child));
-            }
-        }
-
-        if (mode === "details") {
-            editor.runCommand("core:component-select");
-            editor.runCommand("core:component-hover");
-        }
-
-        editor.refresh();
-    };
-
-    const isStructural = (comp) => {
-        const cls = comp.getClasses();
-        return (
-            cls.includes("container") ||
-            cls.includes("row") ||
-            cls.some(c => c.startsWith("col-"))
-        );
-    };
-
-    const filterCategory = (cat) => {
-        setIsCatSelected(true);
-        setActiveCat(cat);
-        setTimeout(() => {
-            if (!editorRef.current) return;
-            const bm = editorRef.current.BlockManager;
-            const allBlocks = bm.getAll();
-            if (cat === "All Blocks") bm.render(allBlocks.models);
-            else
-                bm.render(
-                    allBlocks.filter((b) => {
-                        const c = b.get("category");
-                        return (c.id || c) === cat;
-                    })
-                );
-        }, 50);
-    };
-
-    function filterCssRules(cssText, doc) {
-        if (!cssText) return "";
-        
-        const styleSheet = new CSSStyleSheet();
-        // Gunakan try-catch karena CSS mentah mungkin punya karakter yang tidak valid bagi parser browser
-        try {
-            // Catatan: replace ini untuk menangani karakter escape atau baris baru jika perlu
-            styleSheet.replaceSync(cssText);
-        } catch (e) {
-            return cssText; // Jika gagal parsing, kembalikan apa adanya agar aman
-        }
-
-        let filtered = "";
-        const rules = styleSheet.cssRules;
-
-        for (let i = 0; i < rules.length; i++) {
-            const rule = rules[i];
-
-            // Jika aturan adalah Media Query (@media)
-            if (rule instanceof CSSMediaRule) {
-                let innerFiltered = "";
-                for (let j = 0; j < rule.cssRules.length; j++) {
-                    const subRule = rule.cssRules[j];
-                    if (isSelectorUsed(subRule.selectorText, doc)) {
-                        innerFiltered += subRule.cssText + "\n";
-                    }
-                }
-                if (innerFiltered) {
-                    filtered += `@media ${rule.conditionText} {\n${innerFiltered}}\n`;
-                }
-            } 
-            // Jika aturan CSS biasa
-            else if (rule.selectorText) {
-                if (isSelectorUsed(rule.selectorText, doc)) {
-                    filtered += rule.cssText + "\n";
-                }
-            }
-            // Tetap masukkan @font-face dan @keyframes agar desain tidak rusak
-            else {
-                filtered += rule.cssText + "\n";
-            }
-        }
-        return filtered;
-    }
-
-    function isSelectorUsed(selector, doc) {
-        if (!selector) return false;
-        
-        // Hapus pseudo-classes seperti :hover, :after agar querySelector tidak error
-        const cleanSelector = selector.split(':')[0]
-                                      .split(',')[0] // Ambil bagian pertama jika multiple selector
-                                      .trim();
-        
-        if (!cleanSelector) return true; // Biarkan selector kosong/universal lolos
-
-        try {
-            return doc.querySelector(cleanSelector) !== null;
-        } catch (e) {
-            // Jika selector kompleks (misal :nth-child), anggap saja digunakan agar aman
-            return true;
-        }
-    }
-
     const exportPage = async () => {
         if (!editorRef.current) return;
 
@@ -1040,7 +929,7 @@ export default function EditProposals({ id, name, template }) {
                 if (url.includes("font-awesome")) {
                     return text;
                 }
-                
+
                 return filterCssRules(text, doc);
             } catch {
                 return "";
@@ -1048,7 +937,7 @@ export default function EditProposals({ id, name, template }) {
         };
 
         const externalCss = await Promise.all(
-            canvasConfig.styles.map(url => getFilteredCss(url))
+            canvasConfig.styles.map((url) => getFilteredCss(url))
         );
 
         const internalCss = filterCssRules(editor.getCss(), doc);
@@ -1117,7 +1006,7 @@ export default function EditProposals({ id, name, template }) {
                 if (url.includes("font-awesome")) {
                     return text;
                 }
-                
+
                 return filterCssRules(text, doc);
             } catch {
                 return "";
@@ -1125,7 +1014,7 @@ export default function EditProposals({ id, name, template }) {
         };
 
         const externalCss = await Promise.all(
-            canvasConfig.styles.map(url => getFilteredCss(url))
+            canvasConfig.styles.map((url) => getFilteredCss(url))
         );
 
         const internalCss = filterCssRules(editor.getCss(), doc);
@@ -1178,6 +1067,18 @@ export default function EditProposals({ id, name, template }) {
         editor.DomComponents.clear();
         editor.CssComposer.clear();
         editor.select(null);
+    };
+
+    const goBack = () => {
+        if (isDirty) {
+            const confirmLeave = window.confirm(
+                "Perubahan belum disimpan.\nApakah Anda yakin ingin kembali?"
+            );
+
+            if (!confirmLeave) return;
+        }
+
+        window.history.back();
     };
 
     return (
@@ -1255,6 +1156,17 @@ export default function EditProposals({ id, name, template }) {
                         ))}
                     </div>
                     <div className="flex items-center gap-2">
+                        <button
+                            onClick={goBack}
+                            className="
+                                inline-flex items-center gap-2
+                                rounded-md bg-zinc-200 px-3 py-2
+                                text-sm font-medium text-zinc-800
+                                hover:bg-zinc-300 transition
+                            "
+                        >
+                            Back
+                        </button>
                         {/* SAVE */}
                         <button
                             onClick={savePage}
@@ -1267,7 +1179,7 @@ export default function EditProposals({ id, name, template }) {
                                     : "cursor-not-allowed bg-emerald-200 text-emerald-700"}
                             `}
                         >
-                            ✓ {isDirty ? "Save Page" : "Nothing new to save"}
+                            {isDirty ? "Save" : "Nothing new to save"}
                         </button>
 
                         {/* EXPORT */}

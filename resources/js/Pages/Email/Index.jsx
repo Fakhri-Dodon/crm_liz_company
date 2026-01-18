@@ -175,9 +175,11 @@ export default function EmailIndex({ auth_permissions }) {
                                     <th className="px-6 py-4 text-left text-xs font-semibold text-black uppercase tracking-wider">
                                         {t("emails.table.subject")}
                                     </th>
-                                    <th className="px-6 py-4 text-left text-xs font-semibold text-black uppercase tracking-wider">
-                                        {t('users.table.actions') || 'Actions'}
-                                    </th>
+                                    { (canRead || canDelete) && (
+                                        <th className="px-6 py-4 text-left text-xs font-semibold text-black uppercase tracking-wider">
+                                            {t('users.table.actions') || 'Actions'}
+                                        </th>
+                                    )}                                    
                                 </tr>
                             </thead>
 
@@ -207,22 +209,26 @@ export default function EmailIndex({ auth_permissions }) {
                                                 <td className="px-6 py-4 whitespace-nowrap">
                                                     <div className="flex items-center gap-2">
                                                         {/* Tombol View Detail (Style disamakan dengan tombol Edit) */}
-                                                        <button
-                                                            onClick={() => handleShowLogDetail(log)}
-                                                            className="p-2 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-lg border border-blue-200 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 group-hover:border-blue-300"
-                                                            title="View Detail"
-                                                        >
-                                                            <BookOpen className="w-4 h-4" />
-                                                        </button>
+                                                        { canRead && (
+                                                            <button
+                                                                onClick={() => handleShowLogDetail(log)}
+                                                                className="p-2 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-lg border border-blue-200 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 group-hover:border-blue-300"
+                                                                title="View Detail"
+                                                            >
+                                                                <BookOpen className="w-4 h-4" />
+                                                            </button>
+                                                        )}                                                        
 
                                                         {/* Tombol Delete (Style disamakan dengan tombol Delete) */}
-                                                        <button
-                                                            onClick={() => log?.id && handleLogDelete(log.id)}
-                                                            className="p-2 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-lg border border-red-200 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-1 group-hover:border-red-300"
-                                                            title="Delete Log"
-                                                        >
-                                                            <Trash2 className="w-4 h-4" />
-                                                        </button>
+                                                        { canDelete && (
+                                                            <button
+                                                                onClick={() => log?.id && handleLogDelete(log.id)}
+                                                                className="p-2 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-lg border border-red-200 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-1 group-hover:border-red-300"
+                                                                title="Delete Log"
+                                                            >
+                                                                <Trash2 className="w-4 h-4" />
+                                                            </button>
+                                                        )}                                                        
                                                     </div>
                                                 </td>
                                             </tr>
