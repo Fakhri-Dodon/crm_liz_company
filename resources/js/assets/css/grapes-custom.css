@@ -851,3 +851,20 @@ body, html {
 .gjs-sm-label {
     font-weight: bold;;
 }
+
+.mode-content-active * {
+    cursor: default !important;
+}
+
+/* TEXT */
+.mode-content-active [contenteditable="true"],
+.mode-content-active [data-gjs-type="text"] {
+    cursor: text !important;
+    outline: 2px dashed #4cd137 !important;
+}
+
+/* ✅ IMAGE (INI YANG HILANG) */
+.mode-content-active img {
+    cursor: pointer !important;
+    outline: 2px dashed #e67e22 !important;
+}
