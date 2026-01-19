@@ -44,7 +44,7 @@ export default function Edit({
 
     console.log("INITIAL CONTACT: ", initialContactId);
 
-    let savedContact = quotation.contactPerson || {};
+    let savedContact = quotation.company_contact_person || quotation.lead || {};
 
     console.log("saved contact: ", savedContact);
 
@@ -247,11 +247,11 @@ export default function Edit({
     //     // }
     // }, [data.services, data.tax_rate, data.tax_type, data.discount_amount]);
 
-    useEffect(() => {
-        if (data.contact_person_id) {
-            handleContactChange(data.contact_person_id);
-        }
-    }, []);
+    // useEffect(() => {
+    //     if (data.contact_person_id) {
+    //         handleContactChange(data.contact_person_id);
+    //     }
+    // }, []);
 
     const handleSave = async () => {
         if (data.services.length === 0) {
