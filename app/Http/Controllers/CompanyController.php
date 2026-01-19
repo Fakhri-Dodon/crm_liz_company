@@ -2663,62 +2663,157 @@ private function getCompanyProjects($company)
         }
     }
 
-// app/Http/Controllers/CompanyController.php
+
+// app/Http\Controllers/CompanyController.php
 
 /**
- * Get accepted quotations for company creation - ONLY UNUSED QUOTATIONS
+ * Get accepted quotations - FIXED SQL VERSION
  */
 public function getAcceptedQuotations(Request $request)
 {
     try {
-        // Ambil semua quotations yang accepted dan belum memiliki client
-        $quotations = Quotation::with(['lead', 'company'])
-            ->where(function($query) {
-                // Filter untuk status accepted (dalam berbagai format)
-                $query->where('status', 'accepted')
-                    ->orWhere('status', 'Accepted')
-                    ->orWhere('status', 'ACCEPTED')
-                    ->orWhere('status', 'Accepté')
-                    ->orWhereRaw('LOWER(status) LIKE ?', ['%accept%']);
+        \Log::info('=== FIXED SQL VERSION: Fetching accepted quotations ===');
+        
+        // Query Builder untuk menghindari SQL syntax error
+        $quotations = \DB::table('quotations as q')
+            ->select(
+                'q.id',
+                'q.quotation_number',
+                'q.subject',
+                'q.status',
+                'q.lead_id',
+                'q.date',
+                'l.company_name',
+                'l.contact_person',
+                'l.email',
+                'l.phone',
+                'l.position',
+                'l.city',
+                'l.province',
+                'l.country',
+                'l.postal_code',
+                'l.vat_number',
+                'l.nib',
+                'l.website'
+            )
+            ->leftJoin('leads as l', function($join) {
+                $join->on('q.lead_id', '=', 'l.id')
+                     ->where('l.deleted', 0);
             })
-            ->where('deleted', 0)
-            ->whereDoesntHave('company') // HANYA quotations yang belum memiliki client
-            ->orderBy('date', 'desc')
-            ->get()
-            ->map(function($quotation) {
-                return [
-                    'id' => $quotation->id,
-                    'quotation_number' => $quotation->quotation_number,
-                    'date' => $quotation->date ? $quotation->date->format('Y-m-d') : null,
-                    'subject' => $quotation->subject,
-                    'total' => (float) $quotation->total,
-                    'status' => $quotation->status,
-                    'has_company' => $quotation->company ? true : false, // Flag untuk UI
-                    'lead' => $quotation->lead ? [
-                        'id' => $quotation->lead->id,
-                        'company_name' => $quotation->lead->company_name,
-                        'contact_person' => $quotation->lead->contact_person,
-                        'email' => $quotation->lead->email,
-                        'phone' => $quotation->lead->phone,
-                        'position' => $quotation->lead->position
-                    ] : null
+            ->where('q.deleted', 0)
+            ->where(function($query) {
+                $query->where('q.status', 'accepted')
+                      ->orWhere('q.status', 'Accepted')
+                      ->orWhere('q.status', 'ACCEPTED');
+            })
+            ->whereNotExists(function($query) {
+                $query->select(\DB::raw(1))
+                      ->from('companies as c')
+                      ->whereColumn('c.quotation_id', 'q.id')
+                      ->where('c.deleted', 0);
+            })
+            ->orderBy('q.date', 'desc')
+            ->get();
+        
+        \Log::info('Query Builder executed, found: ' . $quotations->count() . ' quotations');
+        
+        // Format data
+        $formattedQuotations = [];
+        foreach ($quotations as $q) {
+            $leadData = null;
+            
+            if ($q->company_name) {
+                $leadData = [
+                    'id' => $q->lead_id,
+                    'company_name' => $q->company_name,
+                    'contact_person' => $q->contact_person,
+                    'email' => $q->email,
+                    'phone' => $q->phone,
+                    'position' => $q->position,
+                    'city' => $q->city,
+                    'province' => $q->province,
+                    'country' => $q->country,
+                    'postal_code' => $q->postal_code,
+                    'vat_number' => $q->vat_number ?? '',
+                    'nib' => $q->nib ?? '',
+                    'website' => $q->website ?? ''
                 ];
-            });
+            }
+            
+            $formattedQuotations[] = [
+                'id' => $q->id,
+                'quotation_number' => $q->quotation_number ?? 'Q-' . substr($q->id, 0, 8),
+                'date' => $q->date ? ($q->date instanceof \DateTime ? $q->date->format('Y-m-d') : date('Y-m-d', strtotime($q->date))) : null,
+                'subject' => $q->subject ?? 'No Subject',
+                'status' => $q->status,
+                'lead' => $leadData
+            ];
+        }
+        
+        \Log::info('Formatted: ' . count($formattedQuotations) . ' quotations');
         
         return response()->json([
             'success' => true,
-            'message' => 'Data quotations yang belum digunakan berhasil diambil',
-            'data' => $quotations,
-            'total' => $quotations->count()
+            'message' => count($formattedQuotations) . ' quotations available',
+            'data' => $formattedQuotations,
+            'total' => count($formattedQuotations)
         ]);
         
     } catch (\Exception $e) {
-        \Log::error('Error fetching accepted quotations: ' . $e->getMessage());
-        return response()->json([
-            'success' => false,
-            'message' => 'Gagal mengambil data quotations',
-            'data' => []
-        ], 500);
+        \Log::error('FIXED SQL VERSION Error: ' . $e->getMessage());
+        \Log::error('File: ' . $e->getFile() . ' Line: ' . $e->getLine());
+        \Log::error('Trace: ' . $e->getTraceAsString());
+        
+        // Fallback: Query yang lebih sederhana
+        try {
+            \Log::info('Trying fallback query...');
+            
+            $fallbackQuery = \DB::table('quotations')
+                ->select('id', 'quotation_number', 'subject', 'status', 'lead_id', 'date')
+                ->where('deleted', 0)
+                ->whereIn('status', ['accepted', 'Accepted', 'ACCEPTED'])
+                ->orderBy('date', 'desc')
+                ->get();
+                
+            \Log::info('Fallback found: ' . $fallbackQuery->count() . ' quotations');
+            
+            $filtered = $fallbackQuery->filter(function($q) {
+                $hasCompany = \DB::table('companies')
+                    ->where('quotation_id', $q->id)
+                    ->where('deleted', 0)
+                    ->exists();
+                return !$hasCompany;
+            })->values();
+            
+            $formatted = $filtered->map(function($q) {
+                return [
+                    'id' => $q->id,
+                    'quotation_number' => $q->quotation_number,
+                    'date' => $q->date ? date('Y-m-d', strtotime($q->date)) : null,
+                    'subject' => $q->subject,
+                    'status' => $q->status,
+                    'lead' => null // Tidak ambil lead dulu
+                ];
+            });
+            
+            return response()->json([
+                'success' => true,
+                'message' => $formatted->count() . ' quotations available (fallback)',
+                'data' => $formatted,
+                'total' => $formatted->count(),
+                'note' => 'Using fallback query'
+            ]);
+            
+        } catch (\Exception $fallbackError) {
+            \Log::error('Fallback also failed: ' . $fallbackError->getMessage());
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Database error: ' . $e->getMessage(),
+                'data' => [],
+                'error' => $e->getMessage()
+            ], 500);
+        }
     }
 }
 

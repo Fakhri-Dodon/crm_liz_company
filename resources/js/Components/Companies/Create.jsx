@@ -50,7 +50,6 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId, onSuccess }) => {
     // Fungsi untuk mendapatkan CSRF token dari Laravel
     const getCsrfToken = () => {
         const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
-        console.log('CSRF Token found:', token ? 'Yes' : 'No');
         return token;
     };
 
@@ -63,9 +62,6 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId, onSuccess }) => {
         
         if (csrfToken) {
             axios.defaults.headers.common['X-CSRF-TOKEN'] = csrfToken;
-            console.log('CSRF Token set for axios');
-        } else {
-            console.warn('CSRF Token not found!');
         }
         
         // Juga tambahkan Accept header untuk JSON
@@ -75,7 +71,7 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId, onSuccess }) => {
     // Reset form ketika modal dibuka
     useEffect(() => {
         if (isOpen) {
-            console.log('Modal opened...');
+            console.log('Modal Create Company opened...');
             
             // Reset form data
             setFormData({
@@ -114,24 +110,37 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId, onSuccess }) => {
         }
     }, [isOpen, quotationId]);
 
-    // Fetch quotations dengan status accepted
     const fetchAcceptedQuotations = async () => {
         setLoadingQuotations(true);
+        setQuotationUsedError(null);
+        
         try {
-            const csrfToken = getCsrfToken();
+            console.log('🔍 Testing route...');
+            
+            // Test 1: Coba route sederhana dulu
+            try {
+                const testResponse = await axios.get('/test-quotations');
+                console.log('✅ Test route success:', testResponse.data);
+            } catch (testError) {
+                console.error('❌ Test route failed:', testError);
+            }
+            
+            // Test 2: Coba route utama
+            console.log('🔍 Calling main route: /companies/get-accepted-quotations');
+            
             const response = await axios.get('/companies/get-accepted-quotations', {
                 headers: {
-                    'X-CSRF-TOKEN': csrfToken,
-                    'Accept': 'application/json'
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json'
                 }
             });
             
-            if (response && response.data && response.data.success) {
-                // Data dari backend sudah difilter yang belum digunakan
+            console.log('📦 Main route response:', response.data);
+            
+            if (response.data.success) {
                 setQuotations(response.data.data || []);
                 
-                // Jika tidak ada quotations yang tersedia
-                if (response.data.data && response.data.data.length === 0) {
+                if (response.data.data.length === 0) {
                     setQuotationUsedError({
                         type: 'info',
                         message: t('companies_create.no_available_quotations')
@@ -139,40 +148,76 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId, onSuccess }) => {
                 }
             } else {
                 setQuotations([]);
+                setQuotationUsedError({
+                    type: 'error',
+                    message: response.data.message
+                });
             }
+            
         } catch (error) {
-            console.error('Error fetching quotations:', error);
+            console.error('💥 Fetch error details:', {
+                status: error.response?.status,
+                statusText: error.response?.statusText,
+                data: error.response?.data,
+                config: error.config?.url
+            });
+            
             setQuotations([]);
+            
+            // Tampilkan error detail
+            let errorMessage = 'Unknown error';
+            if (error.response?.data?.error?.message) {
+                errorMessage = error.response.data.error.message;
+            } else if (error.response?.data?.message) {
+                errorMessage = error.response.data.message;
+            } else if (error.message) {
+                errorMessage = error.message;
+            }
+            
+            setQuotationUsedError({
+                type: 'error',
+                message: `Error: ${errorMessage}`
+            });
         } finally {
             setLoadingQuotations(false);
         }
     };
 
-    // Handle quotation selection
+    // PERBAIKAN: Handle quotation selection
     const handleQuotationSelect = async (quotation) => {
         // Reset error sebelumnya
         setQuotationUsedError(null);
         setSelectedQuotation(quotation);
         setQuotationLead(null);
         
-        // Set quotation_id di form
-        setFormData(prev => ({
-            ...prev,
-            quotation_id: quotation.id,
-            lead_id: quotation.lead?.id || '',
-            company_name: quotation.lead?.company_name || prev.company_name,
-            contact_person: quotation.lead?.contact_person || prev.contact_person,
-            contact_email: quotation.lead?.email || prev.contact_email,
-            contact_phone: quotation.lead?.phone || prev.contact_phone,
-            contact_position: quotation.lead?.position || t('companies_create.contact_person'),
-            vat_number: quotation.lead?.vat_number || '', // TIDAK WAJIB
-            nib: quotation.lead?.nib || '', // TIDAK WAJIB
-            website: quotation.lead?.website || '' // TIDAK WAJIB
-        }));
+        console.log('Selected quotation:', quotation);
         
-        // Set lead data
+        // Jika ada lead data langsung di quotation
         if (quotation.lead) {
-            setQuotationLead(quotation.lead);
+            const lead = quotation.lead;
+            setQuotationLead(lead);
+            
+            // Set form data dari lead yang ada di quotation
+            setFormData(prev => ({
+                ...prev,
+                quotation_id: quotation.id,
+                lead_id: lead.id || '',
+                company_name: lead.company_name || prev.company_name,
+                contact_person: lead.contact_person || prev.contact_person,
+                contact_email: lead.email || prev.contact_email,
+                contact_phone: lead.phone || prev.contact_phone,
+                contact_position: lead.position || t('companies_create.contact_person'),
+                city: lead.city || prev.city,
+                province: lead.province || prev.province,
+                country: lead.country || prev.country,
+                postal_code: lead.postal_code || prev.postal_code,
+                vat_number: lead.vat_number || '', // TIDAK WAJIB
+                nib: lead.nib || '', // TIDAK WAJIB
+                website: lead.website || '' // TIDAK WAJIB
+            }));
+        } else {
+            // Jika tidak ada lead data langsung, fetch dari API
+            fetchLeadFromQuotation(quotation.id);
         }
     };
 
@@ -184,6 +229,8 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId, onSuccess }) => {
         setQuotationUsedError(null);
         try {
             const csrfToken = getCsrfToken();
+            console.log(`Fetching lead data for quotation: ${quotationId}`);
+            
             const response = await axios.get(`/companies/get-lead-from-quotation/${quotationId}`, {
                 headers: {
                     'X-CSRF-TOKEN': csrfToken,
@@ -191,12 +238,14 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId, onSuccess }) => {
                 }
             });
             
+            console.log('Lead from quotation response:', response.data);
+            
             if (response && response.data) {
                 if (response.data.success) {
                     const leadData = response.data.data;
                     setQuotationLead(leadData);
                     
-                    // Auto-fill form dengan data lead
+                    // Auto-fill form dengan data lead dari API
                     setFormData(prev => ({
                         ...prev,
                         quotation_id: quotationId,
@@ -214,15 +263,19 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId, onSuccess }) => {
                         nib: leadData.nib || '', // TIDAK WAJIB
                         website: leadData.website || '' // TIDAK WAJIB
                     }));
+                    
+                    console.log('Form auto-filled with lead data');
                 } else {
-                    // Error dari server (misal: quotation sudah digunakan)
-                    if (response.data.message && (
-                        response.data.message.includes('sudah digunakan') || 
-                        response.data.message.includes('already used')
-                    )) {
+                    // Error dari server
+                    const errorMessage = response.data.message;
+                    
+                    if (errorMessage.includes('sudah digunakan') || 
+                        errorMessage.includes('sudah memiliki client') ||
+                        errorMessage.includes('already used')) {
+                        
                         setQuotationUsedError({
                             type: 'error',
-                            message: response.data.message,
+                            message: errorMessage,
                             company_name: response.data.company_name,
                             company_id: response.data.company_id
                         });
@@ -233,23 +286,28 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId, onSuccess }) => {
                             quotation_id: '',
                             lead_id: ''
                         }));
+                        setSelectedQuotation(null);
                     } else {
-                        alert(response.data.message || t('companies_create.error_fetching_lead'));
+                        alert(errorMessage || t('companies_create.error_fetching_lead'));
                     }
                 }
             }
         } catch (error) {
             console.error('Error fetching lead:', error);
+            console.error('Error details:', error.response?.data);
             
-            // Handle specific error untuk quotation yang sudah digunakan
-            if (error.response?.status === 400 && error.response?.data?.message) {
-                if (error.response.data.message.includes('sudah digunakan') || 
-                    error.response.data.message.includes('already used')) {
+            if (error.response?.status === 400 || error.response?.status === 409) {
+                const errorMessage = error.response.data?.message;
+                if (errorMessage && (
+                    errorMessage.includes('sudah digunakan') || 
+                    errorMessage.includes('already used') ||
+                    errorMessage.includes('perusahaan sudah')
+                )) {
                     setQuotationUsedError({
                         type: 'error',
-                        message: error.response.data.message,
-                        company_name: error.response.data.company_name,
-                        company_id: error.response.data.company_id
+                        message: errorMessage,
+                        company_name: error.response.data?.company_name,
+                        company_id: error.response.data?.company_id
                     });
                     
                     // Reset form
@@ -258,9 +316,14 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId, onSuccess }) => {
                         quotation_id: '',
                         lead_id: ''
                     }));
+                    setSelectedQuotation(null);
+                } else {
+                    alert(t('companies_create.error_fetching_lead'));
                 }
+            } else if (error.response?.status === 404) {
+                alert(t('companies_create.quotation_or_lead_not_found'));
             } else {
-                alert(t('companies_create.error_fetching_lead'));
+                alert(`${t('companies_create.error_fetching_lead')}: ${error.response?.data?.message || error.message}`);
             }
         } finally {
             setLoadingLead(false);
@@ -280,13 +343,14 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId, onSuccess }) => {
             contact_person: '',
             contact_email: '',
             contact_phone: '',
-            vat_number: '', // TIDAK WAJIB
-            nib: '', // TIDAK WAJIB
-            website: '', // TIDAK WAJIB
+            contact_position: '',
             city: '',
             province: '',
             country: '',
-            postal_code: ''
+            postal_code: '',
+            vat_number: '', // TIDAK WAJIB
+            nib: '', // TIDAK WAJIB
+            website: '' // TIDAK WAJIB
         }));
         setQuotationSearch('');
     };
@@ -297,8 +361,8 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId, onSuccess }) => {
         
         const searchLower = quotationSearch.toLowerCase();
         return (
-            quotation.quotation_number?.toLowerCase().includes(searchLower) ||
-            quotation.subject?.toLowerCase().includes(searchLower) ||
+            (quotation.quotation_number?.toLowerCase().includes(searchLower)) ||
+            (quotation.subject?.toLowerCase().includes(searchLower)) ||
             (quotation.lead?.company_name?.toLowerCase().includes(searchLower)) ||
             (quotation.lead?.contact_person?.toLowerCase().includes(searchLower))
         );
@@ -335,19 +399,18 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId, onSuccess }) => {
         }
     };
 
-    // Handle submit dengan CSRF token yang benar
+    // Handle submit
     const handleSubmit = async (e) => {
         e.preventDefault();
         setIsSubmitting(true);
         setErrors({});
 
         console.log('=== FORM SUBMISSION STARTED ===');
-        console.log('Form data before submit:', formData);
+        console.log('Form data:', formData);
 
         // Validasi field wajib
         const requiredFields = [
             'company_name',
-            'client_type_id',
             'contact_person',
             'contact_email',
             'contact_phone',
@@ -373,7 +436,7 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId, onSuccess }) => {
         // Buat FormData untuk upload file
         const formDataToSend = new FormData();
         
-        // **TAMBAHKAN CSRF TOKEN KE FORMDATA SECARA MANUAL**
+        // Tambahkan CSRF token
         const csrfToken = getCsrfToken();
         if (csrfToken) {
             formDataToSend.append('_token', csrfToken);
@@ -401,10 +464,8 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId, onSuccess }) => {
         }
 
         try {
-            console.log('Sending form data...');
-            console.log('CSRF Token to send:', csrfToken);
+            console.log('Sending form data to /companies...');
             
-            // **GUNAKAN AXIOS DENGAN KONFIGURASI SEDERHANA**
             const response = await axios.post('/companies', formDataToSend, {
                 headers: {
                     'Content-Type': 'multipart/form-data',
@@ -462,17 +523,11 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId, onSuccess }) => {
 
         } catch (error) {
             console.error('Error creating client:', error);
-            console.error('Error details:', error.response?.data);
             
             if (error.response?.status === 419) {
-                // CSRF token error - refresh token
-                const newToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
-                console.log('Current CSRF token:', newToken);
-                
                 alert('CSRF token expired. Please refresh the page and try again.');
                 window.location.reload();
             } else if (error.response?.status === 422) {
-                // Validation errors
                 setErrors(error.response.data.errors || {});
                 
                 const errorMessages = Object.values(error.response.data.errors || {})
@@ -483,7 +538,6 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId, onSuccess }) => {
                     alert(t('companies_create.validation_errors') + '\n' + errorMessages);
                 }
             } else if (error.response?.status === 400 && error.response?.data?.message) {
-                // Handle quotation already used error
                 if (error.response.data.message.includes('already used') || 
                     error.response.data.message.includes('sudah digunakan')) {
                     setQuotationUsedError({
@@ -544,7 +598,7 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId, onSuccess }) => {
                                     {t('companies_create.select_from_quotation')}
                                 </h3>
                                 
-                                {/* Error message untuk quotation yang sudah digunakan */}
+                                {/* Error message */}
                                 {quotationUsedError && (
                                     <div className={`mb-4 p-3 rounded-lg flex items-start gap-2 ${
                                         quotationUsedError.type === 'error' 
@@ -603,6 +657,11 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId, onSuccess }) => {
                                                                 <div className="font-medium text-gray-700">
                                                                     {selectedQuotation.lead.company_name}
                                                                 </div>
+                                                            </div>
+                                                        )}
+                                                        {loadingLead && (
+                                                            <div className="mt-2 text-xs text-blue-600">
+                                                                {t('companies_create.loading_lead_data')}
                                                             </div>
                                                         )}
                                                     </div>
@@ -863,7 +922,7 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId, onSuccess }) => {
                                         {t('companies_create.postal_code')} <span className="text-red-600">*</span>
                                     </label>
                                     <input
-                                        type="text" // Ubah dari number ke text untuk fleksibilitas
+                                        type="text"
                                         name="postal_code"
                                         value={formData.postal_code}
                                         onChange={handleInputChange}
@@ -887,7 +946,7 @@ const Create = ({ isOpen, onClose, clientTypes, quotationId, onSuccess }) => {
                                         {t('companies_create.vat_number')}
                                     </label>
                                     <input
-                                        type="text" // Ubah dari number ke text
+                                        type="text"
                                         name="vat_number"
                                         value={formData.vat_number}
                                         onChange={handleInputChange}
