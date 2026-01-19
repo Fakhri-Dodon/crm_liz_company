@@ -154,16 +154,18 @@ const Show = ({
         }, 3000);
     };
 
-    // Function untuk handle edit project - UPDATED VERSION
     const handleProjectEdit = async (updatedProjectData) => {
         console.log("handleProjectEdit called with:", updatedProjectData);
 
         try {
             setIsSavingProject(true);
 
-            // Kirim request update ke backend
+            // PERBAIKAN: Gunakan route() helper
             const response = await axios.put(
-                `/companies/${company.id}/projects/${updatedProjectData.id}`,
+                route('companies.projects.update', {
+                    company: company.id,
+                    project: updatedProjectData.id
+                }),
                 updatedProjectData,
                 {
                     headers: {
@@ -176,29 +178,36 @@ const Show = ({
             console.log("Update response:", response.data);
 
             if (response.data.success) {
-                // Show success toast
                 showToast(
                     t("companies_show.project_updated_successfully"),
                     "success"
                 );
 
-                // Refresh halaman untuk mendapatkan data terbaru
+                // Refresh halaman
                 router.reload({ preserveScroll: true });
 
-                return true; // Return true untuk menutup modal di ProjectTable
+                return true;
             } else {
                 showToast(
                     response.data.message ||
                         t("companies_show.failed_to_update_project"),
                     "error"
                 );
-                return false; // Return false untuk tetap membuka modal
+                return false;
             }
         } catch (error) {
             console.error("Error updating project:", error);
-
-            if (error.response?.status === 422) {
-                // Validation errors
+            
+            // Debug detail error
+            console.error("Error config:", error.config);
+            console.error("Error response:", error.response);
+            
+            if (error.response?.status === 404) {
+                showToast(
+                    "Route not found. Please check if the route is properly registered.",
+                    "error"
+                );
+            } else if (error.response?.status === 422) {
                 const errors = error.response.data.errors;
                 let errorMessage =
                     t("companies_show.validation_errors") + ":\n";
@@ -214,7 +223,7 @@ const Show = ({
                 );
             }
 
-            return false; // Return false untuk tetap membuka modal
+            return false;
         } finally {
             setIsSavingProject(false);
         }

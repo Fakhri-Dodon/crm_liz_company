@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, User, Mail, Phone, Briefcase, Star } from 'lucide-react';
 import axios from 'axios';
-import { useTranslation } from 'react-i18next'; // Import useTranslation
+import { useTranslation } from 'react-i18next';
 
 const ContactModal = ({ 
     isOpen, 
@@ -12,7 +12,7 @@ const ContactModal = ({
     mode = 'add', // 'add' or 'edit'
     onSuccess 
 }) => {
-    const { t } = useTranslation(); // Initialize translation hook
+    const { t } = useTranslation();
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [errors, setErrors] = useState({});
     
@@ -136,15 +136,19 @@ const ContactModal = ({
             const endpoint = `/companies/${companyId}/contacts`;
             console.log('API Endpoint:', endpoint);
             
-            // Prepare data
+            // Prepare data - PERUBAHAN: Di mode edit, JANGAN kirim is_primary
             const requestData = {
                 name: formData.name.trim(),
                 email: formData.email.trim(),
                 phone: formData.phone.trim(),
                 position: formData.position.trim(),
-                is_primary: Boolean(formData.is_primary),
                 is_active: Boolean(formData.is_active)
             };
+            
+            // Hanya kirim is_primary jika mode add
+            if (mode === 'add') {
+                requestData.is_primary = Boolean(formData.is_primary);
+            }
             
             console.log('Request Data:', requestData);
             
@@ -165,12 +169,10 @@ const ContactModal = ({
             if (response.data.success) {
                 console.log('Success! Data:', response.data.data);
                 
-                // Success callback
                 if (onSuccess) {
                     onSuccess(response.data.data, mode);
                 }
                 
-                // Close modal
                 onClose();
             } else {
                 console.error('Server returned error:', response.data);
@@ -183,16 +185,12 @@ const ContactModal = ({
             console.error('=== ERROR SAVING CONTACT ===');
             console.error('Error object:', error);
             console.error('Error message:', error.message);
-            console.error('Error code:', error.code);
-            console.error('Error config:', error.config);
             
             if (error.response) {
                 console.error('Response status:', error.response.status);
-                console.error('Response headers:', error.response.headers);
                 console.error('Response data:', error.response.data);
                 
                 if (error.response.status === 422) {
-                    console.error('Validation errors:', error.response.data.errors);
                     setErrors(error.response.data.errors || {});
                 } else if (error.response.status === 404) {
                     setErrors({ submit: t('contact_modal.error_route_not_found') });
@@ -208,11 +206,6 @@ const ContactModal = ({
                 console.error('Error setting up request:', error.message);
                 setErrors({ submit: t('contact_modal.error_request_setup', { message: error.message }) });
             }
-            
-            // Log additional info for debugging
-            console.error('Current URL:', window.location.href);
-            console.error('CSRF Token:', document.querySelector('meta[name="csrf-token"]')?.getAttribute('content'));
-            
         } finally {
             setIsSubmitting(false);
             console.log('=== FORM SUBMIT COMPLETED ===');
@@ -233,11 +226,6 @@ const ContactModal = ({
                             </h2>
                             <p className="text-gray-600 mt-1 text-sm">
                                 {mode === 'edit' ? t('contact_modal.edit_subtitle') : t('contact_modal.add_subtitle')}
-                                {companyId && (
-                                    <span className="block text-xs text-teal-600 mt-1">
-                                        {t('contact_modal.company_id')}: {companyId}
-                                    </span>
-                                )}
                             </p>
                         </div>
                         <button
@@ -367,29 +355,33 @@ const ContactModal = ({
 
                         {/* Checkboxes */}
                         <div className="space-y-4">
-                            <div className="flex items-center p-3 bg-gray-50 rounded-lg">
-                                <input
-                                    type="checkbox"
-                                    id="is_primary"
-                                    name="is_primary"
-                                    checked={formData.is_primary}
-                                    onChange={handleInputChange}
-                                    className="h-4 w-4 text-teal-600 focus:ring-teal-500 border-gray-300 rounded"
-                                    disabled={isSubmitting}
-                                />
-                                <label htmlFor="is_primary" className="ml-3 flex items-center text-sm text-gray-700">
-                                    <Star className="w-4 h-4 text-yellow-500 mr-2" />
-                                    <div>
-                                        <span className="font-medium">
-                                            {t('contact_modal.set_as_primary')}
-                                        </span>
-                                        <p className="text-xs text-gray-500 mt-0.5">
-                                            {t('contact_modal.primary_warning')}
-                                        </p>
-                                    </div>
-                                </label>
-                            </div>
+                            {/* Hanya tampilkan "Set as primary" di mode ADD */}
+                            {mode === 'add' && (
+                                <div className="flex items-center p-3 bg-gray-50 rounded-lg">
+                                    <input
+                                        type="checkbox"
+                                        id="is_primary"
+                                        name="is_primary"
+                                        checked={formData.is_primary}
+                                        onChange={handleInputChange}
+                                        className="h-4 w-4 text-teal-600 focus:ring-teal-500 border-gray-300 rounded"
+                                        disabled={isSubmitting}
+                                    />
+                                    <label htmlFor="is_primary" className="ml-3 flex items-center text-sm text-gray-700">
+                                        <Star className="w-4 h-4 text-yellow-500 mr-2" />
+                                        <div>
+                                            <span className="font-medium">
+                                                {t('contact_modal.set_as_primary')}
+                                            </span>
+                                            <p className="text-xs text-gray-500 mt-0.5">
+                                                {t('contact_modal.primary_warning')}
+                                            </p>
+                                        </div>
+                                    </label>
+                                </div>
+                            )}
 
+                            {/* Tampilkan status contact (Active/Inactive) */}
                             <div className="flex items-center p-3 bg-gray-50 rounded-lg">
                                 <input
                                     type="checkbox"

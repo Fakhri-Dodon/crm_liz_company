@@ -231,6 +231,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('/companies', [CompanyController::class, 'store'])->name('companies.store');
     Route::get('/companies/get-accepted-quotations', [CompanyController::class, 'getAcceptedQuotations']);
     Route::get('/companies/get-lead-from-quotation/{id}', [CompanyController::class, 'getLeadFromQuotation']);
+    
     // ====================== COMPANY DETAIL ROUTES ======================
     Route::prefix('companies')->group(function () {
         // Company Detail - ROUTE UTAMA untuk halaman profil
@@ -247,7 +248,27 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::delete('/{company}', [CompanyController::class, 'destroy'])->name('companies.destroy');
         Route::delete('/force-delete/{company}', [CompanyController::class, 'forceDelete'])->name('companies.force-delete');
         Route::post('/{company}/restore', [CompanyController::class, 'restore'])->name('companies.restore');
-        
+
+        // ====================== COMPANY PROJECT ROUTES ======================
+        Route::prefix('{company}/projects')->group(function () {
+            // Get single project for edit/show (API)
+            Route::get('/{project}', [CompanyController::class, 'getProject'])
+                ->name('companies.projects.show');
+            
+            // Edit project page (GET)
+            Route::get('/{project}/edit', [CompanyController::class, 'getProject'])
+                ->name('companies.projects.edit');
+            
+            // Update project (PUT/PATCH) - TAMBAHKAN INI JUGA
+            Route::put('/{project}', [CompanyController::class, 'updateProject'])
+                ->name('companies.projects.update');
+            Route::patch('/{project}', [CompanyController::class, 'updateProject'])
+                ->name('companies.projects.update.patch'); // opsional
+            
+            // Delete project
+            Route::delete('/{project}', [CompanyController::class, 'destroyProject'])
+                ->name('companies.projects.destroy');
+        });
 
         // ====================== COMPANY CONTACT ROUTES ======================
         // ⬇⬇⬇ PASTIKAN INI DI DALAM PREFIX 'companies' ⬇⬇⬇
