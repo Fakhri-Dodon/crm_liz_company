@@ -654,7 +654,6 @@ export default function Create({ id, template }) {
             if (mode === "content" || mode === "details") {
                 // Di mode Content/Details, Canvas tidak boleh terima drop elemen baru
                 wrapper.set({ 
-                    selectable: false, 
                     hoverable: false, 
                     droppable: false,
                     draggable: false
