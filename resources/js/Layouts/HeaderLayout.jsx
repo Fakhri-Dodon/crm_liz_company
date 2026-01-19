@@ -232,7 +232,7 @@ export default function HeaderLayout({ header, children, }) {
         if (user) {
             window.Echo.private(`App.Models.User.${user.id}`).notification(
                 (notification) => {
-                    console.log("Notif baru diterima:", notification);
+                    // console.log("Notif baru diterima:", notification);
 
                     // Trigger Inertia untuk ambil data terbaru dari HandleInertiaRequests
                     router.reload({
@@ -584,7 +584,7 @@ export default function HeaderLayout({ header, children, }) {
                                                                 <button
                                                                     type="button"
                                                                     onClick={() => {
-                                                                        console.log("Data Notif:", n.data);
+                                                                        // console.log("Data Notif:", n.data);
                                                                         const userData = {
                                                                             name: n.data.contact_person || "No Name", 
                                                                             email: n.data.email || "No Email"
