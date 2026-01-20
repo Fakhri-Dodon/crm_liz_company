@@ -120,80 +120,89 @@ export default function QoutationsIndex({
             },
         },
         {
-            key: "status",
+            key: "quotation_statuses_id",
             label: t("quotations.table.status"),
             render: (value, row) => {
-                const statusStyles = {
-                    sent: "border-blue-500 text-blue-700 bg-blue-50",
-                    accepted: "border-green-500 text-green-700 bg-green-50",
-                    expired: "border-orange-500 text-orange-700 bg-orange-50",
-                    rejected: "border-red-500 text-red-700 bg-red-50",
-                    draft: "border-gray-500 text-gray-700 bg-gray-50",
-                };
+                // Ambil ID dari row data JSON Anda
+                const currentStatusId = row.quotation_statuses_id;
+                console.log("Check Data:", { 
+                    valueFromArg1: value, 
+                    rowObject: row,
+                    statusRel: row?.status_rel 
+                });
+                
+                // Ambil detail status langsung dari relasi (status_rel) yang ada di JSON
+                const currentStatusRel = row.status_rel; 
 
-                const nonEditableStatuses = ["expired"];
+                // Cari object status di statusOptions (untuk dropdown list)
+                const statusObj = statusOptions.find((s) => s.id === currentStatusId);
+                
+                // Gunakan nama dari relasi JSON atau fallback ke statusObj
+                const statusName = currentStatusRel?.name || statusObj?.name || "Unknown";
+                const statusColor = currentStatusRel?.color || statusObj?.color || "#9ca3af";
 
-                const handleStatusChange = (e) => {
-                    const newStatus = e.target.value;
+                // Daftar status yang tidak boleh diedit manual (Sesuaikan dengan Nama di Database)
+                const nonSelectableStatuses = ["Expired", "Draft", "Sent", "Revised", "Approved"]; 
+
+                const isNonEditable = statusObj 
+                    ? statusObj.is_system || nonSelectableStatuses.includes(statusName)
+                    : false;
+
+                const handleStatusChange = (id, newStatusId) => {
+                    console.log("Mengirim Update ID:", { id, quotation_statuses_id: newStatusId });
 
                     router.patch(
-                        route("quotation.update-status", row.id),
-                        {
-                            status: newStatus,
-                        },
+                        route("quotation.update-status", id),
+                        { quotation_statuses_id: newStatusId },
                         {
                             preserveScroll: true,
-                            onSuccess: () => {
-                                toast(
-                                    "Status updated to " +
-                                        newStatus.toUpperCase()
-                                );
-                            },
-                            onError: () => {
+                            onSuccess: () => toast("Status updated successfully"),
+                            onError: (errors) => {
+                                console.error("Gagal Update:", errors);
                                 toast("Failed to update status", "error");
                             },
                         }
                     );
                 };
 
-                // If status is in the non-editable list, show it as a badge (not selectable)
-                if (nonEditableStatuses.includes(value)) {
-                    const classes = `text-xs font-bold py-1 px-2 rounded-lg border-2 ${
-                        statusStyles[value] || "border-gray-300"
-                    }`;
+                if (isNonEditable) {
                     return (
-                        <div className="inline-flex items-center">
-                            <span
-                                className={classes}
-                                style={{ backgroundImage: "none" }}
-                            >
-                                {t(`quotations.stats.${value}`)}
-                            </span>
-                        </div>
+                        <span 
+                            className="text-xs font-bold py-1 px-2 rounded-lg border-2" 
+                            style={{ 
+                                borderColor: statusColor, 
+                                color: statusColor 
+                            }}
+                        >
+                            {statusName}
+                        </span>
                     );
                 }
 
-                // Otherwise render the editable select but exclude non-editable statuses from options
                 return (
                     <select
-                        value={value}
-                        onChange={handleStatusChange}
-                        style={{
-                            backgroundImage: "none",
-                            WebkitAppearance: "none",
-                            MozAppearance: "none",
+                        value={currentStatusId} // Value menggunakan UUID
+                        onChange={(e) => handleStatusChange(row.id, e.target.value)}
+                        className="appearance-none text-xs font-bold py-1 px-2 rounded-lg border-2 focus:ring-0 cursor-pointer transition-all"
+                        style={{ 
+                            borderColor: statusColor, 
+                            color: statusColor,
+                            backgroundImage: "none"
                         }}
-                        className={`appearance-none text-xs font-bold py-1 px-2 rounded-lg border-2 focus:ring-0 cursor-pointer transition-all ${
-                            statusStyles[value] || "border-gray-300"
-                        }`}
                     >
-                        {Object.keys(statusStyles)
-                            .filter((s) => !nonEditableStatuses.includes(s))
-                            .map((s) => (
-                                <option key={s} value={s}>
-                                    {t(`quotations.stats.${s}`)}
-                                </option>
-                            ))}
+                        {statusOptions.length > 0 ? (
+                            statusOptions
+                                .filter(s => !nonSelectableStatuses.includes(s.name))
+                                .map((s) => (
+                                    // Option Value = UUID, Label = Name
+                                    <option key={s.id} value={s.id} style={{ color: s.color }}>
+                                        {s.name}
+                                    </option>
+                                ))
+                        ) : (
+                            // Fallback jika statusOptions kosong, tampilkan status saat ini saja
+                            <option value={currentStatusId}>{statusName}</option>
+                        )}
                     </select>
                 );
             },
@@ -314,7 +323,9 @@ export default function QoutationsIndex({
         status: q.status,
         pdf_path: q.pdf_path,
         is_client: q.is_client,
-        tax: q.tax
+        tax: q.tax,
+        quotation_statuses_id: q.quotation_statuses_id,
+        status_rel: q.status_rel,
     }));
 
     const { data, setData, get } = useForm({
