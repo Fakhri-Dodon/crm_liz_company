@@ -347,5 +347,6 @@ Route::get('/proposal/addProposal/{id}', [ProposalController::class, 'addProposa
 Route::get('/html-sections', [ProposalController::class, 'sections']);
 Route::get('/proposal/templates', [ProposalController::class, 'templates'])->name('proposal.templates');
 Route::resource('proposal', ProposalController::class);
+Route::post('proposal/status-notify/{id}', [ProposalController::class, 'notificationUpdateStatus'])->name('proposals.notification-status');
 
 require __DIR__.'/auth.php';

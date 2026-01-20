@@ -9,6 +9,7 @@ use App\Models\Proposal;
 use App\Models\ProposalStatuses;
 use App\Models\ProposalElementTemplate;
 use App\Models\ProposalNumberFormatted;
+use App\Models\ActivityLogs;
 use App\Notifications\DocumentNotification;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -205,7 +206,7 @@ class ProposalController extends Controller
         try {
             return DB::transaction(function () use ($request, $validated) {
         
-                $proposal = Proposal::where('id', $validated['id'])->first();
+                $proposal = Proposal::with('lead.contacts')->where('id', $validated['id'])->first();
 
                 $element = ProposalElementTemplate::findOrFail($proposal->proposal_element_template_id);
 
@@ -239,6 +240,8 @@ class ProposalController extends Controller
                 $element->updated_by    = Auth::id();
                 $element->save();
 
+                $selectedContact = $proposal->lead->contacts ?? null;
+
                 $managers = User::whereHas('role', function($q) {
                     $q->where('name', 'manager'); 
                 })->get();
@@ -249,12 +252,22 @@ class ProposalController extends Controller
                             ->delete();
 
                     $manager->notify(new DocumentNotification([
-                        'id'      => $proposal->id,
-                        'type'    => 'proposals',
-                        'status'  => 'draft',
-                        'message' => "proposals baru #{$proposal->proposal_number} menunggu persetujuan.",
+                        'id'                => $proposal->id,
+                        'type'              => 'proposals',
+                        'status'            => 'draft',
+                        'url'               => "/proposal/{$proposal->proposal_element_template_id}",
+                        'message'           => "proposals baru #{$proposal->proposal_number} menunggu persetujuan.",
+                        'contact_person'    => $selectedContact->name ?? 'No Name',
+                        'email'             => $selectedContact->email ?? null,
                     ]));
                 }
+
+                ActivityLogs::create([
+                    'user_id' => auth()->id(),
+                    'module' => 'Proposal',
+                    'action' => 'Created',
+                    'description' => 'Create New Proposal: ' . $proposal->proposal_number,
+                ]);
                 
                 return response()->json([
                     'success' => true,
@@ -388,6 +401,75 @@ class ProposalController extends Controller
 
         return response()->json($allTemplates);
 
+    }
+
+     public function notificationUpdateStatus(Request $request, $id) 
+    {
+        // dd("notif", $request->all(), $id);
+
+        $request->validate([
+            'status' => 'required|in:draft,approved,revised,sent,accepted,expired,rejected',
+            'revision_note' => 'required_if:status,revised'
+        ]);
+
+        $status = ProposalStatuses::where('name', $request->status)->first();
+
+        if (!$status) {
+            return back()->withErrors(['status' => 'Status tidak valid']);
+        }
+
+        $proposal = Proposal::where('id', $id)->where('deleted', 0)->firstOrFail();
+
+        $managerNotif = auth()->user()->notifications()
+        ->where('data->id', $id)
+        ->first();
+
+        $capturedContactName  = $managerNotif->data['contact_person'] ?? 'No Name';
+        $capturedContactEmail = $managerNotif->data['email'] ?? null;
+
+        $updateData = [
+            'status' => $request->status, 
+            'proposal_statuses_id' => $status->id,
+        ];
+        if ($request->status === 'revised') {
+            $updateData['revision_note'] = $request->revision_note;
+        }
+
+        $proposal->update($updateData);
+
+        auth()->user()->notifications()
+            ->where('data->id', $id)
+            ->delete();
+
+        $creator = $proposal->creator;
+
+        if($creator) {
+            $creator->notifications()
+                    ->where('data->id', (string)$id)
+                    ->delete();
+            $msg = "Proposal #{$proposal->proposal_number} telah di-{$request->status}";
+
+            if ($request->status === 'revised' && $request->revision_note) {
+                $msg .= ": " . $request->revision_note;
+
+            }
+
+            // $contactPerson = $quotation->lead->contact_person ?? 'No Name';
+            // $contactEmail = $quotation->lead->email ?? null;
+
+            $creator->notify(new DocumentNotification([
+                'id'     => $proposal->id,
+                'message' => $msg,
+                'url' => "/proposal/{$id}",
+                'type' => 'proposal',
+                'revision_note' => $request->revision_note,
+                'status'  => $request->status,
+                'contact_person' => $capturedContactName,
+                'email'          => $capturedContactEmail,
+            ]));
+        }
+
+        return back();
     }
 
 }
