@@ -101,6 +101,27 @@ export default function Create({ name }) {
         const isIcon = 
             tagName === "I" || 
             classes.some((c) => c.startsWith("fa") || c.startsWith("icon-")); 
+
+        if (tagName === "FIGURE") {
+            return {
+                title: "IMAGE CONTAINER",
+                // Tambahkan background-image ke daftar styles yang boleh diedit
+                styles: STYLE_GROUPS.img.concat([
+                    "background-image", 
+                    "background-size", 
+                    "background-position", 
+                    "background-repeat"
+                ]),
+                traits: [
+                    {
+                        type: "button",
+                        label: "Background",
+                        text: "Change Background",
+                        command: (e) => e.runCommand("open-assets"),
+                    },
+                ],
+            };
+        }
  
         // ------------------------------------------------ 
         // SKENARIO 1: IMAGE DI DALAM NAV 
@@ -234,11 +255,37 @@ export default function Create({ name }) {
             return { 
                 title: isFooter ? "FOOTER ICON" : "ICON STYLE", 
                 styles: STYLE_GROUPS.icon, 
-                traits: [ 
-                    { type: "text", name: "href", label: "Link URL" }, 
-                    { type: "text", name: "class", label: "Icon Class (fa-*)" }, 
-                ], 
+                traits: [
+                    { type: "text", name: "href", label: "Link URL" },
+                    {
+                        type: "button",
+                        label: "Icon",
+                        text: "Select Icon",
+                        full: true,
+                        command: "open-icon-picker"
+                    }
+                ],
             }; 
+        }
+
+        if (tagName === "FIGURE" || classes.includes('bg-img') || classes.includes('img-wrap')) {
+            return {
+                title: "IMAGE CONTAINER",
+                styles: STYLE_GROUPS.img.concat([
+                    "background-image", 
+                    "background-size", 
+                    "background-position", 
+                    "background-repeat"
+                ]),
+                traits: [
+                    {
+                        type: "button",
+                        label: "Background",
+                        text: "Change Background",
+                        command: (e) => e.runCommand("open-assets"),
+                    },
+                ],
+            };
         } 
  
         // Fallback default 
@@ -267,14 +314,14 @@ export default function Create({ name }) {
                 autoAdd: true, 
                 openAssetsOnDrop: true, 
             }, 
-            avoidInlineStyle: true, 
+            avoidInlineStyle: false, 
             forceClass: false, 
             selectable: true, 
             blockManager: { appendTo: "#second-side" }, 
             traitManager: { appendTo: "#trait-editor-container" }, 
             styleManager: {  
                 appendTo: "#style-manager-container", 
-                clearProperties: true, 
+                clearProperties: false, 
                 sectors: [ 
                     { name: 'Typography', open: false, buildProps: ['font-family', 'font-size', 'font-weight', 'letter-spacing', 'color', 'line-height', 'text-align', 'text-decoration', 'text-transform'] }, 
                     { name: 'Decorations', open: false, buildProps: ['background-color', 'border-radius', 'border-top-left-radius', 'border-top-right-radius', 'border-bottom-left-radius', 'border-bottom-right-radius', 'box-shadow', 'background-image', 'opacity'] }, 
@@ -323,11 +370,72 @@ export default function Create({ name }) {
                     .gjs-cv-canvas .gjs-comp-selected { 
                         border: 2px solid #3498db !important; 
                     } 
+
+                    .gjs-selected { 
+                        background-repeat: no-repeat !important;
+                        background-position: center !important;
+                        background-size: cover !important; 
+                    }
                 `, 
             }, 
         }); 
  
         editorRef.current = editor; 
+
+        editor.on('style:property:update:background-image', (prop) => {
+            const selected = editor.getSelected();
+            if (selected) {
+                const val = prop.getFullValue();
+                
+                if (val && val !== 'none' && !val.includes('!important')) {
+                    // Terapkan ke model GrapesJS agar masuk ke CSS output
+                    selected.addStyle({ 
+                        'background-image': `${val} !important`,
+                        'background-size': 'cover !important',
+                        'background-position': 'center !important'
+                    });
+
+                    // Paksa elemen di canvas untuk update saat itu juga
+                    const el = selected.getEl();
+                    if (el) {
+                        el.style.setProperty('background-image', val, 'important');
+                        el.style.setProperty('background-size', 'cover', 'important');
+                        el.style.setProperty('background-position', 'center', 'important');
+                    }
+                }
+            }
+        });
+
+        editor.on('asset:select', (asset) => {
+            const selected = editor.getSelected();
+            if (selected) {
+                const url = asset.getSrc();
+                const fullUrl = `url("${url}")`;
+
+                // 1. Paksa masuk ke model CSS GrapesJS
+                selected.addStyle({
+                    'background-image': `${fullUrl} !important`,
+                    'background-size': 'cover !important',
+                    'background-position': 'center !important'
+                });
+
+                // 2. Manipulasi DOM secara langsung untuk memastikan visual update
+                const el = selected.getEl();
+                if (el) {
+                    el.style.setProperty('background-image', fullUrl, 'important');
+                    el.style.setProperty('background-size', 'cover', 'important');
+                    el.style.setProperty('background-position', 'center', 'important');
+                }
+                
+                editor.AssetManager.close();
+            }
+        });
+
+        fetch('/api/proposal/icon')
+            .then(res => res.json())
+            .then(data => {
+                editorRef.current.faIcons = data;
+            });
  
         editor.on("load", () => { 
             // ... (Kode CSS Injection untuk content mode tetap sama) ... 
@@ -375,10 +483,16 @@ export default function Create({ name }) {
                     setLoading(false); 
                     setTimeout(() => changeMode("elements"), 300); 
                 }); 
+
+            editor.Config.avoidInlineStyle = false;
                  
         }); 
  
         editor.on("component:select:before", (component, options) => { 
+            if (activeModeRef.current === "details" || activeModeRef.current === "content") {
+                return; 
+            }
+
             if (activeModeRef.current !== "elements") return; 
  
             // ROOT boleh dipilih 
@@ -409,7 +523,19 @@ export default function Create({ name }) {
                 if (sidebar) sidebar.style.display = "flex"; 
  
                 const config = getConfigForElement(comp); 
-                if (sidebarTitle) sidebarTitle.innerText = config.title; 
+                if (sidebarTitle) {
+
+                    sidebarTitle.innerHTML = "";
+
+                    const icon = document.createElement("i");
+                    icon.className = "fa fa-pencil-square-o";
+
+                    const text = document.createElement("span");
+                    text.textContent = config.title;
+
+                    sidebarTitle.append(icon, " ", text);
+
+                }
  
                 comp.set("traits", config.traits || []); 
                 if (traitHeader) { 
@@ -492,9 +618,59 @@ export default function Create({ name }) {
                 select: true, 
             }); 
         }); 
+
+        editor.Commands.add('open-icon-picker', {
+            run(editor) {
+                const modal = editor.Modal;
+                const selected = editor.getSelected();
+                if (!selected) return;
+
+                modal.setTitle('Select Icon');
+                modal.setContent(`
+                    <input id="icon-search" placeholder="Search icon..."/>
+                    <div id="icon-list"></div>
+                `);
+
+                modal.open();
+
+                const list = document.getElementById('icon-list');
+                const search = document.getElementById('icon-search');
+
+                const icons = editor.faIcons || [];
+
+                const render = items => {
+                    list.innerHTML = items.map(i => `
+                        <div data-icon="${i.value}" title="${i.label}"
+                            style="cursor:pointer;text-align:center">
+                            <i class="fa ${i.value}"></i>
+                        </div>
+                    `).join('');
+                };
+
+                render(icons);
+
+                search.oninput = e => {
+                    const q = e.target.value.toLowerCase();
+                    render(
+                        icons.filter(i =>
+                            i.label.toLowerCase().includes(q)
+                        )
+                    );
+                };
+
+                list.onclick = e => {
+                    const icon = e.target.closest('[data-icon]');
+                    if (!icon) return;
+
+                    selected.addClass(['fa', icon.dataset.icon]);
+                    selected.addAttributes({ 'data-fa-icon': icon.dataset.icon });
+                    modal.close();
+                };
+            }
+        });
  
         editor.Commands.add('custom-view-code', { 
-            run: (editor) => { 
+            run(editor) { 
                 const selected = editor.getSelected(); 
                 if (selected) { 
                     const html = selected.toHTML(); 
@@ -527,6 +703,22 @@ export default function Create({ name }) {
                 } 
             }, 
         }); 
+
+        editor.DomComponents.addType('social-icon', {
+            model: {
+                defaults: {
+                    traits: [
+                        {
+                            type: 'button',
+                            label: 'Icon',
+                            text: 'Select Icon',
+                            full: true,
+                            command: 'open-icon-picker'
+                        }
+                    ]
+                }
+            }
+        });
  
         editor.DomComponents.addType('image', { 
             model: { 
@@ -581,6 +773,7 @@ export default function Create({ name }) {
             props = { 
                 selectable: isRoot, 
                 draggable: isRoot, 
+                droppable: isRoot, 
                 removable: isRoot, 
                 copyable: isRoot, 
                 hoverable: isRoot, 
@@ -600,7 +793,7 @@ export default function Create({ name }) {
         if (mode === 'content') { 
             props = { 
                 draggable: false, 
-                droppable: false, 
+                droppable: true, 
                 removable: false, 
                 copyable: false, 
  
@@ -614,7 +807,7 @@ export default function Create({ name }) {
         if (mode === 'details') { 
             props = { 
                 draggable: false, 
-                droppable: false, 
+                droppable: true, 
                 removable: false, 
                 copyable: false, 
  
@@ -653,7 +846,7 @@ export default function Create({ name }) {
                 wrapper.set({  
                     selectable: true,  
                     hoverable: false,  
-                    droppable: false, 
+                    droppable: true, 
                     draggable: false 
                 }); 
             } else { 

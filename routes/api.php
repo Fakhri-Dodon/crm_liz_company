@@ -79,3 +79,4 @@ Route::prefix('leads')->group(function () {
 Route::get('/current-user', [LeadController::class, 'getCurrentUserInfo']);
 
 Route::get('/proposal/templates', [ProposalController::class, 'templates']);
+Route::get('/proposal/icon', [ProposalController::class, 'icon']);

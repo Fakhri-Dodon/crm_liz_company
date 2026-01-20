@@ -35,12 +35,17 @@ use Inertia\Inertia;
 //     return "Migration success!";
 // });
 
+// Route::get('/', function () {
+//     return Inertia::render('Auth/Login', [
+//         'canRegister' => Route::has('register'),
+//         'laravelVersion' => Application::VERSION,
+//         'phpVersion' => PHP_VERSION,
+//     ]);
+// });
+
+
 Route::get('/', function () {
-    return Inertia::render('Auth/Login', [
-        'canRegister' => Route::has('register'),
-        'laravelVersion' => Application::VERSION,
-        'phpVersion' => PHP_VERSION,
-    ]);
+    return redirect()->route('dashboard');
 });
 
 Route::middleware(['auth', 'verified'])->group(function () {
@@ -204,9 +209,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // Header menus
     Route::get('/language', fn() => Inertia::render('Language/Index'))->name('language.index');
     Route::get('/notifications', fn() => Inertia::render('Notifications/Index'))->name('notifications.index');
-});
 
-Route::middleware(['auth', 'verified'])->group(function () {
     // Projects routes
     Route::resource('projects', ProjectController::class);
     Route::get('/projects/{project}/edit', [ProjectController::class, 'edit']); 
@@ -222,9 +225,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/api/clients', [ProjectController::class, 'getClients']);
     // Atau jika sudah ada route untuk companies, bisa dimodifikasi
     Route::get('/api/companies', [CompanyController::class, 'getClientsForProjects']);
-});
 
-Route::middleware(['auth', 'verified'])->group(function () {
     // ====================== COMPANY MAIN ROUTES ======================
     Route::get('/companies', [CompanyController::class, 'index'])->name('companies.index');
     Route::get('/companies/create', [CompanyController::class, 'create'])->name('companies.create');
@@ -335,18 +336,18 @@ Route::middleware(['auth', 'verified'])->group(function () {
     
     // Primary contact API endpoint
     Route::get('/api/companies/{company}/primary-contact', [CompanyController::class, 'getPrimaryContact'])->name('companies.primary-contact');
+
+    Route::post('/proposal/add', [ProposalController::class, 'add'])->name('proposal.add');
+    Route::get('/proposal/addProposal/{id}', [ProposalController::class, 'addProposal'])->name('proposal.addProposal');
+    Route::get('/html-sections', [ProposalController::class, 'sections']);
+    Route::get('/proposal/templates', [ProposalController::class, 'templates'])->name('proposal.templates');
+    Route::post('proposal/status-notify/{id}', [ProposalController::class, 'notificationUpdateStatus'])->name('proposals.notification-status');
+    Route::resource('proposal', ProposalController::class);
 });
 
     // Route untuk edit invoice
 Route::get('/invoices/{invoice}/edit', [InvoiceController::class, 'edit'])->name('invoices.edit');
 Route::put('/invoices/{invoice}', [InvoiceController::class, 'update'])->name('invoices.update');
 
-// Route untuk halaman tambah proposal
-Route::post('/proposal/add', [ProposalController::class, 'add'])->name('proposal.add');
-Route::get('/proposal/addProposal/{id}', [ProposalController::class, 'addProposal'])->name('proposal.addProposal');
-Route::get('/html-sections', [ProposalController::class, 'sections']);
-Route::get('/proposal/templates', [ProposalController::class, 'templates'])->name('proposal.templates');
-Route::resource('proposal', ProposalController::class);
-Route::post('proposal/status-notify/{id}', [ProposalController::class, 'notificationUpdateStatus'])->name('proposals.notification-status');
 
 require __DIR__.'/auth.php';

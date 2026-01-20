@@ -67,7 +67,7 @@ class ProposalController extends Controller
         $proposals = $query->orderBy('created_at', 'desc')
             ->paginate(10)
             ->through(function ($proposals) {
-                $proposals->is_client = \DB::table('companies')
+                $proposals->is_client = DB::table('companies')
                     ->where('lead_id', $proposals->lead_id)
                     ->exists();
 
@@ -99,7 +99,7 @@ class ProposalController extends Controller
             'filterData'=> $filterData,
             'summary'   => $summary,
             'lead'      => $lead,
-            'auth_permissions' => auth()->user()->getPermissions('PROPOSAL'),
+            'auth_permissions' => Auth::user()->getPermissions('PROPOSAL'),
         ]);
 
     }
@@ -135,7 +135,7 @@ class ProposalController extends Controller
                     'name'          => $validated['name'],
                     'content_json'  => '-',
                     'preview_image' => '-',
-                    'created_by'    => auth()->id(),
+                    'created_by'    => Auth::id(),
                 ]);
 
                 $proposal = Proposal::create([
@@ -182,8 +182,10 @@ class ProposalController extends Controller
 
         $template = ProposalElementTemplate::where('id', $request->id)->first();
 
+        $proposal = Proposal::where('id', $request->id_proposal)->first();
+
         return Inertia::render('Proposals/Create', [
-            'id'        => $request->id_proposal,
+            'proposal'  => $proposal,
             'template'  => $template,
         ]);
 
@@ -263,7 +265,7 @@ class ProposalController extends Controller
                 }
 
                 ActivityLogs::create([
-                    'user_id' => auth()->id(),
+                    'user_id' => Auth::id(),
                     'module' => 'Proposal',
                     'action' => 'Created',
                     'description' => 'Create New Proposal: ' . $proposal->proposal_number,
@@ -403,7 +405,21 @@ class ProposalController extends Controller
 
     }
 
-     public function notificationUpdateStatus(Request $request, $id) 
+    public function icon()
+    {
+        $path = storage_path('app/public/icon.json');
+
+        if (!file_exists($path)) {
+            return response()->json([], 404);
+        }
+
+        return response()->json(
+            json_decode(file_get_contents($path), true)
+        );
+
+    }
+
+    public function notificationUpdateStatus(Request $request, $id)
     {
         // dd("notif", $request->all(), $id);
 
@@ -420,7 +436,7 @@ class ProposalController extends Controller
 
         $proposal = Proposal::where('id', $id)->where('deleted', 0)->firstOrFail();
 
-        $managerNotif = auth()->user()->notifications()
+        $managerNotif = Auth::>user()->notifications()
         ->where('data->id', $id)
         ->first();
 
