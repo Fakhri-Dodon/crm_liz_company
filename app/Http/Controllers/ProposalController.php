@@ -436,7 +436,7 @@ class ProposalController extends Controller
 
         $proposal = Proposal::where('id', $id)->where('deleted', 0)->firstOrFail();
 
-        $managerNotif = Auth::>user()->notifications()
+        $managerNotif = Auth::user()->notifications()
         ->where('data->id', $id)
         ->first();
 
