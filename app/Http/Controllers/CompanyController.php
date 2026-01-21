@@ -2822,7 +2822,7 @@ public function getLeadFromQuotation($quotationId)
         \Log::info('Fetching lead from quotation ID: ' . $quotationId);
         
         // Ambil quotation dengan lead data
-        $quotation = Quotation::with(['lead', 'company'])
+        $quotation = Quotation::with(['lead', 'company', 'statusRel'])
             ->where('id', $quotationId)
             ->where('deleted', 0)
             ->first();
@@ -2835,10 +2835,14 @@ public function getLeadFromQuotation($quotationId)
         }
         
         // Cek apakah quotation sudah accepted
-        if (!in_array(strtolower($quotation->status), ['accepted', 'accepté'])) {
+        $statusName = $quotation->statusRel?->name; 
+        
+        // Jika status kosong ATAU statusnya bukan accepted
+        if (!$statusName || !in_array(strtolower($statusName), ['accepted', 'accepté', 'accepted'])) {
             return response()->json([
                 'success' => false,
-                'message' => 'Quotation belum di-accept'
+                'message' => 'Quotation belum di-accept atau status tidak valid',
+                'current_status' => $statusName ?? 'Tidak ada status'
             ], 400);
         }
         
