@@ -960,9 +960,13 @@ body, html {
 }
 
 #main-navbar-* {
-    margin-bottom: 0px;
+    margin-bottom: 0px!important;
 }
 
 .gjs-am-add-asset .gjs-btn-prim {
     margin-top: 2px;
+}
+
+.navbar {
+    margin-bottom: 0!important;
 }

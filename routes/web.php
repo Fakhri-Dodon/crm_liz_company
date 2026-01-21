@@ -48,6 +48,8 @@ Route::get('/', function () {
     return redirect()->route('dashboard');
 });
 
+Route::get('/proposal/{proposal}/preview', [ProposalController::class,'preview'])->name('proposal.preview');
+
 Route::middleware(['auth', 'verified'])->group(function () {
     // Route::get('/dashboard', function () {
     //     return Inertia::render('Dashboard');
@@ -337,13 +339,18 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // Primary contact API endpoint
     Route::get('/api/companies/{company}/primary-contact', [CompanyController::class, 'getPrimaryContact'])->name('companies.primary-contact');
 
-    Route::post('/proposal/add', [ProposalController::class, 'add'])->name('proposal.add');
-    Route::get('/proposal/addProposal/{id}', [ProposalController::class, 'addProposal'])->name('proposal.addProposal');
+    Route::post('/proposal/status-notify/{id}', [ProposalController::class, 'notificationUpdateStatus'])->name('proposals.notification-status');
     Route::get('/html-sections', [ProposalController::class, 'sections']);
-    Route::get('/proposal/templates', [ProposalController::class, 'templates'])->name('proposal.templates');
-    Route::post('proposal/status-notify/{id}', [ProposalController::class, 'notificationUpdateStatus'])->name('proposals.notification-status');
+    Route::prefix('proposal')->name('proposal.')->group(function () {
+        Route::post('/add', [ProposalController::class, 'add'])->name('add');
+        Route::get('/addProposal/{id}', [ProposalController::class, 'addProposal'])->name('addProposal');
+        Route::get('/templates', [ProposalController::class, 'templates'])->name('templates');
+        Route::patch('/{proposal}/status', [ProposalController::class, 'updateStatus'])->name('update-status');
+    });
     Route::resource('proposal', ProposalController::class);
 });
+
+
 
     // Route untuk edit invoice
 Route::get('/invoices/{invoice}/edit', [InvoiceController::class, 'edit'])->name('invoices.edit');

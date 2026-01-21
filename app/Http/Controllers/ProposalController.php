@@ -86,19 +86,22 @@ class ProposalController extends Controller
             ->orderBy('company_name', 'desc')
             ->get();
 
+        $statusOptions = ProposalStatuses::where('deleted', 0)
+            ->get()
+            ->map(fn($s) => [
+                'id'    => $s->id,
+                'slug'  => $s->slug,
+                'name'  => $s->name,
+                'color' => $s->color, 
+            ]);
+
         return Inertia::render('Proposals/Index', [
-            'proposals' => $proposals,
-            'filters'   => $request->only(['search', 'proposal_id', 'status']),
-            'statusOptions' => [
-                ['value' => 'draft', 'label' => 'Draft'],
-                ['value' => 'sent', 'label' => 'Sent'],
-                ['value' => 'opened', 'label' => 'Opened'],
-                ['value' => 'rejected', 'label' => 'Rejected'],
-                ['value' => 'failed', 'label' => 'Failed'],
-            ],
-            'filterData'=> $filterData,
-            'summary'   => $summary,
-            'lead'      => $lead,
+            'proposals'     => $proposals,
+            'filters'       => $request->only(['search', 'proposal_id', 'status']),
+            'statusOptions' => $statusOptions,
+            'filterData'    => $filterData,
+            'summary'       => $summary,
+            'lead'          => $lead,
             'auth_permissions' => Auth::user()->getPermissions('PROPOSAL'),
         ]);
 
@@ -379,6 +382,54 @@ class ProposalController extends Controller
                 'msg' => 'Gagal menghapus data: ' . $e->getMessage(),
             ], 500);
         }
+
+    }
+
+    public function updateStatus(Request $request, Proposal $proposal)
+    {
+
+        $status = ProposalStatuses::find($request->proposal_statuses_id);
+
+        if (!$status) {
+            return back()->withErrors(['status' => 'Status tidak valid']);
+        }
+
+        $proposal->update([
+            'proposal_statuses_id'  => $status->id,
+            'status'                => strtolower($status->name),
+            'updated_by'            => Auth::id(),
+        ]);
+
+        ActivityLogs::create([
+            'user_id' => auth::id(),
+            'module' => 'Proposal',
+            'action' => 'Updated',
+            'description' => 'Update Proposal Status: ' . $proposal->proposal_number,
+        ]);
+
+        return back()->with('message', 'Status updated successfully');
+    }
+
+    public function preview($id)
+    {
+
+        $data = ProposalElementTemplate::findOrFail($id);
+
+        $proposal = Proposal::where('proposal_element_template_id', $id)->whereNull('opened_at')->first();
+
+        if ($proposal) {
+            $status = ProposalStatuses::where('name', 'Opened')->where('deleted', false)->first();
+
+            $proposal->proposal_statuses_id = $status->id;
+            $proposal->status               = 'opened';
+            $proposal->opened_at            = now();
+            $proposal->save();
+        }
+
+        return Inertia::render('Proposals/Show', [
+            'html' => $data->html_output,
+            'css'  => $data->css_output,
+        ]);
 
     }
 

@@ -300,6 +300,18 @@ export default function Create({ name }) {
         const el = view?.el; 
         if (el instanceof HTMLElement) cb(el); 
     }; 
+
+    const normalizeFaIcon = (model) => {
+        const attrs = model.getAttributes() || {};
+        if (attrs['data-fa-icon']) return; // sudah ada
+
+        const classes = model.getClasses() || [];
+        const faIcon = classes.find(c => c.startsWith('fa-'));
+
+        if (faIcon) {
+            model.addAttributes({ 'data-fa-icon': faIcon });
+        }
+    };
  
     useEffect(() => { 
         setLoading(true); 
@@ -381,29 +393,24 @@ export default function Create({ name }) {
         }); 
  
         editorRef.current = editor; 
+        
+        let syncingBg = false;
+        editor.on('component:styleUpdate', (model, payload) => {
+            if (syncingBg) return;
 
-        editor.on('style:property:update:background-image', (prop) => {
-            const selected = editor.getSelected();
-            if (selected) {
-                const val = prop.getFullValue();
-                
-                if (val && val !== 'none' && !val.includes('!important')) {
-                    // Terapkan ke model GrapesJS agar masuk ke CSS output
-                    selected.addStyle({ 
-                        'background-image': `${val} !important`,
-                        'background-size': 'cover !important',
-                        'background-position': 'center !important'
-                    });
+            const style = payload?.style || payload;
+            const val = style?.['background-image'];
+            if (!val) return;
 
-                    // Paksa elemen di canvas untuk update saat itu juga
-                    const el = selected.getEl();
-                    if (el) {
-                        el.style.setProperty('background-image', val, 'important');
-                        el.style.setProperty('background-size', 'cover', 'important');
-                        el.style.setProperty('background-position', 'center', 'important');
-                    }
-                }
-            }
+            syncingBg = true;
+
+            model.addStyle({
+                'background-image': `${val} !important`,
+                'background-size': 'cover !important',
+                'background-position': 'center !important',
+            });
+
+            syncingBg = false;
         });
 
         editor.on('asset:select', (asset) => {
@@ -662,8 +669,19 @@ export default function Create({ name }) {
                     const icon = e.target.closest('[data-icon]');
                     if (!icon) return;
 
-                    selected.addClass(['fa', icon.dataset.icon]);
-                    selected.addAttributes({ 'data-fa-icon': icon.dataset.icon });
+                    normalizeFaIcon(selected);
+
+                    const newIcon = icon.dataset.icon;
+                    const oldIcon = selected.getAttributes()?.['data-fa-icon'];
+
+                    if (oldIcon) {
+                        selected.removeClass(oldIcon);
+                    }
+
+                    selected.addClass('fa');
+                    selected.addClass(newIcon);
+
+                    selected.addAttributes({ 'data-fa-icon': newIcon });
                     modal.close();
                 };
             }
