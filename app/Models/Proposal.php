@@ -130,7 +130,7 @@ class Proposal extends Model
 	    $config = DB::table('app_configs')->first();
 	    $user = auth()->user();
 
-	    if ($user->role_name === 'Admin') {
+	    if ($user->role->name === 'Admin' || $user->role->name === 'Manager') {
 	        return $query;
 	    }
 

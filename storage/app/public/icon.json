@@ -1,0 +1,2748 @@
+[
+	{ 
+		"value": "fa fa-adjust",
+		"code": "f042", 
+		"label": "adjust"
+	},
+	{ 
+		"value": "fa fa-adn",
+		"code": "f170", 
+		"label": "adn"
+	},
+	{ 
+		"value": "fa fa-align-center",
+		"code": "f037", 
+		"label": "align-center"
+	},
+	{ 
+		"value": "fa fa-align-justify",
+		"code": "f039", 
+		"label": "align-justify"
+	},
+	{ 
+		"value": "fa fa-align-left",
+		"code": "f036", 
+		"label": "align-left"
+	},
+	{ 
+		"value": "fa fa-align-right",
+		"code": "f038", 
+		"label": "align-right"
+	},
+	{ 
+		"value": "fa fa-ambulance",
+		"code": "f0f9", 
+		"label": "ambulance"
+	},
+	{ 
+		"value": "fa fa-anchor",
+		"code": "f13d", 
+		"label": "anchor"
+	},
+	{ 
+		"value": "fa fa-android",
+		"code": "f17b", 
+		"label": "android"
+	},
+	{ 
+		"value": "fa fa-angellist",
+		"code": "f209", 
+		"label": "angellist"
+	},
+	{ 
+		"value": "fa fa-angle-double-down",
+		"code": "f103", 
+		"label": "angle-double-down"
+	},
+	{ 
+		"value": "fa fa-angle-double-left",
+		"code": "f100", 
+		"label": "angle-double-left"
+	},
+	{ 
+		"value": "fa fa-angle-double-right",
+		"code": "f101", 
+		"label": "angle-double-right"
+	},
+	{ 
+		"value": "fa fa-angle-double-up",
+		"code": "f102", 
+		"label": "angle-double-up"
+	},
+	{ 
+		"value": "fa fa-angle-down",
+		"code": "f107", 
+		"label": "angle-down"
+	},
+	{ 
+		"value": "fa fa-angle-left",
+		"code": "f104", 
+		"label": "angle-left"
+	},
+	{ 
+		"value": "fa fa-angle-right",
+		"code": "f105", 
+		"label": "angle-right"
+	},
+	{ 
+		"value": "fa fa-angle-up",
+		"code": "f106", 
+		"label": "angle-up"
+	},
+	{ 
+		"value": "fa fa-apple",
+		"code": "f179", 
+		"label": "apple"
+	},
+	{ 
+		"value": "fa fa-archive",
+		"code": "f187", 
+		"label": "archive"
+	},
+	{ 
+		"value": "fa fa-area-chart",
+		"code": "f1fe", 
+		"label": "area-chart"
+	},
+	{ 
+		"value": "fa fa-arrow-circle-down",
+		"code": "f0ab", 
+		"label": "arrow-circle-down"
+	},
+	{ 
+		"value": "fa fa-arrow-circle-left",
+		"code": "f0a8", 
+		"label": "arrow-circle-left"
+	},
+	{ 
+		"value": "fa fa-arrow-circle-o-down",
+		"code": "f01a", 
+		"label": "arrow-circle-o-down"
+	},
+	{ 
+		"value": "fa fa-arrow-circle-o-left",
+		"code": "f190", 
+		"label": "arrow-circle-o-left"
+	},
+	{ 
+		"value": "fa fa-arrow-circle-o-right",
+		"code": "f18e", 
+		"label": "arrow-circle-o-right"
+	},
+	{ 
+		"value": "fa fa-arrow-circle-o-up",
+		"code": "f01b", 
+		"label": "arrow-circle-o-up"
+	},
+	{ 
+		"value": "fa fa-arrow-circle-right",
+		"code": "f0a9", 
+		"label": "arrow-circle-right"
+	},
+	{ 
+		"value": "fa fa-arrow-circle-up",
+		"code": "f0aa", 
+		"label": "arrow-circle-up"
+	},
+	{ 
+		"value": "fa fa-arrow-down",
+		"code": "f063", 
+		"label": "arrow-down"
+	},
+	{ 
+		"value": "fa fa-arrow-left",
+		"code": "f060", 
+		"label": "arrow-left"
+	},
+	{ 
+		"value": "fa fa-arrow-right",
+		"code": "f061", 
+		"label": "arrow-right"
+	},
+	{ 
+		"value": "fa fa-arrow-up",
+		"code": "f062", 
+		"label": "arrow-up"
+	},
+	{ 
+		"value": "fa fa-arrows",
+		"code": "f047", 
+		"label": "arrows"
+	},
+	{ 
+		"value": "fa fa-arrows-alt",
+		"code": "f0b2", 
+		"label": "arrows-alt"
+	},
+	{ 
+		"value": "fa fa-arrows-h",
+		"code": "f07e", 
+		"label": "arrows-h"
+	},
+	{ 
+		"value": "fa fa-arrows-v",
+		"code": "f07d", 
+		"label": "arrows-v"
+	},
+	{ 
+		"value": "fa fa-asterisk",
+		"code": "f069", 
+		"label": "asterisk"
+	},
+	{ 
+		"value": "fa fa-at",
+		"code": "f1fa", 
+		"label": "at"
+	},
+	{ 
+		"value": "fa fa-automobile",
+		"code": "f1b9", 
+		"label": "automobile"
+	},
+	{ 
+		"value": "fa fa-backward",
+		"code": "f04a", 
+		"label": "backward"
+	},
+	{ 
+		"value": "fa fa-ban",
+		"code": "f05e", 
+		"label": "ban"
+	},
+	{ 
+		"value": "fa fa-bank",
+		"code": "f19c", 
+		"label": "bank"
+	},
+	{ 
+		"value": "fa fa-bar-chart",
+		"code": "f080", 
+		"label": "bar-chart"
+	},
+	{ 
+		"value": "fa fa-bar-chart-o",
+		"code": "f080", 
+		"label": "bar-chart-o"
+	},
+	{ 
+		"value": "fa fa-barcode",
+		"code": "f02a", 
+		"label": "barcode"
+	},
+	{ 
+		"value": "fa fa-bars",
+		"code": "f0c9", 
+		"label": "bars"
+	},
+	{ 
+		"value": "fa fa-beer",
+		"code": "f0fc", 
+		"label": "beer"
+	},
+	{ 
+		"value": "fa fa-behance",
+		"code": "f1b4", 
+		"label": "behance"
+	},
+	{ 
+		"value": "fa fa-behance-square",
+		"code": "f1b5", 
+		"label": "behance-square"
+	},
+	{ 
+		"value": "fa fa-bell",
+		"code": "f0f3", 
+		"label": "bell"
+	},
+	{ 
+		"value": "fa fa-bell-o",
+		"code": "f0a2", 
+		"label": "bell-o"
+	},
+	{ 
+		"value": "fa fa-bell-slash",
+		"code": "f1f6", 
+		"label": "bell-slash"
+	},
+	{ 
+		"value": "fa fa-bell-slash-o",
+		"code": "f1f7", 
+		"label": "bell-slash-o"
+	},
+	{ 
+		"value": "fa fa-bicycle",
+		"code": "f206", 
+		"label": "bicycle"
+	},
+	{ 
+		"value": "fa fa-binoculars",
+		"code": "f1e5", 
+		"label": "binoculars"
+	},
+	{ 
+		"value": "fa fa-birthday-cake",
+		"code": "f1fd", 
+		"label": "birthday-cake"
+	},
+	{ 
+		"value": "fa fa-bitbucket",
+		"code": "f171", 
+		"label": "bitbucket"
+	},
+	{ 
+		"value": "fa fa-bitbucket-square",
+		"code": "f172", 
+		"label": "bitbucket-square"
+	},
+	{ 
+		"value": "fa fa-bitcoin",
+		"code": "f15a", 
+		"label": "bitcoin"
+	},
+	{ 
+		"value": "fa fa-bold",
+		"code": "f032", 
+		"label": "bold"
+	},
+	{ 
+		"value": "fa fa-bolt",
+		"code": "f0e7", 
+		"label": "bolt"
+	},
+	{ 
+		"value": "fa fa-bomb",
+		"code": "f1e2", 
+		"label": "bomb"
+	},
+	{ 
+		"value": "fa fa-book",
+		"code": "f02d", 
+		"label": "book"
+	},
+	{ 
+		"value": "fa fa-bookmark",
+		"code": "f02e", 
+		"label": "bookmark"
+	},
+	{ 
+		"value": "fa fa-bookmark-o",
+		"code": "f097", 
+		"label": "bookmark-o"
+	},
+	{ 
+		"value": "fa fa-briefcase",
+		"code": "f0b1", 
+		"label": "briefcase"
+	},
+	{ 
+		"value": "fa fa-btc",
+		"code": "f15a", 
+		"label": "btc"
+	},
+	{ 
+		"value": "fa fa-bug",
+		"code": "f188", 
+		"label": "bug"
+	},
+	{ 
+		"value": "fa fa-building",
+		"code": "f1ad", 
+		"label": "building"
+	},
+	{ 
+		"value": "fa fa-building-o",
+		"code": "f0f7", 
+		"label": "building-o"
+	},
+	{ 
+		"value": "fa fa-bullhorn",
+		"code": "f0a1", 
+		"label": "bullhorn"
+	},
+	{ 
+		"value": "fa fa-bullseye",
+		"code": "f140", 
+		"label": "bullseye"
+	},
+	{ 
+		"value": "fa fa-bus",
+		"code": "f207", 
+		"label": "bus"
+	},
+	{ 
+		"value": "fa fa-cab",
+		"code": "f1ba", 
+		"label": "cab"
+	},
+	{ 
+		"value": "fa fa-calculator",
+		"code": "f1ec", 
+		"label": "calculator"
+	},
+	{ 
+		"value": "fa fa-calendar",
+		"code": "f073", 
+		"label": "calendar"
+	},
+	{ 
+		"value": "fa fa-calendar-o",
+		"code": "f133", 
+		"label": "calendar-o"
+	},
+	{ 
+		"value": "fa fa-camera",
+		"code": "f030", 
+		"label": "camera"
+	},
+	{ 
+		"value": "fa fa-camera-retro",
+		"code": "f083", 
+		"label": "camera-retro"
+	},
+	{ 
+		"value": "fa fa-car",
+		"code": "f1b9", 
+		"label": "car"
+	},
+	{ 
+		"value": "fa fa-caret-down",
+		"code": "f0d7", 
+		"label": "caret-down"
+	},
+	{ 
+		"value": "fa fa-caret-left",
+		"code": "f0d9", 
+		"label": "caret-left"
+	},
+	{ 
+		"value": "fa fa-caret-right",
+		"code": "f0da", 
+		"label": "caret-right"
+	},
+	{ 
+		"value": "fa fa-caret-square-o-down",
+		"code": "f150", 
+		"label": "caret-square-o-down"
+	},
+	{ 
+		"value": "fa fa-caret-square-o-left",
+		"code": "f191", 
+		"label": "caret-square-o-left"
+	},
+	{ 
+		"value": "fa fa-caret-square-o-right",
+		"code": "f152", 
+		"label": "caret-square-o-right"
+	},
+	{ 
+		"value": "fa fa-caret-square-o-up",
+		"code": "f151", 
+		"label": "caret-square-o-up"
+	},
+	{ 
+		"value": "fa fa-caret-up",
+		"code": "f0d8", 
+		"label": "caret-up"
+	},
+	{ 
+		"value": "fa fa-cc",
+		"code": "f20a", 
+		"label": "cc"
+	},
+	{ 
+		"value": "fa fa-cc-amex",
+		"code": "f1f3", 
+		"label": "cc-amex"
+	},
+	{ 
+		"value": "fa fa-cc-discover",
+		"code": "f1f2", 
+		"label": "cc-discover"
+	},
+	{ 
+		"value": "fa fa-cc-mastercard",
+		"code": "f1f1", 
+		"label": "cc-mastercard"
+	},
+	{ 
+		"value": "fa fa-cc-paypal",
+		"code": "f1f4", 
+		"label": "cc-paypal"
+	},
+	{ 
+		"value": "fa fa-cc-stripe",
+		"code": "f1f5", 
+		"label": "cc-stripe"
+	},
+	{ 
+		"value": "fa fa-cc-visa",
+		"code": "f1f0", 
+		"label": "cc-visa"
+	},
+	{ 
+		"value": "fa fa-certificate",
+		"code": "f0a3", 
+		"label": "certificate"
+	},
+	{ 
+		"value": "fa fa-chain",
+		"code": "f0c1", 
+		"label": "chain"
+	},
+	{ 
+		"value": "fa fa-chain-broken",
+		"code": "f127", 
+		"label": "chain-broken"
+	},
+	{ 
+		"value": "fa fa-check",
+		"code": "f00c", 
+		"label": "check"
+	},
+	{ 
+		"value": "fa fa-check-circle",
+		"code": "f058", 
+		"label": "check-circle"
+	},
+	{ 
+		"value": "fa fa-check-circle-o",
+		"code": "f05d", 
+		"label": "check-circle-o"
+	},
+	{ 
+		"value": "fa fa-check-square",
+		"code": "f14a", 
+		"label": "check-square"
+	},
+	{ 
+		"value": "fa fa-check-square-o",
+		"code": "f046", 
+		"label": "check-square-o"
+	},
+	{ 
+		"value": "fa fa-chevron-circle-down",
+		"code": "f13a", 
+		"label": "chevron-circle-down"
+	},
+	{ 
+		"value": "fa fa-chevron-circle-left",
+		"code": "f137", 
+		"label": "chevron-circle-left"
+	},
+	{ 
+		"value": "fa fa-chevron-circle-right",
+		"code": "f138", 
+		"label": "chevron-circle-right"
+	},
+	{ 
+		"value": "fa fa-chevron-circle-up",
+		"code": "f139", 
+		"label": "chevron-circle-up"
+	},
+	{ 
+		"value": "fa fa-chevron-down",
+		"code": "f078", 
+		"label": "chevron-down"
+	},
+	{ 
+		"value": "fa fa-chevron-left",
+		"code": "f053", 
+		"label": "chevron-left"
+	},
+	{ 
+		"value": "fa fa-chevron-right",
+		"code": "f054", 
+		"label": "chevron-right"
+	},
+	{ 
+		"value": "fa fa-chevron-up",
+		"code": "f077", 
+		"label": "chevron-up"
+	},
+	{ 
+		"value": "fa fa-child",
+		"code": "f1ae", 
+		"label": "child"
+	},
+	{ 
+		"value": "fa fa-circle",
+		"code": "f111", 
+		"label": "circle"
+	},
+	{ 
+		"value": "fa fa-circle-o",
+		"code": "f10c", 
+		"label": "circle-o"
+	},
+	{ 
+		"value": "fa fa-circle-o-notch",
+		"code": "f1ce", 
+		"label": "circle-o-notch"
+	},
+	{ 
+		"value": "fa fa-circle-thin",
+		"code": "f1db", 
+		"label": "circle-thin"
+	},
+	{ 
+		"value": "fa fa-clipboard",
+		"code": "f0ea", 
+		"label": "clipboard"
+	},
+	{ 
+		"value": "fa fa-clock-o",
+		"code": "f017", 
+		"label": "clock-o"
+	},
+	{ 
+		"value": "fa fa-close",
+		"code": "f00d", 
+		"label": "close"
+	},
+	{ 
+		"value": "fa fa-cloud",
+		"code": "f0c2", 
+		"label": "cloud"
+	},
+	{ 
+		"value": "fa fa-cloud-download",
+		"code": "f0ed", 
+		"label": "cloud-download"
+	},
+	{ 
+		"value": "fa fa-cloud-upload",
+		"code": "f0ee", 
+		"label": "cloud-upload"
+	},
+	{ 
+		"value": "fa fa-cny",
+		"code": "f157", 
+		"label": "cny"
+	},
+	{ 
+		"value": "fa fa-code",
+		"code": "f121", 
+		"label": "code"
+	},
+	{ 
+		"value": "fa fa-code-fork",
+		"code": "f126", 
+		"label": "code-fork"
+	},
+	{ 
+		"value": "fa fa-codepen",
+		"code": "f1cb", 
+		"label": "codepen"
+	},
+	{ 
+		"value": "fa fa-coffee",
+		"code": "f0f4", 
+		"label": "coffee"
+	},
+	{ 
+		"value": "fa fa-cog",
+		"code": "f013", 
+		"label": "cog"
+	},
+	{ 
+		"value": "fa fa-cogs",
+		"code": "f085", 
+		"label": "cogs"
+	},
+	{ 
+		"value": "fa fa-columns",
+		"code": "f0db", 
+		"label": "columns"
+	},
+	{ 
+		"value": "fa fa-comment",
+		"code": "f075", 
+		"label": "comment"
+	},
+	{ 
+		"value": "fa fa-comment-o",
+		"code": "f0e5", 
+		"label": "comment-o"
+	},
+	{ 
+		"value": "fa fa-comments",
+		"code": "f086", 
+		"label": "comments"
+	},
+	{ 
+		"value": "fa fa-comments-o",
+		"code": "f0e6", 
+		"label": "comments-o"
+	},
+	{ 
+		"value": "fa fa-compass",
+		"code": "f14e", 
+		"label": "compass"
+	},
+	{ 
+		"value": "fa fa-compress",
+		"code": "f066", 
+		"label": "compress"
+	},
+	{ 
+		"value": "fa fa-copy",
+		"code": "f0c5", 
+		"label": "copy"
+	},
+	{ 
+		"value": "fa fa-copyright",
+		"code": "f1f9", 
+		"label": "copyright"
+	},
+	{ 
+		"value": "fa fa-credit-card",
+		"code": "f09d", 
+		"label": "credit-card"
+	},
+	{ 
+		"value": "fa fa-crop",
+		"code": "f125", 
+		"label": "crop"
+	},
+	{ 
+		"value": "fa fa-crosshairs",
+		"code": "f05b", 
+		"label": "crosshairs"
+	},
+	{ 
+		"value": "fa fa-css",
+		"code": "f13c",
+		"label": "css3"
+	},
+	{ 
+		"value": "fa fa-cube",
+		"code": "f1b2", 
+		"label": "cube"
+	},
+	{ 
+		"value": "fa fa-cubes",
+		"code": "f1b3", 
+		"label": "cubes"
+	},
+	{ 
+		"value": "fa fa-cut",
+		"code": "f0c4", 
+		"label": "cut"
+	},
+	{ 
+		"value": "fa fa-cutlery",
+		"code": "f0f5", 
+		"label": "cutlery"
+	},
+	{ 
+		"value": "fa fa-dashboard",
+		"code": "f0e4", 
+		"label": "dashboard"
+	},
+	{ 
+		"value": "fa fa-database",
+		"code": "f1c0", 
+		"label": "database"
+	},
+	{ 
+		"value": "fa fa-dedent",
+		"code": "f03b", 
+		"label": "dedent"
+	},
+	{ 
+		"value": "fa fa-delicious",
+		"code": "f1a5", 
+		"label": "delicious"
+	},
+	{ 
+		"value": "fa fa-desktop",
+		"code": "f108", 
+		"label": "desktop"
+	},
+	{ 
+		"value": "fa fa-deviantart",
+		"code": "f1bd", 
+		"label": "deviantart"
+	},
+	{ 
+		"value": "fa fa-digg",
+		"code": "f1a6", 
+		"label": "digg"
+	},
+	{ 
+		"value": "fa fa-dollar",
+		"code": "f155", 
+		"label": "dollar"
+	},
+	{ 
+		"value": "fa fa-dot-circle-o",
+		"code": "f192", 
+		"label": "dot-circle-o"
+	},
+	{ 
+		"value": "fa fa-download",
+		"code": "f019", 
+		"label": "download"
+	},
+	{ 
+		"value": "fa fa-dribbble",
+		"code": "f17d", 
+		"label": "dribbble"
+	},
+	{ 
+		"value": "fa fa-dropbox",
+		"code": "f16b", 
+		"label": "dropbox"
+	},
+	{ 
+		"value": "fa fa-drupal",
+		"code": "f1a9", 
+		"label": "drupal"
+	},
+	{ 
+		"value": "fa fa-edit",
+		"code": "f044", 
+		"label": "edit"
+	},
+	{ 
+		"value": "fa fa-eject",
+		"code": "f052", 
+		"label": "eject"
+	},
+	{ 
+		"value": "fa fa-ellipsis-h",
+		"code": "f141", 
+		"label": "ellipsis-h"
+	},
+	{ 
+		"value": "fa fa-ellipsis-v",
+		"code": "f142", 
+		"label": "ellipsis-v"
+	},
+	{ 
+		"value": "fa fa-empire",
+		"code": "f1d1", 
+		"label": "empire"
+	},
+	{ 
+		"value": "fa fa-envelope",
+		"code": "f0e0", 
+		"label": "envelope"
+	},
+	{ 
+		"value": "fa fa-envelope-o",
+		"code": "f003", 
+		"label": "envelope-o"
+	},
+	{ 
+		"value": "fa fa-envelope-square",
+		"code": "f199", 
+		"label": "envelope-square"
+	},
+	{ 
+		"value": "fa fa-eraser",
+		"code": "f12d", 
+		"label": "eraser"
+	},
+	{ 
+		"value": "fa fa-eur",
+		"code": "f153", 
+		"label": "eur"
+	},
+	{ 
+		"value": "fa fa-euro",
+		"code": "f153", 
+		"label": "euro"
+	},
+	{ 
+		"value": "fa fa-exchange",
+		"code": "f0ec", 
+		"label": "exchange"
+	},
+	{ 
+		"value": "fa fa-exclamation",
+		"code": "f12a", 
+		"label": "exclamation"
+	},
+	{ 
+		"value": "fa fa-exclamation-circle",
+		"code": "f06a", 
+		"label": "exclamation-circle"
+	},
+	{ 
+		"value": "fa fa-exclamation-triangle",
+		"code": "f071", 
+		"label": "exclamation-triangle"
+	},
+	{ 
+		"value": "fa fa-expand",
+		"code": "f065", 
+		"label": "expand"
+	},
+	{ 
+		"value": "fa fa-external-link",
+		"code": "f08e", 
+		"label": "external-link"
+	},
+	{ 
+		"value": "fa fa-external-link-square",
+		"code": "f14c", 
+		"label": "external-link-square"
+	},
+	{ 
+		"value": "fa fa-eye",
+		"code": "f06e", 
+		"label": "eye"
+	},
+	{ 
+		"value": "fa fa-eye-slash",
+		"code": "f070", 
+		"label": "eye-slash"
+	},
+	{ 
+		"value": "fa fa-eyedropper",
+		"code": "f1fb", 
+		"label": "eyedropper"
+	},
+	{ 
+		"value": "fa fa-facebook",
+		"code": "f09a", 
+		"label": "facebook"
+	},
+	{ 
+		"value": "fa fa-facebook-square",
+		"code": "f082", 
+		"label": "facebook-square"
+	},
+	{ 
+		"value": "fa fa-fast-backward",
+		"code": "f049", 
+		"label": "fast-backward"
+	},
+	{ 
+		"value": "fa fa-fast-forward",
+		"code": "f050", 
+		"label": "fast-forward"
+	},
+	{ 
+		"value": "fa fa-fax",
+		"code": "f1ac", 
+		"label": "fax"
+	},
+	{ 
+		"value": "fa fa-female",
+		"code": "f182", 
+		"label": "female"
+	},
+	{ 
+		"value": "fa fa-fighter-jet",
+		"code": "f0fb", 
+		"label": "fighter-jet"
+	},
+	{ 
+		"value": "fa fa-file",
+		"code": "f15b", 
+		"label": "file"
+	},
+	{ 
+		"value": "fa fa-file-archive-o",
+		"code": "f1c6", 
+		"label": "file-archive-o"
+	},
+	{ 
+		"value": "fa fa-file-audio-o",
+		"code": "f1c7", 
+		"label": "file-audio-o"
+	},
+	{ 
+		"value": "fa fa-file-code-o",
+		"code": "f1c9", 
+		"label": "file-code-o"
+	},
+	{ 
+		"value": "fa fa-file-excel-o",
+		"code": "f1c3", 
+		"label": "file-excel-o"
+	},
+	{ 
+		"value": "fa fa-file-image-o",
+		"code": "f1c5", 
+		"label": "file-image-o"
+	},
+	{ 
+		"value": "fa fa-file-movie-o",
+		"code": "f1c8", 
+		"label": "file-movie-o"
+	},
+	{ 
+		"value": "fa fa-file-o",
+		"code": "f016", 
+		"label": "file-o"
+	},
+	{ 
+		"value": "fa fa-file-pdf-o",
+		"code": "f1c1", 
+		"label": "file-pdf-o"
+	},
+	{ 
+		"value": "fa fa-file-photo-o",
+		"code": "f1c5", 
+		"label": "file-photo-o"
+	},
+	{ 
+		"value": "fa fa-file-picture-o",
+		"code": "f1c5", 
+		"label": "file-picture-o"
+	},
+	{ 
+		"value": "fa fa-file-powerpoint-o",
+		"code": "f1c4", 
+		"label": "file-powerpoint-o"
+	},
+	{ 
+		"value": "fa fa-file-sound-o",
+		"code": "f1c7", 
+		"label": "file-sound-o"
+	},
+	{ 
+		"value": "fa fa-file-text",
+		"code": "f15c", 
+		"label": "file-text"
+	},
+	{ 
+		"value": "fa fa-file-text-o",
+		"code": "f0f6", 
+		"label": "file-text-o"
+	},
+	{ 
+		"value": "fa fa-file-video-o",
+		"code": "f1c8", 
+		"label": "file-video-o"
+	},
+	{ 
+		"value": "fa fa-file-word-o",
+		"code": "f1c2", 
+		"label": "file-word-o"
+	},
+	{ 
+		"value": "fa fa-file-zip-o",
+		"code": "f1c6", 
+		"label": "file-zip-o"
+	},
+	{ 
+		"value": "fa fa-files-o",
+		"code": "f0c5", 
+		"label": "files-o"
+	},
+	{ 
+		"value": "fa fa-film",
+		"code": "f008", 
+		"label": "film"
+	},
+	{ 
+		"value": "fa fa-filter",
+		"code": "f0b0", 
+		"label": "filter"
+	},
+	{ 
+		"value": "fa fa-fire",
+		"code": "f06d", 
+		"label": "fire"
+	},
+	{ 
+		"value": "fa fa-fire-extinguisher",
+		"code": "f134", 
+		"label": "fire-extinguisher"
+	},
+	{ 
+		"value": "fa fa-flag",
+		"code": "f024", 
+		"label": "flag"
+	},
+	{ 
+		"value": "fa fa-flag-checkered",
+		"code": "f11e", 
+		"label": "flag-checkered"
+	},
+	{ 
+		"value": "fa fa-flag-o",
+		"code": "f11d", 
+		"label": "flag-o"
+	},
+	{ 
+		"value": "fa fa-flash",
+		"code": "f0e7", 
+		"label": "flash"
+	},
+	{ 
+		"value": "fa fa-flask",
+		"code": "f0c3", 
+		"label": "flask"
+	},
+	{ 
+		"value": "fa fa-flickr",
+		"code": "f16e", 
+		"label": "flickr"
+	},
+	{ 
+		"value": "fa fa-floppy-o",
+		"code": "f0c7", 
+		"label": "floppy-o"
+	},
+	{ 
+		"value": "fa fa-folder",
+		"code": "f07b", 
+		"label": "folder"
+	},
+	{ 
+		"value": "fa fa-folder-o",
+		"code": "f114", 
+		"label": "folder-o"
+	},
+	{ 
+		"value": "fa fa-folder-open",
+		"code": "f07c", 
+		"label": "folder-open"
+	},
+	{ 
+		"value": "fa fa-folder-open-o",
+		"code": "f115", 
+		"label": "folder-open-o"
+	},
+	{ 
+		"value": "fa fa-font",
+		"code": "f031", 
+		"label": "font"
+	},
+	{ 
+		"value": "fa fa-forward",
+		"code": "f04e", 
+		"label": "forward"
+	},
+	{ 
+		"value": "fa fa-foursquare",
+		"code": "f180", 
+		"label": "foursquare"
+	},
+	{ 
+		"value": "fa fa-frown-o",
+		"code": "f119", 
+		"label": "frown-o"
+	},
+	{ 
+		"value": "fa fa-futbol-o",
+		"code": "f1e3", 
+		"label": "futbol-o"
+	},
+	{ 
+		"value": "fa fa-gamepad",
+		"code": "f11b", 
+		"label": "gamepad"
+	},
+	{ 
+		"value": "fa fa-gavel",
+		"code": "f0e3", 
+		"label": "gavel"
+	},
+	{ 
+		"value": "fa fa-gbp",
+		"code": "f154", 
+		"label": "gbp"
+	},
+	{ 
+		"value": "fa fa-ge",
+		"code": "f1d1", 
+		"label": "ge"
+	},
+	{ 
+		"value": "fa fa-gear",
+		"code": "f013", 
+		"label": "gear"
+	},
+	{ 
+		"value": "fa fa-gears",
+		"code": "f085", 
+		"label": "gears"
+	},
+	{ 
+		"value": "fa fa-gift",
+		"code": "f06b", 
+		"label": "gift"
+	},
+	{ 
+		"value": "fa fa-git",
+		"code": "f1d3", 
+		"label": "git"
+	},
+	{ 
+		"value": "fa fa-git-square",
+		"code": "f1d2", 
+		"label": "git-square"
+	},
+	{ 
+		"value": "fa fa-github",
+		"code": "f09b", 
+		"label": "github"
+	},
+	{ 
+		"value": "fa fa-github-alt",
+		"code": "f113", 
+		"label": "github-alt"
+	},
+	{ 
+		"value": "fa fa-github-square",
+		"code": "f092", 
+		"label": "github-square"
+	},
+	{ 
+		"value": "fa fa-gittip",
+		"code": "f184", 
+		"label": "gittip"
+	},
+	{ 
+		"value": "fa fa-glass",
+		"code": "f000", 
+		"label": "glass"
+	},
+	{ 
+		"value": "fa fa-globe",
+		"code": "f0ac", 
+		"label": "globe"
+	},
+	{ 
+		"value": "fa fa-google",
+		"code": "f1a0", 
+		"label": "google"
+	},
+	{ 
+		"value": "fa fa-google-plus",
+		"code": "f0d5", 
+		"label": "google-plus"
+	},
+	{ 
+		"value": "fa fa-google-plus-square",
+		"code": "f0d4", 
+		"label": "google-plus-square"
+	},
+	{ 
+		"value": "fa fa-google-wallet",
+		"code": "f1ee", 
+		"label": "google-wallet"
+	},
+	{ 
+		"value": "fa fa-graduation-cap",
+		"code": "f19d", 
+		"label": "graduation-cap"
+	},
+	{ 
+		"value": "fa fa-group",
+		"code": "f0c0", 
+		"label": "group"
+	},
+	{ 
+		"value": "fa fa-h-square",
+		"code": "f0fd", 
+		"label": "h-square"
+	},
+	{ 
+		"value": "fa fa-hacker-news",
+		"code": "f1d4", 
+		"label": "hacker-news"
+	},
+	{ 
+		"value": "fa fa-hand-o-down",
+		"code": "f0a7", 
+		"label": "hand-o-down"
+	},
+	{ 
+		"value": "fa fa-hand-o-left",
+		"code": "f0a5", 
+		"label": "hand-o-left"
+	},
+	{ 
+		"value": "fa fa-hand-o-right",
+		"code": "f0a4", 
+		"label": "hand-o-right"
+	},
+	{ 
+		"value": "fa fa-hand-o-up",
+		"code": "f0a6", 
+		"label": "hand-o-up"
+	},
+	{ 
+		"value": "fa fa-hdd-o",
+		"code": "f0a0", 
+		"label": "hdd-o"
+	},
+	{ 
+		"value": "fa fa-header",
+		"code": "f1dc", 
+		"label": "header"
+	},
+	{ 
+		"value": "fa fa-headphones",
+		"code": "f025", 
+		"label": "headphones"
+	},
+	{ 
+		"value": "fa fa-heart",
+		"code": "f004", 
+		"label": "heart"
+	},
+	{ 
+		"value": "fa fa-heart-o",
+		"code": "f08a", 
+		"label": "heart-o"
+	},
+	{ 
+		"value": "fa fa-history",
+		"code": "f1da", 
+		"label": "history"
+	},
+	{ 
+		"value": "fa fa-home",
+		"code": "f015", 
+		"label": "home"
+	},
+	{ 
+		"value": "fa fa-hospital-o",
+		"code": "f0f8", 
+		"label": "hospital-o"
+	},
+	{ 
+ 					
+		"value": "fa fa-html",
+		"code": "f13b", 
+		"label": "hospital-o"
+	},
+	{ 
+		"value": "fa fa-ils",
+		"code": "f20b", 
+		"label": "ils"
+	},
+	{ 
+		"value": "fa fa-image",
+		"code": "f03e", 
+		"label": "image"
+	},
+	{ 
+		"value": "fa fa-inbox",
+		"code": "f01c", 
+		"label": "inbox"
+	},
+	{ 
+		"value": "fa fa-indent",
+		"code": "f03c", 
+		"label": "indent"
+	},
+	{ 
+		"value": "fa fa-info",
+		"code": "f129", 
+		"label": "info"
+	},
+	{ 
+		"value": "fa fa-info-circle",
+		"code": "f05a", 
+		"label": "info-circle"
+	},
+	{ 
+		"value": "fa fa-inr",
+		"code": "f156", 
+		"label": "inr"
+	},
+	{ 
+		"value": "fa fa-instagram",
+		"code": "f16d", 
+		"label": "instagram"
+	},
+	{ 
+		"value": "fa fa-institution",
+		"code": "f19c", 
+		"label": "institution"
+	},
+	{ 
+		"value": "fa fa-ioxhost",
+		"code": "f208", 
+		"label": "ioxhost"
+	},
+	{ 
+		"value": "fa fa-italic",
+		"code": "f033", 
+		"label": "italic"
+	},
+	{ 
+		"value": "fa fa-joomla",
+		"code": "f1aa", 
+		"label": "joomla"
+	},
+	{ 
+		"value": "fa fa-jpy",
+		"code": "f157", 
+		"label": "jpy"
+	},
+	{ 
+		"value": "fa fa-jsfiddle",
+		"code": "f1cc", 
+		"label": "jsfiddle"
+	},
+	{ 
+		"value": "fa fa-key",
+		"code": "f084", 
+		"label": "key"
+	},
+	{ 
+		"value": "fa fa-keyboard-o",
+		"code": "f11c", 
+		"label": "keyboard-o"
+	},
+	{ 
+		"value": "fa fa-krw",
+		"code": "f159", 
+		"label": "krw"
+	},
+	{ 
+		"value": "fa fa-language",
+		"code": "f1ab", 
+		"label": "language"
+	},
+	{ 
+		"value": "fa fa-laptop",
+		"code": "f109", 
+		"label": "laptop"
+	},
+	{ 
+		"value": "fa fa-lastfm",
+		"code": "f202", 
+		"label": "lastfm"
+	},
+	{ 
+		"value": "fa fa-lastfm-square",
+		"code": "f203", 
+		"label": "lastfm-square"
+	},
+	{ 
+		"value": "fa fa-leaf",
+		"code": "f06c", 
+		"label": "leaf"
+	},
+	{ 
+		"value": "fa fa-legal",
+		"code": "f0e3", 
+		"label": "legal"
+	},
+	{ 
+		"value": "fa fa-lemon-o",
+		"code": "f094", 
+		"label": "lemon-o"
+	},
+	{ 
+		"value": "fa fa-level-down",
+		"code": "f149", 
+		"label": "level-down"
+	},
+	{ 
+		"value": "fa fa-level-up",
+		"code": "f148", 
+		"label": "level-up"
+	},
+	{ 
+		"value": "fa fa-life-bouy",
+		"code": "f1cd", 
+		"label": "life-bouy"
+	},
+	{ 
+		"value": "fa fa-life-buoy",
+		"code": "f1cd", 
+		"label": "life-buoy"
+	},
+	{ 
+		"value": "fa fa-life-ring",
+		"code": "f1cd", 
+		"label": "life-ring"
+	},
+	{ 
+		"value": "fa fa-life-saver",
+		"code": "f1cd", 
+		"label": "life-saver"
+	},
+	{ 
+		"value": "fa fa-lightbulb-o",
+		"code": "f0eb", 
+		"label": "lightbulb-o"
+	},
+	{ 
+		"value": "fa fa-line-chart",
+		"code": "f201", 
+		"label": "line-chart"
+	},
+	{ 
+		"value": "fa fa-link",
+		"code": "f0c1", 
+		"label": "link"
+	},
+	{ 
+		"value": "fa fa-linkedin",
+		"code": "f0e1", 
+		"label": "linkedin"
+	},
+	{ 
+		"value": "fa fa-linkedin-square",
+		"code": "f08c", 
+		"label": "linkedin-square"
+	},
+	{ 
+		"value": "fa fa-linux",
+		"code": "f17c", 
+		"label": "linux"
+	},
+	{ 
+		"value": "fa fa-list",
+		"code": "f03a", 
+		"label": "list"
+	},
+	{ 
+		"value": "fa fa-list-alt",
+		"code": "f022", 
+		"label": "list-alt"
+	},
+	{ 
+		"value": "fa fa-list-ol",
+		"code": "f0cb", 
+		"label": "list-ol"
+	},
+	{ 
+		"value": "fa fa-list-ul",
+		"code": "f0ca", 
+		"label": "list-ul"
+	},
+	{ 
+		"value": "fa fa-location-arrow",
+		"code": "f124", 
+		"label": "location-arrow"
+	},
+	{ 
+		"value": "fa fa-lock",
+		"code": "f023", 
+		"label": "lock"
+	},
+	{ 
+		"value": "fa fa-long-arrow-down",
+		"code": "f175", 
+		"label": "long-arrow-down"
+	},
+	{ 
+		"value": "fa fa-long-arrow-left",
+		"code": "f177", 
+		"label": "long-arrow-left"
+	},
+	{ 
+		"value": "fa fa-long-arrow-right",
+		"code": "f178", 
+		"label": "long-arrow-right"
+	},
+	{ 
+		"value": "fa fa-long-arrow-up",
+		"code": "f176", 
+		"label": "long-arrow-up"
+	},
+	{ 
+		"value": "fa fa-magic",
+		"code": "f0d0", 
+		"label": "magic"
+	},
+	{ 
+		"value": "fa fa-magnet",
+		"code": "f076", 
+		"label": "magnet"
+	},
+	{ 
+		"value": "fa fa-mail-forward",
+		"code": "f064", 
+		"label": "mail-forward"
+	},
+	{ 
+		"value": "fa fa-mail-reply",
+		"code": "f112", 
+		"label": "mail-reply"
+	},
+	{ 
+		"value": "fa fa-mail-reply-all",
+		"code": "f122", 
+		"label": "mail-reply-all"
+	},
+	{ 
+		"value": "fa fa-male",
+		"code": "f183", 
+		"label": "male"
+	},
+	{ 
+		"value": "fa fa-map-marker",
+		"code": "f041", 
+		"label": "map-marker"
+	},
+	{ 
+		"value": "fa fa-maxcdn",
+		"code": "f136", 
+		"label": "maxcdn"
+	},
+	{ 
+		"value": "fa fa-meanpath",
+		"code": "f20c", 
+		"label": "meanpath"
+	},
+	{ 
+		"value": "fa fa-medkit",
+		"code": "f0fa", 
+		"label": "medkit"
+	},
+	{ 
+		"value": "fa fa-meh-o",
+		"code": "f11a", 
+		"label": "meh-o"
+	},
+	{ 
+		"value": "fa fa-microphone",
+		"code": "f130", 
+		"label": "microphone"
+	},
+	{ 
+		"value": "fa fa-microphone-slash",
+		"code": "f131", 
+		"label": "microphone-slash"
+	},
+	{ 
+		"value": "fa fa-minus",
+		"code": "f068", 
+		"label": "minus"
+	},
+	{ 
+		"value": "fa fa-minus-circle",
+		"code": "f056", 
+		"label": "minus-circle"
+	},
+	{ 
+		"value": "fa fa-minus-square",
+		"code": "f146", 
+		"label": "minus-square"
+	},
+	{ 
+		"value": "fa fa-minus-square-o",
+		"code": "f147", 
+		"label": "minus-square-o"
+	},
+	{ 
+		"value": "fa fa-mobile",
+		"code": "f10b", 
+		"label": "mobile"
+	},
+	{ 
+		"value": "fa fa-mobile-phone",
+		"code": "f10b", 
+		"label": "mobile-phone"
+	},
+	{ 
+		"value": "fa fa-money",
+		"code": "f0d6", 
+		"label": "money"
+	},
+	{ 
+		"value": "fa fa-moon-o",
+		"code": "f186", 
+		"label": "moon-o"
+	},
+	{ 
+		"value": "fa fa-mortar-board",
+		"code": "f19d", 
+		"label": "mortar-board"
+	},
+	{ 
+		"value": "fa fa-music",
+		"code": "f001", 
+		"label": "music"
+	},
+	{ 
+		"value": "fa fa-navicon",
+		"code": "f0c9", 
+		"label": "navicon"
+	},
+	{ 
+		"value": "fa fa-newspaper-o",
+		"code": "f1ea", 
+		"label": "newspaper-o"
+	},
+	{ 
+		"value": "fa fa-openid",
+		"code": "f19b", 
+		"label": "openid"
+	},
+	{ 
+		"value": "fa fa-outdent",
+		"code": "f03b", 
+		"label": "outdent"
+	},
+	{ 
+		"value": "fa fa-pagelines",
+		"code": "f18c", 
+		"label": "pagelines"
+	},
+	{ 
+		"value": "fa fa-paint-brush",
+		"code": "f1fc", 
+		"label": "paint-brush"
+	},
+	{ 
+		"value": "fa fa-paper-plane",
+		"code": "f1d8", 
+		"label": "paper-plane"
+	},
+	{ 
+		"value": "fa fa-paper-plane-o",
+		"code": "f1d9", 
+		"label": "paper-plane-o"
+	},
+	{ 
+		"value": "fa fa-paperclip",
+		"code": "f0c6", 
+		"label": "paperclip"
+	},
+	{ 
+		"value": "fa fa-paragraph",
+		"code": "f1dd", 
+		"label": "paragraph"
+	},
+	{ 
+		"value": "fa fa-paste",
+		"code": "f0ea", 
+		"label": "paste"
+	},
+	{ 
+		"value": "fa fa-pause",
+		"code": "f04c", 
+		"label": "pause"
+	},
+	{ 
+		"value": "fa fa-paw",
+		"code": "f1b0", 
+		"label": "paw"
+	},
+	{ 
+		"value": "fa fa-paypal",
+		"code": "f1ed", 
+		"label": "paypal"
+	},
+	{ 
+		"value": "fa fa-pencil",
+		"code": "f040", 
+		"label": "pencil"
+	},
+	{ 
+		"value": "fa fa-pencil-square",
+		"code": "f14b", 
+		"label": "pencil-square"
+	},
+	{ 
+		"value": "fa fa-pencil-square-o",
+		"code": "f044", 
+		"label": "pencil-square-o"
+	},
+	{ 
+		"value": "fa fa-phone",
+		"code": "f095", 
+		"label": "phone"
+	},
+	{ 
+		"value": "fa fa-phone-square",
+		"code": "f098", 
+		"label": "phone-square"
+	},
+	{ 
+		"value": "fa fa-photo",
+		"code": "f03e", 
+		"label": "photo"
+	},
+	{ 
+		"value": "fa fa-picture-o",
+		"code": "f03e", 
+		"label": "picture-o"
+	},
+	{ 
+		"value": "fa fa-pie-chart",
+		"code": "f200", 
+		"label": "pie-chart"
+	},
+	{ 
+		"value": "fa fa-pied-piper",
+		"code": "f1a7", 
+		"label": "pied-piper"
+	},
+	{ 
+		"value": "fa fa-pied-piper-alt",
+		"code": "f1a8", 
+		"label": "pied-piper-alt"
+	},
+	{ 
+		"value": "fa fa-pinterest",
+		"code": "f0d2", 
+		"label": "pinterest"
+	},
+	{ 
+		"value": "fa fa-pinterest-square",
+		"code": "f0d3", 
+		"label": "pinterest-square"
+	},
+	{ 
+		"value": "fa fa-plane",
+		"code": "f072", 
+		"label": "plane"
+	},
+	{ 
+		"value": "fa fa-play",
+		"code": "f04b", 
+		"label": "play"
+	},
+	{ 
+		"value": "fa fa-play-circle",
+		"code": "f144", 
+		"label": "play-circle"
+	},
+	{ 
+		"value": "fa fa-play-circle-o",
+		"code": "f01d", 
+		"label": "play-circle-o"
+	},
+	{ 
+		"value": "fa fa-plug",
+		"code": "f1e6", 
+		"label": "plug"
+	},
+	{ 
+		"value": "fa fa-plus",
+		"code": "f067", 
+		"label": "plus"
+	},
+	{ 
+		"value": "fa fa-plus-circle",
+		"code": "f055", 
+		"label": "plus-circle"
+	},
+	{ 
+		"value": "fa fa-plus-square",
+		"code": "f0fe", 
+		"label": "plus-square"
+	},
+	{ 
+		"value": "fa fa-plus-square-o",
+		"code": "f196", 
+		"label": "plus-square-o"
+	},
+	{ 
+		"value": "fa fa-power-off",
+		"code": "f011", 
+		"label": "power-off"
+	},
+	{ 
+		"value": "fa fa-print",
+		"code": "f02f", 
+		"label": "print"
+	},
+	{ 
+		"value": "fa fa-puzzle-piece",
+		"code": "f12e", 
+		"label": "puzzle-piece"
+	},
+	{ 
+		"value": "fa fa-qq",
+		"code": "f1d6", 
+		"label": "qq"
+	},
+	{ 
+		"value": "fa fa-qrcode",
+		"code": "f029", 
+		"label": "qrcode"
+	},
+	{ 
+		"value": "fa fa-question",
+		"code": "f128", 
+		"label": "question"
+	},
+	{ 
+		"value": "fa fa-question-circle",
+		"code": "f059", 
+		"label": "question-circle"
+	},
+	{ 
+		"value": "fa fa-quote-left",
+		"code": "f10d", 
+		"label": "quote-left"
+	},
+	{ 
+		"value": "fa fa-quote-right",
+		"code": "f10e", 
+		"label": "quote-right"
+	},
+	{ 
+		"value": "fa fa-ra",
+		"code": "f1d0", 
+		"label": "ra"
+	},
+	{ 
+		"value": "fa fa-random",
+		"code": "f074", 
+		"label": "random"
+	},
+	{ 
+		"value": "fa fa-rebel",
+		"code": "f1d0", 
+		"label": "rebel"
+	},
+	{ 
+		"value": "fa fa-recycle",
+		"code": "f1b8", 
+		"label": "recycle"
+	},
+	{ 
+		"value": "fa fa-reddit",
+		"code": "f1a1", 
+		"label": "reddit"
+	},
+	{ 
+		"value": "fa fa-reddit-square",
+		"code": "f1a2", 
+		"label": "reddit-square"
+	},
+	{ 
+		"value": "fa fa-refresh",
+		"code": "f021", 
+		"label": "refresh"
+	},
+	{ 
+		"value": "fa fa-remove",
+		"code": "f00d", 
+		"label": "remove"
+	},
+	{ 
+		"value": "fa fa-renren",
+		"code": "f18b", 
+		"label": "renren"
+	},
+	{ 
+		"value": "fa fa-reorder",
+		"code": "f0c9", 
+		"label": "reorder"
+	},
+	{ 
+		"value": "fa fa-repeat",
+		"code": "f01e", 
+		"label": "repeat"
+	},
+	{ 
+		"value": "fa fa-reply",
+		"code": "f112", 
+		"label": "reply"
+	},
+	{ 
+		"value": "fa fa-reply-all",
+		"code": "f122", 
+		"label": "reply-all"
+	},
+	{ 
+		"value": "fa fa-retweet",
+		"code": "f079", 
+		"label": "retweet"
+	},
+	{ 
+		"value": "fa fa-rmb",
+		"code": "f157", 
+		"label": "rmb"
+	},
+	{ 
+		"value": "fa fa-road",
+		"code": "f018", 
+		"label": "road"
+	},
+	{ 
+		"value": "fa fa-rocket",
+		"code": "f135", 
+		"label": "rocket"
+	},
+	{ 
+		"value": "fa fa-rotate-left",
+		"code": "f0e2", 
+		"label": "rotate-left"
+	},
+	{ 
+		"value": "fa fa-rotate-right",
+		"code": "f01e", 
+		"label": "rotate-right"
+	},
+	{ 
+		"value": "fa fa-rouble",
+		"code": "f158", 
+		"label": "rouble"
+	},
+	{ 
+		"value": "fa fa-rss",
+		"code": "f09e", 
+		"label": "rss"
+	},
+	{ 
+		"value": "fa fa-rss-square",
+		"code": "f143", 
+		"label": "rss-square"
+	},
+	{ 
+		"value": "fa fa-rub",
+		"code": "f158", 
+		"label": "rub"
+	},
+	{ 
+		"value": "fa fa-ruble",
+		"code": "f158", 
+		"label": "ruble"
+	},
+	{ 
+		"value": "fa fa-rupee",
+		"code": "f156", 
+		"label": "rupee"
+	},
+	{ 
+		"value": "fa fa-save",
+		"code": "f0c7", 
+		"label": "save"
+	},
+	{ 
+		"value": "fa fa-scissors",
+		"code": "f0c4", 
+		"label": "scissors"
+	},
+	{ 
+		"value": "fa fa-search",
+		"code": "f002", 
+		"label": "search"
+	},
+	{ 
+		"value": "fa fa-search-minus",
+		"code": "f010", 
+		"label": "search-minus"
+	},
+	{ 
+		"value": "fa fa-search-plus",
+		"code": "f00e", 
+		"label": "search-plus"
+	},
+	{ 
+		"value": "fa fa-send",
+		"code": "f1d8", 
+		"label": "send"
+	},
+	{ 
+		"value": "fa fa-send-o",
+		"code": "f1d9", 
+		"label": "send-o"
+	},
+	{ 
+		"value": "fa fa-share",
+		"code": "f064", 
+		"label": "share"
+	},
+	{ 
+		"value": "fa fa-share-alt",
+		"code": "f1e0", 
+		"label": "share-alt"
+	},
+	{ 
+		"value": "fa fa-share-alt-square",
+		"code": "f1e1", 
+		"label": "share-alt-square"
+	},
+	{ 
+		"value": "fa fa-share-square",
+		"code": "f14d", 
+		"label": "share-square"
+	},
+	{ 
+		"value": "fa fa-share-square-o",
+		"code": "f045", 
+		"label": "share-square-o"
+	},
+	{ 
+		"value": "fa fa-shekel",
+		"code": "f20b", 
+		"label": "shekel"
+	},
+	{ 
+		"value": "fa fa-sheqel",
+		"code": "f20b", 
+		"label": "sheqel"
+	},
+	{ 
+		"value": "fa fa-shield",
+		"code": "f132", 
+		"label": "shield"
+	},
+	{ 
+		"value": "fa fa-shopping-cart",
+		"code": "f07a", 
+		"label": "shopping-cart"
+	},
+	{ 
+		"value": "fa fa-sign-in",
+		"code": "f090", 
+		"label": "sign-in"
+	},
+	{ 
+		"value": "fa fa-sign-out",
+		"code": "f08b", 
+		"label": "sign-out"
+	},
+	{ 
+		"value": "fa fa-signal",
+		"code": "f012", 
+		"label": "signal"
+	},
+	{ 
+		"value": "fa fa-sitemap",
+		"code": "f0e8", 
+		"label": "sitemap"
+	},
+	{ 
+		"value": "fa fa-skype",
+		"code": "f17e", 
+		"label": "skype"
+	},
+	{ 
+		"value": "fa fa-slack",
+		"code": "f198", 
+		"label": "slack"
+	},
+	{ 
+		"value": "fa fa-sliders",
+		"code": "f1de", 
+		"label": "sliders"
+	},
+	{ 
+		"value": "fa fa-slideshare",
+		"code": "f1e7", 
+		"label": "slideshare"
+	},
+	{ 
+		"value": "fa fa-smile-o",
+		"code": "f118", 
+		"label": "smile-o"
+	},
+	{ 
+		"value": "fa fa-soccer-ball-o",
+		"code": "f1e3", 
+		"label": "soccer-ball-o"
+	},
+	{ 
+		"value": "fa fa-sort",
+		"code": "f0dc", 
+		"label": "sort"
+	},
+	{ 
+		"value": "fa fa-sort-alpha-asc",
+		"code": "f15d", 
+		"label": "sort-alpha-asc"
+	},
+	{ 
+		"value": "fa fa-sort-alpha-desc",
+		"code": "f15e", 
+		"label": "sort-alpha-desc"
+	},
+	{ 
+		"value": "fa fa-sort-amount-asc",
+		"code": "f160", 
+		"label": "sort-amount-asc"
+	},
+	{ 
+		"value": "fa fa-sort-amount-desc",
+		"code": "f161", 
+		"label": "sort-amount-desc"
+	},
+	{ 
+		"value": "fa fa-sort-asc",
+		"code": "f0de", 
+		"label": "sort-asc"
+	},
+	{ 
+		"value": "fa fa-sort-desc",
+		"code": "f0dd", 
+		"label": "sort-desc"
+	},
+	{ 
+		"value": "fa fa-sort-down",
+		"code": "f0dd", 
+		"label": "sort-down"
+	},
+	{ 
+		"value": "fa fa-sort-numeric-asc",
+		"code": "f162", 
+		"label": "sort-numeric-asc"
+	},
+	{ 
+		"value": "fa fa-sort-numeric-desc",
+		"code": "f163", 
+		"label": "sort-numeric-desc"
+	},
+	{ 
+		"value": "fa fa-sort-up",
+		"code": "f0de", 
+		"label": "sort-up"
+	},
+	{ 
+		"value": "fa fa-soundcloud",
+		"code": "f1be", 
+		"label": "soundcloud"
+	},
+	{ 
+		"value": "fa fa-space-shuttle",
+		"code": "f197", 
+		"label": "space-shuttle"
+	},
+	{ 
+		"value": "fa fa-spinner",
+		"code": "f110", 
+		"label": "spinner"
+	},
+	{ 
+		"value": "fa fa-spoon",
+		"code": "f1b1", 
+		"label": "spoon"
+	},
+	{ 
+		"value": "fa fa-spotify",
+		"code": "f1bc", 
+		"label": "spotify"
+	},
+	{ 
+		"value": "fa fa-square",
+		"code": "f0c8", 
+		"label": "square"
+	},
+	{ 
+		"value": "fa fa-square-o",
+		"code": "f096", 
+		"label": "square-o"
+	},
+	{ 
+		"value": "fa fa-stack-exchange",
+		"code": "f18d", 
+		"label": "stack-exchange"
+	},
+	{ 
+		"value": "fa fa-stack-overflow",
+		"code": "f16c", 
+		"label": "stack-overflow"
+	},
+	{ 
+		"value": "fa fa-star",
+		"code": "f005", 
+		"label": "star"
+	},
+	{ 
+		"value": "fa fa-star-half",
+		"code": "f089", 
+		"label": "star-half"
+	},
+	{ 
+		"value": "fa fa-star-half-empty",
+		"code": "f123", 
+		"label": "star-half-empty"
+	},
+	{ 
+		"value": "fa fa-star-half-full",
+		"code": "f123", 
+		"label": "star-half-full"
+	},
+	{ 
+		"value": "fa fa-star-half-o",
+		"code": "f123", 
+		"label": "star-half-o"
+	},
+	{ 
+		"value": "fa fa-star-o",
+		"code": "f006", 
+		"label": "star-o"
+	},
+	{ 
+		"value": "fa fa-steam",
+		"code": "f1b6", 
+		"label": "steam"
+	},
+	{ 
+		"value": "fa fa-steam-square",
+		"code": "f1b7", 
+		"label": "steam-square"
+	},
+	{ 
+		"value": "fa fa-step-backward",
+		"code": "f048", 
+		"label": "step-backward"
+	},
+	{ 
+		"value": "fa fa-step-forward",
+		"code": "f051", 
+		"label": "step-forward"
+	},
+	{ 
+		"value": "fa fa-stethoscope",
+		"code": "f0f1", 
+		"label": "stethoscope"
+	},
+	{ 
+		"value": "fa fa-stop",
+		"code": "f04d", 
+		"label": "stop"
+	},
+	{ 
+		"value": "fa fa-strikethrough",
+		"code": "f0cc", 
+		"label": "strikethrough"
+	},
+	{ 
+		"value": "fa fa-stumbleupon",
+		"code": "f1a4", 
+		"label": "stumbleupon"
+	},
+	{ 
+		"value": "fa fa-stumbleupon-circle",
+		"code": "f1a3", 
+		"label": "stumbleupon-circle"
+	},
+	{ 
+		"value": "fa fa-subscript",
+		"code": "f12c", 
+		"label": "subscript"
+	},
+	{ 
+		"value": "fa fa-suitcase",
+		"code": "f0f2", 
+		"label": "suitcase"
+	},
+	{ 
+		"value": "fa fa-sun-o",
+		"code": "f185", 
+		"label": "sun-o"
+	},
+	{ 
+		"value": "fa fa-superscript",
+		"code": "f12b", 
+		"label": "superscript"
+	},
+	{ 
+		"value": "fa fa-support",
+		"code": "f1cd", 
+		"label": "support"
+	},
+	{ 
+		"value": "fa fa-table",
+		"code": "f0ce", 
+		"label": "table"
+	},
+	{ 
+		"value": "fa fa-tablet",
+		"code": "f10a", 
+		"label": "tablet"
+	},
+	{ 
+		"value": "fa fa-tachometer",
+		"code": "f0e4", 
+		"label": "tachometer"
+	},
+	{ 
+		"value": "fa fa-tag",
+		"code": "f02b", 
+		"label": "tag"
+	},
+	{ 
+		"value": "fa fa-tags",
+		"code": "f02c", 
+		"label": "tags"
+	},
+	{ 
+		"value": "fa fa-tasks",
+		"code": "f0ae", 
+		"label": "tasks"
+	},
+	{ 
+		"value": "fa fa-taxi",
+		"code": "f1ba", 
+		"label": "taxi"
+	},
+	{ 
+		"value": "fa fa-tencent-weibo",
+		"code": "f1d5", 
+		"label": "tencent-weibo"
+	},
+	{ 
+		"value": "fa fa-terminal",
+		"code": "f120", 
+		"label": "terminal"
+	},
+	{ 
+		"value": "fa fa-text-height",
+		"code": "f034", 
+		"label": "text-height"
+	},
+	{ 
+		"value": "fa fa-text-width",
+		"code": "f035", 
+		"label": "text-width"
+	},
+	{ 
+		"value": "fa fa-th",
+		"code": "f00a", 
+		"label": "th"
+	},
+	{ 
+		"value": "fa fa-th-large",
+		"code": "f009", 
+		"label": "th-large"
+	},
+	{ 
+		"value": "fa fa-th-list",
+		"code": "f00b", 
+		"label": "th-list"
+	},
+	{ 
+		"value": "fa fa-thumb-tack",
+		"code": "f08d", 
+		"label": "thumb-tack"
+	},
+	{ 
+		"value": "fa fa-thumbs-down",
+		"code": "f165", 
+		"label": "thumbs-down"
+	},
+	{ 
+		"value": "fa fa-thumbs-o-down",
+		"code": "f088", 
+		"label": "thumbs-o-down"
+	},
+	{ 
+		"value": "fa fa-thumbs-o-up",
+		"code": "f087", 
+		"label": "thumbs-o-up"
+	},
+	{ 
+		"value": "fa fa-thumbs-up",
+		"code": "f164", 
+		"label": "thumbs-up"
+	},
+	{ 
+		"value": "fa fa-ticket",
+		"code": "f145", 
+		"label": "ticket"
+	},
+	{ 
+		"value": "fa fa-times",
+		"code": "f00d", 
+		"label": "times"
+	},
+	{ 
+		"value": "fa fa-times-circle",
+		"code": "f057", 
+		"label": "times-circle"
+	},
+	{ 
+		"value": "fa fa-times-circle-o",
+		"code": "f05c", 
+		"label": "times-circle-o"
+	},
+	{ 
+		"value": "fa fa-tint",
+		"code": "f043", 
+		"label": "tint"
+	},
+	{ 
+		"value": "fa fa-toggle-down",
+		"code": "f150", 
+		"label": "toggle-down"
+	},
+	{ 
+		"value": "fa fa-toggle-left",
+		"code": "f191", 
+		"label": "toggle-left"
+	},
+	{ 
+		"value": "fa fa-toggle-off",
+		"code": "f204", 
+		"label": "toggle-off"
+	},
+	{ 
+		"value": "fa fa-toggle-on",
+		"code": "f205", 
+		"label": "toggle-on"
+	},
+	{ 
+		"value": "fa fa-toggle-right",
+		"code": "f152", 
+		"label": "toggle-right"
+	},
+	{ 
+		"value": "fa fa-toggle-up",
+		"code": "f151", 
+		"label": "toggle-up"
+	},
+	{ 
+		"value": "fa fa-trash",
+		"code": "f1f8", 
+		"label": "trash"
+	},
+	{ 
+		"value": "fa fa-trash-o",
+		"code": "f014", 
+		"label": "trash-o"
+	},
+	{ 
+		"value": "fa fa-tree",
+		"code": "f1bb", 
+		"label": "tree"
+	},
+	{ 
+		"value": "fa fa-trello",
+		"code": "f181", 
+		"label": "trello"
+	},
+	{ 
+		"value": "fa fa-trophy",
+		"code": "f091", 
+		"label": "trophy"
+	},
+	{ 
+		"value": "fa fa-truck",
+		"code": "f0d1", 
+		"label": "truck"
+	},
+	{ 
+		"value": "fa fa-try",
+		"code": "f195", 
+		"label": "try"
+	},
+	{ 
+		"value": "fa fa-tty",
+		"code": "f1e4", 
+		"label": "tty"
+	},
+	{ 
+		"value": "fa fa-tumblr",
+		"code": "f173", 
+		"label": "tumblr"
+	},
+	{ 
+		"value": "fa fa-tumblr-square",
+		"code": "f174", 
+		"label": "tumblr-square"
+	},
+	{ 
+		"value": "fa fa-turkish-lira",
+		"code": "f195", 
+		"label": "turkish-lira"
+	},
+	{ 
+		"value": "fa fa-twitch",
+		"code": "f1e8", 
+		"label": "twitch"
+	},
+	{ 
+		"value": "fa fa-twitter",
+		"code": "f099", 
+		"label": "twitter"
+	},
+	{ 
+		"value": "fa fa-twitter-square",
+		"code": "f081", 
+		"label": "twitter-square"
+	},
+	{ 
+		"value": "fa fa-umbrella",
+		"code": "f0e9", 
+		"label": "umbrella"
+	},
+	{ 
+		"value": "fa fa-underline",
+		"code": "f0cd", 
+		"label": "underline"
+	},
+	{ 
+		"value": "fa fa-undo",
+		"code": "f0e2", 
+		"label": "undo"
+	},
+	{ 
+		"value": "fa fa-university",
+		"code": "f19c", 
+		"label": "university"
+	},
+	{ 
+		"value": "fa fa-unlink",
+		"code": "f127", 
+		"label": "unlink"
+	},
+	{ 
+		"value": "fa fa-unlock",
+		"code": "f09c", 
+		"label": "unlock"
+	},
+	{ 
+		"value": "fa fa-unlock-alt",
+		"code": "f13e", 
+		"label": "unlock-alt"
+	},
+	{ 
+		"value": "fa fa-unsorted",
+		"code": "f0dc", 
+		"label": "unsorted"
+	},
+	{ 
+		"value": "fa fa-upload",
+		"code": "f093", 
+		"label": "upload"
+	},
+	{ 
+		"value": "fa fa-usd",
+		"code": "f155", 
+		"label": "usd"
+	},
+	{ 
+		"value": "fa fa-user",
+		"code": "f007", 
+		"label": "user"
+	},
+	{ 
+		"value": "fa fa-user-md",
+		"code": "f0f0", 
+		"label": "user-md"
+	},
+	{ 
+		"value": "fa fa-users",
+		"code": "f0c0", 
+		"label": "users"
+	},
+	{ 
+		"value": "fa fa-video-camera",
+		"code": "f03d", 
+		"label": "video-camera"
+	},
+	{ 
+		"value": "fa fa-vimeo-square",
+		"code": "f194", 
+		"label": "vimeo-square"
+	},
+	{ 
+		"value": "fa fa-vine",
+		"code": "f1ca", 
+		"label": "vine"
+	},
+	{ 
+		"value": "fa fa-vk",
+		"code": "f189", 
+		"label": "vk"
+	},
+	{ 
+		"value": "fa fa-volume-down",
+		"code": "f027", 
+		"label": "volume-down"
+	},
+	{ 
+		"value": "fa fa-volume-off",
+		"code": "f026", 
+		"label": "volume-off"
+	},
+	{ 
+		"value": "fa fa-volume-up",
+		"code": "f028", 
+		"label": "volume-up"
+	},
+	{ 
+		"value": "fa fa-warning",
+		"code": "f071", 
+		"label": "warning"
+	},
+	{ 
+		"value": "fa fa-wechat",
+		"code": "f1d7", 
+		"label": "wechat"
+	},
+	{ 
+		"value": "fa fa-weibo",
+		"code": "f18a", 
+		"label": "weibo"
+	},
+	{ 
+		"value": "fa fa-weixin",
+		"code": "f1d7", 
+		"label": "weixin"
+	},
+	{ 
+		"value": "fa fa-wheelchair",
+		"code": "f193", 
+		"label": "wheelchair"
+	},
+	{ 
+		"value": "fa fa-wifi",
+		"code": "f1eb", 
+		"label": "wifi"
+	},
+	{ 
+		"value": "fa fa-windows",
+		"code": "f17a", 
+		"label": "windows"
+	},
+	{ 
+		"value": "fa fa-won",
+		"code": "f159", 
+		"label": "won"
+	},
+	{ 
+		"value": "fa fa-wordpress",
+		"code": "f19a", 
+		"label": "wordpress"
+	},
+	{ 
+		"value": "fa fa-wrench",
+		"code": "f0ad", 
+		"label": "wrench"
+	},
+	{ 
+		"value": "fa fa-xing",
+		"code": "f168", 
+		"label": "xing"
+	},
+	{ 
+		"value": "fa fa-xing-square",
+		"code": "f169", 
+		"label": "xing-square"
+	},
+	{ 
+		"value": "fa fa-yahoo",
+		"code": "f19e", 
+		"label": "yahoo"
+	},
+	{ 
+		"value": "fa fa-yelp",
+		"code": "f1e9", 
+		"label": "yelp"
+	},
+	{ 
+		"value": "fa fa-yen",
+		"code": "f157", 
+		"label": "yen"
+	},
+	{ 
+		"value": "fa fa-youtube",
+		"code": "f167", 
+		"label": "youtube"
+	},
+	{ 
+		"value": "fa fa-youtube-play",
+		"code": "f16a", 
+		"label": "youtube-play"
+	},
+	{ 
+		"value": "fa fa-youtube-square",
+		"code": "f166", 
+		"label": "youtube-square" 
+	}
+]

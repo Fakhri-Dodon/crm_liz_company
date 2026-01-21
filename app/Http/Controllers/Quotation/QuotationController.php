@@ -55,7 +55,7 @@ class QuotationController extends Controller {
             ->filter()
             ->values();
 
-        $query = Quotation::with(['lead', 'creator', 'companyContactPerson'])->where('deleted', 0);
+        $query = Quotation::with(['lead', 'creator', 'companyContactPerson', 'statusRel'])->where('deleted', 0);
 
         // Filter Search
         $query->when($request->input('search'), function ($q, $search) {
@@ -283,18 +283,18 @@ class QuotationController extends Controller {
 
     public function updateStatus(Request $request, Quotation $quotation)
     {
-        $request->validate([
-            'status' => 'required|in:draft,sent,accepted,expired,rejected'
-        ]);
+        // $request->validate([
+        //     'status' => 'required'
+        // ]);
 
-        $status = QuotationStatuses::where('name', $request->status)->first();
+        $status = QuotationStatuses::find($request->quotation_statuses_id);
 
         if (!$status) {
             return back()->withErrors(['status' => 'Status tidak valid']);
         }
 
         $quotation->update([
-            'status' => $request->status,
+            // 'status' => $request->status,
             'quotation_statuses_id' => $status->id,
             'updated_by' => auth()->id(),
         ]);
@@ -663,12 +663,16 @@ class QuotationController extends Controller {
             }
             $template = EmailTemplates::findOrFail($request->template_id);
 
+            if ($docType === 'proposal') {
+                $actionUrl = url('/proposal/' . $document->proposal_element_template_id);
+            }
+
             // 3. Tentukan Link & Attachment secara dinamis
             $filePath = null;
             $link = '#';
 
             if ($docType === 'proposal') {
-                $link = url("/proposals/view/" . $document->slug); // Sesuaikan route
+                $link = url("/proposal/" . $document->slug); // Sesuaikan route
             } else {
                 $filePath = $document->pdf_path;
                 $link = asset('storage/' . $filePath);
@@ -702,7 +706,7 @@ class QuotationController extends Controller {
 
             // 6. Kirim Email (Gunakan constructor ke-3 untuk file)
             \Illuminate\Support\Facades\Mail::to($recipientEmail)
-                ->send(new \App\Mail\SystemMail($finalSubject, $finalContent, $filePath));
+                ->send(new \App\Mail\SystemMail($finalSubject, $finalContent, $filePath, $actionUrl));
 
             // 7. Update Status & Hapus Notifikasi
             $document->update(['status' => 'sent']);

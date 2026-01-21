@@ -19,15 +19,17 @@ class SystemMail extends Mailable
     public $messageBody;
     public $filePath;
     public $companyInfo;
+    public $actionUrl;
 
     /**
      * Tambahkan parameter $filePath dengan default null
      */
-    public function __construct($subject, $body, $filePath = null)
+    public function __construct($subject, $body, $filePath = null, $actionUrl = null)
     {
         $this->subjectText = $subject;
         $this->messageBody = $body;
         $this->filePath = $filePath; 
+        $this->actionUrl = $actionUrl;
 
         $appConfig = AppConfig::where('deleted', 0)->first();
 

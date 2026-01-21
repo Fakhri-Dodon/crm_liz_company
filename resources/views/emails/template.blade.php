@@ -53,17 +53,17 @@
             <div class="header">
                 <a href="{{ url('/') }}" class="logo-text" style="text-decoration: none;">
                     
-                    <!-- @if(!empty($companyInfo['logo']))
+                    @if(!empty($companyInfo['logo']))
                         {{-- Pastikan path gambarnya absolut (full URL) agar muncul di email --}}
                         <img src="{{ asset('storage/' . $companyInfo['logo']) }}" 
                              alt="{{ $companyInfo['name'] }}" 
                              height="40" 
                              style="display: block; border: 0;">
-                    @else -->
+                    @else
                         <span style="font-size: 20px; font-weight: 700; color: #0f172a;">
                             {{ $companyInfo['name'] }}
                         </span>
-                    <!-- @endif -->
+                    @endif
 
                 </a>
             </div>
@@ -72,16 +72,50 @@
                 <h1 class="subject-heading">
                     {{ $subjectText }}
                 </h1>
+
+                @if(!empty($actionUrl))
+                    <table width="100%" border="0" cellspacing="0" cellpadding="0">
+                        <tr>
+                            <td style="padding-bottom: 24px;">
+                                <table border="0" cellspacing="0" cellpadding="0">
+                                    <tr>
+                                        <td align="center" bgcolor="#2563eb" style="border-radius: 6px;">
+                                            <a href="{{ $actionUrl }}" 
+                                            target="_blank" 
+                                            style="font-size: 14px; 
+                                                    font-family: Helvetica, Arial, sans-serif; 
+                                                    color: #ffffff; 
+                                                    text-decoration: none; 
+                                                    padding: 12px 24px; 
+                                                    border: 1px solid #2563eb; 
+                                                    display: inline-block; 
+                                                    font-weight: 600; 
+                                                    border-radius: 6px;">
+                                                &nbsp;&nbsp;Lihat Proposal Online &rarr;&nbsp;&nbsp;
+                                            </a>
+                                        </td>
+                                    </tr>
+                                </table>
+                            </td>
+                        </tr>
+                    </table>
+                    
+                    {{-- Opsi Cadangan: Tampilkan link text biasa jika tombol gagal load --}}
+                    <div style="margin-bottom: 24px; font-size: 11px; color: #64748b;">
+                        Link tidak bekerja? Salin url ini: <br>
+                        <a href="{{ $actionUrl }}" style="color: #2563eb; text-decoration: underline;">{{ $actionUrl }}</a>
+                    </div>
+                @endif
                 
                 <div class="message-body">
                     {!! $messageBody !!}
                 </div>
 
-                <div class="support-note">
+                <!-- <div class="support-note">
                     <p style="margin: 0;">
                         Butuh bantuan? Hubungi tim support kami di <a href="mailto:support@domainanda.com">support@domainanda.com</a>
                     </p>
-                </div>
+                </div> -->
             </div>
         </div>
 
