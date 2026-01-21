@@ -663,12 +663,16 @@ class QuotationController extends Controller {
             }
             $template = EmailTemplates::findOrFail($request->template_id);
 
+            if ($docType === 'proposal') {
+                $actionUrl = url('/proposal/' . $document->proposal_element_template_id);
+            }
+
             // 3. Tentukan Link & Attachment secara dinamis
             $filePath = null;
             $link = '#';
 
             if ($docType === 'proposal') {
-                $link = url("/proposals/view/" . $document->slug); // Sesuaikan route
+                $link = url("/proposal/" . $document->slug); // Sesuaikan route
             } else {
                 $filePath = $document->pdf_path;
                 $link = asset('storage/' . $filePath);
@@ -702,7 +706,7 @@ class QuotationController extends Controller {
 
             // 6. Kirim Email (Gunakan constructor ke-3 untuk file)
             \Illuminate\Support\Facades\Mail::to($recipientEmail)
-                ->send(new \App\Mail\SystemMail($finalSubject, $finalContent, $filePath));
+                ->send(new \App\Mail\SystemMail($finalSubject, $finalContent, $filePath, $actionUrl));
 
             // 7. Update Status & Hapus Notifikasi
             $document->update(['status' => 'sent']);

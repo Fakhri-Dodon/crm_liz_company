@@ -245,7 +245,8 @@ class ProposalController extends Controller
                 $element->updated_by    = Auth::id();
                 $element->save();
 
-                $selectedContact = $proposal->lead->contacts ?? null;
+                $selectedContact = $proposal->lead?->contacts?->first() ?? null;
+                $proposalLink = url("/proposal/{$proposal->proposal_element_template_id}");
 
                 $managers = User::whereHas('role', function($q) {
                     $q->where('name', 'manager'); 
@@ -260,10 +261,11 @@ class ProposalController extends Controller
                         'id'                => $proposal->id,
                         'type'              => 'proposals',
                         'status'            => 'draft',
-                        'url'               => "/proposal/{$proposal->proposal_element_template_id}",
-                        'message'           => "proposals baru #{$proposal->proposal_number} menunggu persetujuan.",
-                        'contact_person'    => $selectedContact->name ?? 'No Name',
-                        'email'             => $selectedContact->email ?? null,
+                        'url'               =>  null,
+                        'actionUrl'         => $proposalLink,
+                        'message'           => "proposal baru #{$proposal->proposal_number} menunggu persetujuan.",
+                        'contact_person'    => $selectedContact?->name ?? 'No Name',
+                        'email'             => $selectedContact?->email ?? null,
                     ]));
                 }
 
