@@ -260,6 +260,7 @@ class QuotationController extends Controller {
                         'type'             => 'quotation',
                         'status'           => 'draft',
                         'url'              => "/storage/quotations/{$quotation->id}",
+                        'actionUrl'        => null,
                         'message'          => "Quotation baru #{$quotation->quotation_number} menunggu persetujuan.",
                         'contact_person'   => $selectedContact->name ?? 'No Name',
                         'email'            => $selectedContact->email ?? null,
@@ -473,6 +474,7 @@ class QuotationController extends Controller {
                     'type'             => 'quotation',
                     'status'           => 'draft',
                     'url'              => "/storage/{$quotation->pdf_path}",
+                    'actionUrl'        => null,
                     'message'          => "Quotation #{$quotation->quotation_number} telah diperbarui dan siap di-review ulang.",
                     'contact_person'   => $selectedContact->name ?? 'No Name',
                     'email'            => $selectedContact->email ?? null,
@@ -670,6 +672,7 @@ class QuotationController extends Controller {
             // 3. Tentukan Link & Attachment secara dinamis
             $filePath = null;
             $link = '#';
+            $actionUrl = null;
 
             if ($docType === 'proposal') {
                 $link = url("/proposal/" . $document->slug); // Sesuaikan route
