@@ -207,7 +207,7 @@ export default function HeaderLayout({ header, children, }) {
             data.path;
         if (pdfPath) return `/storage/${String(pdfPath).replace(/^\//, "")}`;
 
-        if (data.id) return `/${type}/preview/${data.id}`;
+        if (data.id) return `/proposal/${data.id}`;
 
         return "#";
     };
