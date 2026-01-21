@@ -142,7 +142,7 @@ export default function QoutationsIndex({
                 const statusColor = currentStatusRel?.color || statusObj?.color || "#9ca3af";
 
                 // Daftar status yang tidak boleh diedit manual (Sesuaikan dengan Nama di Database)
-                const nonSelectableStatuses = ["Expired", "Draft", "Sent", "Revised", "Approved"]; 
+                const nonSelectableStatuses = ["Expired", "Draft", "Sent"]; 
 
                 const isNonEditable = statusObj 
                     ? statusObj.is_system || nonSelectableStatuses.includes(statusName)
@@ -183,7 +183,7 @@ export default function QoutationsIndex({
                     <select
                         value={currentStatusId} // Value menggunakan UUID
                         onChange={(e) => handleStatusChange(row.id, e.target.value)}
-                        className="appearance-none text-xs font-bold py-1 px-2 rounded-lg border-2 focus:ring-0 cursor-pointer transition-all"
+                        className="text-xs font-bold py-1 px-2 rounded-lg border-2 focus:ring-0 cursor-pointer transition-all"
                         style={{ 
                             borderColor: statusColor, 
                             color: statusColor,
