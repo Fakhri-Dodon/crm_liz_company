@@ -2680,7 +2680,7 @@ public function getAcceptedQuotations(Request $request)
                 'q.id',
                 'q.quotation_number',
                 'q.subject',
-                'q.status',
+                's.name as status',
                 'q.lead_id',
                 'q.date',
                 'l.company_name',
@@ -2700,12 +2700,9 @@ public function getAcceptedQuotations(Request $request)
                 $join->on('q.lead_id', '=', 'l.id')
                      ->where('l.deleted', 0);
             })
+            ->leftJoin('quotation_statuses as s', 'q.quotation_statuses_id', '=', 's.id')
             ->where('q.deleted', 0)
-            ->where(function($query) {
-                $query->where('q.status', 'accepted')
-                      ->orWhere('q.status', 'Accepted')
-                      ->orWhere('q.status', 'ACCEPTED');
-            })
+            ->whereIn('s.name', ['accepted', 'Accepted', 'ACCEPTED'])
             ->whereNotExists(function($query) {
                 $query->select(\DB::raw(1))
                       ->from('companies as c')
@@ -2768,33 +2765,33 @@ public function getAcceptedQuotations(Request $request)
         try {
             \Log::info('Trying fallback query...');
             
-            $fallbackQuery = \DB::table('quotations')
-                ->select('id', 'quotation_number', 'subject', 'status', 'lead_id', 'date')
-                ->where('deleted', 0)
-                ->whereIn('status', ['accepted', 'Accepted', 'ACCEPTED'])
-                ->orderBy('date', 'desc')
+            // Kita coba query sederhana tapi tetap JOIN ke status agar logic 'accepted' jalan
+            $fallbackQuery = \DB::table('quotations as q')
+                ->select('q.id', 'q.quotation_number', 'q.subject', 's.name as status', 'q.date')
+                ->leftJoin('quotation_statuses as s', 'q.quotation_statuses_id', '=', 's.id')
+                ->where('q.deleted', 0)
+                ->whereIn('s.name', ['accepted', 'Accepted', 'ACCEPTED']) // Tetap filter by name
+                ->orderBy('q.date', 'desc')
                 ->get();
                 
             \Log::info('Fallback found: ' . $fallbackQuery->count() . ' quotations');
             
-            $filtered = $fallbackQuery->filter(function($q) {
-                $hasCompany = \DB::table('companies')
+            // Filter manual exists (N+1 query tapi aman untuk fallback darurat)
+            $formatted = $fallbackQuery->filter(function($q) {
+                return !\DB::table('companies')
                     ->where('quotation_id', $q->id)
                     ->where('deleted', 0)
                     ->exists();
-                return !$hasCompany;
-            })->values();
-            
-            $formatted = $filtered->map(function($q) {
+            })->map(function($q) {
                 return [
                     'id' => $q->id,
                     'quotation_number' => $q->quotation_number,
                     'date' => $q->date ? date('Y-m-d', strtotime($q->date)) : null,
                     'subject' => $q->subject,
-                    'status' => $q->status,
-                    'lead' => null // Tidak ambil lead dulu
+                    'status' => $q->status, // Status name dari join
+                    'lead' => null 
                 ];
-            });
+            })->values();
             
             return response()->json([
                 'success' => true,
@@ -2806,12 +2803,10 @@ public function getAcceptedQuotations(Request $request)
             
         } catch (\Exception $fallbackError) {
             \Log::error('Fallback also failed: ' . $fallbackError->getMessage());
-            
             return response()->json([
                 'success' => false,
                 'message' => 'Database error: ' . $e->getMessage(),
                 'data' => [],
-                'error' => $e->getMessage()
             ], 500);
         }
     }
