@@ -118,7 +118,7 @@ class ProposalController extends Controller
         try {
             return DB::transaction(function () use ($request, $validated) {
 
-                $last = Proposal::where('deleted', false)
+                $last = Proposal::withTrashed()
                     ->lockForUpdate()
                     ->orderByRaw('CAST(SUBSTRING(proposal_number, -5) AS UNSIGNED) DESC')
                     ->first();
