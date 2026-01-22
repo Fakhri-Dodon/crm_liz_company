@@ -4,7 +4,7 @@ import {
     FileText, Landmark, MessageSquare, Receipt, Edit,
     Download, Eye, Trash2, CheckCircle, X, Save, AlertCircle,
     Loader, Search, Filter, ChevronDown, TrendingUp, Percent,
-    RefreshCw
+    RefreshCw, Maximize2, Minimize2
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
@@ -16,7 +16,6 @@ const PaymentTable = ({ data: initialData, companyId, showInvoiceAmount = false,
     const [loading, setLoading] = useState(false);
     
     // State untuk UI
-    const [expandedNote, setExpandedNote] = useState(null);
     const [showEditModal, setShowEditModal] = useState(false);
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [selectedPayment, setSelectedPayment] = useState(null);
@@ -38,6 +37,8 @@ const PaymentTable = ({ data: initialData, companyId, showInvoiceAmount = false,
         type: 'success',
         message: ''
     });
+    const [expandedAmounts, setExpandedAmounts] = useState({});
+    const [expandedNotes, setExpandedNotes] = useState({});
 
     const perms = auth_permissions || {}; 
     
@@ -87,6 +88,44 @@ const PaymentTable = ({ data: initialData, companyId, showInvoiceAmount = false,
         }
     };
 
+    // Toggle expand/collapse
+    const toggleAmount = (id) => {
+        setExpandedAmounts(prev => ({
+            ...prev,
+            [id]: !prev[id]
+        }));
+    };
+
+    const toggleNote = (id) => {
+        setExpandedNotes(prev => ({
+            ...prev,
+            [id]: !prev[id]
+        }));
+    };
+
+    // Format display dengan expand/collapse
+    const formatAmountDisplay = (amount, id) => {
+        const formatted = formatCurrency(amount);
+        const isExpanded = expandedAmounts[id];
+        
+        if (isExpanded || formatted.length <= 15) {
+            return formatted;
+        }
+        
+        return `${formatted.substring(0, 15)}...`;
+    };
+
+    const formatNoteDisplay = (note, id) => {
+        if (!note || note === '-') return '-';
+        const isExpanded = expandedNotes[id];
+        
+        if (isExpanded || note.length <= 30) {
+            return note;
+        }
+        
+        return `${note.substring(0, 30)}...`;
+    };
+
     // Filter dan sort data
     const filteredData = useMemo(() => {
         return payments
@@ -120,7 +159,14 @@ const PaymentTable = ({ data: initialData, companyId, showInvoiceAmount = false,
 
     // Get invoice number
     const getInvoiceNumber = (payment) => {
-        return payment.invoice?.invoice_number || `INV-${payment.invoice_id?.substring(0, 8) || 'N/A'}`;
+        const invoiceNum = payment.invoice?.invoice_number || payment.invoice_number || `INV-${payment.invoice_id?.substring(0, 8) || 'N/A'}`;
+        
+        // Potong jika terlalu panjang
+        if (invoiceNum.length > 20) {
+            return `${invoiceNum.substring(0, 20)}...`;
+        }
+        
+        return invoiceNum;
     };
 
     // Get method badge
@@ -144,7 +190,6 @@ const PaymentTable = ({ data: initialData, companyId, showInvoiceAmount = false,
     const openEditModal = (payment) => {
         setSelectedPayment(payment);
         
-        // Format date untuk input
         let formattedDate = '';
         if (payment.date) {
             try {
@@ -182,7 +227,6 @@ const PaymentTable = ({ data: initialData, companyId, showInvoiceAmount = false,
             return;
         }
 
-        // Validasi
         if (!formData.amount || !formData.date) {
             setErrors({ 
                 amount: !formData.amount ? t('payment_table.amount_required') : '', 
@@ -211,7 +255,6 @@ const PaymentTable = ({ data: initialData, companyId, showInvoiceAmount = false,
             const result = await response.json();
             
             if (result.success) {
-                // OPTIMISTIC UPDATE: Update local state
                 const updatedPayment = {
                     ...selectedPayment,
                     amount: formData.amount,
@@ -230,7 +273,6 @@ const PaymentTable = ({ data: initialData, companyId, showInvoiceAmount = false,
                 setShowEditModal(false);
                 setSelectedPayment(null);
                 
-                // Refresh data setelah beberapa detik
                 setTimeout(() => {
                     window.location.reload();
                 }, 1000);
@@ -278,17 +320,14 @@ const PaymentTable = ({ data: initialData, companyId, showInvoiceAmount = false,
             const result = await response.json();
             
             if (result.success) {
-                // OPTIMISTIC UPDATE: Remove from local state
                 setPayments(prev => prev.filter(p => p.id !== selectedPayment.id));
                 
-                // Update selected payments
                 setSelectedPayments(prev => prev.filter(id => id !== selectedPayment.id));
                 
                 showNotification('success', result.message || t('payment_table.payment_deleted'));
                 setShowDeleteModal(false);
                 setSelectedPayment(null);
                 
-                // Refresh data setelah beberapa detik
                 setTimeout(() => {
                     window.location.reload();
                 }, 1000);
@@ -337,13 +376,11 @@ const PaymentTable = ({ data: initialData, companyId, showInvoiceAmount = false,
             const result = await response.json();
             
             if (result.success) {
-                // OPTIMISTIC UPDATE: Remove all selected
                 setPayments(prev => prev.filter(p => !selectedPayments.includes(p.id)));
                 setSelectedPayments([]);
                 
                 showNotification('success', result.message || t('payment_table.payments_deleted'));
                 
-                // Refresh data setelah beberapa detik
                 setTimeout(() => {
                     window.location.reload();
                 }, 1000);
@@ -487,115 +524,155 @@ const PaymentTable = ({ data: initialData, companyId, showInvoiceAmount = false,
                 )}
             </div>
 
-            {/* Desktop Table */}
-            <div className="overflow-x-auto border border-gray-200 rounded-lg">
-                <table className="min-w-full divide-y divide-gray-200">
-                    <thead className="bg-gray-50">
-                        <tr>
-                            { canDelete && (
-                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase">
-                                    <input
-                                        type="checkbox"
-                                        checked={selectedPayments.length === filteredData.length && filteredData.length > 0}
-                                        onChange={handleSelectAll}
-                                        className="h-4 w-4 text-blue-600 rounded"
-                                        disabled={loading}
-                                    />
-                                </th>
-                            )}                            
-                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase">
-                                {t('payment_table.invoice')}
-                            </th>
-                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase">
-                                {t('payment_table.date')}
-                            </th>
-                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase">
-                                {t('payment_table.amount')}
-                            </th>
-                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase">
-                                {t('payment_table.method')}
-                            </th>
-                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase">
-                                {t('payment_table.bank')}
-                            </th>
-                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase">
-                                {t('payment_table.notes')}
-                            </th>
-                            { (canUpdate || canDelete) && (
-                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase">
-                                    {t('payment_table.actions')}
-                                </th>
-                            )}                            
-                        </tr>
-                    </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
-                        {filteredData.map((payment) => (
-                            <tr key={payment.id} className="hover:bg-gray-50">
+            {/* Desktop Table - Diubah untuk mencegah scroll horizontal */}
+            <div className="border border-gray-200 rounded-lg overflow-hidden">
+                <div className="overflow-x-auto w-full">
+                    <table className="min-w-full divide-y divide-gray-200">
+                        <thead className="bg-gray-50">
+                            <tr>
                                 { canDelete && (
-                                    <td className="px-4 py-3">
+                                    <th className="px-3 py-3 text-left text-xs font-medium text-gray-700">
                                         <input
                                             type="checkbox"
-                                            checked={selectedPayments.includes(payment.id)}
-                                            onChange={() => handleSelectPayment(payment.id)}
+                                            checked={selectedPayments.length === filteredData.length && filteredData.length > 0}
+                                            onChange={handleSelectAll}
                                             className="h-4 w-4 text-blue-600 rounded"
                                             disabled={loading}
                                         />
-                                    </td>
-                                )}                                
-                                <td className="px-4 py-3">
-                                    <div className="font-medium text-gray-900">
-                                        {getInvoiceNumber(payment)}
-                                    </div>
-                                </td>
-                                <td className="px-4 py-3">
-                                    {formatDate(payment.date)}
-                                </td>
-                                <td className="px-4 py-3">
-                                    <div className="font-bold text-green-700">
-                                        {formatCurrency(payment.amount)}
-                                    </div>
-                                </td>
-                                <td className="px-4 py-3">
-                                    {getMethodBadge(payment.method)}
-                                </td>
-                                <td className="px-4 py-3">
-                                    {payment.bank || '-'}
-                                </td>
-                                <td className="px-4 py-3 max-w-[200px]">
-                                    <div className="text-sm text-gray-600 truncate">
-                                        {payment.note || '-'}
-                                    </div>
-                                </td>
+                                    </th>
+                                )}                            
+                                <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 min-w-[120px]">
+                                    {t('payment_table.invoice')}
+                                </th>
+                                <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 min-w-[100px]">
+                                    {t('payment_table.date')}
+                                </th>
+                                <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 min-w-[120px]">
+                                    {t('payment_table.amount')}
+                                </th>
+                                <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 min-w-[100px]">
+                                    {t('payment_table.method')}
+                                </th>
+                                <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 min-w-[100px]">
+                                    {t('payment_table.bank')}
+                                </th>
+                                <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 min-w-[150px]">
+                                    {t('payment_table.notes')}
+                                </th>
                                 { (canUpdate || canDelete) && (
-                                    <td className="px-4 py-3">
-                                        <div className="flex space-x-2">
-                                            { canUpdate && (
-                                                <button 
-                                                    onClick={() => openEditModal(payment)}
-                                                    disabled={loading}
-                                                    className="p-1 text-blue-600 hover:text-blue-900 hover:bg-blue-50 rounded disabled:opacity-50"
-                                                    title={t('payment_table.edit_payment')}
-                                                >
-                                                    <Edit className="w-4 h-4" />
-                                                </button>
-                                            )}   
-                                            { canDelete && (
-                                                <button 
-                                                    onClick={() => openDeleteModal(payment)}
-                                                    disabled={loading}
-                                                    className="p-1 text-red-600 hover:text-red-900 hover:bg-red-50 rounded disabled:opacity-50"
-                                                    title={t('payment_table.delete')}
-                                                >
-                                                    <Trash2 className="w-4 h-4" />
-                                                </button>
-                                            )}                                                                             
-                                        </div>
-                                    </td>
-                                )}                                
+                                    <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 min-w-[80px]">
+                                        {t('payment_table.actions')}
+                                    </th>
+                                )}                            
                             </tr>
-                        ))}
-                    </tbody>
-                </table>
+                        </thead>
+                        <tbody className="bg-white divide-y divide-gray-200">
+                            {filteredData.map((payment) => {
+                                const formattedAmount = formatCurrency(payment.amount);
+                                const isAmountExpanded = expandedAmounts[payment.id];
+                                const isNoteExpanded = expandedNotes[payment.id];
+                                
+                                return (
+                                    <tr key={payment.id} className="hover:bg-gray-50">
+                                        { canDelete && (
+                                            <td className="px-3 py-3">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={selectedPayments.includes(payment.id)}
+                                                    onChange={() => handleSelectPayment(payment.id)}
+                                                    className="h-4 w-4 text-blue-600 rounded"
+                                                    disabled={loading}
+                                                />
+                                            </td>
+                                        )}                                
+                                        <td className="px-3 py-3">
+                                            <div className="font-medium text-gray-900 truncate" title={getInvoiceNumber(payment)}>
+                                                {getInvoiceNumber(payment)}
+                                            </div>
+                                        </td>
+                                        <td className="px-3 py-3">
+                                            <div className="text-sm">{formatDate(payment.date)}</div>
+                                        </td>
+                                        <td className="px-3 py-3">
+                                            <div className="flex items-center gap-1">
+                                                <div className="font-bold text-green-700 truncate" title={formattedAmount}>
+                                                    {formatAmountDisplay(payment.amount, payment.id)}
+                                                </div>
+                                                {formattedAmount.length > 15 && (
+                                                    <button 
+                                                        onClick={() => toggleAmount(payment.id)}
+                                                        className="p-0.5 text-gray-400 hover:text-gray-600"
+                                                        title={isAmountExpanded ? t('payment_table.collapse') : t('payment_table.expand')}
+                                                    >
+                                                        {isAmountExpanded ? (
+                                                            <Minimize2 className="w-3.5 h-3.5" />
+                                                        ) : (
+                                                            <Maximize2 className="w-3.5 h-3.5" />
+                                                        )}
+                                                    </button>
+                                                )}
+                                            </div>
+                                        </td>
+                                        <td className="px-3 py-3">
+                                            {getMethodBadge(payment.method)}
+                                        </td>
+                                        <td className="px-3 py-3">
+                                            <div className="text-sm truncate" title={payment.bank}>
+                                                {payment.bank || '-'}
+                                            </div>
+                                        </td>
+                                        <td className="px-3 py-3 max-w-[150px]">
+                                            <div className="flex items-start gap-1">
+                                                <div className="text-sm text-gray-600 truncate" title={payment.note}>
+                                                    {formatNoteDisplay(payment.note, payment.id)}
+                                                </div>
+                                                {payment.note && payment.note.length > 30 && payment.note !== '-' && (
+                                                    <button 
+                                                        onClick={() => toggleNote(payment.id)}
+                                                        className="p-0.5 text-gray-400 hover:text-gray-600 mt-0.5"
+                                                        title={isNoteExpanded ? t('payment_table.collapse') : t('payment_table.expand')}
+                                                    >
+                                                        {isNoteExpanded ? (
+                                                            <Minimize2 className="w-3.5 h-3.5" />
+                                                        ) : (
+                                                            <Maximize2 className="w-3.5 h-3.5" />
+                                                        )}
+                                                    </button>
+                                                )}
+                                            </div>
+                                        </td>
+                                        { (canUpdate || canDelete) && (
+                                            <td className="px-3 py-3">
+                                                <div className="flex gap-2">
+                                                    { canUpdate && (
+                                                        <button 
+                                                            onClick={() => openEditModal(payment)}
+                                                            disabled={loading}
+                                                            className="p-1 text-blue-600 hover:text-blue-900 hover:bg-blue-50 rounded disabled:opacity-50"
+                                                            title={t('payment_table.edit_payment')}
+                                                        >
+                                                            <Edit className="w-4 h-4" />
+                                                        </button>
+                                                    )}   
+                                                    { canDelete && (
+                                                        <button 
+                                                            onClick={() => openDeleteModal(payment)}
+                                                            disabled={loading}
+                                                            className="p-1 text-red-600 hover:text-red-900 hover:bg-red-50 rounded disabled:opacity-50"
+                                                            title={t('payment_table.delete')}
+                                                        >
+                                                            <Trash2 className="w-4 h-4" />
+                                                        </button>
+                                                    )}                                                                             
+                                                </div>
+                                            </td>
+                                        )}                                
+                                    </tr>
+                                );
+                            })}
+                        </tbody>
+                    </table>
+                </div>
             </div>
 
             {/* Statistics */}
