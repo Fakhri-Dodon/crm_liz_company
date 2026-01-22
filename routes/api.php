@@ -65,18 +65,26 @@ Route::get('/users', function () {
 });
 
 
-// Statuses API
 Route::get('/lead-statuses', [LeadController::class, 'getStatuses']);
 
-// Leads API routes
+// ============ LEADS ROUTES (Tanpa auth - untuk testing) ============
 Route::prefix('leads')->group(function () {
+    Route::get('/', [LeadController::class, 'indexApi']);
     Route::post('/', [LeadController::class, 'store']);
     Route::put('/{id}', [LeadController::class, 'update']);
-    Route::delete('/{id}', [LeadController::class, 'destroy']);
+    Route::delete('/{id}', [LeadController::class, 'destroy']); // NO AUTH
+    Route::get('/{id}', [LeadController::class, 'show']);
 });
 
-// Current User Info
-Route::get('/current-user', [LeadController::class, 'getCurrentUserInfo']);
+// Current User Info (optional)
+Route::get('/current-user', function() {
+    return response()->json([
+        'id' => 'test-user',
+        'name' => 'Test User',
+        'email' => 'test@example.com'
+    ]);
+});
 
+// Proposal routes
 Route::get('/proposal/templates', [ProposalController::class, 'templates']);
 Route::get('/proposal/icon', [ProposalController::class, 'icon']);

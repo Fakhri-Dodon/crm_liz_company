@@ -1,45 +1,52 @@
+// leadsService.js - Versi tanpa auth
 import axios from 'axios';
+
+// Buat instance axios SEDERHANA tanpa token
+const api = axios.create({
+    baseURL: '/api',
+    headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'X-Requested-With': 'XMLHttpRequest'
+    }
+});
+
+// HAPUS interceptor untuk token
+// TAMBAHKAN error handling yang lebih baik
 
 const leadsService = {
     async getAll() {
         try {
-            console.log('📞 GET /api/leads');
-            const response = await axios.get('/api/leads');
+            console.log('📞 GET /leads');
+            const response = await api.get('/leads');
             console.log('✅ GET Response:', response.data);
             return response;
         } catch (error) {
-            console.error('❌ GET Error:', error.response?.data || error.message);
+            console.error('❌ GET Error:', {
+                status: error.response?.status,
+                data: error.response?.data,
+                message: error.message
+            });
             throw error;
         }
     },
 
     async create(data) {
         try {
-            console.log('📝 POST /api/leads', data);
-            const response = await axios.post('/api/leads', data);
+            console.log('📝 POST /leads', data);
+            const response = await api.post('/leads', data);
             console.log('✅ POST Response:', response.data);
             return response;
         } catch (error) {
-            // DEBUG SAKTI:
-            // Kalau Laravel kirim error validasi atau error 500 JSON
-            if (error.response?.data?.message) {
-                console.error('❌ Server Message:', error.response.data.message);
-            }
-            
-            // Kalau ada error validasi field (misal: position rejected)
-            if (error.response?.data?.errors) {
-                console.error('❌ Validation Errors:', error.response.data.errors);
-            }
-
-            console.error('❌ POST Error Detail:', error.response?.data || error.message);
+            console.error('❌ POST Error:', error.response?.data || error.message);
             throw error;
         }
     },
 
     async update(id, data) {
         try {
-            console.log('📝 PUT /api/leads/' + id, data);
-            const response = await axios.put(`/api/leads/${id}`, data);
+            console.log('📝 PUT /leads/' + id, data);
+            const response = await api.put(`/leads/${id}`, data);
             console.log('✅ PUT Response:', response.data);
             return response;
         } catch (error) {
@@ -50,12 +57,23 @@ const leadsService = {
 
     async delete(id) {
         try {
-            console.log('🗑️ DELETE /api/leads/' + id);
-            const response = await axios.delete(`/api/leads/${id}`);
+            console.log('🗑️ DELETE /leads/' + id);
+            console.log('Full URL:', `/api/leads/${id}`);
+            
+            const response = await api.delete(`/leads/${id}`);
             console.log('✅ DELETE Response:', response.data);
             return response;
         } catch (error) {
-            console.error('❌ DELETE Error:', error.response?.data || error.message);
+            console.error('❌ DELETE Error:', {
+                status: error.response?.status,
+                data: error.response?.data,
+                message: error.message,
+                config: {
+                    url: error.config?.url,
+                    method: error.config?.method,
+                    headers: error.config?.headers
+                }
+            });
             throw error;
         }
     },
