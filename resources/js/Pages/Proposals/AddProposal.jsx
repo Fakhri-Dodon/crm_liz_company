@@ -25,7 +25,7 @@ export default function AddProposal({proposal_id, templates}) {
                     rel="noopener noreferrer"
                 >
                     <h2 className="text-2xl font-bold text-center mb-8 border-2 border-green-700 py-4 w-3/4 mx-auto">
-                        "Choose Blank Template"
+                        Choose Blank Template
                     </h2>
                 </a>
                 <div className="grid grid-cols-4 gap-8 w-5/6 mx-auto">

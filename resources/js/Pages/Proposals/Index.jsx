@@ -116,70 +116,91 @@ export default function ProposalsIndex({
             key: "created_by",
             label: t("proposals.table.created_by"),
         },
+        
         {
-            key: "status",
+            key: "proposal_statuses_id",
             label: t("proposals.table.status"),
             render: (value, row) => {
-                const statusStyles = {
-                    approved: "border-greed-500 text-greed-700 bg-greed-50",
-                    opened: "border-greed-500 text-greed-700 bg-greed-50",
-                    draft: "border-grey-500 text-grey-700 bg-grey-50",
-                    sent: "border-blue-500 text-blue-700 bg-blue-50",
-                    failed: "border-orange-500 text-orange-700 bg-orange-50",
-                    rejected: "border-red-500 text-red-700 bg-red-50",
-                    revised: "border-red-500 text-red-700 bg-red-50",
+                // Ambil ID dari row data JSON Anda
+                const currentStatusId = row.proposal_statuses_id;
+                console.log("Check Data:", { 
+                    valueFromArg1: value, 
+                    rowObject: row,
+                    statusRel: row?.status_rel 
+                });
+                
+                // Ambil detail status langsung dari relasi (status_rel) yang ada di JSON
+                const currentStatusRel = row.status_rel; 
+
+                // Cari object status di statusOptions (untuk dropdown list)
+                const statusObj = statusOptions.find((s) => s.id === currentStatusId);
+                
+                // Gunakan nama dari relasi JSON atau fallback ke statusObj
+                const statusName = currentStatusRel?.name || statusObj?.name || "Unknown";
+                const statusColor = currentStatusRel?.color || statusObj?.color || "#9ca3af";
+
+                // Daftar status yang tidak boleh diedit manual (Sesuaikan dengan Nama di Database)
+                const nonSelectableStatuses = ["approved", "opened", "draft", "sent", "failed", "rejected", "revise"];
+
+                const isNonEditable = statusObj 
+                    ? statusObj.is_system || nonSelectableStatuses.includes(statusName)
+                    : false;
+
+                const handleStatusChange = (id, newStatusId) => {
+                    console.log("Mengirim Update ID:", { id, proposal_statuses_id: newStatusId });
+
+                    router.patch(
+                        route("proposal.update-status", id),
+                        { proposal_statuses_id: newStatusId },
+                        {
+                            preserveScroll: true,
+                            onSuccess: () => toast("Status updated successfully"),
+                            onError: (errors) => {
+                                console.error("Gagal Update:", errors);
+                                toast("Failed to update status", "error");
+                            },
+                        }
+                    );
                 };
 
-                const handleStatusChange = (e) => {
-                    const newStatus = e.target.value;
-
-                    // router.patch(route('quotation.update-status', row.id), {
-                    //     status: newStatus
-                    // }, {
-                    //     preserveScroll: true,
-                    //     onSuccess: () => {
-                    //         toast('Status updated to ' + newStatus.toUpperCase());
-                    //     },
-                    //     onError: () => {
-                    //         toast('Failed to update status', 'error');
-                    //     }
-                    // });
-                };
+                if (isNonEditable) {
+                    return (
+                        <span 
+                            className="text-xs font-bold py-1 px-2 rounded-lg border-2" 
+                            style={{ 
+                                borderColor: statusColor, 
+                                color: statusColor 
+                            }}
+                        >
+                            {statusName}
+                        </span>
+                    );
+                }
 
                 return (
                     <select
-                        value={value}
-                        disabled
-                        style={{
-                            backgroundImage: "none",
-                            WebkitAppearance: "none",
-                            MozAppearance: "none",
+                        value={currentStatusId} // Value menggunakan UUID
+                        onChange={(e) => handleStatusChange(row.id, e.target.value)}
+                        className="appearance-none text-xs font-bold py-1 px-2 rounded-lg border-2 focus:ring-0 cursor-pointer transition-all"
+                        style={{ 
+                            borderColor: statusColor, 
+                            color: statusColor,
+                            backgroundImage: "none"
                         }}
-                        className={`appearance-none text-xs font-bold py-1 px-2 rounded-lg border-2 focus:ring-0 cursor-pointer transition-all ${
-                            statusStyles[value] || "border-gray-300"
-                        }`}
                     >
-                        <option value="approved">
-                            {t("proposals.stats.approved")}
-                        </option>
-                        <option value="opened">
-                            {t("proposals.stats.opened")}
-                        </option>
-                        <option value="draft">
-                            {t("proposals.stats.draft")}
-                        </option>
-                        <option value="sent">
-                            {t("proposals.stats.sent")}
-                        </option>
-                        <option value="failed">
-                            {t("proposals.stats.failed")}
-                        </option>
-                        <option value="rejected">
-                            {t("proposals.stats.rejected")}
-                        </option>
-                        <option value="revised">
-                            {t("proposals.stats.revised")}
-                        </option>
+                        {statusOptions.length > 0 ? (
+                            statusOptions
+                                .filter(s => !nonSelectableStatuses.includes(s.name))
+                                .map((s) => (
+                                    // Option Value = UUID, Label = Name
+                                    <option key={s.id} value={s.id} style={{ color: s.color }}>
+                                        {s.name}
+                                    </option>
+                                ))
+                        ) : (
+                            // Fallback jika statusOptions kosong, tampilkan status saat ini saja
+                            <option value={currentStatusId}>{statusName}</option>
+                        )}
                     </select>
                 );
             },
@@ -280,6 +301,7 @@ export default function ProposalsIndex({
         created_by: q.creator?.name || "Admin", // Sesuaikan field ini
         status: q.status,
         edited: q.edited,
+        proposal_statuses_id: q.proposal_statuses_id,
         element_id: q.proposal_element_template_id,
     }));
 

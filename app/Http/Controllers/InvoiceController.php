@@ -150,16 +150,32 @@ class InvoiceController extends Controller
             ->get();
             
         // Get accepted quotations
-        $quotations = Quotation::where('deleted', 0)
-            ->where('status', 'accepted')
-            ->with('lead')
-            ->select(['id', 'quotation_number as no', 'lead_id'])
+        $quotations = Quotation::query() 
+            ->where('deleted', 0)
+            
+            // PERBAIKAN 1: Filter cek ke tabel relasi (Status), bukan tabel Quotation
+            ->whereHas('statusRel', function($query) {
+                $query->where('name', 'Accepted'); 
+            })
+            
+            // Load relasi
+            ->with(['lead', 'statusRel'])
+            
+            // PERBAIKAN 2: Masukkan Foreign Key Status ke dalam select!
+            // Ganti 'quotation_statuses_id' dengan nama kolom asli di tabel Anda.
+            ->select(['id', 'quotation_number as no', 'lead_id', 'quotation_statuses_id']) 
+            
             ->get()
+            
             ->map(function($q) {
                 return [
                     'id' => $q->id,
-                    'no' => $q->no,
+                    'no' => $q->no, // Ini bisa diambil karena dialiaskan di select
                     'lead_id' => $q->lead_id,
+                    
+                    // Ambil nama status dari relasi
+                    'status' => $q->statusRel ? $q->statusRel->name : null, 
+                    
                     'company_name' => $q->lead ? $q->lead->company_name : null,
                     'lead' => $q->lead ? [
                         'company_name' => $q->lead->company_name
@@ -479,16 +495,32 @@ class InvoiceController extends Controller
             ->get();
             
         // Get accepted quotations
-        $quotations = Quotation::where('deleted', 0)
-            ->where('status', 'accepted')
-            ->with('lead')
-            ->select(['id', 'quotation_number as no', 'lead_id'])
+        $quotations = Quotation::query() // Praktik baik dimulai dengan query()
+            ->where('deleted', 0)
+            
+            // PERBAIKAN 1: Filter cek ke tabel relasi (Status), bukan tabel Quotation
+            ->whereHas('statusRel', function($query) {
+                $query->where('name', 'Accepted'); 
+            })
+            
+            // Load relasi
+            ->with(['lead', 'statusRel'])
+            
+            // PERBAIKAN 2: Masukkan Foreign Key Status ke dalam select!
+            // Ganti 'quotation_statuses_id' dengan nama kolom asli di tabel Anda.
+            ->select(['id', 'quotation_number as no', 'lead_id', 'quotation_statuses_id']) 
+            
             ->get()
+            
             ->map(function($q) {
                 return [
                     'id' => $q->id,
-                    'no' => $q->no,
+                    'no' => $q->no, // Ini bisa diambil karena dialiaskan di select
                     'lead_id' => $q->lead_id,
+                    
+                    // Ambil nama status dari relasi
+                    'status' => $q->statusRel ? $q->statusRel->name : null, 
+                    
                     'company_name' => $q->lead ? $q->lead->company_name : null,
                     'lead' => $q->lead ? [
                         'company_name' => $q->lead->company_name

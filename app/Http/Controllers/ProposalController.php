@@ -9,6 +9,7 @@ use App\Models\Proposal;
 use App\Models\ProposalStatuses;
 use App\Models\ProposalElementTemplate;
 use App\Models\ProposalNumberFormatted;
+use App\Models\ActivityLogs;
 use App\Notifications\DocumentNotification;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -66,7 +67,7 @@ class ProposalController extends Controller
         $proposals = $query->orderBy('created_at', 'desc')
             ->paginate(10)
             ->through(function ($proposals) {
-                $proposals->is_client = \DB::table('companies')
+                $proposals->is_client = DB::table('companies')
                     ->where('lead_id', $proposals->lead_id)
                     ->exists();
 
@@ -85,20 +86,23 @@ class ProposalController extends Controller
             ->orderBy('company_name', 'desc')
             ->get();
 
+        $statusOptions = ProposalStatuses::where('deleted', 0)
+            ->get()
+            ->map(fn($s) => [
+                'id'    => $s->id,
+                'slug'  => $s->slug,
+                'name'  => $s->name,
+                'color' => $s->color, 
+            ]);
+
         return Inertia::render('Proposals/Index', [
-            'proposals' => $proposals,
-            'filters'   => $request->only(['search', 'proposal_id', 'status']),
-            'statusOptions' => [
-                ['value' => 'draft', 'label' => 'Draft'],
-                ['value' => 'sent', 'label' => 'Sent'],
-                ['value' => 'opened', 'label' => 'Opened'],
-                ['value' => 'rejected', 'label' => 'Rejected'],
-                ['value' => 'failed', 'label' => 'Failed'],
-            ],
-            'filterData'=> $filterData,
-            'summary'   => $summary,
-            'lead'      => $lead,
-            'auth_permissions' => auth()->user()->getPermissions('PROPOSAL'),
+            'proposals'     => $proposals,
+            'filters'       => $request->only(['search', 'proposal_id', 'status']),
+            'statusOptions' => $statusOptions,
+            'filterData'    => $filterData,
+            'summary'       => $summary,
+            'lead'          => $lead,
+            'auth_permissions' => Auth::user()->getPermissions('PROPOSAL'),
         ]);
 
     }
@@ -114,7 +118,7 @@ class ProposalController extends Controller
         try {
             return DB::transaction(function () use ($request, $validated) {
 
-                $last = Proposal::where('deleted', false)
+                $last = Proposal::withTrashed()
                     ->lockForUpdate()
                     ->orderByRaw('CAST(SUBSTRING(proposal_number, -5) AS UNSIGNED) DESC')
                     ->first();
@@ -134,7 +138,7 @@ class ProposalController extends Controller
                     'name'          => $validated['name'],
                     'content_json'  => '-',
                     'preview_image' => '-',
-                    'created_by'    => auth()->id(),
+                    'created_by'    => Auth::id(),
                 ]);
 
                 $proposal = Proposal::create([
@@ -181,8 +185,10 @@ class ProposalController extends Controller
 
         $template = ProposalElementTemplate::where('id', $request->id)->first();
 
+        $proposal = Proposal::where('id', $request->id_proposal)->first();
+
         return Inertia::render('Proposals/Create', [
-            'id'        => $request->id_proposal,
+            'proposal'  => $proposal,
             'template'  => $template,
         ]);
 
@@ -205,7 +211,7 @@ class ProposalController extends Controller
         try {
             return DB::transaction(function () use ($request, $validated) {
         
-                $proposal = Proposal::where('id', $validated['id'])->first();
+                $proposal = Proposal::with('lead.contacts')->where('id', $validated['id'])->first();
 
                 $element = ProposalElementTemplate::findOrFail($proposal->proposal_element_template_id);
 
@@ -239,6 +245,9 @@ class ProposalController extends Controller
                 $element->updated_by    = Auth::id();
                 $element->save();
 
+                $selectedContact = $proposal->lead?->contacts?->first() ?? null;
+                $proposalLink = url("/proposal/{$proposal->proposal_element_template_id}");
+
                 $managers = User::whereHas('role', function($q) {
                     $q->where('name', 'manager'); 
                 })->get();
@@ -249,12 +258,23 @@ class ProposalController extends Controller
                             ->delete();
 
                     $manager->notify(new DocumentNotification([
-                        'id'      => $proposal->id,
-                        'type'    => 'proposals',
-                        'status'  => 'draft',
-                        'message' => "proposals baru #{$proposal->proposal_number} menunggu persetujuan.",
+                        'id'                => $proposal->id,
+                        'type'              => 'proposals',
+                        'status'            => 'draft',
+                        'url'               =>  null,
+                        'actionUrl'         => $proposalLink,
+                        'message'           => "proposal baru #{$proposal->proposal_number} menunggu persetujuan.",
+                        'contact_person'    => $selectedContact?->name ?? 'No Name',
+                        'email'             => $selectedContact?->email ?? null,
                     ]));
                 }
+
+                ActivityLogs::create([
+                    'user_id' => Auth::id(),
+                    'module' => 'Proposal',
+                    'action' => 'Created',
+                    'description' => 'Create New Proposal: ' . $proposal->proposal_number,
+                ]);
                 
                 return response()->json([
                     'success' => true,
@@ -367,6 +387,54 @@ class ProposalController extends Controller
 
     }
 
+    public function updateStatus(Request $request, Proposal $proposal)
+    {
+
+        $status = ProposalStatuses::find($request->proposal_statuses_id);
+
+        if (!$status) {
+            return back()->withErrors(['status' => 'Status tidak valid']);
+        }
+
+        $proposal->update([
+            'proposal_statuses_id'  => $status->id,
+            'status'                => strtolower($status->name),
+            'updated_by'            => Auth::id(),
+        ]);
+
+        ActivityLogs::create([
+            'user_id' => auth::id(),
+            'module' => 'Proposal',
+            'action' => 'Updated',
+            'description' => 'Update Proposal Status: ' . $proposal->proposal_number,
+        ]);
+
+        return back()->with('message', 'Status updated successfully');
+    }
+
+    public function preview($id)
+    {
+
+        $data = ProposalElementTemplate::findOrFail($id);
+
+        $proposal = Proposal::where('proposal_element_template_id', $id)->whereNull('opened_at')->first();
+
+        if ($proposal) {
+            $status = ProposalStatuses::where('name', 'Opened')->where('deleted', false)->first();
+
+            $proposal->proposal_statuses_id = $status->id;
+            $proposal->status               = 'opened';
+            $proposal->opened_at            = now();
+            $proposal->save();
+        }
+
+        return Inertia::render('Proposals/Show', [
+            'html' => $data->html_output,
+            'css'  => $data->css_output,
+        ]);
+
+    }
+
     public function templates()
     {
         
@@ -388,6 +456,89 @@ class ProposalController extends Controller
 
         return response()->json($allTemplates);
 
+    }
+
+    public function icon()
+    {
+        $path = storage_path('app/public/icon.json');
+
+        if (!file_exists($path)) {
+            return response()->json([], 404);
+        }
+
+        return response()->json(
+            json_decode(file_get_contents($path), true)
+        );
+
+    }
+
+    public function notificationUpdateStatus(Request $request, $id)
+    {
+        // dd("notif", $request->all(), $id);
+
+        $request->validate([
+            'status' => 'required|in:draft,approved,revised,sent,accepted,expired,rejected',
+            'revision_note' => 'required_if:status,revised'
+        ]);
+
+        $status = ProposalStatuses::where('name', $request->status)->first();
+
+        if (!$status) {
+            return back()->withErrors(['status' => 'Status tidak valid']);
+        }
+
+        $proposal = Proposal::where('id', $id)->where('deleted', 0)->firstOrFail();
+
+        $managerNotif = Auth::user()->notifications()
+        ->where('data->id', $id)
+        ->first();
+
+        $capturedContactName  = $managerNotif->data['contact_person'] ?? 'No Name';
+        $capturedContactEmail = $managerNotif->data['email'] ?? null;
+
+        $updateData = [
+            'status' => $request->status, 
+            'proposal_statuses_id' => $status->id,
+        ];
+        if ($request->status === 'revised') {
+            $updateData['revision_note'] = $request->revision_note;
+        }
+
+        $proposal->update($updateData);
+
+        auth()->user()->notifications()
+            ->where('data->id', $id)
+            ->delete();
+
+        $creator = $proposal->creator;
+
+        if($creator) {
+            $creator->notifications()
+                    ->where('data->id', (string)$id)
+                    ->delete();
+            $msg = "Proposal #{$proposal->proposal_number} telah di-{$request->status}";
+
+            if ($request->status === 'revised' && $request->revision_note) {
+                $msg .= ": " . $request->revision_note;
+
+            }
+
+            // $contactPerson = $quotation->lead->contact_person ?? 'No Name';
+            // $contactEmail = $quotation->lead->email ?? null;
+
+            $creator->notify(new DocumentNotification([
+                'id'     => $proposal->id,
+                'message' => $msg,
+                'url' => "/proposal/{$id}",
+                'type' => 'proposal',
+                'revision_note' => $request->revision_note,
+                'status'  => $request->status,
+                'contact_person' => $capturedContactName,
+                'email'          => $capturedContactEmail,
+            ]));
+        }
+
+        return back();
     }
 
 }
