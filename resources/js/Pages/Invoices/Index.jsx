@@ -183,15 +183,14 @@ export default function Index({ auth_permissions }) {
             key: 'no',
             label: t('invoices.table.no_date') || 'Invoice',
             render: (value, row, idx) => (
-                console.log(row),
-                <div>
-                    <a className="text-blue-600 font-semibold hover:underline flex items-center gap-1 cursor-pointer" 
+                <div className="flex flex-col items-start min-w-0">
+                    <a className="text-blue-600 font-semibold hover:underline cursor-pointer whitespace-nowrap" 
                         href={`/storage/${row.pdf_path}`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        >{value}
-                    </a>
-                    <div className="text-xs text-gray-500">{new Date(row.date || "-").toLocaleDateString()}</div>
+                        style={{ minWidth: 0 }}
+                    >{value}</a>
+                    <span className="text-xs text-gray-500 mt-1">{new Date(row.date || "-").toLocaleDateString()}</span>
                 </div>
             )
         },
@@ -244,7 +243,7 @@ export default function Index({ auth_permissions }) {
         amount: formatRp(inv.amount),
         pdf_path: inv.pdf_path || null,
         payment: formatRp(inv.paid_amount || 0),
-        tax: `PPN ${inv.tax?.ppn ? inv.tax.ppn.toLocaleString() : 0} / PPh ${inv.tax?.pph ? inv.tax.pph.toLocaleString() : 0}`,
+        tax: `PPN Rp ${inv.tax?.ppn ? inv.tax.ppn.toLocaleString() : 0} / PPh Rp ${inv.tax?.pph ? inv.tax.pph.toLocaleString() : 0}`,
         due_amount: formatRp(inv.due_amount),
         status: inv.status,
         original: inv
