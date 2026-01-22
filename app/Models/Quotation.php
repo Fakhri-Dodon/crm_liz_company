@@ -14,15 +14,13 @@ class Quotation extends Model
 
     protected $keyType = 'string';
     public $incrementing = false;
-    
-    // Tambahkan properti table jika nama tabel berbeda
     protected $table = 'quotations';
 
     protected $fillable = [
         'id',
         'lead_id',
         'company_contact_person_id',
-        'quotation_number_formated_id', // Tambahkan ini
+        'quotation_number_formated_id',
         'quotation_statuses_id',
         'quotation_number',
         'status',
@@ -33,7 +31,7 @@ class Quotation extends Model
         'valid_until',
         'revision_note',
         'pdf_path',
-        'subtotal', // Perbaiki dari 'sub_total' ke 'subtotal'
+        'subtotal',
         'discount',
         'tax',
         'total',
@@ -100,7 +98,8 @@ class Quotation extends Model
         });
     }
 
-    // Relationships
+    // ============ RELATIONSHIPS FIX ============
+    
     public function project()
     {
         return $this->hasOne(Project::class);
@@ -110,22 +109,31 @@ class Quotation extends Model
     {
         return $this->belongsTo(CompanyContactPerson::class, 'company_contact_person_id');
     }
+    
     /**
-     * Relasi ke company (jika ada)
+     * Relasi ke company (jika ada) - TAMPILKAN SEMUA meski company dihapus
      */
     public function company()
     {
         return $this->hasOne(Company::class, 'quotation_id')
-                    ->where('deleted', 0);
+                    ->withoutGlobalScope('notDeleted'); // Hapus scope deleted
     }
     
     /**
-     * Relasi ke lead
+     * Relasi ke lead - TAMPILKAN SEMUA meski lead dihapus
      */
     public function lead()
     {
         return $this->belongsTo(Lead::class, 'lead_id')
-                    ->where('deleted', 0);
+                    ->withoutGlobalScope('notDeleted'); // Hapus scope deleted
+    }
+    
+    /**
+     * Alias untuk lead aktif saja (jika perlu)
+     */
+    public function activeLead()
+    {
+        return $this->belongsTo(Lead::class, 'lead_id'); // Dengan global scope
     }
     
     public function items()
@@ -148,7 +156,6 @@ class Quotation extends Model
         return $this->belongsTo(User::class, 'accepted_by', 'id');
     }
 
-    // TAMBAHKAN ALIAS acceptedBy (sama dengan acceptor)
     public function acceptedBy()
     {
         return $this->belongsTo(User::class, 'accepted_by', 'id');
@@ -159,7 +166,8 @@ class Quotation extends Model
         return $this->belongsTo(User::class, 'deleted_by', 'id');
     }
     
-    // Scopes
+    // ============ SCOPES ============
+    
     public function scopeAccepted($query)
     {
         return $query->where('status', 'accepted');
@@ -168,5 +176,17 @@ class Quotation extends Model
     public function scopeNotConverted($query)
     {
         return $query->whereDoesntHave('company');
+    }
+    
+    // ============ GLOBAL SCOPE ============
+    
+    /**
+     * Global scope untuk data yang tidak dihapus
+     */
+    protected static function booted()
+    {
+        static::addGlobalScope('notDeleted', function ($query) {
+            $query->where('deleted', 0);
+        });
     }
 }
