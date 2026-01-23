@@ -1,352 +1,165 @@
+// resources/js/Pages/Companies/PaymentTable.jsx
 import React, { useState, useEffect, useMemo } from 'react';
+import { router } from '@inertiajs/react';
 import { 
-    CreditCard, Calendar, DollarSign, Building, 
-    FileText, Landmark, MessageSquare, Receipt, Edit,
-    Download, Eye, Trash2, CheckCircle, X, Save, AlertCircle,
-    Loader, Search, Filter, ChevronDown, TrendingUp, Percent,
-    RefreshCw, Maximize2, Minimize2
+    CreditCard, Search, Edit2, Trash2, CheckCircle, 
+    AlertCircle, Maximize2, Minimize2, Loader, Filter
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import SubModuleTableLayout, { ExpandableTextCell, ExpandableAmountCell } from '@/Layouts/SubModuleTableLayout';
 
-const PaymentTable = ({ data: initialData, companyId, showInvoiceAmount = false, auth_permissions }) => {
+const PaymentTable = ({ data: initialData, companyId, auth_permissions }) => {
     const { t } = useTranslation();
     
     // State untuk data payments
-    const [payments, setPayments] = useState(initialData || []);
-    const [loading, setLoading] = useState(false);
-    
-    // State untuk UI
-    const [showEditModal, setShowEditModal] = useState(false);
-    const [showDeleteModal, setShowDeleteModal] = useState(false);
-    const [selectedPayment, setSelectedPayment] = useState(null);
-    const [formData, setFormData] = useState({
-        amount: '',
-        method: 'transfer',
-        date: '',
-        bank: '',
-        note: '',
-    });
-    const [errors, setErrors] = useState({});
+    const [data, setData] = useState(initialData || []);
     const [searchTerm, setSearchTerm] = useState('');
     const [methodFilter, setMethodFilter] = useState('all');
-    const [sortBy, setSortBy] = useState('date');
-    const [sortOrder, setSortOrder] = useState('desc');
-    const [selectedPayments, setSelectedPayments] = useState([]);
-    const [notification, setNotification] = useState({
-        show: false,
-        type: 'success',
-        message: ''
-    });
+    const [deletingId, setDeletingId] = useState(null);
     const [expandedAmounts, setExpandedAmounts] = useState({});
     const [expandedNotes, setExpandedNotes] = useState({});
+    const [selectedPayments, setSelectedPayments] = useState([]);
+    const [loading, setLoading] = useState(false);
 
     const perms = auth_permissions || {}; 
-    
-    const canRead = perms.can_read === 1;
-    const canCreate = perms.can_create === 1;
     const canUpdate = perms.can_update === 1;
     const canDelete = perms.can_delete === 1;
 
-    // Update payments ketika initialData berubah
+    // Update data ketika initialData berubah
     useEffect(() => {
-        setPayments(initialData || []);
+        setData(initialData || []);
     }, [initialData]);
-
-    // Show notification
-    const showNotification = (type, message) => {
-        setNotification({
-            show: true,
-            type,
-            message
-        });
-        setTimeout(() => {
-            setNotification({ show: false, type: 'success', message: '' });
-        }, 3000);
-    };
 
     // Format currency
     const formatCurrency = (amount) => {
-        if (!amount && amount !== 0) return 'Rp 0';
-        return new Intl.NumberFormat('id-ID', {
-            style: 'currency',
-            currency: 'IDR',
-            minimumFractionDigits: 0
-        }).format(amount);
+        if (amount === null || amount === undefined) return `Rp 0`;
+        return `Rp ${amount.toLocaleString('id-ID')}`;
+    };
+
+    // Format compact untuk angka besar
+    const formatCompactCurrency = (amount) => {
+        if (amount === null || amount === undefined) return `Rp 0`;
+        
+        if (amount >= 1000000000) return `Rp${(amount / 1000000000).toFixed(1)}M`;
+        if (amount >= 1000000) return `Rp${(amount / 1000000).toFixed(1)}JT`;
+        if (amount >= 1000) return `Rp${(amount / 1000).toFixed(0)}K`;
+        
+        return `Rp ${amount}`;
     };
 
     const formatDate = (dateString) => {
-        if (!dateString) return '-';
+        if (!dateString) return t('payment_table.not_available');
         try {
             const date = new Date(dateString);
+            if (isNaN(date.getTime())) return t('payment_table.invalid_date');
             return date.toLocaleDateString('id-ID', {
                 day: 'numeric',
                 month: 'short',
                 year: 'numeric'
             });
-        } catch (error) {
-            return '-';
+        } catch (e) {
+            return t('payment_table.invalid_date');
         }
     };
 
-    // Toggle expand/collapse
-    const toggleAmount = (id) => {
-        setExpandedAmounts(prev => ({
-            ...prev,
-            [id]: !prev[id]
-        }));
-    };
-
-    const toggleNote = (id) => {
-        setExpandedNotes(prev => ({
-            ...prev,
-            [id]: !prev[id]
-        }));
-    };
-
-    // Format display dengan expand/collapse
-    const formatAmountDisplay = (amount, id) => {
-        const formatted = formatCurrency(amount);
-        const isExpanded = expandedAmounts[id];
-        
-        if (isExpanded || formatted.length <= 15) {
-            return formatted;
-        }
-        
-        return `${formatted.substring(0, 15)}...`;
-    };
-
+    // Format note display
     const formatNoteDisplay = (note, id) => {
         if (!note || note === '-') return '-';
         const isExpanded = expandedNotes[id];
         
-        if (isExpanded || note.length <= 30) {
+        if (isExpanded || note.length <= 25) {
             return note;
         }
         
-        return `${note.substring(0, 30)}...`;
+        return `${note.substring(0, 25)}...`;
     };
-
-    // Filter dan sort data
-    const filteredData = useMemo(() => {
-        return payments
-            .filter(payment => {
-                const matchesSearch = searchTerm === '' || 
-                    (payment.invoice_number && payment.invoice_number.toLowerCase().includes(searchTerm.toLowerCase())) ||
-                    (payment.invoice?.invoice_number && payment.invoice.invoice_number.toLowerCase().includes(searchTerm.toLowerCase())) ||
-                    (payment.bank && payment.bank.toLowerCase().includes(searchTerm.toLowerCase())) ||
-                    (payment.note && payment.note.toLowerCase().includes(searchTerm.toLowerCase())) ||
-                    (payment.method && payment.method.toLowerCase().includes(searchTerm.toLowerCase()));
-                
-                const matchesMethod = methodFilter === 'all' || 
-                    payment.method?.toLowerCase() === methodFilter;
-                
-                return matchesSearch && matchesMethod;
-            })
-            .sort((a, b) => {
-                if (sortBy === 'date') {
-                    const dateA = a.date ? new Date(a.date) : new Date(0);
-                    const dateB = b.date ? new Date(b.date) : new Date(0);
-                    return sortOrder === 'desc' ? dateB - dateA : dateA - dateB;
-                }
-                if (sortBy === 'amount') {
-                    const amountA = Number(a.amount || 0);
-                    const amountB = Number(b.amount || 0);
-                    return sortOrder === 'desc' ? amountB - amountA : amountA - amountB;
-                }
-                return 0;
-            });
-    }, [payments, searchTerm, methodFilter, sortBy, sortOrder]);
 
     // Get invoice number
     const getInvoiceNumber = (payment) => {
-        const invoiceNum = payment.invoice?.invoice_number || payment.invoice_number || `INV-${payment.invoice_id?.substring(0, 8) || 'N/A'}`;
-        
-        // Potong jika terlalu panjang
-        if (invoiceNum.length > 20) {
-            return `${invoiceNum.substring(0, 20)}...`;
-        }
-        
-        return invoiceNum;
+        return payment.invoice?.invoice_number || payment.invoice_number || 
+               (payment.invoice_id ? `INV-${payment.invoice_id.substring(0, 8)}` : t('payment_table.no_invoice'));
     };
 
     // Get method badge
     const getMethodBadge = (method) => {
         const methodStr = (method || '').toLowerCase();
-        const baseClasses = "inline-flex items-center px-2 py-1 rounded-full text-xs font-medium";
+        const baseClasses = "inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium whitespace-nowrap";
         
         switch (methodStr) {
             case 'transfer':
-                return <span className={`${baseClasses} bg-blue-100 text-blue-800`}>{t('payment_table.transfer')}</span>;
+                return <span className={`${baseClasses} bg-blue-100 text-blue-800`}>Transfer</span>;
             case 'cash':
-                return <span className={`${baseClasses} bg-green-100 text-green-800`}>{t('payment_table.cash')}</span>;
+                return <span className={`${baseClasses} bg-green-100 text-green-800`}>Cash</span>;
             case 'check':
-                return <span className={`${baseClasses} bg-purple-100 text-purple-800`}>{t('payment_table.check')}</span>;
+                return <span className={`${baseClasses} bg-purple-100 text-purple-800`}>Check</span>;
             default:
                 return <span className={`${baseClasses} bg-gray-100 text-gray-800`}>{methodStr || '-'}</span>;
         }
     };
 
-    // ==================== EDIT PAYMENT ====================
-    const openEditModal = (payment) => {
-        setSelectedPayment(payment);
-        
-        let formattedDate = '';
-        if (payment.date) {
-            try {
-                const date = new Date(payment.date);
-                if (!isNaN(date.getTime())) {
-                    const year = date.getFullYear();
-                    const month = String(date.getMonth() + 1).padStart(2, '0');
-                    const day = String(date.getDate()).padStart(2, '0');
-                    formattedDate = `${year}-${month}-${day}`;
-                }
-            } catch (error) {
-                const today = new Date();
-                formattedDate = today.toISOString().split('T')[0];
-            }
-        } else {
-            const today = new Date();
-            formattedDate = today.toISOString().split('T')[0];
-        }
-        
-        setFormData({
-            amount: payment.amount || '',
-            method: payment.method || 'transfer',
-            date: formattedDate,
-            bank: payment.bank || '',
-            note: payment.note || '',
-        });
-        
-        setErrors({});
-        setShowEditModal(true);
+    const filterData = () => {
+        return data
+            .filter(payment => {
+                const matchesSearch = searchTerm === '' || 
+                    (payment.invoice?.invoice_number && payment.invoice.invoice_number.toLowerCase().includes(searchTerm.toLowerCase())) ||
+                    (payment.invoice_number && payment.invoice_number.toLowerCase().includes(searchTerm.toLowerCase())) ||
+                    (payment.bank && payment.bank.toLowerCase().includes(searchTerm.toLowerCase())) ||
+                    (payment.note && payment.note.toLowerCase().includes(searchTerm.toLowerCase()));
+                
+                if (methodFilter === 'all') return matchesSearch;
+                
+                const paymentMethod = payment.method?.toLowerCase() || '';
+                return matchesSearch && paymentMethod === methodFilter;
+            })
+            .sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
     };
 
-    const handleEditPayment = async () => {
-        if (!selectedPayment || !companyId) {
-            showNotification('error', t('payment_table.missing_data'));
-            return;
-        }
+    const filteredData = filterData();
 
-        if (!formData.amount || !formData.date) {
-            setErrors({ 
-                amount: !formData.amount ? t('payment_table.amount_required') : '', 
-                date: !formData.date ? t('payment_table.date_required') : '' 
-            });
-            return;
-        }
+    const openEditPage = (payment) => {
+        if (!payment?.id) return;
+        router.visit(`/payment/${payment.id}/edit`, { preserveScroll: true });
+    };
 
+    const handleDeletePayment = async (payment) => {
+        if (!payment?.id || !companyId || !window.confirm(t('payment_table.delete_confirm_message', { 
+            invoiceNumber: getInvoiceNumber(payment),
+            amount: formatCurrency(payment.amount)
+        }))) return;
+        
+        setDeletingId(payment.id);
         setLoading(true);
         
         try {
             const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
-            
-            const response = await fetch(`/companies/${companyId}/payments/${selectedPayment.id}`, {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': csrfToken,
-                    'X-Requested-With': 'XMLHttpRequest',
-                    'Accept': 'application/json'
-                },
-                credentials: 'include',
-                body: JSON.stringify(formData)
-            });
-
-            const result = await response.json();
-            
-            if (result.success) {
-                const updatedPayment = {
-                    ...selectedPayment,
-                    amount: formData.amount,
-                    method: formData.method,
-                    date: formData.date,
-                    bank: formData.bank,
-                    note: formData.note,
-                    updated_at: new Date().toISOString()
-                };
-
-                setPayments(prev => prev.map(p => 
-                    p.id === selectedPayment.id ? updatedPayment : p
-                ));
-                
-                showNotification('success', result.message || t('payment_table.payment_updated'));
-                setShowEditModal(false);
-                setSelectedPayment(null);
-                
-                setTimeout(() => {
-                    window.location.reload();
-                }, 1000);
-                
-            } else {
-                setErrors(result.errors || {});
-                showNotification('error', result.message || t('payment_table.update_failed'));
-            }
-        } catch (error) {
-            console.error('Error:', error);
-            showNotification('error', t('payment_table.network_error'));
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    // ==================== DELETE PAYMENT ====================
-    const openDeleteModal = (payment) => {
-        setSelectedPayment(payment);
-        setShowDeleteModal(true);
-    };
-
-    const handleDeletePayment = async () => {
-        if (!selectedPayment || !companyId) {
-            showNotification('error', t('payment_table.missing_data'));
-            return;
-        }
-
-        setLoading(true);
-        
-        try {
-            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
-            
-            const response = await fetch(`/companies/${companyId}/payments/${selectedPayment.id}`, {
+            await fetch(`/companies/${companyId}/payments/${payment.id}`, {
                 method: 'DELETE',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': csrfToken,
-                    'X-Requested-With': 'XMLHttpRequest',
-                    'Accept': 'application/json'
-                },
-                credentials: 'include'
+                headers: { 
+                    'X-CSRF-TOKEN': csrfToken, 
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json'
+                }
             });
-
-            const result = await response.json();
             
-            if (result.success) {
-                setPayments(prev => prev.filter(p => p.id !== selectedPayment.id));
-                
-                setSelectedPayments(prev => prev.filter(id => id !== selectedPayment.id));
-                
-                showNotification('success', result.message || t('payment_table.payment_deleted'));
-                setShowDeleteModal(false);
-                setSelectedPayment(null);
-                
-                setTimeout(() => {
-                    window.location.reload();
-                }, 1000);
-                
-            } else {
-                showNotification('error', result.message || t('payment_table.delete_failed'));
-            }
+            // Update local data
+            setData(prev => prev.filter(item => item.id !== payment.id));
+            setSelectedPayments(prev => prev.filter(id => id !== payment.id));
+            
+            // Show success message
+            alert(t('payment_table.payment_deleted'));
         } catch (error) {
-            console.error('Error:', error);
-            showNotification('error', t('payment_table.network_error'));
+            console.error('Delete error:', error);
+            alert(t('payment_table.delete_failed'));
         } finally {
+            setDeletingId(null);
             setLoading(false);
         }
     };
 
-    // ==================== BULK DELETE ====================
+    // Handle bulk delete
     const handleBulkDelete = async () => {
         if (selectedPayments.length === 0) {
-            showNotification('warning', t('payment_table.no_selection'));
+            alert(t('payment_table.no_selection'));
             return;
         }
 
@@ -366,37 +179,29 @@ const PaymentTable = ({ data: initialData, companyId, showInvoiceAmount = false,
                 headers: {
                     'Content-Type': 'application/json',
                     'X-CSRF-TOKEN': csrfToken,
-                    'X-Requested-With': 'XMLHttpRequest',
                     'Accept': 'application/json'
                 },
-                credentials: 'include',
                 body: JSON.stringify({ payment_ids: selectedPayments })
             });
 
             const result = await response.json();
             
             if (result.success) {
-                setPayments(prev => prev.filter(p => !selectedPayments.includes(p.id)));
+                setData(prev => prev.filter(p => !selectedPayments.includes(p.id)));
                 setSelectedPayments([]);
-                
-                showNotification('success', result.message || t('payment_table.payments_deleted'));
-                
-                setTimeout(() => {
-                    window.location.reload();
-                }, 1000);
-                
+                alert(t('payment_table.payments_deleted'));
             } else {
-                showNotification('error', result.message || t('payment_table.delete_failed'));
+                alert(result.message || t('payment_table.delete_failed'));
             }
         } catch (error) {
             console.error('Error:', error);
-            showNotification('error', t('payment_table.network_error'));
+            alert(t('payment_table.network_error'));
         } finally {
             setLoading(false);
         }
     };
 
-    // ==================== HANDLE SELECTION ====================
+    // Handle select all
     const handleSelectAll = () => {
         if (selectedPayments.length === filteredData.length && filteredData.length > 0) {
             setSelectedPayments([]);
@@ -405,6 +210,7 @@ const PaymentTable = ({ data: initialData, companyId, showInvoiceAmount = false,
         }
     };
 
+    // Handle select payment
     const handleSelectPayment = (id) => {
         setSelectedPayments(prev => 
             prev.includes(id) 
@@ -413,22 +219,155 @@ const PaymentTable = ({ data: initialData, companyId, showInvoiceAmount = false,
         );
     };
 
-    // Calculate statistics
-    const totalPayments = payments.length;
-    const totalReceived = payments.reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
-    const transferCount = payments.filter(p => p.method?.toLowerCase() === 'transfer').length;
-    const cashCount = payments.filter(p => p.method?.toLowerCase() === 'cash').length;
-    const checkCount = payments.filter(p => p.method?.toLowerCase() === 'check').length;
-
-    // Empty state
-    if (payments.length === 0) {
+    // Komponen untuk amount dengan expand/collapse
+    const AmountCell = ({ payment }) => {
+        const isExpanded = expandedAmounts[payment.id];
+        const fullAmount = formatCurrency(payment.amount);
+        const compactAmount = formatCompactCurrency(payment.amount);
+        
+        const shouldShowExpand = fullAmount !== compactAmount;
+        
         return (
-            <div className="text-center py-12">
-                <CreditCard className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+            <div className="flex items-center gap-1 min-w-0">
+                <div className={`font-bold text-green-700 ${!isExpanded && shouldShowExpand ? 'truncate' : ''}`}>
+                    {isExpanded ? fullAmount : compactAmount}
+                </div>
+                {shouldShowExpand && (
+                    <button 
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            setExpandedAmounts(prev => ({
+                                ...prev,
+                                [payment.id]: !prev[payment.id]
+                            }));
+                        }}
+                        className="p-0.5 text-gray-400 hover:text-gray-600 flex-shrink-0"
+                        title={isExpanded ? t('payment_table.collapse') : t('payment_table.expand')}
+                    >
+                        {isExpanded ? (
+                            <Minimize2 className="w-3 h-3" />
+                        ) : (
+                            <Maximize2 className="w-3 h-3" />
+                        )}
+                    </button>
+                )}
+            </div>
+        );
+    };
+
+    // Komponen untuk note dengan expand/collapse
+    const NoteCell = ({ payment }) => {
+        const isExpanded = expandedNotes[payment.id];
+        const note = payment.note || '-';
+        
+        if (!note || note === '-' || note.length <= 30) {
+            return <span className="text-gray-600 text-xs">{note}</span>;
+        }
+        
+        return (
+            <div className="flex items-start gap-1 min-w-0">
+                <div className={`text-gray-600 text-xs ${!isExpanded ? 'line-clamp-2' : ''}`}>
+                    {note}
+                </div>
+                <button
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        setExpandedNotes(prev => ({
+                            ...prev,
+                            [payment.id]: !prev[payment.id]
+                        }));
+                    }}
+                    className="p-0.5 text-gray-400 hover:text-gray-600 flex-shrink-0 mt-0.5"
+                    title={isExpanded ? t('payment_table.collapse') : t('payment_table.expand')}
+                >
+                    {isExpanded ? (
+                        <Minimize2 className="w-3 h-3" />
+                    ) : (
+                        <Maximize2 className="w-3 h-3" />
+                    )}
+                </button>
+            </div>
+        );
+    };
+
+    // Calculate statistics
+    const totalAmount = data.reduce((sum, i) => sum + (i.amount || 0), 0);
+    const transferCount = data.filter(i => i.method?.toLowerCase() === 'transfer').length;
+    const cashCount = data.filter(i => i.method?.toLowerCase() === 'cash').length;
+    const checkCount = data.filter(i => i.method?.toLowerCase() === 'check').length;
+
+    // Prepare columns untuk SubModuleTableLayout
+    const columns = useMemo(() => [
+        {
+            key: 'invoice',
+            label: t('payment_table.invoice'),
+            width: '130px',
+            render: (value, row) => (
+                <div className="font-medium text-gray-900 text-xs">
+                    <div className="truncate" title={getInvoiceNumber(row)}>
+                        {getInvoiceNumber(row)}
+                    </div>
+                </div>
+            )
+        },
+        {
+            key: 'date',
+            label: t('payment_table.date'),
+            width: '100px',
+            render: (value) => (
+                <div className="text-gray-600 text-xs">
+                    {formatDate(value)}
+                </div>
+            )
+        },
+        {
+            key: 'amount',
+            label: t('payment_table.amount'),
+            width: '120px',
+            render: (value, row) => <AmountCell payment={row} />
+        },
+        {
+            key: 'method',
+            label: t('payment_table.method'),
+            width: '90px',
+            render: (value) => getMethodBadge(value)
+        },
+        {
+            key: 'bank',
+            label: t('payment_table.bank'),
+            width: '110px',
+            render: (value) => (
+                <div className="text-gray-600 text-xs truncate" title={value}>
+                    {value || '-'}
+                </div>
+            )
+        },
+        {
+            key: 'note',
+            label: t('payment_table.notes'),
+            width: '140px',
+            render: (value, row) => <NoteCell payment={row} />
+        }
+    ], [t]);
+
+    // Handle edit untuk SubModuleTableLayout
+    const handleEdit = (row) => {
+        openEditPage(row);
+    };
+
+    // Handle delete untuk SubModuleTableLayout
+    const handleDelete = (row) => {
+        handleDeletePayment(row);
+    };
+
+    if (!data || data.length === 0) {
+        return (
+            <div className="bg-white border border-gray-200 rounded-lg p-8 text-center">
+                <CreditCard className="w-12 h-12 text-gray-300 mx-auto mb-4" />
                 <h3 className="text-lg font-medium text-gray-900 mb-2">
                     {t('payment_table.no_payments_found')}
                 </h3>
-                <p className="text-gray-500">
+                <p className="text-gray-600">
                     {t('payment_table.no_payments_message')}
                 </p>
             </div>
@@ -436,427 +375,123 @@ const PaymentTable = ({ data: initialData, companyId, showInvoiceAmount = false,
     }
 
     return (
-        <div className="relative">
-            {/* Notification */}
-            {notification.show && (
-                <div className={`fixed top-4 right-4 z-50 px-4 py-3 rounded-lg shadow-lg ${
-                    notification.type === 'success' ? 'bg-green-100 text-green-800 border border-green-200' :
-                    notification.type === 'error' ? 'bg-red-100 text-red-800 border border-red-200' :
-                    'bg-yellow-100 text-yellow-800 border border-yellow-200'
-                }`}>
-                    <div className="flex items-center">
-                        {notification.type === 'success' ? (
-                            <CheckCircle className="w-5 h-5 mr-2" />
-                        ) : (
-                            <AlertCircle className="w-5 h-5 mr-2" />
-                        )}
-                        <span>{notification.message}</span>
-                    </div>
-                </div>
-            )}
-
+        <div className="space-y-4">
             {/* Header */}
-            <div className="mb-6">
-                <h2 className="text-lg md:text-xl font-bold text-gray-900">
-                    {t('payment_table.payment_history')}
-                </h2>
-                <p className="text-sm text-gray-600">
-                    {totalPayments} {t('payment_table.total_payments').toLowerCase()}{totalPayments !== 1 ? 's' : ''} • {formatCurrency(totalReceived)} {t('payment_table.total_received').toLowerCase()}
-                </p>
-            </div>
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                <div>
+                    <h2 className="font-bold text-gray-900 text-base">
+                        {t('payment_table.payment_history')}
+                    </h2>
+                    <p className="text-gray-600 text-xs">
+                        {t('payment_table.payment_count', {
+                            count: data.length,
+                            filteredCount: filteredData.length
+                        })}
+                    </p>
+                </div>
 
-            {/* Search & Filter */}
-            <div className="mb-6 space-y-4">
-                <div className="flex flex-col sm:flex-row gap-3">
-                    <div className="flex-1">
-                        <div className="relative">
-                            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                            <input
-                                type="text"
-                                placeholder={t('payment_table.search_placeholder')}
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
-                                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                disabled={loading}
-                            />
-                        </div>
+                <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+                    <div className="relative flex-1">
+                        <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-400 w-3 h-3" />
+                        <input
+                            type="text"
+                            placeholder={t('payment_table.search_placeholder')}
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            className="w-full pl-7 pr-3 py-1.5 border border-gray-300 rounded text-xs focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                        />
                     </div>
                     
-                    <div className="w-full sm:w-48">
-                        <select
-                            value={methodFilter}
-                            onChange={(e) => setMethodFilter(e.target.value)}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    <select
+                        value={methodFilter}
+                        onChange={(e) => setMethodFilter(e.target.value)}
+                        className="text-xs px-2 py-1.5 border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                    >
+                        <option value="all">{t('payment_table.all_methods')}</option>
+                        <option value="transfer">{t('payment_table.transfer')}</option>
+                        <option value="cash">{t('payment_table.cash')}</option>
+                        <option value="check">{t('payment_table.check')}</option>
+                    </select>
+                </div>
+            </div>
+
+            {/* Bulk Actions */}
+            {canDelete && selectedPayments.length > 0 && (
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center">
+                            <CheckCircle className="w-4 h-4 text-blue-600 mr-2" />
+                            <span className="font-medium text-blue-800 text-xs">
+                                {selectedPayments.length} {t('payment_table.selected')}
+                            </span>
+                        </div>
+                        <button 
+                            onClick={handleBulkDelete}
                             disabled={loading}
+                            className="px-2 py-1 bg-red-600 text-white rounded text-xs hover:bg-red-700 flex items-center disabled:opacity-50"
                         >
-                            <option value="all">{t('payment_table.all_methods')}</option>
-                            <option value="transfer">{t('payment_table.transfer')}</option>
-                            <option value="cash">{t('payment_table.cash')}</option>
-                            <option value="check">{t('payment_table.check')}</option>
-                        </select>
+                            {loading ? (
+                                <Loader className="w-3 h-3 animate-spin mr-1" />
+                            ) : (
+                                <Trash2 className="w-3 h-3 mr-1" />
+                            )}
+                            {t('payment_table.delete_selected')}
+                        </button>
                     </div>
                 </div>
-                
-                {/* Bulk Actions */}
-                {selectedPayments.length > 0 && (
-                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                        <div className="flex items-center justify-between">
-                            <div className="flex items-center">
-                                <CheckCircle className="w-5 h-5 text-blue-600 mr-2" />
-                                <span className="font-medium text-blue-800">
-                                    {selectedPayments.length} {t('payment_table.selected')}
-                                </span>
-                            </div>
-                            <button 
-                                onClick={handleBulkDelete}
-                                disabled={loading}
-                                className="px-3 py-1 bg-red-600 text-white rounded text-sm hover:bg-red-700 flex items-center disabled:opacity-50"
-                            >
-                                {loading ? (
-                                    <Loader className="w-4 h-4 animate-spin mr-1" />
-                                ) : (
-                                    <Trash2 className="w-4 h-4 mr-1" />
-                                )}
-                                {t('payment_table.delete_selected')}
-                            </button>
+            )}
+
+            {/* Statistics Cards */}
+            {data.length > 0 && (
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-3">
+                    <div className="bg-white border border-gray-200 rounded-lg p-3 shadow-sm">
+                        <div className="text-gray-600 text-xs mb-1">
+                            {t('payment_table.total_payments')}
+                        </div>
+                        <div className="font-bold text-gray-900 text-sm">
+                            {data.length}
                         </div>
                     </div>
-                )}
-            </div>
-
-            {/* Desktop Table - Diubah untuk mencegah scroll horizontal */}
-            <div className="border border-gray-200 rounded-lg overflow-hidden">
-                <div className="overflow-x-auto w-full">
-                    <table className="min-w-full divide-y divide-gray-200">
-                        <thead className="bg-gray-50">
-                            <tr>
-                                { canDelete && (
-                                    <th className="px-3 py-3 text-left text-xs font-medium text-gray-700">
-                                        <input
-                                            type="checkbox"
-                                            checked={selectedPayments.length === filteredData.length && filteredData.length > 0}
-                                            onChange={handleSelectAll}
-                                            className="h-4 w-4 text-blue-600 rounded"
-                                            disabled={loading}
-                                        />
-                                    </th>
-                                )}                            
-                                <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 min-w-[120px]">
-                                    {t('payment_table.invoice')}
-                                </th>
-                                <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 min-w-[100px]">
-                                    {t('payment_table.date')}
-                                </th>
-                                <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 min-w-[120px]">
-                                    {t('payment_table.amount')}
-                                </th>
-                                <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 min-w-[100px]">
-                                    {t('payment_table.method')}
-                                </th>
-                                <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 min-w-[100px]">
-                                    {t('payment_table.bank')}
-                                </th>
-                                <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 min-w-[150px]">
-                                    {t('payment_table.notes')}
-                                </th>
-                                { (canUpdate || canDelete) && (
-                                    <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 min-w-[80px]">
-                                        {t('payment_table.actions')}
-                                    </th>
-                                )}                            
-                            </tr>
-                        </thead>
-                        <tbody className="bg-white divide-y divide-gray-200">
-                            {filteredData.map((payment) => {
-                                const formattedAmount = formatCurrency(payment.amount);
-                                const isAmountExpanded = expandedAmounts[payment.id];
-                                const isNoteExpanded = expandedNotes[payment.id];
-                                
-                                return (
-                                    <tr key={payment.id} className="hover:bg-gray-50">
-                                        { canDelete && (
-                                            <td className="px-3 py-3">
-                                                <input
-                                                    type="checkbox"
-                                                    checked={selectedPayments.includes(payment.id)}
-                                                    onChange={() => handleSelectPayment(payment.id)}
-                                                    className="h-4 w-4 text-blue-600 rounded"
-                                                    disabled={loading}
-                                                />
-                                            </td>
-                                        )}                                
-                                        <td className="px-3 py-3">
-                                            <div className="font-medium text-gray-900 truncate" title={getInvoiceNumber(payment)}>
-                                                {getInvoiceNumber(payment)}
-                                            </div>
-                                        </td>
-                                        <td className="px-3 py-3">
-                                            <div className="text-sm">{formatDate(payment.date)}</div>
-                                        </td>
-                                        <td className="px-3 py-3">
-                                            <div className="flex items-center gap-1">
-                                                <div className="font-bold text-green-700 truncate" title={formattedAmount}>
-                                                    {formatAmountDisplay(payment.amount, payment.id)}
-                                                </div>
-                                                {formattedAmount.length > 15 && (
-                                                    <button 
-                                                        onClick={() => toggleAmount(payment.id)}
-                                                        className="p-0.5 text-gray-400 hover:text-gray-600"
-                                                        title={isAmountExpanded ? t('payment_table.collapse') : t('payment_table.expand')}
-                                                    >
-                                                        {isAmountExpanded ? (
-                                                            <Minimize2 className="w-3.5 h-3.5" />
-                                                        ) : (
-                                                            <Maximize2 className="w-3.5 h-3.5" />
-                                                        )}
-                                                    </button>
-                                                )}
-                                            </div>
-                                        </td>
-                                        <td className="px-3 py-3">
-                                            {getMethodBadge(payment.method)}
-                                        </td>
-                                        <td className="px-3 py-3">
-                                            <div className="text-sm truncate" title={payment.bank}>
-                                                {payment.bank || '-'}
-                                            </div>
-                                        </td>
-                                        <td className="px-3 py-3 max-w-[150px]">
-                                            <div className="flex items-start gap-1">
-                                                <div className="text-sm text-gray-600 truncate" title={payment.note}>
-                                                    {formatNoteDisplay(payment.note, payment.id)}
-                                                </div>
-                                                {payment.note && payment.note.length > 30 && payment.note !== '-' && (
-                                                    <button 
-                                                        onClick={() => toggleNote(payment.id)}
-                                                        className="p-0.5 text-gray-400 hover:text-gray-600 mt-0.5"
-                                                        title={isNoteExpanded ? t('payment_table.collapse') : t('payment_table.expand')}
-                                                    >
-                                                        {isNoteExpanded ? (
-                                                            <Minimize2 className="w-3.5 h-3.5" />
-                                                        ) : (
-                                                            <Maximize2 className="w-3.5 h-3.5" />
-                                                        )}
-                                                    </button>
-                                                )}
-                                            </div>
-                                        </td>
-                                        { (canUpdate || canDelete) && (
-                                            <td className="px-3 py-3">
-                                                <div className="flex gap-2">
-                                                    { canUpdate && (
-                                                        <button 
-                                                            onClick={() => openEditModal(payment)}
-                                                            disabled={loading}
-                                                            className="p-1 text-blue-600 hover:text-blue-900 hover:bg-blue-50 rounded disabled:opacity-50"
-                                                            title={t('payment_table.edit_payment')}
-                                                        >
-                                                            <Edit className="w-4 h-4" />
-                                                        </button>
-                                                    )}   
-                                                    { canDelete && (
-                                                        <button 
-                                                            onClick={() => openDeleteModal(payment)}
-                                                            disabled={loading}
-                                                            className="p-1 text-red-600 hover:text-red-900 hover:bg-red-50 rounded disabled:opacity-50"
-                                                            title={t('payment_table.delete')}
-                                                        >
-                                                            <Trash2 className="w-4 h-4" />
-                                                        </button>
-                                                    )}                                                                             
-                                                </div>
-                                            </td>
-                                        )}                                
-                                    </tr>
-                                );
-                            })}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-
-            {/* Statistics */}
-            <div className="mt-6 grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div className="bg-blue-50 p-4 rounded-lg">
-                    <p className="text-sm text-gray-600">{t('payment_table.total_payments')}</p>
-                    <p className="text-2xl font-bold text-gray-900">{totalPayments}</p>
-                </div>
-                <div className="bg-green-50 p-4 rounded-lg">
-                    <p className="text-sm text-gray-600">{t('payment_table.total_received')}</p>
-                    <p className="text-2xl font-bold text-gray-900">{formatCurrency(totalReceived)}</p>
-                </div>
-                <div className="bg-purple-50 p-4 rounded-lg">
-                    <p className="text-sm text-gray-600">{t('payment_table.transfers')}</p>
-                    <p className="text-2xl font-bold text-gray-900">{transferCount}</p>
-                </div>
-                <div className="bg-yellow-50 p-4 rounded-lg">
-                    <p className="text-sm text-gray-600">{t('payment_table.cash')}</p>
-                    <p className="text-2xl font-bold text-gray-900">{cashCount}</p>
-                </div>
-            </div>
-
-            {/* Edit Modal */}
-            {showEditModal && selectedPayment && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-                    <div className="bg-white rounded-lg shadow-xl max-w-md w-full">
-                        <div className="p-6">
-                            <div className="flex justify-between items-center mb-6">
-                                <h3 className="text-lg font-bold text-gray-900">{t('payment_table.edit_payment')}</h3>
-                                <button
-                                    onClick={() => setShowEditModal(false)}
-                                    disabled={loading}
-                                    className="p-1 hover:bg-gray-100 rounded"
-                                >
-                                    <X className="w-5 h-5" />
-                                </button>
-                            </div>
-                            
-                            <div className="space-y-4">
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        {t('payment_table.amount')} *
-                                    </label>
-                                    <input
-                                        type="number"
-                                        step="0.01"
-                                        value={formData.amount}
-                                        onChange={(e) => setFormData({...formData, amount: e.target.value})}
-                                        className={`w-full px-3 py-2 border ${errors.amount ? 'border-red-300' : 'border-gray-300'} rounded-lg`}
-                                        required
-                                        disabled={loading}
-                                    />
-                                    {errors.amount && <p className="mt-1 text-xs text-red-600">{errors.amount}</p>}
-                                </div>
-                                
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        {t('payment_table.method')} *
-                                    </label>
-                                    <select
-                                        value={formData.method}
-                                        onChange={(e) => setFormData({...formData, method: e.target.value})}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                                        disabled={loading}
-                                    >
-                                        <option value="transfer">{t('payment_table.transfer')}</option>
-                                        <option value="cash">{t('payment_table.cash')}</option>
-                                        <option value="check">{t('payment_table.check')}</option>
-                                    </select>
-                                </div>
-                                
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        {t('payment_table.date')} *
-                                    </label>
-                                    <input
-                                        type="date"
-                                        value={formData.date}
-                                        onChange={(e) => setFormData({...formData, date: e.target.value})}
-                                        className={`w-full px-3 py-2 border ${errors.date ? 'border-red-300' : 'border-gray-300'} rounded-lg`}
-                                        required
-                                        disabled={loading}
-                                    />
-                                    {errors.date && <p className="mt-1 text-xs text-red-600">{errors.date}</p>}
-                                </div>
-                                
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        {t('payment_table.bank')}
-                                    </label>
-                                    <input
-                                        type="text"
-                                        value={formData.bank}
-                                        onChange={(e) => setFormData({...formData, bank: e.target.value})}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                                        disabled={loading}
-                                    />
-                                </div>
-                                
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        {t('payment_table.notes')}
-                                    </label>
-                                    <textarea
-                                        value={formData.note}
-                                        onChange={(e) => setFormData({...formData, note: e.target.value})}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                                        rows="3"
-                                        disabled={loading}
-                                    />
-                                </div>
-                            </div>
-                            
-                            <div className="flex justify-end space-x-3 mt-6 pt-6 border-t">
-                                <button
-                                    onClick={() => setShowEditModal(false)}
-                                    disabled={loading}
-                                    className="px-4 py-2 border border-gray-300 text-gray-700 rounded hover:bg-gray-50"
-                                >
-                                    {t('payment_table.cancel')}
-                                </button>
-                                <button
-                                    onClick={handleEditPayment}
-                                    disabled={loading}
-                                    className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 flex items-center"
-                                >
-                                    {loading ? (
-                                        <Loader className="w-4 h-4 animate-spin mr-2" />
-                                    ) : (
-                                        <Save className="w-4 h-4 mr-2" />
-                                    )}
-                                    {t('payment_table.update')}
-                                </button>
-                            </div>
+                    <div className="bg-white border border-gray-200 rounded-lg p-3 shadow-sm">
+                        <div className="text-gray-600 text-xs mb-1">
+                            {t('payment_table.total_received')}
+                        </div>
+                        <div className="font-bold text-green-600 text-xs truncate" title={formatCurrency(totalAmount)}>
+                            {formatCompactCurrency(totalAmount)}
+                        </div>
+                    </div>
+                    <div className="bg-white border border-gray-200 rounded-lg p-3 shadow-sm">
+                        <div className="text-gray-600 text-xs mb-1">
+                            {t('payment_table.transfers')}
+                        </div>
+                        <div className="font-bold text-blue-600 text-sm">
+                            {transferCount}
+                        </div>
+                    </div>
+                    <div className="bg-white border border-gray-200 rounded-lg p-3 shadow-sm">
+                        <div className="text-gray-600 text-xs mb-1">
+                            {t('payment_table.cash')}
+                        </div>
+                        <div className="font-bold text-green-600 text-sm">
+                            {cashCount}
                         </div>
                     </div>
                 </div>
             )}
 
-            {/* Delete Modal */}
-            {showDeleteModal && selectedPayment && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-                    <div className="bg-white rounded-lg shadow-xl max-w-md w-full">
-                        <div className="p-6">
-                            <div className="flex items-center mb-4">
-                                <AlertCircle className="w-8 h-8 text-red-600 mr-3" />
-                                <h3 className="text-lg font-bold text-gray-900">{t('payment_table.confirm_delete')}</h3>
-                            </div>
-                            
-                            <p className="text-gray-600 mb-4">
-                                {t('payment_table.delete_confirm_message')}
-                            </p>
-                            
-                            <div className="bg-gray-50 p-3 rounded mb-6">
-                                <p className="font-medium">{t('payment_table.invoice')}: {getInvoiceNumber(selectedPayment)}</p>
-                                <p className="text-sm text-gray-500">
-                                    {formatDate(selectedPayment.date)} • {formatCurrency(selectedPayment.amount)}
-                                </p>
-                            </div>
-                            
-                            <div className="flex justify-end space-x-3">
-                                <button
-                                    onClick={() => setShowDeleteModal(false)}
-                                    disabled={loading}
-                                    className="px-4 py-2 border border-gray-300 text-gray-700 rounded hover:bg-gray-50"
-                                >
-                                    {t('payment_table.cancel')}
-                                </button>
-                                <button
-                                    onClick={handleDeletePayment}
-                                    disabled={loading}
-                                    className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 flex items-center"
-                                >
-                                    {loading ? (
-                                        <Loader className="w-4 h-4 animate-spin" />
-                                    ) : (
-                                        t('payment_table.delete')
-                                    )}
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            )}
+            {/* Main Content menggunakan SubModuleTableLayout */}
+            <SubModuleTableLayout
+                columns={columns}
+                data={filteredData}
+                onEdit={canUpdate ? handleEdit : undefined}
+                onDelete={canDelete ? handleDelete : undefined}
+                showAction={canUpdate || canDelete}
+                tableTitle=""
+                showHeader={false}
+                showFooter={true}
+                compactMode={true}
+                rowHeight="h-11"
+            />
         </div>
     );
 };
