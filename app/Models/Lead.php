@@ -77,6 +77,11 @@ class Lead extends Model
     }
 
     // ============ RELATIONSHIPS ============
+
+    public function proposals()
+    {
+        return $this->hasMany(Proposal::class, 'lead_id');
+    }
     
     public function quotations()
     {

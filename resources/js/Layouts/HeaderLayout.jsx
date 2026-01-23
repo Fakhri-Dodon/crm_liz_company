@@ -623,17 +623,19 @@ export default function HeaderLayout({ header, children, }) {
                                                         </>
                                                     )}
 
-                                                    {/* TOMBOL PREVIEW (ALWAYS AVAILABLE) */}
-                                                    <button
-                                                        onClick={() =>
-                                                            handlePreviewClick(
-                                                                n.data
-                                                            )
-                                                        }
-                                                        className="px-3 py-1.5 text-[10px] font-bold rounded-md bg-slate-100 text-slate-600 hover:bg-slate-200 transition"
-                                                    >
-                                                        {t("header.notification_dropdown.btn_preview")}
-                                                    </button>
+                                                    {/* TOMBOL PREVIEW (ONLY QUOTATION AND INVOICE) */}
+                                                    {docType !== "proposal" && (
+                                                        <button
+                                                            onClick={() =>
+                                                                handlePreviewClick(
+                                                                    n.data
+                                                                )
+                                                            }
+                                                            className="px-3 py-1.5 text-[10px] font-bold rounded-md bg-slate-100 text-slate-600 hover:bg-slate-200 transition"
+                                                        >
+                                                            {t("header.notification_dropdown.btn_preview")}
+                                                        </button>
+                                                    )}
                                                 </div>
                                             </div>
                                         );

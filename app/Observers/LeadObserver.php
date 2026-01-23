@@ -29,6 +29,8 @@ class LeadObserver
             // ==================== 3. DELETE QUOTATIONS ====================
             $this->deleteQuotations($lead);
             
+            $this->deleteProposals($lead);
+            
             // ==================== 4. DELETE PROJECTS (melalui company atau quotations) ====================
             $this->deleteProjectsThroughChain($lead);
             
@@ -53,6 +55,30 @@ class LeadObserver
     }
 
     // ==================== HELPER METHODS ====================
+
+    /**
+     * [TAMBAHAN BARU] Method untuk menghapus proposal terkait
+     */
+    private function deleteProposals(Lead $lead): void
+    {
+        try {
+            $count = DB::table('proposals')
+                ->where('lead_id', $lead->id)
+                ->where('deleted', 0)
+                ->update([
+                    'deleted' => 1,
+                    'deleted_by' => auth()->id() ?? $lead->deleted_by,
+                    'deleted_at' => now()
+                ]);
+
+            if ($count > 0) {
+                Log::info("✅ Soft deleted {$count} proposals connected to Lead {$lead->id}");
+            }
+        } catch (\Exception $e) {
+            Log::warning("⚠️ Error deleting proposals: " . $e->getMessage());
+            // Kita log warning saja agar tidak membatalkan proses utama jika proposal gagal dihapus
+        }
+    }
 
     /**
      * Delete payments melalui chain: Lead → Quotations → Invoices → Payments
@@ -128,19 +154,37 @@ class LeadObserver
                 Log::info("No quotations found, skipping invoices deletion");
                 return;
             }
-            
-            // 2. Delete semua invoices yang quotation_id-nya ada di array tersebut
-            $deletedInvoices = DB::table('invoices')
+
+            $invoiceIds = DB::table('invoices')
                 ->whereIn('quotation_id', $quotationIds)
                 ->where('deleted', 0)
-                ->update([
-                    'deleted' => 1,
-                    'deleted_at' => now(),
-                    'deleted_by' => null
-                ]);
+                ->pluck('id')
+                ->toArray();
             
-            Log::info("✅ Deleted {$deletedInvoices} invoices through quotations");
-            
+            if (!empty($invoiceIds)) {
+                // [TAMBAHAN] Hapus Invoice Items berdasarkan Invoice IDs
+                $deletedItems = DB::table('invoice_items')
+                    ->whereIn('invoice_id', $invoiceIds)
+                    ->where('deleted', 0)
+                    ->update([
+                        'deleted' => 1,
+                        'deleted_at' => now(),
+                        'deleted_by' => null
+                    ]);
+
+                Log::info("✅ Deleted {$deletedItems} invoice items");
+
+                // Hapus Invoices
+                $deletedInvoices = DB::table('invoices')
+                    ->whereIn('id', $invoiceIds)
+                    ->update([
+                        'deleted' => 1,
+                        'deleted_at' => now(),
+                        'deleted_by' => null
+                    ]);
+                
+                Log::info("✅ Deleted {$deletedInvoices} invoices through quotations");
+            }        
         } catch (\Exception $e) {
             Log::error("❌ Error deleting invoices: " . $e->getMessage());
         }
@@ -154,14 +198,36 @@ class LeadObserver
         Log::info("=== DELETING QUOTATIONS FOR LEAD {$lead->id} ===");
         
         try {
-            $deletedQuotations = DB::table('quotations')
+            $quotationIds = DB::table('quotations')
                 ->where('lead_id', $lead->id)
                 ->where('deleted', 0)
-                ->update([
-                    'deleted' => 1,
-                    'deleted_at' => now(),
-                    'deleted_by' => null
-                ]);
+                ->pluck('id')
+                ->toArray();
+
+            if (!empty($quotationIds)) {
+                // Hapus Items berdasarkan ID Quotation tadi
+                $deletedItems = DB::table('quotation_items')
+                    ->whereIn('quotation_id', $quotationIds)
+                    ->where('deleted', 0)
+                    ->update([
+                        'deleted' => 1,
+                        'deleted_at' => now(),
+                        'deleted_by' => null
+                    ]);
+                
+                Log::info("✅ Deleted {$deletedItems} quotation items");
+
+                // Hapus Quotations
+                $deletedQuotations = DB::table('quotations')
+                    ->whereIn('id', $quotationIds)
+                    ->update([
+                        'deleted' => 1,
+                        'deleted_at' => now(),
+                        'deleted_by' => null
+                    ]);
+                
+                Log::info("✅ Deleted {$deletedQuotations} quotations");
+            }
             
             Log::info("✅ Deleted {$deletedQuotations} quotations");
             

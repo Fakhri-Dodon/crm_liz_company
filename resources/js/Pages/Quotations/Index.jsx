@@ -485,7 +485,8 @@ export default function QoutationsIndex({
                                     onChange={(e) =>
                                         handleFilterChange(
                                             "status",
-                                            e.target.value
+                                            e.target.value,
+                                            console.log("Status Filter :", e.target.value)
                                         )
                                     }
                                     className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#005954] focus:border-transparent bg-white text-sm"
@@ -495,10 +496,10 @@ export default function QoutationsIndex({
                                     </option>
                                     {statusOptions?.map((option) => (
                                         <option
-                                            key={option.value}
-                                            value={option.value}
+                                            key={option.id}
+                                            value={option.id}
                                         >
-                                            {option.label}
+                                            {option.name}
                                         </option>
                                     ))}
                                 </select>

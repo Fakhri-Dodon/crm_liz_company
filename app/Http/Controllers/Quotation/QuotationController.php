@@ -24,12 +24,16 @@ use Illuminate\Support\Facades\Mail;
 
 class QuotationController extends Controller {
     public function index(Request $request) {
+        $expiredStatus = QuotationStatuses::where('name', 'Expired')->first();
         // SYNC: Update status di database sebelum melakukan perhitungan apapun
         Quotation::where('deleted', 0)
             ->whereNotIn('status', ['accepted', 'rejected', 'expired'])
             ->whereNotNull('valid_until')
             ->where('valid_until', '<', now()->startOfDay())
-            ->update(['status' => 'expired']);
+            ->update([
+                'status' => 'expired',
+                'quotation_statuses_id' => $expiredStatus ? $expiredStatus->id : null
+            ]);
             
         // Summary (Sekarang data 'expired' sudah terhitung dengan benar oleh database)
         $summary = Quotation::select('status', DB::raw('count(*) as count'))
@@ -70,7 +74,7 @@ class QuotationController extends Controller {
 
         // Filter Status (Sudah otomatis mendukung 'expired' karena sudah di-update di DB)
         $query->when($request->input('status') && $request->input('status') !== 'all', function ($q) use ($request) {
-            $q->where('status', $request->input('status'));
+            $q->where('quotation_statuses_id', $request->input('status'));
         });
 
         // Filter Month
