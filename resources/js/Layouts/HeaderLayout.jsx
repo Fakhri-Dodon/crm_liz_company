@@ -624,7 +624,7 @@ export default function HeaderLayout({ header, children, }) {
                                                     )}
 
                                                     {/* TOMBOL PREVIEW (ONLY QUOTATION AND INVOICE) */}
-                                                    {docType !== "proposal" && (
+                                                    {docType !== "proposals" && (
                                                         <button
                                                             onClick={() =>
                                                                 handlePreviewClick(

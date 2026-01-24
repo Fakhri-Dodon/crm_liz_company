@@ -81,10 +81,25 @@ class Quotation extends Model
 
     public function scopeSyncExpiredStatus($query)
     {
-        return $query->where('deleted', 0)
+        // return $query->where('deleted', 0)
+        //     ->whereNotIn('status', ['accepted', 'rejected', 'expired'])
+        //     ->where('valid_until', '<', now()->startOfDay())
+        //     ->update(['status' => 'expired']);
+
+        $expiredStatus = \App\Models\QuotationStatuses::where('name', 'Expired')
+            ->orWhere('slug', 'expired')
+            ->first();
+            
+        $updateData = ['status' => 'expired'];
+
+        if ($expiredStatus) {
+            $updateData['quotation_statuses_id'] = $expiredStatus->id;
+        }
+
+        return $query->where('quotations.deleted', 0)
             ->whereNotIn('status', ['accepted', 'rejected', 'expired'])
             ->where('valid_until', '<', now()->startOfDay())
-            ->update(['status' => 'expired']);
+            ->update($updateData);
     }
 
     public static function boot()
@@ -186,7 +201,7 @@ class Quotation extends Model
     protected static function booted()
     {
         static::addGlobalScope('notDeleted', function ($query) {
-            $query->where('deleted', 0);
+            $query->where('quotations.deleted', 0);
         });
     }
 }

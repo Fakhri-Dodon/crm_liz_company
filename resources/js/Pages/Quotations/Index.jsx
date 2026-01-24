@@ -281,6 +281,17 @@ export default function QoutationsIndex({
         { value: "12", label: "Dec" },
     ];
 
+    const getValue = (obj, key) => {
+        if (!obj) return 0;
+        if (obj[key] !== undefined) return obj[key];
+        
+        const foundKey = Object.keys(obj).find(
+            (k) => k.toLowerCase() === key.toLowerCase()
+        );
+        
+        return foundKey ? obj[foundKey] : 0;
+    };
+
     const statusColors = {
         sent: {
             bg: "bg-blue-100",
@@ -397,6 +408,51 @@ export default function QoutationsIndex({
 
                 {/* Status Section */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 my-7">
+                    {Object.entries(statusColors).map(([statusKey, colors]) => {
+                        // Gunakan helper getValue agar "expired" cocok dengan "Expired" dari DB
+                        const count = getValue(summary, statusKey);
+                        const totalAmount = getValue(totals, statusKey);
+
+                        return (
+                            <div
+                                key={statusKey}
+                                className={`rounded-xl p-5 shadow-sm border ${colors.border} ${colors.bg} transition-transform hover:scale-[1.02] hover:shadow-md`}
+                            >
+                                <div className="flex items-center justify-between">
+                                    <div>
+                                        <p className={`text-sm font-medium ${colors.text} uppercase tracking-wide`}>
+                                            {t(`quotations.stats.${statusKey}`)}
+                                        </p>
+                                        
+                                        {/* Count (Jumlah Quotation) */}
+                                        <p className="text-2xl md:text-3xl font-bold text-gray-900 mt-2">
+                                            {count}
+                                        </p>
+
+                                        {/* Total Amount (Rupiah) */}
+                                        <p className="text-xs text-gray-600 mt-2 font-medium flex items-center gap-1">
+                                            {new Intl.NumberFormat("id-ID", {
+                                                style: "currency",
+                                                currency: "IDR",
+                                                maximumFractionDigits: 0,
+                                            }).format(totalAmount)}
+                                        </p>
+                                    </div>
+                                    
+                                    {/* Icon Box */}
+                                    <div className={`p-3 rounded-full ${colors.bg}`}>
+                                        {colors.icon ? (
+                                            <span className="text-lg">{colors.icon}</span>
+                                        ) : (
+                                            <div className={`w-3 h-3 rounded-full ${colors.text.replace("text-", "bg-")}`}></div>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+                        );
+                    })}
+                </div>
+                {/* <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 my-7">
                     {Object.entries(statusColors).map(([status, colors]) => (
                         <div
                             key={status}
@@ -412,7 +468,6 @@ export default function QoutationsIndex({
                                     <p className="text-2xl md:text-3xl font-bold text-gray-900 mt-2">
                                         {summary[status] || 0}
                                     </p>
-                                    {/* Mengganti baris border-t dengan teks keterangan kecil agar seragam */}
                                     <p className="text-xs text-gray-500 mt-2">
                                         {new Intl.NumberFormat("id-ID", {
                                             style: "currency",
@@ -444,7 +499,7 @@ export default function QoutationsIndex({
                             </div>
                         </div>
                     ))}
-                </div>
+                </div> */}
 
                 {/* Filter Section */}
                 <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 md:p-6">
