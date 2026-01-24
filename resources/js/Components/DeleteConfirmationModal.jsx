@@ -46,7 +46,7 @@ const DeleteConfirmationModal = ({ isOpen, onClose, onConfirm, lead }) => {
                                         Warning:
                                     </p>
                                     <p className="text-sm text-red-600 mt-1">
-                                        This action will also permanently delete
+                                        This action will also delete
                                         all related data (quotations, invoices,
                                         payments, project, client, etc.) connected to this lead.
                                     </p>

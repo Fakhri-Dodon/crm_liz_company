@@ -111,7 +111,7 @@ export default function TableLayout({
             if (!widths[col.key]) {
                 if (col.key === 'quotation_number') widths[col.key] = '150px';
                 else if (col.key === 'date') widths[col.key] = '120px';
-                else if (col.key === 'subject') widths[col.key] = '300px';
+                else if (col.key === 'subject') widths[col.key] = '230px';
                 else if (col.key === 'lead') widths[col.key] = '200px';
                 else if (col.key === 'total') widths[col.key] = '180px';
                 else if (col.key === 'status') widths[col.key] = '130px';

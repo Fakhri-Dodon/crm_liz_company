@@ -8,6 +8,7 @@ use App\Models\Lead;
 use App\Models\LeadStatuses;
 use App\Models\CompanyContactPerson;
 use App\Models\User;
+use App\Models\ActivityLogs;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -321,9 +322,16 @@ class LeadController extends Controller
             }
             
             Log::info('Creating lead with data:', $data);
+
+            // ActivityLogs::create([
+            //     'user_id' => auth()->id(),
+            //     'module' => 'Lead',
+            //     'action' => 'Created',
+            //     'description' => 'Create New Lead: ' . $lead->company_name,
+            // ]);
             
             $lead = Lead::create($data);
-            
+
             // BUAT COMPANY CONTACT PERSON SECARA OTOMATIS
             if ($lead->contact_person && $lead->email) {
                 Log::info('Attempting to create CompanyContactPerson for new lead');
@@ -393,6 +401,13 @@ class LeadController extends Controller
             }
             
             $lead->update($data);
+
+            // ActivityLogs::create([
+            //     'user_id' => auth()->id(),
+            //     'module' => 'Lead',
+            //     'action' => 'Update',
+            //     'description' => 'Update Lead: ' . $lead->company_name,
+            // ]);
             
             // UPDATE COMPANY CONTACT PERSON SECARA OTOMATIS jika data kontak berubah
             if ($contactChanged && $lead->contact_person && $lead->email) {
@@ -524,6 +539,13 @@ class LeadController extends Controller
             
             // Cukup panggil delete(), observer akan handle cascade
             $lead->delete();
+
+            // ActivityLogs::create([
+            //     'user_id' => auth()->id(),
+            //     'module' => 'Lead',
+            //     'action' => 'Deleted',
+            //     'description' => 'Delete Lead: ' . $lead->company_name,
+            // ]);
             
             // Cek status setelah delete
             $lead->refresh();
