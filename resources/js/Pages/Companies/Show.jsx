@@ -371,6 +371,7 @@ const Show = ({
                         data={displayData.invoices} // Gunakan displayData.invoices
                         companyId={company.id}
                         auth_permissions={auth_permissions}
+                        companyData={company} // ← Ini yang penting!
                     />
                 );
             case "payment":
@@ -486,7 +487,7 @@ const Show = ({
                                             <svg
                                                 className="w-5 h-5 text-green-600"
                                                 fill="none"
-                                                stroke="currentColor"
+                                             stroke="currentColor"
                                                 viewBox="0 0 24 24"
                                             >
                                                 <path

@@ -767,7 +767,13 @@
         "due": "Jatuh Tempo",
         "no_number": "Tanpa nomor",
         "no_contact_person": "Tidak ada kontak",
-        "invoice_number": "Invoice Id"
+        "invoice_number": "Invoice Id",
+        "status_update_failed": "Gagal memperbarui status",
+        "delete_failed": "Gagal menghapus invoice",
+        "no_company": "Tidak ada perusahaan",
+        "company_name": "Nama Perusahaan",
+        "payment": "Pembayaran",
+        "tax": "Pajak"
     },
       "table": {
     "actions": "Aksi",

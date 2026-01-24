@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { router } from '@inertiajs/react';
 import { 
-    FileText, Search, Edit2, Trash2, Maximize2, Minimize2
+    FileText, Search, Maximize2, Minimize2
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import SubModuleTableLayout, { ExpandableTextCell, ExpandableAmountCell } from '@/Layouts/SubModuleTableLayout';
@@ -28,19 +28,8 @@ const InvoiceTable = ({ data: initialData, companyId, auth_permissions }) => {
 
     // Format currency dengan pemisah titik
     const formatCurrency = (amount) => {
-        if (amount === null || amount === undefined) return `Rp 0`;
+        if (amount === null || amount === undefined || isNaN(amount)) return `Rp 0`;
         return `Rp ${amount.toLocaleString('id-ID')}`;
-    };
-
-    // Format compact untuk angka besar
-    const formatCompactCurrency = (amount) => {
-        if (amount === null || amount === undefined) return `Rp 0`;
-        
-        if (amount >= 1000000000) return `Rp${(amount / 1000000000).toFixed(1)}M`;
-        if (amount >= 1000000) return `Rp${(amount / 1000000).toFixed(1)}JT`;
-        if (amount >= 1000) return `Rp${(amount / 1000).toFixed(0)}K`;
-        
-        return `Rp ${amount}`;
     };
 
     const formatDate = (dateString) => {
@@ -58,6 +47,7 @@ const InvoiceTable = ({ data: initialData, companyId, auth_permissions }) => {
         }
     };
 
+    // Status badge static (tanpa fungsi edit)
     const getStatusBadge = (status) => {
         const baseClasses = "inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium whitespace-nowrap";
         
@@ -113,9 +103,75 @@ const InvoiceTable = ({ data: initialData, companyId, auth_permissions }) => {
         
         return (
             <span className={`${baseClasses} bg-gray-100 text-gray-800 truncate`}>
-                {status.length > 8 ? `${status.substring(0, 8)}...` : status}
+                {status}
             </span>
         );
+    };
+
+    // Fungsi untuk mendapatkan nama perusahaan (tetap dipertahankan untuk pencarian)
+    const getCompanyName = (invoice) => {
+        // Prioritas 1: Dari company_name langsung
+        if (invoice.company_name) return invoice.company_name;
+        
+        // Prioritas 2: Dari company object
+        if (invoice.company?.company_name) return invoice.company.company_name;
+        
+        // Prioritas 3: Dari lead
+        if (invoice.lead?.company_name) return invoice.lead.company_name;
+        
+        // Fallback
+        return t('invoice_table.not_available');
+    };
+
+    // Fungsi untuk mendapatkan nomor invoice dengan link PDF
+    const getInvoiceNumberCell = (value, row) => {
+        const hasPdf = row.pdf_path && row.pdf_path !== '';
+        
+        if (hasPdf) {
+            return (
+                <div className="min-w-0">
+                    <a 
+                        className="text-blue-600 font-semibold hover:underline cursor-pointer whitespace-nowrap text-xs" 
+                        href={`/storage/${row.pdf_path}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        {value || t('invoice_table.no_number')}
+                    </a>
+                    <span className="text-gray-500 text-[11px] block mt-0.5">
+                        {formatDate(row.date)}
+                    </span>
+                </div>
+            );
+        }
+
+        return (
+            <div className="min-w-0">
+                <div className="font-semibold text-gray-900 text-xs truncate">
+                    {value || t('invoice_table.no_number')}
+                </div>
+                <div className="text-gray-500 text-[11px] mt-0.5">
+                    {formatDate(row.date)}
+                </div>
+            </div>
+        );
+    };
+
+    // Fungsi untuk mendapatkan payment amount
+    const getPaymentAmount = (invoice) => {
+        // Prioritas 1: Dari paid_amount langsung
+        if (invoice.paid_amount !== undefined && invoice.paid_amount !== null) {
+            return invoice.paid_amount;
+        }
+        
+        // Prioritas 2: Hitung dari invoice_amount - amount_due
+        if (invoice.invoice_amount !== undefined && invoice.amount_due !== undefined) {
+            const paid = invoice.invoice_amount - invoice.amount_due;
+            return Math.max(0, paid);
+        }
+        
+        return 0;
     };
 
     const filterData = () => {
@@ -123,6 +179,7 @@ const InvoiceTable = ({ data: initialData, companyId, auth_permissions }) => {
             .filter(invoice => {
                 const matchesSearch = searchTerm === '' || 
                     (invoice.invoice_number && invoice.invoice_number.toLowerCase().includes(searchTerm.toLowerCase())) ||
+                    (getCompanyName(invoice) && getCompanyName(invoice).toLowerCase().includes(searchTerm.toLowerCase())) ||
                     (invoice.contact_person?.name && invoice.contact_person.name.toLowerCase().includes(searchTerm.toLowerCase()));
                 
                 if (statusFilter === 'all') return matchesSearch;
@@ -164,150 +221,109 @@ const InvoiceTable = ({ data: initialData, companyId, auth_permissions }) => {
             setData(prev => prev.filter(item => item.id !== invoice.id));
         } catch (error) {
             console.error('Delete error:', error);
+            alert(t('invoice_table.delete_failed'));
         } finally {
             setDeletingId(null);
         }
     };
 
-    // Komponen untuk tax info - TEXT KECIL
+    // Komponen untuk tax info
     const TaxInfo = ({ invoice }) => {
         const isExpanded = expandedTaxes[invoice.id];
-        const ppnAmount = invoice.ppn_amount || invoice.ppn || 0;
-        const pphAmount = invoice.pph_amount || invoice.pph || 0;
+        const ppnAmount = invoice.ppn || 0;
+        const pphAmount = invoice.pph || 0;
         
-        const fullPpn = formatCurrency(ppnAmount);
-        const fullPph = formatCurrency(pphAmount);
+        // Format: "PPN Rp X / PPh Rp Y"
+        const taxText = `${t('invoice_table.ppn')} Rp ${ppnAmount.toLocaleString('id-ID')} / ${t('invoice_table.pph')} Rp ${pphAmount.toLocaleString('id-ID')}`;
         
-        const compactPpn = formatCompactCurrency(ppnAmount);
-        const compactPph = formatCompactCurrency(pphAmount);
-        
-        const shouldShowExpand = fullPpn !== compactPpn || fullPph !== compactPph;
+        if (taxText.length <= 60) {
+            return (
+                <div className="text-gray-600 text-xs">
+                    {taxText}
+                </div>
+            );
+        }
         
         return (
             <div className="min-w-0">
-                <div className="space-y-0.5 text-xs">
-                    {/* Baris 1: PPN */}
-                    <div className="flex items-center justify-between gap-1">
-                        <div className="flex items-center gap-1 min-w-0">
-                            <span className="font-medium text-gray-700 whitespace-nowrap text-[11px]">
-                                PPN:
-                            </span>
-                            <span className="text-gray-600 text-[11px] truncate" title={fullPpn}>
-                                {isExpanded ? fullPpn : compactPpn}
-                            </span>
-                        </div>
-                        {shouldShowExpand && (
-                            <button 
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    setExpandedTaxes(prev => ({
-                                        ...prev,
-                                        [invoice.id]: !prev[invoice.id]
-                                    }));
-                                }}
-                                className="p-0.5 text-gray-400 hover:text-gray-600 flex-shrink-0"
-                                title={isExpanded ? t('invoice_table.collapse') : t('invoice_table.expand')}
-                            >
-                                {isExpanded ? (
-                                    <Minimize2 className="w-3 h-3" />
-                                ) : (
-                                    <Maximize2 className="w-3 h-3" />
-                                )}
-                            </button>
+                <div className="flex items-start gap-1">
+                    <div className={`text-gray-600 text-xs ${!isExpanded ? 'truncate' : ''}`}>
+                        {isExpanded ? taxText : `${taxText.substring(0, 60)}...`}
+                    </div>
+                    <button 
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            setExpandedTaxes(prev => ({
+                                ...prev,
+                                [invoice.id]: !prev[invoice.id]
+                            }));
+                        }}
+                        className="p-0.5 text-gray-400 hover:text-gray-600 flex-shrink-0"
+                        title={isExpanded ? t('invoice_table.show_less') : t('invoice_table.show_more')}
+                    >
+                        {isExpanded ? (
+                            <Minimize2 className="w-3 h-3" />
+                        ) : (
+                            <Maximize2 className="w-3 h-3" />
                         )}
-                    </div>
-                    
-                    {/* Baris 2: PPH */}
-                    <div className="flex items-center gap-1">
-                        <span className="font-medium text-gray-700 whitespace-nowrap text-[11px]">
-                            PPH:
-                        </span>
-                        <span className="text-gray-600 text-[11px] truncate" title={fullPph}>
-                            {isExpanded ? fullPph : compactPph}
-                        </span>
-                    </div>
+                    </button>
                 </div>
             </div>
         );
     };
 
-    // Prepare columns untuk SubModuleTableLayout dengan TEXT KECIL
+    // Prepare columns untuk SubModuleTableLayout - TANPA kolom company_name
     const columns = useMemo(() => [
         {
             key: 'invoice_number',
-            label: t('invoice_table.invoice_number'),
-            width: '140px',
-            render: (value, row) => (
-                <div className="min-w-0">
-                    <div className="font-medium text-gray-900 text-xs truncate" title={value}>
-                        {value || t('invoice_table.no_number')}
-                    </div>
-                    <div className="text-gray-500 text-[11px] mt-0.5 truncate">
-                        {formatDate(row.date)}
-                    </div>
-                </div>
-            )
-        },
-        {
-            key: 'date',
-            label: t('invoice_table.date'),
-            width: '100px',
-            className: 'hidden lg:table-cell',
-            render: (value) => (
-                <div className="text-gray-600 text-xs truncate">
-                    {formatDate(value)}
-                </div>
-            )
-        },
-        {
-            key: 'contact_person',
-            label: t('invoice_table.contact_person'),
-            width: '140px',
-            render: (value) => (
-                <ExpandableTextCell 
-                    text={value?.name || t('invoice_table.no_contact_person')} 
-                    maxLength={20}
-                    className="text-xs"
-                />
-            )
+            label: t('invoice_table.invoice'),
+            width: '150px',
+            render: (value, row) => getInvoiceNumberCell(value, row)
         },
         {
             key: 'invoice_amount',
             label: t('invoice_table.invoice_amount'),
             width: '130px',
             render: (value) => (
-                <ExpandableAmountCell 
-                    amount={value} 
-                    formatFunction={formatCurrency}
-                    className="text-xs"
-                />
+                <div className="font-medium text-gray-900 text-xs">
+                    {formatCurrency(value || 0)}
+                </div>
             )
+        },
+        {
+            key: 'payment',
+            label: t('invoice_table.payment'),
+            width: '120px',
+            render: (value, row) => {
+                const paymentAmount = getPaymentAmount(row);
+                return (
+                    <div className="text-gray-600 text-xs">
+                        {formatCurrency(paymentAmount)}
+                    </div>
+                );
+            }
+        },
+        {
+            key: 'tax_info',
+            label: t('invoice_table.tax'),
+            width: '140px',
+            render: (value, row) => <TaxInfo invoice={row} />
         },
         {
             key: 'amount_due',
             label: t('invoice_table.amount_due'),
-            width: '130px',
+            width: '120px',
             render: (value) => (
                 <div className="font-bold text-red-600 text-xs">
-                    <ExpandableAmountCell 
-                        amount={value} 
-                        formatFunction={formatCurrency}
-                        className="text-xs"
-                    />
+                    {formatCurrency(value || 0)}
                 </div>
             )
         },
         {
             key: 'status',
             label: t('invoice_table.status'),
-            width: '110px',
-            render: (value) => getStatusBadge(value)
-        },
-        {
-            key: 'tax_info',
-            label: 'Pajak',
             width: '120px',
-            render: (value, row) => <TaxInfo invoice={row} />
+            render: (value) => getStatusBadge(value)
         }
     ], [t]);
 

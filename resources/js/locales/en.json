@@ -767,7 +767,13 @@
         "due": "Due",
         "no_number": "No number",
         "no_contact_person": "No contact person",
-        "invoice_number": "No"
+        "invoice_number": "No",
+        "status_update_failed": "Failed to update status",
+        "delete_failed": "Failed to delete invoice",
+        "no_company": "No company",
+        "company_name": "Company Name",
+        "payment": "Payment",
+        "tax": "Tax"
     },
       "table": {
     "actions": "Actions",
