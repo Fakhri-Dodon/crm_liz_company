@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Project extends Model
 {
@@ -14,7 +15,6 @@ class Project extends Model
     public $incrementing = false;
     protected $keyType = 'string';
     
-    // Tetap pakai client_id untuk database
     protected $fillable = [
         'id',
         'quotation_id',
@@ -75,28 +75,34 @@ class Project extends Model
         });
     }
 
-    // TAMBAHKAN: Accessor untuk company_id alias
+    // ============ ACCESSORS ============
+    
+    // Accessor untuk company_id alias
     public function getCompanyIdAttribute()
     {
         return $this->client_id;
     }
 
-    // TAMBAHKAN: Mutator untuk company_id alias
+    // Mutator untuk company_id alias
     public function setCompanyIdAttribute($value)
     {
         $this->attributes['client_id'] = $value;
     }
 
-    // Relationship dengan Company - pakai client_id
+    // ============ RELATIONSHIPS FIX ============
+    
+    // Relationship dengan Company - TAMPILKAN SEMUA meski company dihapus
     public function company()
     {
         return $this->belongsTo(Company::class, 'client_id', 'id')
-                    ->with(['lead']); // Tambah with lead
+                    ->withoutGlobalScope('notDeleted'); // Hapus scope deleted
     }
 
+    // Relationship dengan Quotation - TAMPILKAN SEMUA meski quotation dihapus
     public function quotation()
     {
-        return $this->belongsTo(Quotation::class, 'quotation_id');
+        return $this->belongsTo(Quotation::class, 'quotation_id')
+                    ->withoutGlobalScope('notDeleted'); // Hapus scope deleted
     }
 
     public function assignedUser()
@@ -123,5 +129,107 @@ class Project extends Model
     public function client()
     {
         return $this->company();
+    }
+    
+    // ============ GLOBAL SCOPE ============
+    
+    /**
+     * Global scope untuk data yang tidak dihapus
+     */
+    protected static function booted()
+    {
+        static::addGlobalScope('notDeleted', function ($query) {
+            $query->where('deleted', 0);
+        });
+    }
+    
+    // ============ SCOPES ============
+
+    // Di app/Models/Project.php - tambahkan method ini
+
+    /**
+     * Scope untuk mencari projects berdasarkan lead_id (melalui company)
+     */
+    public function scopeByLead($query, $leadId)
+    {
+        // Cari company_id dari lead
+        $lead = \App\Models\Lead::find($leadId);
+        
+        if ($lead && $lead->company_id) {
+            return $query->where('client_id', $lead->company_id);
+        }
+        
+        return $query->where('id', null); // Return empty result
+    }
+
+    /**
+     * Scope untuk mencari projects berdasarkan quotation dari lead
+     */
+    public function scopeByLeadQuotations($query, $leadId)
+    {
+        // Cari quotation_ids dari lead
+        $quotationIds = \App\Models\Quotation::where('lead_id', $leadId)
+            ->pluck('id')
+            ->toArray();
+        
+        if (!empty($quotationIds)) {
+            return $query->whereIn('quotation_id', $quotationIds);
+        }
+        
+        return $query->where('id', null); // Return empty result
+    }
+
+    /**
+     * Get all projects related to a lead (via company OR quotations)
+     */
+    public static function getProjectsByLead($leadId)
+    {
+        $projects = collect();
+        
+        // Via company
+        $lead = \App\Models\Lead::find($leadId);
+        if ($lead && $lead->company_id) {
+            $projects = $projects->merge(
+                self::where('client_id', $lead->company_id)->get()
+            );
+        }
+        
+        // Via quotations
+        $quotationIds = \App\Models\Quotation::where('lead_id', $leadId)
+            ->pluck('id')
+            ->toArray();
+        
+        if (!empty($quotationIds)) {
+            $projects = $projects->merge(
+                self::whereIn('quotation_id', $quotationIds)->get()
+            );
+        }
+        
+        return $projects->unique('id');
+    }
+    
+    public function scopeWithTrashed($query)
+    {
+        return $query->withoutGlobalScope('notDeleted');
+    }
+    
+    public function scopeOnlyTrashed($query)
+    {
+        return $query->withoutGlobalScope('notDeleted')->where('deleted', 1);
+    }
+    
+    public function scopeActive($query)
+    {
+        return $query->where('deleted', 0)->where('status', 'active');
+    }
+    
+    public function scopeCompleted($query)
+    {
+        return $query->where('deleted', 0)->where('status', 'completed');
+    }
+    
+    public function scopeInProgress($query)
+    {
+        return $query->where('deleted', 0)->where('status', 'in_progress');
     }
 }

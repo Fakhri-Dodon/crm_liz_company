@@ -929,7 +929,12 @@ public function index(Request $request)
             if ($company->quotation_id) {
                 Log::info('Company has quotation_id: ' . $company->quotation_id);
                 
-                $primaryQuotation = Quotation::with(['lead', 'acceptor'])
+                $primaryQuotation = Quotation::with([
+                    'lead', 
+                    'acceptor',
+                    'companyContactPerson', // Relasi ke contact person
+                    'statusRel' // Relasi ke status
+                ])
                     ->where('id', $company->quotation_id)
                     ->where('deleted', 0)
                     ->first();
@@ -938,7 +943,8 @@ public function index(Request $request)
                     Log::info('Primary quotation found:', [
                         'id' => $primaryQuotation->id,
                         'quotation_number' => $primaryQuotation->quotation_number,
-                        'lead_id' => $primaryQuotation->lead_id
+                        'lead_id' => $primaryQuotation->lead_id,
+                        'company_contact_person_id' => $primaryQuotation->company_contact_person_id
                     ]);
                     
                     $allQuotations->push($primaryQuotation);
@@ -946,7 +952,12 @@ public function index(Request $request)
                     if ($primaryQuotation->lead_id) {
                         Log::info('Looking for other quotations with same lead_id: ' . $primaryQuotation->lead_id);
                         
-                        $relatedQuotations = Quotation::with(['lead', 'acceptor'])
+                        $relatedQuotations = Quotation::with([
+                            'lead', 
+                            'acceptor',
+                            'companyContactPerson',
+                            'statusRel'
+                        ])
                             ->where('lead_id', $primaryQuotation->lead_id)
                             ->where('id', '!=', $primaryQuotation->id)
                             ->where('deleted', 0)
@@ -960,7 +971,12 @@ public function index(Request $request)
             } elseif ($company->lead_id) {
                 Log::info('Looking for quotations using company lead_id: ' . $company->lead_id);
                 
-                $quotationsByLead = Quotation::with(['lead', 'acceptor'])
+                $quotationsByLead = Quotation::with([
+                    'lead', 
+                    'acceptor',
+                    'companyContactPerson',
+                    'statusRel'
+                ])
                     ->where('lead_id', $company->lead_id)
                     ->where('deleted', 0)
                     ->orderBy('created_at', 'desc')
@@ -973,7 +989,7 @@ public function index(Request $request)
             Log::info('Total quotations to display: ' . $allQuotations->count());
             
             // Format quotations
-            $formattedQuotations = $allQuotations->map(function($quotation) {
+            $formattedQuotations = $allQuotations->map(function($quotation) use ($company) {
                 $formatDate = function($dateValue) {
                     if (!$dateValue) return null;
                     
@@ -997,12 +1013,42 @@ public function index(Request $request)
                     return null;
                 };
                 
+                // Get status info from relation or from status_options
+                $statusInfo = $quotation->statusRel ? [
+                    'id' => $quotation->statusRel->id,
+                    'name' => $quotation->statusRel->name,
+                    'color' => $quotation->statusRel->color,
+                    'color_name' => $quotation->statusRel->color_name,
+                    'is_system' => (bool) $quotation->statusRel->is_system
+                ] : null;
+                
+                // Get contact person info from relation
+                $contactInfo = null;
+                if ($quotation->companyContactPerson) {
+                    $contactInfo = [
+                        'id' => $quotation->companyContactPerson->id,
+                        'name' => $quotation->companyContactPerson->name,
+                        'email' => $quotation->companyContactPerson->email,
+                        'phone' => $quotation->companyContactPerson->phone,
+                        'position' => $quotation->companyContactPerson->position,
+                        'is_primary' => (bool) ($quotation->companyContactPerson->is_primary ?? false)
+                    ];
+                } elseif ($quotation->lead) {
+                    // Fallback to lead contact person
+                    $contactInfo = [
+                        'name' => $quotation->lead->contact_person,
+                        'email' => $quotation->lead->email,
+                        'phone' => $quotation->lead->phone,
+                        'position' => $quotation->lead->position
+                    ];
+                }
+                
                 return [
                     'id' => $quotation->id,
                     'quotation_number' => $quotation->quotation_number,
                     'date' => $formatDate($quotation->date),
                     'valid_until' => $formatDate($quotation->valid_until),
-                    'status' => $quotation->status,
+                    'status' => $quotation->status, // Field status dari tabel quotations
                     'subject' => $quotation->subject,
                     'payment_terms' => $quotation->payment_terms,
                     'note' => $quotation->note,
@@ -1017,6 +1063,12 @@ public function index(Request $request)
                         'address' => $quotation->lead->address
                     ] : null,
                     'lead_id' => $quotation->lead_id,
+                    // Status relation - penting untuk frontend
+                    'quotation_statuses_id' => $quotation->quotation_statuses_id,
+                    'status_rel' => $statusInfo,
+                    // Contact person relation
+                    'company_contact_person_id' => $quotation->company_contact_person_id,
+                    'company_contact_person' => $contactInfo,
                     'accepted_at' => $quotation->accepted_at ? 
                         (is_string($quotation->accepted_at) ? 
                             $quotation->accepted_at : 
@@ -1034,6 +1086,8 @@ public function index(Request $request)
                         (is_string($quotation->updated_at) ? 
                             $quotation->updated_at : 
                             $quotation->updated_at->format('Y-m-d H:i:s')) : null,
+                    'is_client' => true, // Karena ini di company page
+                    'creator' => null, // Bisa ditambahkan jika ada relasi
                     'auth_permissions' => auth()->user()->getPermissions('CLIENTS'),            
                 ];
             })->values();

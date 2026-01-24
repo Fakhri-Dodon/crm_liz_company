@@ -24,27 +24,33 @@ use Illuminate\Support\Facades\Mail;
 
 class QuotationController extends Controller {
     public function index(Request $request) {
+        $expiredStatus = QuotationStatuses::where('name', 'Expired')->first();
         // SYNC: Update status di database sebelum melakukan perhitungan apapun
         Quotation::where('deleted', 0)
             ->whereNotIn('status', ['accepted', 'rejected', 'expired'])
             ->whereNotNull('valid_until')
             ->where('valid_until', '<', now()->startOfDay())
-            ->update(['status' => 'expired']);
+            ->update([
+                'status' => 'expired',
+                'quotation_statuses_id' => $expiredStatus ? $expiredStatus->id : null
+            ]);
             
-        // Summary (Sekarang data 'expired' sudah terhitung dengan benar oleh database)
-        $summary = Quotation::select('status', DB::raw('count(*) as count'))
-            ->where('deleted', 0)
-            ->groupBy('status')
+        // Summary
+        $summary = Quotation::join('quotation_statuses', 'quotations.quotation_statuses_id', '=', 'quotation_statuses.id')
+            ->select('quotation_statuses.name', DB::raw('count(quotations.id) as count'))
+            ->where('quotations.deleted', 0)
+            ->groupBy('quotation_statuses.name')
             ->get()
-            ->pluck('count', 'status')
+            ->pluck('count', 'name')
             ->toArray();
 
-        // Totals per status
-        $totals = Quotation::select('status', DB::raw('SUM(total) as total_amount'))
-            ->where('deleted', 0)
-            ->groupBy('status')
+        // Totals
+        $totals = Quotation::join('quotation_statuses', 'quotations.quotation_statuses_id', '=', 'quotation_statuses.id')
+            ->select('quotation_statuses.name', DB::raw('SUM(quotations.total) as total_amount'))
+            ->where('quotations.deleted', 0)
+            ->groupBy('quotation_statuses.name')
             ->get()
-            ->pluck('total_amount', 'status')
+            ->pluck('total_amount', 'name')
             ->toArray();
 
         $years = Quotation::select(DB::raw('YEAR(date) as year'))
@@ -70,7 +76,7 @@ class QuotationController extends Controller {
 
         // Filter Status (Sudah otomatis mendukung 'expired' karena sudah di-update di DB)
         $query->when($request->input('status') && $request->input('status') !== 'all', function ($q) use ($request) {
-            $q->where('status', $request->input('status'));
+            $q->where('quotation_statuses_id', $request->input('status'));
         });
 
         // Filter Month
@@ -666,7 +672,7 @@ class QuotationController extends Controller {
             $template = EmailTemplates::findOrFail($request->template_id);
 
             if ($docType === 'proposal') {
-                $actionUrl = url('/proposal/' . $document->proposal_element_template_id);
+                $actionUrl = url('/proposal/' . $document->proposal_element_template_id . '/preview');
             }
 
             // 3. Tentukan Link & Attachment secara dinamis
@@ -674,8 +680,8 @@ class QuotationController extends Controller {
             $link = '#';
             $actionUrl = null;
 
-            if ($docType === 'proposal') {
-                $link = url("/proposal/" . $document->slug); // Sesuaikan route
+            if ($docType === 'proposals') {
+                $link = url("/proposal/" . $document->proposal_element_template_id . '/preview'); // Sesuaikan route
             } else {
                 $filePath = $document->pdf_path;
                 $link = asset('storage/' . $filePath);

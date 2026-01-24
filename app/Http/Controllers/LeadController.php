@@ -8,6 +8,7 @@ use App\Models\Lead;
 use App\Models\LeadStatuses;
 use App\Models\CompanyContactPerson;
 use App\Models\User;
+use App\Models\ActivityLogs;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -321,9 +322,16 @@ class LeadController extends Controller
             }
             
             Log::info('Creating lead with data:', $data);
+
+            // ActivityLogs::create([
+            //     'user_id' => auth()->id(),
+            //     'module' => 'Lead',
+            //     'action' => 'Created',
+            //     'description' => 'Create New Lead: ' . $lead->company_name,
+            // ]);
             
             $lead = Lead::create($data);
-            
+
             // BUAT COMPANY CONTACT PERSON SECARA OTOMATIS
             if ($lead->contact_person && $lead->email) {
                 Log::info('Attempting to create CompanyContactPerson for new lead');
@@ -393,6 +401,13 @@ class LeadController extends Controller
             }
             
             $lead->update($data);
+
+            // ActivityLogs::create([
+            //     'user_id' => auth()->id(),
+            //     'module' => 'Lead',
+            //     'action' => 'Update',
+            //     'description' => 'Update Lead: ' . $lead->company_name,
+            // ]);
             
             // UPDATE COMPANY CONTACT PERSON SECARA OTOMATIS jika data kontak berubah
             if ($contactChanged && $lead->contact_person && $lead->email) {
@@ -428,43 +443,323 @@ class LeadController extends Controller
             ], 500);
         }
     }
-
+    
     /**
-     * API: Delete lead (SOFT DELETE)
+     * Get user role name safely
      */
+    private function getUserRoleName($user)
+    {
+        if (!$user) return null;
+        
+        // Check if role relationship is loaded
+        if ($user->relationLoaded('role') && $user->role && isset($user->role->name)) {
+            return $user->role->name;
+        }
+        
+        // Check direct properties
+        if (isset($user->role_name) && !empty($user->role_name)) {
+            return $user->role_name;
+        }
+        
+        if (isset($user->role)) {
+            if (is_string($user->role)) {
+                return $user->role;
+            } elseif (is_object($user->role) && isset($user->role->name)) {
+                return $user->role->name;
+            }
+        }
+        
+        // Check for is_admin flag as fallback
+        if (isset($user->is_admin) && $user->is_admin) {
+            return 'Admin';
+        }
+        
+        return 'User';
+    }
+    
+    /**
+     * Get user permissions safely
+     */
+    private function getUserPermissions($user, $module = null)
+    {
+        if (!$user) return [];
+        
+        // Default permissions
+        $defaultPermissions = [
+            'view'   => true,
+            'create' => true,
+            'update' => true,
+            'delete' => true,
+        ];
+        
+        // Check if getPermissions method exists
+        if (method_exists($user, 'getPermissions')) {
+            try {
+                $customPermissions = $user->getPermissions($module);
+                if (is_array($customPermissions) && !empty($customPermissions)) {
+                    return array_merge($defaultPermissions, $customPermissions);
+                }
+            } catch (\Exception $e) {
+                \Log::warning('getPermissions method error: ' . $e->getMessage());
+            }
+        }
+        
+        return $defaultPermissions;
+    }
+
+
+    // Di LeadController@destroy - Versi SIMPLE
     public function destroy($id)
     {
-        DB::beginTransaction();
         try {
+            \Log::info('=== DELETE LEAD REQUEST ===');
+            
             $lead = Lead::find($id);
             
             if (!$lead) {
                 return response()->json([
-                    'error' => 'Lead not found'
+                    'success' => false,
+                    'message' => 'Lead tidak ditemukan'
                 ], 404);
             }
             
-            // Set deleted_by jika ada user login
-            if (Auth::user()) {
-                $lead->deleted_by = Auth::id();
-                $lead->save();
+            \Log::info("Lead to delete: {$lead->company_name} (ID: {$lead->id})");
+            
+            // Cek apakah sudah dihapus
+            if ($lead->deleted == 1) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Lead sudah dihapus sebelumnya'
+                ], 400);
             }
             
+            // Cek data terkait sebelum delete
+            $relatedData = $this->checkRelatedData($lead);
+            \Log::info("Related data found:", $relatedData);
+            
+            // Cukup panggil delete(), observer akan handle cascade
             $lead->delete();
-            
-            DB::commit();
 
-            return response()->json([
-                'message' => 'Lead deleted successfully',
-                'deleted_id' => $id
-            ]);
-        } catch (\Exception $e) {
-            DB::rollBack();
-            Log::error('Failed to delete lead: ' . $e->getMessage());
+            // ActivityLogs::create([
+            //     'user_id' => auth()->id(),
+            //     'module' => 'Lead',
+            //     'action' => 'Deleted',
+            //     'description' => 'Delete Lead: ' . $lead->company_name,
+            // ]);
+            
+            // Cek status setelah delete
+            $lead->refresh();
             
             return response()->json([
-                'error' => 'Failed to delete lead',
-                'message' => $e->getMessage()
+                'success' => true,
+                'message' => 'Lead berhasil dihapus',
+                'data' => [
+                    'id' => $lead->id,
+                    'company_name' => $lead->company_name,
+                    'deleted_at' => $lead->deleted_at,
+                    'deleted' => $lead->deleted,
+                    'related_data_before_delete' => $relatedData
+                ]
+            ]);
+            
+        } catch (\Exception $e) {
+            \Log::error('Failed to delete lead: ' . $e->getMessage());
+            \Log::error('Stack trace: ' . $e->getTraceAsString());
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal menghapus lead: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Helper untuk cek data terkait
+     */
+
+    private function checkRelatedData(Lead $lead): array
+    {
+        $data = [
+            'invoices' => 0,
+            'payments' => 0,
+            'quotations' => 0,
+            'company' => null,
+            'contacts' => 0,
+            'projects' => 0
+        ];
+        
+        try {
+            // Cek quotations
+            $data['quotations'] = \DB::table('quotations')
+                ->where('lead_id', $lead->id)
+                ->where('deleted', 0)
+                ->count();
+            
+            if ($data['quotations'] > 0) {
+                $quotationIds = \DB::table('quotations')
+                    ->where('lead_id', $lead->id)
+                    ->where('deleted', 0)
+                    ->pluck('id')
+                    ->toArray();
+                
+                // Cek invoices MELALUI quotations
+                $data['invoices'] = \DB::table('invoices')
+                    ->whereIn('quotation_id', $quotationIds)
+                    ->where('deleted', 0)
+                    ->count();
+                
+                // Cek payments MELALUI invoices
+                if ($data['invoices'] > 0) {
+                    $invoiceIds = \DB::table('invoices')
+                        ->whereIn('quotation_id', $quotationIds)
+                        ->where('deleted', 0)
+                        ->pluck('id')
+                        ->toArray();
+                        
+                    $data['payments'] = \DB::table('payments')
+                        ->whereIn('invoice_id', $invoiceIds)
+                        ->where('deleted', 0)
+                        ->count();
+                }
+                
+                // Cek projects MELALUI quotations
+                $data['projects'] += \DB::table('projects')
+                    ->whereIn('quotation_id', $quotationIds)
+                    ->where('deleted', 0)
+                    ->count();
+            }
+            
+            // Cek company
+            $company = \DB::table('companies')
+                ->where('lead_id', $lead->id)
+                ->where('deleted', 0)
+                ->orWhere('id', $lead->company_id)
+                ->where('deleted', 0)
+                ->first();
+                
+            if ($company) {
+                $data['company'] = [
+                    'id' => $company->id,
+                    'client_code' => $company->client_code
+                ];
+                
+                // Cek contacts dari company
+                $data['contacts'] += \DB::table('company_contact_persons')
+                    ->where('company_id', $company->id)
+                    ->where('deleted', 0)
+                    ->count();
+                    
+                // Cek projects MELALUI company
+                $data['projects'] += \DB::table('projects')
+                    ->where('client_id', $company->id)
+                    ->where('deleted', 0)
+                    ->count();
+            }
+            
+            // Cek contacts langsung dari lead
+            $data['contacts'] += \DB::table('company_contact_persons')
+                ->where('lead_id', $lead->id)
+                ->where('deleted', 0)
+                ->count();
+            
+        } catch (\Exception $e) {
+            \Log::warning("Error checking related data: " . $e->getMessage());
+        }
+        
+        return $data;
+    }
+
+    /**
+     * API: Get single lead
+     */
+    public function show($id)
+    {
+        try {
+            \Log::info('=== SHOW LEAD REQUEST ===', ['lead_id' => $id]);
+            
+            $currentUser = Auth::user();
+            if (!$currentUser) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Unauthorized'
+                ], 401);
+            }
+            
+            // Find lead (allow viewing even if deleted for audit purposes)
+            $lead = Lead::with(['status', 'assignedUser', 'contacts'])
+                ->find($id);
+            
+            if (!$lead) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Lead not found'
+                ], 404);
+            }
+            
+            \Log::info('Lead retrieved', [
+                'lead_id' => $lead->id,
+                'company_name' => $lead->company_name,
+                'is_deleted' => $lead->deleted
+            ]);
+            
+            // Get related contact persons
+            $contacts = [];
+            if ($lead->relationLoaded('contacts')) {
+                $contacts = $lead->contacts->map(function ($contact) {
+                    return [
+                        'id'         => $contact->id,
+                        'name'       => $contact->name,
+                        'email'      => $contact->email,
+                        'phone'      => $contact->phone,
+                        'position'   => $contact->position,
+                        'is_primary' => $contact->is_primary,
+                        'is_active'  => $contact->is_active,
+                    ];
+                })->toArray();
+            }
+            
+            $leadData = [
+                'id'                   => $lead->id,
+                'company_name'         => $lead->company_name,
+                'address'              => $lead->address,
+                'contact_person'       => $lead->contact_person,
+                'email'                => $lead->email,
+                'phone'                => $lead->phone,
+                'position'             => $lead->position,
+                'assigned_to'          => $lead->assigned_to,
+                'assigned_user'        => $lead->assignedUser ? [
+                    'id'    => $lead->assignedUser->id,
+                    'name'  => $lead->assignedUser->name,
+                    'email' => $lead->assignedUser->email,
+                ] : null,
+                'lead_statuses_id'     => $lead->lead_statuses_id,
+                'status_name'          => $lead->status ? $lead->status->name : 'New',
+                'status_color'         => $lead->status ? $lead->status->color : '#3b82f6',
+                'converted_to_company' => $lead->converted_to_company,
+                'converted_at'         => $lead->converted_at?->format('Y-m-d H:i:s'),
+                'company_id'           => $lead->company_id,
+                'created_at'           => $lead->created_at?->format('Y-m-d H:i:s'),
+                'updated_at'           => $lead->updated_at?->format('Y-m-d H:i:s'),
+                'is_deleted'           => $lead->deleted,
+                'deleted_at'           => $lead->deleted_at?->format('Y-m-d H:i:s'),
+                'contacts'             => $contacts,
+            ];
+            
+            \Log::info('Lead data retrieved successfully', ['lead_id' => $id]);
+            
+            return response()->json([
+                'success' => true,
+                'data' => $leadData
+            ]);
+            
+        } catch (\Exception $e) {
+            \Log::error('FAILED to show lead ' . $id . ': ' . $e->getMessage());
+            \Log::error('Stack trace: ' . $e->getTraceAsString());
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to retrieve lead',
+                'error' => env('APP_DEBUG') ? $e->getMessage() : null
             ], 500);
         }
     }
@@ -475,15 +770,36 @@ class LeadController extends Controller
     public function getStatuses()
     {
         try {
-            $statuses = LeadStatuses::where('deleted', false)
-                ->orderBy('order')
-                ->get(['id', 'name', 'color', 'color_name', 'order']);
+            \Log::info('=== GET LEAD STATUSES ===');
             
-            return response()->json($statuses);
-        } catch (\Exception $e) {
-            Log::error('Failed to fetch lead statuses: ' . $e->getMessage());
+            $statuses = LeadStatuses::where('deleted', 0)
+                ->orderBy('order')
+                ->get(['id', 'name', 'color', 'color_name', 'order', 'created_at'])
+                ->map(function ($status) {
+                    return [
+                        'id'         => $status->id,
+                        'name'       => $status->name,
+                        'color'      => $status->color,
+                        'color_name' => $status->color_name,
+                        'order'      => $status->order,
+                        'created_at' => $status->created_at?->format('Y-m-d H:i:s'),
+                    ];
+                });
+            
+            \Log::info('Lead statuses retrieved', ['count' => $statuses->count()]);
+            
             return response()->json([
-                'error' => 'Failed to fetch statuses'
+                'success' => true,
+                'data' => $statuses
+            ]);
+            
+        } catch (\Exception $e) {
+            \Log::error('Failed to fetch lead statuses: ' . $e->getMessage());
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to fetch statuses',
+                'error' => env('APP_DEBUG') ? $e->getMessage() : null
             ], 500);
         }
     }
@@ -498,20 +814,72 @@ class LeadController extends Controller
             
             if (!$user) {
                 return response()->json([
-                    'error' => 'No user logged in'
+                    'success' => false,
+                    'message' => 'No user logged in'
                 ], 401);
             }
             
+            $roleName = $this->getUserRoleName($user);
+            
             return response()->json([
-                'id' => $user->id,
-                'name' => $user->name,
-                'email' => $user->email,
-                'is_admin' => $this->isAdmin($user),
+                'success' => true,
+                'data' => [
+                    'id'       => $user->id,
+                    'name'     => $user->name,
+                    'email'    => $user->email,
+                    'role'     => $roleName,
+                ]
             ]);
+            
         } catch (\Exception $e) {
-            Log::error('Failed to get current user info: ' . $e->getMessage());
+            \Log::error('Failed to get current user info: ' . $e->getMessage());
+            
             return response()->json([
-                'error' => 'Failed to get user information'
+                'success' => false,
+                'message' => 'Failed to get user information',
+                'error' => env('APP_DEBUG') ? $e->getMessage() : null
+            ], 500);
+        }
+    }
+
+    /**
+     * API: Get users for assignment dropdown
+     */
+    public function getAssignableUsers()
+    {
+        try {
+            $currentUser = Auth::user();
+            if (!$currentUser) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Unauthorized'
+                ], 401);
+            }
+            
+            $users = User::where('deleted', 0)
+                ->where('is_active', 1)
+                ->orderBy('name')
+                ->get(['id', 'name', 'email'])
+                ->map(function ($user) {
+                    return [
+                        'id'    => $user->id,
+                        'name'  => $user->name,
+                        'email' => $user->email,
+                    ];
+                });
+            
+            return response()->json([
+                'success' => true,
+                'data' => $users
+            ]);
+            
+        } catch (\Exception $e) {
+            \Log::error('Failed to get assignable users: ' . $e->getMessage());
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to get users',
+                'error' => env('APP_DEBUG') ? $e->getMessage() : null
             ], 500);
         }
     }
@@ -521,41 +889,39 @@ class LeadController extends Controller
      */
     public function test()
     {
-        $currentUser = Auth::user();
-        
-        return response()->json([
-            'message' => 'LeadController is working',
-            'timestamp' => now()->toDateTimeString(),
-            'statuses_count' => LeadStatuses::where('deleted', false)->count(),
-            'leads_count' => Lead::count(),
-            'current_user' => $currentUser ? [
-                'id' => $currentUser->id,
-                'name' => $currentUser->name,
-            ] : null,
-            'session_id' => session()->getId(),
-            'auth_check' => Auth::check(),
-        ]);
-    }
-
-    /**
-     * Check if user is admin
-     */
-    private function isAdmin($user)
-    {
-        if (!$user) return false;
-        
-        if (method_exists($user, 'hasRole')) {
-            return $user->hasRole('admin');
+        try {
+            $currentUser = Auth::user();
+            
+            $response = [
+                'success' => true,
+                'message' => 'LeadController is working',
+                'timestamp' => now()->toDateTimeString(),
+                'statuses_count' => LeadStatuses::where('deleted', 0)->count(),
+                'leads_count' => Lead::where('deleted', 0)->count(),
+                'leads_total_count' => Lead::count(),
+                'current_user' => $currentUser ? [
+                    'id' => $currentUser->id,
+                    'name' => $currentUser->name,
+                    'email' => $currentUser->email,
+                ] : null,
+                'session_id' => session()->getId(),
+                'auth_check' => Auth::check(),
+                'app_debug' => env('APP_DEBUG', false),
+                'app_env' => env('APP_ENV', 'production'),
+            ];
+            
+            \Log::info('Test endpoint called', $response);
+            
+            return response()->json($response);
+            
+        } catch (\Exception $e) {
+            \Log::error('Test endpoint error: ' . $e->getMessage());
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Test failed',
+                'error' => $e->getMessage()
+            ], 500);
         }
-        
-        if (isset($user->role)) {
-            return $user->role === 'admin';
-        }
-        
-        if (isset($user->is_admin)) {
-            return (bool) $user->is_admin;
-        }
-        
-        return false;
     }
 }

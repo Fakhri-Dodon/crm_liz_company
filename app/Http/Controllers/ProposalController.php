@@ -246,7 +246,7 @@ class ProposalController extends Controller
                 $element->save();
 
                 $selectedContact = $proposal->lead?->contacts?->first() ?? null;
-                $proposalLink = url("/proposal/{$proposal->proposal_element_template_id}");
+                $proposalLink = url("/proposal/{$proposal->proposal_element_template_id}/preview");
 
                 $managers = User::whereHas('role', function($q) {
                     $q->where('name', 'manager'); 

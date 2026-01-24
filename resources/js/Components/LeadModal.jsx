@@ -37,7 +37,20 @@ export default function LeadModal({ open, onClose, onSubmit, initialData, curren
 
   // Fungsi untuk mendapatkan ID status "new"
   const getNewStatusId = () => {
-    const newStatus = statuses.find(s => s.name.toLowerCase() === 'new');
+    // Pastikan statuses adalah array
+    if (!statuses || !Array.isArray(statuses)) {
+      console.error('statuses is not an array:', statuses);
+      console.log('Current statuses state:', statuses);
+      console.log('Type of statuses:', typeof statuses);
+      
+      // Return default status ID jika statuses tidak valid
+      return "30f0597e-bf13-4834-b4b9-7d32f267748e"; // ID dari status "New" di database Anda
+    }
+    
+    const newStatus = statuses.find(s => 
+      s && s.name && s.name.toLowerCase() === 'new'
+    );
+    
     return newStatus ? newStatus.id : (statuses.length > 0 ? statuses[0].id : null);
   };
 

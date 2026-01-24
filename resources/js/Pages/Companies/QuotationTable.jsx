@@ -1,1089 +1,401 @@
 // resources/js/Pages/Companies/QuotationTable.jsx
-import React, { useState } from "react";
-import {
-    FileText,
-    Calendar,
-    DollarSign,
-    CheckCircle,
-    Clock,
-    XCircle,
-    Download,
-    Eye,
-    Users,
-    ChevronDown,
-    ChevronUp,
-    ExternalLink,
-    FileSignature,
-    AlertCircle,
-    Send,
-    RefreshCw,
-    Filter,
-    Edit,
-    Trash2,
-} from "lucide-react";
-import { Link, router } from "@inertiajs/react";
-import { useTranslation } from "react-i18next"; // Import useTranslation
+import React, { useState, useMemo } from "react";
+import { FileText, Search, Filter, Calendar, RefreshCw } from "lucide-react";
+import { router } from "@inertiajs/react";
+import { useTranslation } from "react-i18next";
+import SubModuleTableLayout, { ExpandableTextCell, ExpandableAmountCell } from "@/Layouts/SubModuleTableLayout";
 
-const QuotationTable = ({ data, groupedData = [], companyId, auth_permissions }) => {
-    const { t } = useTranslation(); // Initialize translation hook
-    const [viewMode, setViewMode] = useState("table");
-    const [expandedLead, setExpandedLead] = useState(null);
-    const [tooltip, setTooltip] = useState(null);
+const QuotationTable = ({ data, statusOptions = [], companyId, auth_permissions, filters = {}, summary = {}, totals = {}, years = [] }) => {
+    const { t } = useTranslation();
+    const [searchTerm, setSearchTerm] = useState(filters?.search || "");
+    const [statusFilter, setStatusFilter] = useState(filters?.status || "all");
+    const [monthFilter, setMonthFilter] = useState(filters?.month || "");
+    const [yearFilter, setYearFilter] = useState(filters?.year || "");
     const [deletingId, setDeletingId] = useState(null);
 
     const perms = auth_permissions || {}; 
-    
-    const canRead = perms.can_read === 1;
-    const canCreate = perms.can_create === 1;
-    const canUpdate = perms.can_update === 1; // Pastikan backend kirim can_update
+    const canUpdate = perms.can_update === 1;
     const canDelete = perms.can_delete === 1;
 
-    // Format currency untuk mobile friendly
     const formatCurrency = (amount) => {
-        if (!amount && amount !== 0)
-            return t("quotation_table.currency_format", { amount: 0 });
-
-        if (amount >= 1000000000) {
-            return t("quotation_table.currency_m", {
-                amount: (amount / 1000000000).toFixed(1),
-            });
-        }
-        if (amount >= 1000000) {
-            return t("quotation_table.currency_jt", {
-                amount: (amount / 1000000).toFixed(1),
-            });
-        }
-        if (amount >= 1000) {
-            return t("quotation_table.currency_rb", {
-                amount: (amount / 1000).toFixed(0),
-            });
-        }
-        return t("quotation_table.currency_format", {
-            amount: amount.toLocaleString("id-ID"),
-        });
-    };
-
-    const formatFullCurrency = (amount) => {
-        if (!amount && amount !== 0)
-            return t("quotation_table.currency_format", { amount: 0 });
-
+        if (amount === null || amount === undefined) return `Rp 0`;
         return new Intl.NumberFormat("id-ID", {
             style: "currency",
             currency: "IDR",
             minimumFractionDigits: 0,
+            maximumFractionDigits: 0
         }).format(amount);
     };
 
     const formatDate = (dateString) => {
         if (!dateString) return t("quotation_table.not_available");
-
-        const date = new Date(dateString);
-        return date.toLocaleDateString("id-ID", {
-            day: "numeric",
-            month: "short",
-            year: "numeric",
-        });
-    };
-
-    const getStatusBadge = (status) => {
-        const baseClasses =
-            "inline-flex items-center px-2 py-1 rounded-full text-xs font-medium";
-
-        switch (status?.toLowerCase()) {
-            case "accepted":
-            case "approved":
-                return (
-                    <span
-                        className={`${baseClasses} bg-green-100 text-green-800`}
-                    >
-                        <CheckCircle className="w-3 h-3 mr-1" />
-                        {t("quotation_table.status_accepted")}
-                    </span>
-                );
-            case "sent":
-                return (
-                    <span
-                        className={`${baseClasses} bg-blue-100 text-blue-800`}
-                    >
-                        <Send className="w-3 h-3 mr-1" />
-                        {t("quotation_table.status_sent")}
-                    </span>
-                );
-            case "pending":
-            case "draft":
-                return (
-                    <span
-                        className={`${baseClasses} bg-yellow-100 text-yellow-800`}
-                    >
-                        <Clock className="w-3 h-3 mr-1" />
-                        {status === "draft"
-                            ? t("quotation_table.status_draft")
-                            : t("quotation_table.status_pending")}
-                    </span>
-                );
-            case "rejected":
-            case "cancelled":
-                return (
-                    <span className={`${baseClasses} bg-red-100 text-red-800`}>
-                        <XCircle className="w-3 h-3 mr-1" />
-                        {status === "rejected"
-                            ? t("quotation_table.status_rejected")
-                            : t("quotation_table.status_cancelled")}
-                    </span>
-                );
-            case "expired":
-                return (
-                    <span
-                        className={`${baseClasses} bg-gray-100 text-gray-800`}
-                    >
-                        <AlertCircle className="w-3 h-3 mr-1" />
-                        {t("quotation_table.status_expired")}
-                    </span>
-                );
-            case "revised":
-                return (
-                    <span
-                        className={`${baseClasses} bg-orange-100 text-orange-800`}
-                    >
-                        <RefreshCw className="w-3 h-3 mr-1" />
-                        {t("quotation_table.status_revised")}
-                    </span>
-                );
-            default:
-                return (
-                    <span
-                        className={`${baseClasses} bg-gray-100 text-gray-800`}
-                    >
-                        {status || t("quotation_table.status_unknown")}
-                    </span>
-                );
+        try {
+            const date = new Date(dateString);
+            return date.toLocaleDateString("id-ID", {
+                day: "numeric",
+                month: "short",
+                year: "numeric"
+            });
+        } catch {
+            return dateString;
         }
     };
 
-    const TruncatedText = ({ text, maxLength = 30, className = "" }) => {
-        if (!text)
-            return (
-                <span className={className}>
-                    {t("quotation_table.not_available")}
-                </span>
-            );
-
-        if (text.length <= maxLength) {
-            return <span className={className}>{text}</span>;
+    // Fungsi untuk mengambil informasi status - MIRIP DENGAN QoutationsIndex
+    const getStatusInfo = (row) => {
+        // Prioritas 1: Ambil dari relasi langsung di data row (status_rel)
+        if (row.status_rel) {
+            return {
+                name: row.status_rel.name,
+                color: row.status_rel.color,
+                is_system: row.status_rel.is_system || false
+            };
         }
+        
+        // Prioritas 2: Cari di statusOptions berdasarkan ID
+        const statusId = row.quotation_statuses_id;
+        if (statusId && statusOptions.length > 0) {
+            const status = statusOptions.find(s => s.id === statusId);
+            if (status) {
+                return {
+                    name: status.name,
+                    color: status.color,
+                    is_system: status.is_system || false
+                };
+            }
+        }
+        
+        // Fallback
+        return {
+            name: "Unknown",
+            color: "#9ca3af",
+            is_system: false
+        };
+    };
 
+    // Status badge component - disederhanakan (non-clickable)
+    const getStatusBadge = (row) => {
+        const statusInfo = getStatusInfo(row);
+        const { name, color } = statusInfo;
+        
         return (
-            <span
-                className={`${className} cursor-help truncate`}
-                onMouseEnter={() => setTooltip(text)}
-                onMouseLeave={() => setTooltip(null)}
-                title={text}
+            <span 
+                className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium whitespace-nowrap"
+                style={{ 
+                    backgroundColor: `${color}15`,
+                    color: color,
+                    border: `1px solid ${color}`
+                }}
             >
-                {text.substring(0, maxLength)}...
+                {name}
             </span>
         );
     };
 
-    const toggleLead = (leadId) => {
-        setExpandedLead(expandedLead === leadId ? null : leadId);
+    const handleEdit = (row) => {
+        if (row && row.id) {
+            router.visit(`/quotation/edit/${row.id}`);
+        }
     };
 
-    // Handle delete quotation
-    // Handle delete quotation - PERBAIKAN
-    const handleDelete = async (id, quotationNumber) => {
-        if (
-            !window.confirm(
-                t("quotation_table.confirm_delete", { number: quotationNumber })
-            )
-        ) {
-            return;
-        }
-
-        setDeletingId(id);
-
+    const handleDelete = async (row) => {
+        if (!window.confirm(t("quotation_table.confirm_delete", { number: row.quotation_number }))) return;
+        
+        setDeletingId(row.id);
         try {
-            // Gunakan Inertia router.delete dengan callback
-            router.delete(route("quotation.destroy", id), {
+            await router.delete(`/quotation/${row.id}`, {
                 preserveScroll: true,
                 preserveState: true,
-                onSuccess: () => {
-                    console.log("Delete successful");
-                    setDeletingId(null);
-
-                    // Show success message if there's flash message
-                    if (page.props.flash?.success) {
-                        // Optional: Show toast notification
-                        alert(page.props.flash.success);
-                    }
-                },
-                onError: (errors) => {
-                    console.error("Delete error:", errors);
-                    setDeletingId(null);
-
-                    // Show error message
-                    if (errors && errors.message) {
-                        alert(
-                            t("quotation_table.delete_error") +
-                                ": " +
-                                errors.message
-                        );
-                    } else {
-                        alert(t("quotation_table.delete_error"));
-                    }
-                },
-                onFinish: () => {
-                    // Optional: Any cleanup after request finishes
-                    console.log("Delete request finished");
-                },
             });
         } catch (error) {
-            console.error("Error in delete function:", error);
-            alert(t("quotation_table.delete_error"));
+            console.error("Delete error:", error);
+        } finally {
             setDeletingId(null);
         }
     };
 
-    // Mobile Card View
-    const MobileCardView = ({ quotation }) => {
-        return (
-            <div className="bg-white border border-gray-200 rounded-lg p-4 mb-3 hover:shadow-sm transition-shadow">
-                <div className="flex justify-between items-start mb-3">
-                    <div>
-                        <div className="flex items-center space-x-2 mb-1">
-                            <FileText className="w-4 h-4 text-blue-600" />
-                            <div>
-                                <h3 className="font-semibold text-gray-900 text-sm">
-                                    {quotation.quotation_number}
-                                </h3>
-                                {quotation.lead?.company_name && (
-                                    <p className="text-xs text-gray-500">
-                                        {t("quotation_table.lead")}:{" "}
-                                        {quotation.lead.company_name}
-                                    </p>
-                                )}
-                            </div>
+    // Filter data berdasarkan filters
+    const filteredData = useMemo(() => {
+        return data.filter(quotation => {
+            const matchesSearch = !searchTerm || 
+                (quotation.quotation_number && quotation.quotation_number.toLowerCase().includes(searchTerm.toLowerCase())) ||
+                (quotation.subject && quotation.subject.toLowerCase().includes(searchTerm.toLowerCase())) ||
+                (quotation.lead?.company_name && quotation.lead.company_name.toLowerCase().includes(searchTerm.toLowerCase())) ||
+                (quotation.company_contact_person?.name && quotation.company_contact_person.name.toLowerCase().includes(searchTerm.toLowerCase()));
+
+            const matchesStatus = statusFilter === "all" || 
+                (quotation.quotation_statuses_id && quotation.quotation_statuses_id === statusFilter);
+
+            const matchesMonth = !monthFilter || 
+                (quotation.date && new Date(quotation.date).getMonth() + 1 === parseInt(monthFilter));
+
+            const matchesYear = !yearFilter || 
+                (quotation.date && new Date(quotation.date).getFullYear() === parseInt(yearFilter));
+
+            return matchesSearch && matchesStatus && matchesMonth && matchesYear;
+        });
+    }, [data, searchTerm, statusFilter, monthFilter, yearFilter]);
+
+    // Siapkan kolom
+    const columns = useMemo(() => [
+        {
+            key: 'quotation_number',
+            label: t("quotation_table.quotation_number"),
+            width: '150px',
+            render: (value, row) => (
+                <div className="min-w-0">
+                    <div className="font-semibold text-gray-900 text-sm truncate">
+                        {value}
+                    </div>
+                    <div className="text-gray-500 text-xs mt-0.5 truncate">
+                        {formatDate(row.date)}
+                    </div>
+                </div>
+            )
+        },
+        {
+            key: 'subject',
+            label: t("quotation_table.subject"),
+            width: '180px',
+            render: (value) => (
+                <ExpandableTextCell 
+                    text={value || t("quotation_table.not_available")} 
+                    maxLength={30}
+                    className="text-xs"
+                />
+            )
+        },
+        {
+            key: 'company_name',
+            label: t("quotation_table.company_name"),
+            width: '160px',
+            render: (value, row) => {
+                const companyName = row.lead?.company_name || value || t("quotation_table.not_available");
+                const isClient = !!row.is_client;
+                
+                return (
+                    <div className={`font-medium truncate ${isClient ? "text-blue-600" : "text-gray-900"} text-xs`}>
+                        {companyName}
+                    </div>
+                );
+            }
+        },
+        {
+            key: 'contact',
+            label: t("quotation_table.contact"),
+            width: '130px',
+            render: (value, row) => (
+                <div className="text-gray-600 text-xs truncate">
+                    {row.company_contact_person?.name || row.lead?.contact_person || value || "-"}
+                </div>
+            )
+        },
+        {
+            key: 'created_by',
+            label: t("quotation_table.created_by"),
+            width: '120px',
+            render: (value, row) => (
+                <div className="text-gray-600 text-xs truncate">
+                    {row.creator?.name || "Admin"}
+                </div>
+            )
+        },
+        {
+            key: 'total',
+            label: t("quotation_table.total"),
+            width: '140px',
+            render: (value, row) => {
+                const taxValue = row.tax || 0;
+                return (
+                    <div className="min-w-0">
+                        <div className="font-medium text-gray-900 text-xs">
+                            {formatCurrency(value || 0)}
                         </div>
-                        <p className="text-xs text-gray-600">
-                            <TruncatedText
-                                text={quotation.subject}
-                                maxLength={40}
-                            />
-                        </p>
+                        {taxValue > 0 && (
+                            <div className="text-red-500 text-[10px] font-medium mt-0.5">
+                                {t("quotation_table.ppn_total")}
+                            </div>
+                        )}
                     </div>
-                    {getStatusBadge(quotation.status)}
-                </div>
+                );
+            }
+        },
+        {
+            key: 'status',
+            label: t("quotation_table.status"),
+            width: '130px',
+            render: (value, row) => getStatusBadge(row)
+        }
+    ], [t]);
 
-                <div className="grid grid-cols-2 gap-3 mb-4">
-                    <div>
-                        <p className="text-xs text-gray-500">
-                            {t("quotation_table.date")}
-                        </p>
-                        <p className="text-sm font-medium text-gray-900">
-                            {formatDate(quotation.date)}
-                        </p>
-                    </div>
-                    <div>
-                        <p className="text-xs text-gray-500">
-                            {t("quotation_table.amount")}
-                        </p>
-                        <p
-                            className="text-sm font-bold text-gray-900 cursor-help"
-                            onMouseEnter={() =>
-                                setTooltip(formatFullCurrency(quotation.total))
-                            }
-                            onMouseLeave={() => setTooltip(null)}
-                        >
-                            {formatFullCurrency(quotation.total)}
-                        </p>
-                    </div>
-                </div>
+    // Bulan untuk filter
+    const months = [
+        { value: "", label: t("quotation_table.all_months") },
+        { value: "1", label: "Jan" },
+        { value: "2", label: "Feb" },
+        { value: "3", label: "Mar" },
+        { value: "4", label: "Apr" },
+        { value: "5", label: "May" },
+        { value: "6", label: "Jun" },
+        { value: "7", label: "Jul" },
+        { value: "8", label: "Aug" },
+        { value: "9", label: "Sep" },
+        { value: "10", label: "Oct" },
+        { value: "11", label: "Nov" },
+        { value: "12", label: "Dec" },
+    ];
 
-                <div className="flex space-x-2">
-                    {canUpdate && (
-                        <Link
-                            href={route("quotation.edit", quotation.id)}
-                            className="flex-1 flex items-center justify-center space-x-1 px-3 py-2 bg-yellow-50 text-yellow-700 rounded-lg hover:bg-yellow-100 transition-colors text-sm"
-                        >
-                            <Edit className="w-4 h-4" />
-                            <span>{t("quotation_table.edit")}</span>
-                        </Link>
-                    )}
-                    {canDelete && (
-                        <button
-                            onClick={() =>
-                                handleDelete(
-                                    quotation.id,
-                                    quotation.quotation_number
-                                )
-                            }
-                            disabled={deletingId === quotation.id}
-                            className="flex-1 flex items-center justify-center space-x-1 px-3 py-2 bg-red-50 text-red-700 rounded-lg hover:bg-red-100 transition-colors text-sm disabled:opacity-50"
-                        >
-                            <Trash2 className="w-4 h-4" />
-                            <span>
-                                {deletingId === quotation.id
-                                    ? t("quotation_table.deleting")
-                                    : t("quotation_table.delete")}
-                            </span>
-                        </button>
-                    )}
-                </div>
-            </div>
-        );
+    const handleApplyFilters = () => {
+        const params = {
+            search: searchTerm,
+            status: statusFilter !== "all" ? statusFilter : "",
+            month: monthFilter,
+            year: yearFilter
+        };
+        
+        // Anda bisa implementasikan filter submission di sini
+        console.log("Applying filters:", params);
+        // router.get(route("quotation.index"), params, { preserveState: true });
     };
 
-    // Empty State (TANPA CREATE BUTTON)
-    const EmptyState = () => (
-        <div className="text-center py-12">
-            <FileText className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">
-                {t("quotation_table.no_quotations_found")}
-            </h3>
-            <p className="text-gray-600 max-w-md mx-auto">
-                {t("quotation_table.no_quotations_message")}
-            </p>
-        </div>
-    );
+    const handleResetFilters = () => {
+        setSearchTerm("");
+        setStatusFilter("all");
+        setMonthFilter("");
+        setYearFilter("");
+    };
+
+    if (!data || data.length === 0) {
+        return (
+            <div className="bg-white border border-gray-200 rounded-lg p-8 text-center">
+                <FileText className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-gray-900 mb-2">
+                    {t("quotation_table.no_quotations_found")}
+                </h3>
+                <p className="text-gray-600">
+                    {t("quotation_table.no_quotations_message")}
+                </p>
+            </div>
+        );
+    }
 
     return (
-        <div>
-            {tooltip && (
-                <div className="fixed z-50 px-3 py-2 text-sm text-white bg-gray-900 rounded-lg shadow-lg">
-                    {tooltip}
-                </div>
-            )}
-
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4">
+        <div className="space-y-4">
+            {/* Header */}
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
                 <div>
-                    <h2 className="text-lg md:text-xl font-bold text-gray-900">
+                    <h2 className="font-bold text-gray-900 text-base">
                         {t("quotation_table.quotation_list")}
                     </h2>
-                    <p className="text-sm md:text-base text-gray-600">
-                        {t("quotation_table.quotation_count", {
+                    <p className="text-gray-600 text-xs">
+                        {t("quotation_table.quotation_count", { 
                             count: data.length,
-                            leadCount: groupedData.length,
-                            pluralQuotation: data.length !== 1 ? "s" : "",
-                            pluralLead: groupedData.length > 1 ? "s" : "",
+                            filteredCount: filteredData.length
                         })}
                     </p>
                 </div>
-
-                {/* Hanya View Toggle, TANPA Create Button */}
-                {groupedData.length > 0 && data.length > 0 && (
-                    <div className="flex items-center space-x-2">
-                        <span className="text-sm text-gray-600 hidden sm:block">
-                            {t("quotation_table.view")}:
-                        </span>
-                        <div className="flex border border-gray-300 rounded-lg overflow-hidden">
-                            <button
-                                onClick={() => setViewMode("table")}
-                                className={`px-3 py-1 text-sm flex items-center space-x-1 ${
-                                    viewMode === "table"
-                                        ? "bg-gray-200"
-                                        : "bg-white hover:bg-gray-50"
-                                }`}
-                            >
-                                <FileText className="w-3 h-3" />
-                                <span>{t("quotation_table.view_all")}</span>
-                            </button>
-                            <button
-                                onClick={() => setViewMode("grouped")}
-                                className={`px-3 py-1 text-sm flex items-center space-x-1 ${
-                                    viewMode === "grouped"
-                                        ? "bg-gray-200"
-                                        : "bg-white hover:bg-gray-50"
-                                }`}
-                            >
-                                <Users className="w-3 h-3" />
-                                <span>{t("quotation_table.view_by_lead")}</span>
-                            </button>
-                        </div>
-                    </div>
-                )}
             </div>
 
-            {/* Empty State */}
-            {data.length === 0 && <EmptyState />}
-
-            {/* Mobile View */}
-            <div className="sm:hidden">
-                {data.length > 0 && (
-                    <>
-                        {viewMode === "grouped" && groupedData.length > 0 ? (
-                            // Grouped Mobile View
-                            <div className="space-y-3">
-                                {groupedData.map((group) => (
-                                    <div
-                                        key={group.lead_id}
-                                        className="bg-white border border-gray-200 rounded-lg mb-3 overflow-hidden"
-                                    >
-                                        {/* Group Header */}
-                                        <div
-                                            className="p-4 bg-gray-50 hover:bg-gray-100 transition-colors cursor-pointer"
-                                            onClick={() =>
-                                                toggleLead(group.lead_id)
-                                            }
-                                        >
-                                            <div className="flex justify-between items-center">
-                                                <div className="flex items-center space-x-3">
-                                                    <Users className="w-5 h-5 text-gray-600" />
-                                                    <div>
-                                                        <h3 className="font-semibold text-gray-900">
-                                                            {group.lead_name}
-                                                        </h3>
-                                                        <p className="text-sm text-gray-600">
-                                                            {t(
-                                                                "quotation_table.quotation_count_simple",
-                                                                {
-                                                                    count: group.count,
-                                                                    plural:
-                                                                        group.count >
-                                                                        1
-                                                                            ? "s"
-                                                                            : "",
-                                                                }
-                                                            )}
-                                                        </p>
-                                                    </div>
-                                                </div>
-                                                <div className="flex items-center space-x-2">
-                                                    {getStatusBadge(
-                                                        group.latest_status
-                                                    )}
-                                                    {expandedLead ===
-                                                    group.lead_id ? (
-                                                        <ChevronUp className="w-4 h-4 text-gray-500" />
-                                                    ) : (
-                                                        <ChevronDown className="w-4 h-4 text-gray-500" />
-                                                    )}
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        {/* Expanded Content */}
-                                        {expandedLead === group.lead_id && (
-                                            <div className="border-t border-gray-200">
-                                                {group.quotations.map(
-                                                    (quotation, index) => (
-                                                        <div
-                                                            key={quotation.id}
-                                                            className={`p-4 hover:bg-gray-50 ${
-                                                                index !==
-                                                                group.quotations
-                                                                    .length -
-                                                                    1
-                                                                    ? "border-b border-gray-100"
-                                                                    : ""
-                                                            }`}
-                                                        >
-                                                            <div className="flex justify-between items-start mb-2">
-                                                                <div>
-                                                                    <div className="flex items-center space-x-2">
-                                                                        <FileText className="w-4 h-4 text-gray-400" />
-                                                                        <h4 className="font-medium text-gray-900">
-                                                                            {
-                                                                                quotation.quotation_number
-                                                                            }
-                                                                        </h4>
-                                                                    </div>
-                                                                    <p className="text-sm text-gray-600 mt-1">
-                                                                        {formatDate(
-                                                                            quotation.date
-                                                                        )}
-                                                                    </p>
-                                                                </div>
-                                                                {getStatusBadge(
-                                                                    quotation.status
-                                                                )}
-                                                            </div>
-
-                                                            <div className="flex justify-between items-center mt-3">
-                                                                <div>
-                                                                    <p className="text-xs text-gray-500">
-                                                                        {t(
-                                                                            "quotation_table.subject"
-                                                                        )}
-                                                                    </p>
-                                                                    <p className="text-sm text-gray-900">
-                                                                        <TruncatedText
-                                                                            text={
-                                                                                quotation.subject
-                                                                            }
-                                                                            maxLength={
-                                                                                30
-                                                                            }
-                                                                        />
-                                                                    </p>
-                                                                </div>
-                                                                <div className="text-right">
-                                                                    <p className="text-xs text-gray-500">
-                                                                        {t(
-                                                                            "quotation_table.total"
-                                                                        )}
-                                                                    </p>
-                                                                    <p className="text-sm font-bold text-gray-900">
-                                                                        {formatFullCurrency(
-                                                                            quotation.total
-                                                                        )}
-                                                                    </p>
-                                                                </div>
-                                                            </div>
-
-                                                            {(canUpdate ||
-                                                                canDelete) && (
-                                                                <div className="flex space-x-2 mt-3">
-                                                                    {canUpdate && (
-                                                                        <Link
-                                                                            href={route(
-                                                                                "quotation.edit",
-                                                                                quotation.id
-                                                                            )}
-                                                                            className="flex-1 text-center px-3 py-1 bg-yellow-50 text-yellow-700 rounded text-xs hover:bg-yellow-100"
-                                                                        >
-                                                                            {t(
-                                                                                "quotation_table.edit"
-                                                                            )}
-                                                                        </Link>
-                                                                    )}
-                                                                    {canDelete && (
-                                                                        <button
-                                                                            onClick={() =>
-                                                                                handleDelete(
-                                                                                    quotation.id,
-                                                                                    quotation.quotation_number
-                                                                                )
-                                                                            }
-                                                                            className="flex-1 text-center px-3 py-1 bg-red-50 text-red-700 rounded text-xs hover:bg-red-100"
-                                                                        >
-                                                                            {t(
-                                                                                "quotation_table.delete"
-                                                                            )}
-                                                                        </button>
-                                                                    )}
-                                                                </div>
-                                                            )}
-                                                        </div>
-                                                    )
-                                                )}
-                                            </div>
-                                        )}
-                                    </div>
-                                ))}
-                            </div>
-                        ) : (
-                            // Individual Mobile View
-                            <div className="space-y-3">
-                                {data.map((quotation) => (
-                                    <MobileCardView
-                                        key={quotation.id}
-                                        quotation={quotation}
-                                    />
-                                ))}
-                            </div>
-                        )}
-                    </>
-                )}
-            </div>
-
-            {/* Desktop Table View */}
-            <div className="hidden sm:block">
-                {data.length > 0 && (
-                    <>
-                        {viewMode === "grouped" && groupedData.length > 0 ? (
-                            // Grouped Desktop View
-                            <div className="space-y-4">
-                                {groupedData.map((group) => (
-                                    <div
-                                        key={group.lead_id}
-                                        className="border border-gray-200 rounded-lg overflow-hidden"
-                                    >
-                                        {/* Group Header */}
-                                        <div className="bg-gray-50 px-6 py-4 border-b border-gray-200">
-                                            <div className="flex items-center justify-between">
-                                                <div className="flex items-center space-x-4">
-                                                    <Users className="w-5 h-5 text-gray-600" />
-                                                    <div>
-                                                        <h3 className="font-semibold text-gray-900">
-                                                            {group.lead_name}
-                                                        </h3>
-                                                        <div className="flex items-center space-x-4 mt-1">
-                                                            <span className="text-sm text-gray-600">
-                                                                {t(
-                                                                    "quotation_table.quotation_count_simple",
-                                                                    {
-                                                                        count: group.count,
-                                                                        plural:
-                                                                            group.count >
-                                                                            1
-                                                                                ? "s"
-                                                                                : "",
-                                                                    }
-                                                                )}
-                                                            </span>
-                                                            <span className="text-sm text-gray-600">
-                                                                •
-                                                            </span>
-                                                            <span
-                                                                className="text-sm font-medium text-gray-900 cursor-help"
-                                                                onMouseEnter={() =>
-                                                                    setTooltip(
-                                                                        formatFullCurrency(
-                                                                            group.total_value
-                                                                        )
-                                                                    )
-                                                                }
-                                                                onMouseLeave={() =>
-                                                                    setTooltip(
-                                                                        null
-                                                                    )
-                                                                }
-                                                            >
-                                                                {formatFullCurrency(
-                                                                    group.total_value
-                                                                )}
-                                                            </span>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                                <div className="flex items-center space-x-3">
-                                                    {getStatusBadge(
-                                                        group.latest_status
-                                                    )}
-                                                    <button
-                                                        onClick={() =>
-                                                            toggleLead(
-                                                                group.lead_id
-                                                            )
-                                                        }
-                                                        className="text-gray-500 hover:text-gray-700"
-                                                    >
-                                                        {expandedLead ===
-                                                        group.lead_id ? (
-                                                            <ChevronUp className="w-4 h-4" />
-                                                        ) : (
-                                                            <ChevronDown className="w-4 h-4" />
-                                                        )}
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        {/* Expanded Group Content */}
-                                        {expandedLead === group.lead_id && (
-                                            <div className="bg-white">
-                                                <table className="min-w-full divide-y divide-gray-200">
-                                                    <thead className="bg-gray-50">
-                                                        <tr>
-                                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
-                                                                {t(
-                                                                    "quotation_table.quotation_number"
-                                                                )}
-                                                            </th>
-                                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
-                                                                {t(
-                                                                    "quotation_table.date"
-                                                                )}
-                                                            </th>
-                                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
-                                                                {t(
-                                                                    "quotation_table.subject"
-                                                                )}
-                                                            </th>
-                                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
-                                                                {t(
-                                                                    "quotation_table.amount"
-                                                                )}
-                                                            </th>
-                                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
-                                                                status
-                                                            </th>
-                                                            {(canUpdate ||
-                                                                canDelete) && (
-                                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
-                                                                    {t(
-                                                                        "quotation_table.actions"
-                                                                    )}
-                                                                </th>
-                                                            )}
-                                                        </tr>
-                                                    </thead>
-                                                    <tbody className="bg-white divide-y divide-gray-200">
-                                                        {group.quotations.map(
-                                                            (quotation) => (
-                                                                <tr
-                                                                    key={
-                                                                        quotation.id
-                                                                    }
-                                                                    className="hover:bg-gray-50"
-                                                                >
-                                                                    <td className="px-6 py-4 whitespace-nowrap">
-                                                                        <div className="font-medium text-gray-900">
-                                                                            {
-                                                                                quotation.quotation_number
-                                                                            }
-                                                                        </div>
-                                                                    </td>
-                                                                    <td className="px-6 py-4 whitespace-nowrap">
-                                                                        <div className="text-gray-900">
-                                                                            {formatDate(
-                                                                                quotation.date
-                                                                            )}
-                                                                        </div>
-                                                                    </td>
-                                                                    <td className="px-6 py-4">
-                                                                        <TruncatedText
-                                                                            text={
-                                                                                quotation.subject
-                                                                            }
-                                                                            maxLength={
-                                                                                50
-                                                                            }
-                                                                            className="text-gray-900"
-                                                                        />
-                                                                    </td>
-                                                                    <td className="px-6 py-4 whitespace-nowrap">
-                                                                        <div
-                                                                            className="font-semibold text-gray-900 cursor-pointer transition-all duration-200 hover:bg-gray-100 rounded px-2 py-1"
-                                                                            title={formatFullCurrency(
-                                                                                quotation.total
-                                                                            )}
-                                                                        >
-                                                                            {formatFullCurrency(
-                                                                                quotation.total
-                                                                            )}
-                                                                        </div>
-                                                                    </td>
-                                                                    <td className="px-6 py-4 whitespace-nowrap">
-                                                                        {getStatusBadge(
-                                                                            quotation.status
-                                                                        )}
-                                                                    </td>
-
-                                                                    {(canUpdate ||
-                                                                        canDelete) && (
-                                                                        <td className="px-6 py-4 whitespace-nowrap">
-                                                                            <div className="flex space-x-3">
-                                                                                {canUpdate && (
-                                                                                    <Link
-                                                                                        href={route(
-                                                                                            "quotation.edit",
-                                                                                            quotation.id
-                                                                                        )}
-                                                                                        className="text-yellow-600 hover:text-yellow-900"
-                                                                                    >
-                                                                                        {t(
-                                                                                            "quotation_table.edit"
-                                                                                        )}
-                                                                                    </Link>
-                                                                                )}
-                                                                                {canDelete && (
-                                                                                    <button
-                                                                                        onClick={() =>
-                                                                                            handleDelete(
-                                                                                                quotation.id,
-                                                                                                quotation.quotation_number
-                                                                                            )
-                                                                                        }
-                                                                                        className="text-red-600 hover:text-red-900"
-                                                                                        disabled={
-                                                                                            deletingId ===
-                                                                                            quotation.id
-                                                                                        }
-                                                                                    >
-                                                                                        {deletingId ===
-                                                                                        quotation.id
-                                                                                            ? t(
-                                                                                                  "quotation_table.deleting"
-                                                                                              )
-                                                                                            : t(
-                                                                                                  "quotation_table.delete"
-                                                                                              )}
-                                                                                    </button>
-                                                                                )}
-                                                                            </div>
-                                                                        </td>
-                                                                    )}
-                                                                </tr>
-                                                            )
-                                                        )}
-                                                    </tbody>
-                                                </table>
-                                            </div>
-                                        )}
-                                    </div>
-                                ))}
-                            </div>
-                        ) : (
-                            // Individual Desktop Table View
-                            <div className="overflow-x-auto -mx-2">
-                                <table className="min-w-full divide-y divide-gray-200 text-sm md:text-base">
-                                    <thead className="bg-[#e2e8f0]">
-                                        <tr>
-                                            <th
-                                                scope="col"
-                                                className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider"
-                                            >
-                                                <div className="flex items-center">
-                                                    <FileText className="w-4 h-4 mr-2" />
-                                                    {t(
-                                                        "quotation_table.quotation_number"
-                                                    )}
-                                                </div>
-                                            </th>
-                                            <th
-                                                scope="col"
-                                                className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider"
-                                            >
-                                                <div className="flex items-center">
-                                                    <Calendar className="w-4 h-4 mr-2" />
-                                                    {t("quotation_table.date")}
-                                                </div>
-                                            </th>
-                                            <th
-                                                scope="col"
-                                                className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider"
-                                            >
-                                                {t("quotation_table.subject")}
-                                            </th>
-                                            <th
-                                                scope="col"
-                                                className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider"
-                                            >
-                                                {t("quotation_table.lead")}
-                                            </th>
-                                            <th
-                                                scope="col"
-                                                className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider"
-                                            >
-                                                {t("quotation_table.amount")}
-                                            </th>
-                                            <th
-                                                scope="col"
-                                                className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider"
-                                            >
-                                                status
-                                            </th>
-                                            {(canUpdate || canDelete) && (
-                                                <th
-                                                    scope="col"
-                                                    className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider"
-                                                >
-                                                    {t(
-                                                        "quotation_table.actions"
-                                                    )}
-                                                </th>
-                                            )}
-                                        </tr>
-                                    </thead>
-                                    <tbody className="bg-white divide-y divide-gray-200">
-                                        {data.map((quotation) => (
-                                            <tr
-                                                key={quotation.id}
-                                                className="hover:bg-gray-50 transition-colors"
-                                            >
-                                                <td className="px-4 md:px-6 py-4 whitespace-nowrap">
-                                                    <div className="text-sm md:text-base font-medium text-gray-900">
-                                                        {
-                                                            quotation.quotation_number
-                                                        }
-                                                    </div>
-                                                </td>
-                                                <td className="px-4 md:px-6 py-4 whitespace-nowrap">
-                                                    <div className="text-sm md:text-base text-gray-900">
-                                                        {formatDate(
-                                                            quotation.date
-                                                        )}
-                                                    </div>
-                                                </td>
-                                                <td className="px-4 md:px-6 py-4">
-                                                    <div className="max-w-[200px] lg:max-w-[300px]">
-                                                        <TruncatedText
-                                                            text={
-                                                                quotation.subject
-                                                            }
-                                                            maxLength={50}
-                                                            className="text-sm md:text-base text-gray-900"
-                                                        />
-                                                    </div>
-                                                </td>
-                                                <td className="px-4 md:px-6 py-4">
-                                                    <div className="max-w-[150px]">
-                                                        <TruncatedText
-                                                            text={
-                                                                quotation.lead
-                                                                    ?.company_name ||
-                                                                t(
-                                                                    "quotation_table.not_available"
-                                                                )
-                                                            }
-                                                            maxLength={25}
-                                                            className="text-sm md:text-base text-gray-900"
-                                                        />
-                                                    </div>
-                                                </td>
-                                                <td className="px-4 md:px-6 py-4 whitespace-nowrap">
-                                                    <div
-                                                        className="text-sm md:text-base font-semibold text-gray-900 cursor-pointer transition-all duration-200 hover:bg-gray-100 rounded px-2 py-1"
-                                                        title={formatFullCurrency(
-                                                            quotation.total
-                                                        )}
-                                                    >
-                                                        {formatFullCurrency(
-                                                            quotation.total
-                                                        )}
-                                                    </div>
-                                                </td>
-                                                <td className="px-4 md:px-6 py-4 whitespace-nowrap">
-                                                    {getStatusBadge(
-                                                        quotation.status
-                                                    )}
-                                                </td>
-                                                {(canUpdate || canDelete) && (
-                                                    <td className="px-4 md:px-6 py-4 whitespace-nowrap">
-                                                        <div className="flex space-x-3">
-                                                            {canUpdate && (
-                                                                <Link
-                                                                    href={route(
-                                                                        "quotation.edit",
-                                                                        quotation.id
-                                                                    )}
-                                                                    className="text-yellow-600 hover:text-yellow-900 text-sm md:text-base"
-                                                                >
-                                                                    {t(
-                                                                        "quotation_table.edit"
-                                                                    )}
-                                                                </Link>
-                                                            )}
-                                                            {canDelete && (
-                                                                <button
-                                                                    onClick={() =>
-                                                                        handleDelete(
-                                                                            quotation.id,
-                                                                            quotation.quotation_number
-                                                                        )
-                                                                    }
-                                                                    className="text-red-600 hover:text-red-900 text-sm md:text-base"
-                                                                    disabled={
-                                                                        deletingId ===
-                                                                        quotation.id
-                                                                    }
-                                                                >
-                                                                    {deletingId ===
-                                                                    quotation.id
-                                                                        ? t(
-                                                                              "quotation_table.deleting"
-                                                                          )
-                                                                        : t(
-                                                                              "quotation_table.delete"
-                                                                          )}
-                                                                </button>
-                                                            )}
-                                                        </div>
-                                                    </td>
-                                                )}
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            </div>
-                        )}
-                    </>
-                )}
-            </div>
-
-            {/* Summary Statistics */}
-            {data.length > 0 && (
-                <div className="mt-6 pt-6 border-t border-gray-200">
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
-                        <div className="bg-blue-50 p-3 md:p-4 rounded-lg">
-                            <p className="text-xs md:text-sm text-gray-600">
-                                {t("quotation_table.total_quotations")}
-                            </p>
-                            <p className="text-lg md:text-2xl font-bold text-gray-900">
-                                {data.length}
-                            </p>
-                        </div>
-                        <div className="bg-green-50 p-3 md:p-4 rounded-lg">
-                            <p className="text-xs md:text-sm text-gray-600">
-                                {t("quotation_table.total_leads")}
-                            </p>
-                            <p className="text-lg md:text-2xl font-bold text-gray-900">
-                                {groupedData.length ||
-                                    t("quotation_table.not_available")}
-                            </p>
-                        </div>
-                        <div className="bg-purple-50 p-3 md:p-4 rounded-lg">
-                            <p className="text-xs md:text-sm text-gray-600">
-                                {t("quotation_table.total_value")}
-                            </p>
-                            <p
-                                className="text-base md:text-lg font-bold text-gray-900 cursor-pointer transition-all duration-200 hover:bg-gray-100 rounded px-2 py-1"
-                                title={formatFullCurrency(
-                                    data.reduce(
-                                        (sum, q) => sum + (q.total || 0),
-                                        0
-                                    )
-                                )}
-                            >
-                                {formatFullCurrency(
-                                    data.reduce(
-                                        (sum, q) => sum + (q.total || 0),
-                                        0
-                                    )
-                                )}
-                            </p>
-                        </div>
-                        <div className="bg-yellow-50 p-3 md:p-4 rounded-lg">
-                            <p className="text-xs md:text-sm text-gray-600">
-                                {t("quotation_table.accepted")}
-                            </p>
-                            <p className="text-lg md:text-2xl font-bold text-gray-900">
-                                {
-                                    data.filter(
-                                        (q) =>
-                                            q.status === "accepted" ||
-                                            q.status === "approved"
-                                    ).length
-                                }
-                            </p>
+            {/* Filter Section */}
+            <div className="bg-white border border-gray-200 rounded-lg p-4">
+                <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-5 gap-3">
+                    {/* Search Input */}
+                    <div className="lg:col-span-2">
+                        <div className="relative">
+                            <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-400 w-3 h-3" />
+                            <input
+                                type="text"
+                                placeholder={t("quotation_table.search_placeholder")}
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                                className="w-full pl-7 pr-3 py-1.5 border border-gray-300 rounded text-xs focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                            />
                         </div>
                     </div>
 
-                    {/* Status Breakdown */}
-                    <div className="mt-4">
-                        <h4 className="text-sm font-medium text-gray-700 mb-2">
-                            {t("quotation_table.status_breakdown")}
-                        </h4>
-                        <div className="flex flex-wrap gap-2">
-                            {[
-                                "accepted",
-                                "sent",
-                                "pending",
-                                "draft",
-                                "rejected",
-                                "expired",
-                            ].map((status) => {
-                                const count = data.filter(
-                                    (q) => q.status === status
-                                ).length;
-                                if (count === 0) return null;
+                    {/* Status Filter */}
+                    <div>
+                        <select
+                            value={statusFilter}
+                            onChange={(e) => setStatusFilter(e.target.value)}
+                            className="w-full px-2 py-1.5 border border-gray-300 rounded text-xs focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                        >
+                            <option value="all">{t("quotation_table.all_status")}</option>
+                            {statusOptions?.map((option) => (
+                                <option key={option.id} value={option.id}>
+                                    {option.name}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
 
-                                return (
-                                    <div
-                                        key={status}
-                                        className="flex items-center space-x-2 px-3 py-1 bg-gray-100 rounded-full"
-                                    >
-                                        {getStatusBadge(status)}
-                                        <span className="text-sm text-gray-700">
-                                            {count}
-                                        </span>
-                                    </div>
-                                );
-                            })}
+                    {/* Month Filter */}
+                    <div>
+                        <div className="relative">
+                            <Calendar className="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-400 w-3 h-3" />
+                            <select
+                                value={monthFilter}
+                                onChange={(e) => setMonthFilter(e.target.value)}
+                                className="w-full pl-7 pr-3 py-1.5 border border-gray-300 rounded text-xs focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                            >
+                                {months.map((month) => (
+                                    <option key={month.value} value={month.value}>
+                                        {month.label}
+                                    </option>
+                                ))}
+                            </select>
                         </div>
+                    </div>
+
+                    {/* Year Filter */}
+                    <div>
+                        <select
+                            value={yearFilter}
+                            onChange={(e) => setYearFilter(e.target.value)}
+                            className="w-full px-2 py-1.5 border border-gray-300 rounded text-xs focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                        >
+                            <option value="">{t("quotation_table.all_years")}</option>
+                            {(years || []).map((year) => (
+                                <option key={year} value={year}>
+                                    {year}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+
+                    {/* Action Buttons */}
+                    <div className="flex gap-2">
+                        <button
+                            onClick={handleApplyFilters}
+                            className="flex-1 px-2 py-1.5 bg-blue-600 text-white rounded text-xs hover:bg-blue-700 transition-colors flex items-center justify-center gap-1"
+                        >
+                            <Filter className="w-3 h-3" />
+                            {t("quotation_table.apply")}
+                        </button>
+                        <button
+                            onClick={handleResetFilters}
+                            className="flex-1 px-2 py-1.5 border border-gray-300 text-gray-700 rounded text-xs hover:bg-gray-50 transition-colors flex items-center justify-center gap-1"
+                        >
+                            <RefreshCw className="w-3 h-3" />
+                            {t("quotation_table.reset")}
+                        </button>
                     </div>
                 </div>
-            )}
+            </div>
+
+            {/* Main Content menggunakan SubModuleTableLayout */}
+            <SubModuleTableLayout
+                columns={columns}
+                data={filteredData}
+                onEdit={canUpdate ? handleEdit : undefined}
+                onDelete={canDelete ? handleDelete : undefined}
+                showAction={canUpdate || canDelete}
+                tableTitle=""
+                showHeader={false}
+                showFooter={true}
+                compactMode={true}
+                rowHeight="h-11"
+            />
         </div>
     );
 };

@@ -35,23 +35,25 @@ const darkenColor = (hex, percent) => {
 };
 
 export default function LeadsIndex({ leads = [], auth, auth_permissions }) {
+    const { props } = usePage();
+    
     // Gunakan SEMUA leads dari props
     const [leadsData, setLeadsData] = useState(leads);
-    const [users, setUsers] = useState([]); // State untuk users
+    const [users, setUsers] = useState([]);
     const [loadingUsers, setLoadingUsers] = useState(false);
     
     const { t } = useTranslation();
 
-    const canRead = auth_permissions.can_read === 1;
-    const canCreate = auth_permissions.can_create === 1;
-    const canUpdate = auth_permissions.can_update === 1;
-    const canDelete = auth_permissions.can_delete === 1;
+    const canRead = auth_permissions?.can_read === 1 || auth_permissions?.view === true;
+    const canCreate = auth_permissions?.can_create === 1 || auth_permissions?.create === true;
+    const canUpdate = auth_permissions?.can_update === 1 || auth_permissions?.update === true;
+    const canDelete = auth_permissions?.can_delete === 1 || auth_permissions?.delete === true;
     
     const [loading, setLoading] = useState(false);
     const [modalOpen, setModalOpen] = useState(false);
     const [selectedLead, setSelectedLead] = useState(null);
     const [search, setSearch] = useState("");
-    const [assignedFilter, setAssignedFilter] = useState(""); // Filter assigned user
+    const [assignedFilter, setAssignedFilter] = useState("");
     
     // State untuk modals
     const [deleteModalOpen, setDeleteModalOpen] = useState(false);
@@ -63,12 +65,12 @@ export default function LeadsIndex({ leads = [], auth, auth_permissions }) {
     });
     const [leadToDelete, setLeadToDelete] = useState(null);
 
-    // State untuk status dropdown
-    const [leadStatuses, setLeadStatuses] = useState([]); // State untuk menyimpan data dari tabel lead_statuses
+    // State untuk status dropdown - FIX: Pastikan selalu array
+    const [leadStatuses, setLeadStatuses] = useState([]);
 
     // Get current user
     const currentUser = auth?.user || null;
-    const isAdmin = currentUser?.is_admin || false;
+    const isAdmin = currentUser?.role_name === 'Admin' || currentUser?.is_admin || false;
 
     // Fetch users dan lead_statuses dari API
     useEffect(() => {
@@ -83,7 +85,8 @@ export default function LeadsIndex({ leads = [], auth, auth_permissions }) {
             const response = await fetch('/api/users');
             if (response.ok) {
                 const data = await response.json();
-                setUsers(data);
+                // Pastikan data adalah array
+                setUsers(Array.isArray(data) ? data : (data.data || data.users || []));
             }
         } catch (err) {
             console.error('Failed to fetch users:', err);
@@ -93,153 +96,200 @@ export default function LeadsIndex({ leads = [], auth, auth_permissions }) {
         }
     };
 
-    // Fetch lead_statuses dari API
+    // Fetch lead_statuses dari API - FIXED VERSION
     const fetchLeadStatuses = async () => {
         try {
-            const response = await fetch('/api/lead-statuses'); // Endpoint untuk mengambil data lead_statuses
+            console.log('Fetching lead statuses...');
+            
+            // Coba endpoint utama
+            const response = await fetch('/api/lead-statuses');
+            
             if (response.ok) {
-                const data = await response.json();
-                setLeadStatuses(data);
+                const result = await response.json();
+                console.log('Lead statuses API response:', result);
+                
+                // HANDLE BERBAGAI FORMAT RESPONSE
+                let statusesArray = [];
+                
+                if (Array.isArray(result)) {
+                    // Format 1: Langsung array
+                    statusesArray = result;
+                } else if (result.data && Array.isArray(result.data)) {
+                    // Format 2: { data: [...] }
+                    statusesArray = result.data;
+                } else if (result.success && Array.isArray(result.data)) {
+                    // Format 3: { success: true, data: [...] }
+                    statusesArray = result.data;
+                } else if (result.statuses && Array.isArray(result.statuses)) {
+                    // Format 4: { statuses: [...] }
+                    statusesArray = result.statuses;
+                } else if (result.leadStatuses && Array.isArray(result.leadStatuses)) {
+                    // Format 5: { leadStatuses: [...] }
+                    statusesArray = result.leadStatuses;
+                }
+                
+                console.log('Parsed lead statuses:', statusesArray);
+                
+                if (statusesArray.length > 0) {
+                    setLeadStatuses(statusesArray);
+                } else {
+                    console.warn('No lead statuses found in response, trying alternative...');
+                    await fetchLeadStatusesAlternative();
+                }
             } else {
-                console.error('Failed to fetch lead statuses:', response.status);
-                // Jika endpoint tidak tersedia, coba fetch dari endpoint lain atau gunakan data dari props jika ada
-                fetchLeadStatusesAlternative();
+                console.warn('Lead statuses endpoint failed, trying alternative...');
+                await fetchLeadStatusesAlternative();
             }
         } catch (err) {
             console.error('Error fetching lead statuses:', err);
-            // Fallback: coba endpoint alternatif
-            fetchLeadStatusesAlternative();
+            await fetchLeadStatusesAlternative();
         }
     };
 
     // Alternative method untuk fetch lead_statuses
     const fetchLeadStatusesAlternative = async () => {
         try {
-            // Coba endpoint lain jika /api/lead-statuses tidak tersedia
-            const response = await fetch('/api/lead-status'); // Alternative endpoint
-            if (response.ok) {
-                const data = await response.json();
-                setLeadStatuses(data);
-            } else {
-                // Jika masih gagal, coba ambil dari endpoint leads yang mungkin menyertakan statuses
-                const leadsResponse = await fetch('/api/leads');
-                if (leadsResponse.ok) {
-                    const leadsData = await leadsResponse.json();
-                    // Extract unique statuses from leads data
-                    const uniqueStatuses = [];
-                    const seenStatuses = new Set();
-                    
-                    leadsData.forEach(lead => {
-                        if (lead.status_id && lead.status_name && lead.status_color && !seenStatuses.has(lead.status_id)) {
-                            seenStatuses.add(lead.status_id);
-                            uniqueStatuses.push({
-                                id: lead.status_id,
-                                name: lead.status_name,
-                                color: lead.status_color
-                            });
+            console.log('Trying alternative lead statuses endpoint...');
+            
+            // Coba endpoint alternatif
+            const endpoints = [
+                '/api/lead-status',
+                '/api/leads/statuses',
+                '/api/leads/status'
+            ];
+            
+            for (const endpoint of endpoints) {
+                try {
+                    const response = await fetch(endpoint);
+                    if (response.ok) {
+                        const result = await response.json();
+                        console.log(`Alternative endpoint ${endpoint} response:`, result);
+                        
+                        let statusesArray = [];
+                        
+                        if (Array.isArray(result)) {
+                            statusesArray = result;
+                        } else if (result.data && Array.isArray(result.data)) {
+                            statusesArray = result.data;
+                        } else if (result.success && Array.isArray(result.data)) {
+                            statusesArray = result.data;
                         }
-                    });
-                    
-                    if (uniqueStatuses.length > 0) {
-                        setLeadStatuses(uniqueStatuses);
-                    } else {
-                        // Jika tidak ada data status sama sekali, tampilkan pesan error
-                        console.error('No lead statuses available');
+                        
+                        if (statusesArray.length > 0) {
+                            setLeadStatuses(statusesArray);
+                            return;
+                        }
                     }
+                } catch (err) {
+                    console.warn(`Endpoint ${endpoint} failed:`, err.message);
                 }
             }
+            
+            // Jika semua endpoint gagal, buat default statuses
+            console.log('All endpoints failed, creating default statuses');
+            createDefaultStatuses();
+            
         } catch (err) {
-            console.error('Error fetching lead statuses from alternative source:', err);
+            console.error('Error in alternative fetch:', err);
+            createDefaultStatuses();
         }
+    };
+
+    // Create default statuses jika tidak ada data
+    const createDefaultStatuses = () => {
+        const defaultStatuses = [
+            { id: 'new', name: 'New', color: '#3b82f6', color_name: 'blue' },
+            { id: 'contacted', name: 'Contacted', color: '#10b981', color_name: 'green' },
+            { id: 'qualified', name: 'Qualified', color: '#f59e0b', color_name: 'amber' },
+            { id: 'proposal', name: 'Proposal Sent', color: '#8b5cf6', color_name: 'purple' },
+            { id: 'negotiation', name: 'Negotiation', color: '#ec4899', color_name: 'pink' },
+            { id: 'closed_won', name: 'Closed Won', color: '#059669', color_name: 'emerald' },
+            { id: 'closed_lost', name: 'Closed Lost', color: '#dc2626', color_name: 'red' }
+        ];
+        
+        console.log('Using default statuses:', defaultStatuses);
+        setLeadStatuses(defaultStatuses);
     };
 
     // Debug info
     useEffect(() => {
-        console.log('=== LEAD STATUSES FROM DATABASE ===');
-        console.log('Total statuses:', leadStatuses.length);
-        console.log('Statuses data:', leadStatuses);
-    }, [leadStatuses]);
+        console.log('=== LEADS PAGE DEBUG ===');
+        console.log('Leads data:', leadsData);
+        console.log('Lead statuses:', leadStatuses);
+        console.log('Lead statuses is array:', Array.isArray(leadStatuses));
+        console.log('Lead statuses length:', leadStatuses.length);
+        console.log('Current user:', currentUser);
+        console.log('Permissions:', { canRead, canCreate, canUpdate, canDelete });
+    }, [leadsData, leadStatuses]);
 
-    // Handle status change
+    // Handle status change - FIXED dengan error handling
     const handleStatusChange = async (leadId, newStatusId) => {
         try {
+            // VALIDASI: Pastikan leadStatuses adalah array
+            if (!Array.isArray(leadStatuses)) {
+                console.error('leadStatuses is not an array:', leadStatuses);
+                showNotification('error', 'Error', 'Status data is not loaded properly');
+                return;
+            }
+            
             setLoading(true);
             
             // Find the status object
             const statusObj = leadStatuses.find(s => s.id === newStatusId);
             
             if (!statusObj) {
-                throw new Error('Status not found');
+                throw new Error(`Status with ID ${newStatusId} not found`);
             }
             
-            console.log('Selected status object:', statusObj);
-            console.log('Lead ID to update:', leadId);
+            console.log('Updating status:', { leadId, newStatusId, statusObj });
             
-            // Siapkan payload sesuai dengan field di database (lead_statuses_id)
+            // Siapkan payload
             const payload = {
-                lead_statuses_id: newStatusId, // Gunakan field yang sesuai dengan database
-                status: statusObj.name,
-                status_name: statusObj.name,
-                status_color: statusObj.color || '#3b82f6',
-                _method: 'PUT' // Untuk Laravel method spoofing
+                lead_statuses_id: newStatusId,
+                _method: 'PUT'
             };
             
-            console.log('Updating status with payload:', payload);
+            // Gunakan fetch langsung
+            const response = await fetch(`/api/leads/${leadId}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                body: JSON.stringify(payload)
+            });
             
-            try {
-                // Gunakan fetch langsung
-                const response = await fetch(`/api/leads/${leadId}`, {
-                    method: 'POST', // Untuk Laravel method spoofing
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Accept': 'application/json',
-                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '',
-                        'X-Requested-With': 'XMLHttpRequest'
-                    },
-                    body: JSON.stringify(payload)
-                });
-                
-                const data = await response.json();
-                console.log('Update response:', data);
-                
-                if (!response.ok) {
-                    throw new Error(data.message || data.error || `Update failed with status ${response.status}`);
-                }
-                
-                // Update local state - SESUAIKAN DENGAN FIELD DATABASE
-                setLeadsData(prev => prev.map(lead => {
-                    if (lead.id === leadId) {
-                        return {
-                            ...lead,
-                            lead_statuses_id: newStatusId, // Perhatikan field name
-                            status_id: newStatusId, // Untuk kompatibilitas
-                            status_name: statusObj.name,
-                            status_color: statusObj.color || '#3b82f6',
-                            status: statusObj.name
-                        };
-                    }
-                    return lead;
-                }));
-                
-                // Show notification
-                showNotification('success', 'Status Updated', `Lead status changed to ${statusObj.name}`);
-                
-            } catch (fetchError) {
-                console.error('Fetch error:', fetchError);
-                throw fetchError;
+            const data = await response.json();
+            
+            if (!response.ok) {
+                throw new Error(data.message || data.error || `Update failed with status ${response.status}`);
             }
+            
+            // Update local state
+            setLeadsData(prev => prev.map(lead => {
+                if (lead.id === leadId) {
+                    return {
+                        ...lead,
+                        lead_statuses_id: newStatusId,
+                        status_id: newStatusId,
+                        status_name: statusObj.name,
+                        status_color: statusObj.color || '#3b82f6',
+                        status: statusObj.name
+                    };
+                }
+                return lead;
+            }));
+            
+            // Show notification
+            showNotification('success', 'Status Updated', `Lead status changed to ${statusObj.name}`);
             
         } catch (err) {
             console.error('Status update error:', err);
-            console.error('Full error:', err);
             
-            // Tampilkan error yang lebih spesifik
             let errorMessage = 'Failed to update status';
-            if (err.response?.data) {
-                errorMessage = err.response.data.message || 
-                            err.response.data.error || 
-                            JSON.stringify(err.response.data.errors || err.response.data);
-            } else if (err.message) {
+            if (err.message) {
                 errorMessage = err.message;
             }
             
@@ -249,7 +299,7 @@ export default function LeadsIndex({ leads = [], auth, auth_permissions }) {
         }
     };
 
-    // Columns definition - TAMPILKAN SEMUA DATA
+    // Columns definition dengan SAFE leadStatuses access
     const columns = [
         { 
             key: "company_name", 
@@ -321,7 +371,7 @@ export default function LeadsIndex({ leads = [], auth, auth_permissions }) {
                                 </span>
                             </div>
                             <div className="text-sm text-gray-500">
-                                User ID: {row.assigned_to.substring(0, 8)}...
+                                User ID: {row.assigned_to?.substring(0, 8) || 'Unknown'}...
                             </div>
                         </div>
                     );
@@ -343,17 +393,25 @@ export default function LeadsIndex({ leads = [], auth, auth_permissions }) {
             key: "status_name",
             label: t('leads.table.status') || 'Status',
             render: (statusName, row) => {
-                // Cari status berdasarkan status_id atau status_name dari data lead_statuses
-                const currentStatus = leadStatuses.find(status => 
-                    status.id === row.lead_statuses_id || status.id === row.status_id || status.name === (row.status_name || row.status)
-                );
+                // SAFE ACCESS: Pastikan leadStatuses adalah array
+                const safeLeadStatuses = Array.isArray(leadStatuses) ? leadStatuses : [];
                 
-                // Default colors jika tidak ada status
+                // Cari status berdasarkan ID atau name
+                let currentStatus = null;
+                if (safeLeadStatuses.length > 0) {
+                    currentStatus = safeLeadStatuses.find(status => 
+                        status.id === row.lead_statuses_id || 
+                        status.id === row.status_id || 
+                        status.name === (row.status_name || row.status)
+                    );
+                }
+                
+                // Default values
                 const statusColor = currentStatus?.color || row.status_color || '#3b82f6';
                 const displayName = currentStatus?.name || row.status_name || row.status || 'New';
                 const statusId = currentStatus?.id || row.lead_statuses_id || row.status_id;
                 
-                // Warna background dan border berdasarkan warna status
+                // Warna background dan border
                 const bgColor = hexToRgba(statusColor, 0.1);
                 const borderColor = darkenColor(statusColor, 20);
                 
@@ -389,15 +447,15 @@ export default function LeadsIndex({ leads = [], auth, auth_permissions }) {
                                 WebkitAppearance: 'none',
                                 paddingRight: '1.5rem'
                             }}
-                            disabled={!currentUser || leadStatuses.length === 0 || loading}
+                            disabled={!currentUser || safeLeadStatuses.length === 0 || loading}
                         >
                             <option value="" disabled>Select Status</option>
-                            {leadStatuses.map((status) => {
+                            {safeLeadStatuses.map((status) => {
                                 const optionBgColor = hexToRgba(status.color || '#3b82f6', 0.1);
                                 const optionTextColor = status.color || '#3b82f6';
                                 return (
                                     <option 
-                                        key={status.id} 
+                                        key={status.id || status.name} 
                                         value={status.id}
                                         className="py-1"
                                         style={{
@@ -406,7 +464,7 @@ export default function LeadsIndex({ leads = [], auth, auth_permissions }) {
                                             fontWeight: 'bold'
                                         }}
                                     >
-                                        {status.name.toUpperCase()}
+                                        {(status.name || 'Unknown').toUpperCase()}
                                     </option>
                                 );
                             })}
@@ -483,11 +541,13 @@ export default function LeadsIndex({ leads = [], auth, auth_permissions }) {
             setModalOpen(false);
             
             // RELOAD PAGE untuk mengambil data terbaru dari database
-            window.location.reload();
+            setTimeout(() => {
+                window.location.reload();
+            }, 500);
             
         } catch (err) {
             console.error('Submit error:', err);
-            showNotification('error', 'Save Failed', err.response?.data?.message || err.message);
+            showNotification('error', 'Save Failed', err.response?.data?.message || err.message || 'Failed to save lead');
         }
     };
 
@@ -519,14 +579,13 @@ export default function LeadsIndex({ leads = [], auth, auth_permissions }) {
             
         } catch (err) {
             setDeleteModalOpen(false);
-            showNotification('error', 'Delete Failed', err.response?.data?.message || err.message);
+            showNotification('error', 'Delete Failed', err.response?.data?.message || err.message || 'Failed to delete lead');
         }
     };
 
-    // Filter leads berdasarkan search dan assigned filter
+    // Filter leads
     const filteredLeads = Array.isArray(leadsData) 
         ? leadsData.filter(lead => {
-            // Filter berdasarkan search term
             const searchMatch = 
                 lead.company_name?.toLowerCase().includes(search.toLowerCase()) ||
                 lead.contact_person?.toLowerCase().includes(search.toLowerCase()) ||
@@ -534,7 +593,6 @@ export default function LeadsIndex({ leads = [], auth, auth_permissions }) {
                 (lead.assigned_user?.name || '').toLowerCase().includes(search.toLowerCase()) ||
                 (lead.assigned_user?.email || '').toLowerCase().includes(search.toLowerCase());
             
-            // Filter berdasarkan assigned user
             let assignedMatch = true;
             if (assignedFilter) {
                 if (assignedFilter === "unassigned") {
@@ -550,15 +608,6 @@ export default function LeadsIndex({ leads = [], auth, auth_permissions }) {
             
             return searchMatch && assignedMatch;
           })
-        : [];
-
-    // Get unique company names untuk dropdown
-    const companyOptions = Array.isArray(leadsData) 
-        ? [...new Set(leadsData
-            .filter(lead => lead.company_name)
-            .map(lead => lead.company_name)
-            .sort()
-          )]
         : [];
 
     // Reset semua filter
@@ -577,12 +626,12 @@ export default function LeadsIndex({ leads = [], auth, auth_permissions }) {
                 subtitle={t('leads.sub_title') || 'Manage all company leads'}
             />
 
-            {/* TITLE SECTION - DIMODIFIKASI: Button sejajar dengan title, subtitle dihilangkan */}
+            {/* TITLE SECTION */}
             <div className="px-8 py-6">
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
                     <div>
                         <h2 className="text-2xl font-bold text-gray-900">
-                            {t('leads.title')}
+                            {t('leads.title') || 'Leads Management'}
                         </h2>
                     </div>
                     <div className="sm:w-auto">
@@ -617,7 +666,7 @@ export default function LeadsIndex({ leads = [], auth, auth_permissions }) {
                                 </div>
                                 <input
                                     type="text"
-                                    placeholder={t('leads.filters.search_placeholder')}
+                                    placeholder={t('leads.filters.search_placeholder') || 'Search leads...'}
                                     value={search}
                                     onChange={(e) => setSearch(e.target.value)}
                                     className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm transition-all duration-200"
@@ -635,9 +684,9 @@ export default function LeadsIndex({ leads = [], auth, auth_permissions }) {
                                         <option value="">{t('leads.filters.all_assignments') || 'All Assignments'}</option>
                                         <option value="me">{t('leads.filters.assigned_to_me') || 'Assigned to Me'}</option>
                                         <option value="unassigned">{t('leads.filters.unassigned') || 'Unassigned'}</option>
-                                        <option value="others">{t('leads.filters.assined_to_others') || 'Assigned to Others'}</option>
+                                        <option value="others">{t('leads.filters.assigned_to_others') || 'Assigned to Others'}</option>
                                         <optgroup label={t('leads.filters.specific_user') || 'Specific Users'}>
-                                            {users.map((user) => (
+                                            {Array.isArray(users) && users.map((user) => (
                                                 <option key={user.id} value={user.id}>
                                                     {user.name} {currentUser && user.id === currentUser.id && "(You)"}
                                                 </option>
@@ -699,8 +748,6 @@ export default function LeadsIndex({ leads = [], auth, auth_permissions }) {
                             </div>
                         )}
                     </div>
-
-                    {/* ADD BUTTON DIHAPUS DARI SINI karena sudah dipindah ke atas */}
                 </div>
             </div>
 
@@ -745,18 +792,16 @@ export default function LeadsIndex({ leads = [], auth, auth_permissions }) {
                                     Clear All Filters
                                 </button>
                             )}
-                            {!hasActiveFilters && (
-                                canCreate && (
-                                    <PrimaryButton
-                                        onClick={handleAdd}
-                                        className="px-6 py-3 text-sm font-semibold"
-                                    >
-                                        <svg className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                                        </svg>
-                                        Create Your First Lead
-                                    </PrimaryButton>
-                                )                                
+                            {!hasActiveFilters && canCreate && (
+                                <PrimaryButton
+                                    onClick={handleAdd}
+                                    className="px-6 py-3 text-sm font-semibold"
+                                >
+                                    <svg className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                                    </svg>
+                                    Create Your First Lead
+                                </PrimaryButton>
                             )}
                         </div>
                     </div>
@@ -783,8 +828,8 @@ export default function LeadsIndex({ leads = [], auth, auth_permissions }) {
                 initialData={selectedLead}
                 currentUser={currentUser}
                 isAdmin={isAdmin}
-                users={users} // Kirim users data ke modal
-                statuses={leadStatuses} // Kirim statuses ke modal
+                users={users}
+                statuses={Array.isArray(leadStatuses) ? leadStatuses : []}
             />
 
             <DeleteConfirmationModal

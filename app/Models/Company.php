@@ -15,7 +15,6 @@ class Company extends Model
     public $incrementing = false;
     protected $keyType = 'string';
     
- // SESUAIKAN dengan kolom yang ADA di database
     protected $fillable = [
         'id',
         'client_type_id',
@@ -64,11 +63,9 @@ class Company extends Model
             if (auth()->check()) {
                 $model->created_by = auth()->id();
             }
-            // Default is_active ke true sesuai database
             if (!isset($model->is_active)) {
                 $model->is_active = true;
             }
-            // Default deleted ke false
             if (!isset($model->deleted)) {
                 $model->deleted = false;
             }
@@ -101,7 +98,8 @@ class Company extends Model
         });
     }
 
-    // Accessors
+    // ============ ACCESSORS ============
+    
     public function getLogoUrlAttribute()
     {
         if (!$this->logo_path) return null;
@@ -133,15 +131,18 @@ class Company extends Model
         return $this->vat_number ? number_format($this->vat_number, 0, ',', '.') : 'N/A';
     }
 
-    // Relationships
+    // ============ RELATIONSHIPS FIX ============
+    
     public function clientType()
     {
         return $this->belongsTo(ClientType::class, 'client_type_id', 'id');
     }
 
+    // Lead - TAMPILKAN SEMUA meski lead dihapus
     public function lead()
     {
-        return $this->belongsTo(Lead::class, 'lead_id', 'id');
+        return $this->belongsTo(Lead::class, 'lead_id', 'id')
+                    ->withoutGlobalScope('notDeleted'); // Hapus scope deleted
     }
 
     public function quotation()
@@ -149,12 +150,14 @@ class Company extends Model
         return $this->belongsTo(Quotation::class, 'quotation_id', 'id');
     }
 
+    // Contacts - tetap filter deleted = 0
     public function contacts()
     {
-        return $this->hasMany(CompanyContactPerson::class, 'company_id', 'id');
+        return $this->hasMany(CompanyContactPerson::class, 'company_id', 'id')
+                    ->where('deleted', 0);
     }
 
-    // Alias for contacts (used in quotation and invoice forms)
+    // Alias for contacts
     public function contactPersons()
     {
         return $this->hasMany(CompanyContactPerson::class, 'company_id', 'id')
@@ -167,17 +170,17 @@ class Company extends Model
                     ->where('deleted', 0);
     }
 
-    // Di dalam model Company, tambahkan relationship ini:
+    // Projects - TAMPILKAN SEMUA meski company dihapus
     public function projects()
     {
-    return $this->hasMany(Project::class, 'company_id', 'id')
-                ->where('deleted', 0);
+        return $this->hasMany(Project::class, 'company_id', 'id')
+                    ->withoutGlobalScope('notDeleted'); // Hapus scope deleted
     }
 
-    // Bisa juga tambahkan alias jika diperlukan
+    // Alias
     public function clientProjects()
     {
-    return $this->projects();
+        return $this->projects();
     }
 
     public function primaryContact()
@@ -203,7 +206,8 @@ class Company extends Model
         return $this->belongsTo(User::class, 'deleted_by', 'id');
     }
 
-    // Scopes
+    // ============ SCOPES ============
+    
     public function scopeActive($query)
     {
         return $query->where('is_active', true);

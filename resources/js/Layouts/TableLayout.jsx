@@ -13,10 +13,11 @@ import { useTranslation } from "react-i18next";
  * TableLayout Component
  *
  * @param {Object} props
- * @param {Array} props.columns - Array of column definitions [{ key, label, render? }]
+ * @param {Array} props.columns - Array of column definitions [{ key, label, render?, className? }]
  * @param {Array} props.data - Array of data objects
  * @param {Function} props.onEdit - Callback for edit action
  * @param {Function} props.onDelete - Callback for delete action
+ * @param {Function} props.onSendEmail - Callback for send email action
  * @param {Boolean} props.showAction - Whether to show action column
  * @param {Object} props.pagination - Pagination configuration
  * @param {Number} props.pagination.currentPage - Current page number
@@ -35,6 +36,7 @@ export default function TableLayout({
     pagination = null,
 }) {
     const { t } = useTranslation();
+    
     // Calculate pagination range
     const getPaginationRange = () => {
         if (!pagination) return [];
@@ -90,29 +92,71 @@ export default function TableLayout({
         return `Showing ${start} - ${end} of ${totalItems} entries`;
     };
 
+    // Calculate column widths based on content
+    const getColumnWidths = () => {
+        const widths = {};
+        
+        columns.forEach((col, index) => {
+            if (col.className?.includes('min-w-')) {
+                // Extract min-width from className
+                const match = col.className.match(/min-w-\[(\d+)px\]/);
+                if (match) {
+                    widths[col.key] = `${match[1]}px`;
+                } else if (col.className.includes('min-w-')) {
+                    widths[col.key] = 'auto';
+                }
+            }
+            
+            // Set default widths for specific columns
+            if (!widths[col.key]) {
+                if (col.key === 'quotation_number') widths[col.key] = '150px';
+                else if (col.key === 'date') widths[col.key] = '120px';
+                else if (col.key === 'subject') widths[col.key] = '230px';
+                else if (col.key === 'lead') widths[col.key] = '200px';
+                else if (col.key === 'total') widths[col.key] = '180px';
+                else if (col.key === 'status') widths[col.key] = '130px';
+                else widths[col.key] = 'auto';
+            }
+        });
+        
+        return widths;
+    };
+
+    const columnWidths = getColumnWidths();
+
     return (
-        <div className="overflow-hidden bg-white rounded-xl border border-gray-200 shadow-sm">
-            {/* Table Container */}
-            <div className="overflow-x-auto">
-                <table className="w-full">
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
+            {/* Table Container - TANPA overflow-x-auto */}
+            <div className="w-full">
+                <table className="w-full table-fixed">
                     {/* ================= HEADER ================= */}
                     <thead>
                         <tr className="bg-[#c8e1b5] border-b border-blue-200">
-                            <th className="px-6 py-4 text-left text-xs font-semibold text-black uppercase tracking-wider">
+                            <th 
+                                className="px-6 py-4 text-left text-xs font-semibold text-black uppercase tracking-wider"
+                                style={{ width: '80px' }}
+                            >
                                 No
                             </th>
 
                             {columns.map((col) => (
                                 <th
                                     key={col.key}
-                                    className="px-6 py-4 text-left text-xs font-semibold text-black uppercase tracking-wider"
+                                    className={`px-6 py-4 text-left text-xs font-semibold text-black uppercase tracking-wider ${col.className || ''}`}
+                                    style={{ 
+                                        width: columnWidths[col.key],
+                                        minWidth: columnWidths[col.key].replace('px', '') + 'px'
+                                    }}
                                 >
                                     {col.label}
                                 </th>
                             ))}
 
                             {showAction && (
-                                <th className="px-6 py-4 text-left text-xs font-semibold text-black uppercase tracking-wider">
+                                <th 
+                                    className="px-6 py-4 text-left text-xs font-semibold text-black uppercase tracking-wider"
+                                    style={{ width: '120px' }}
+                                >
                                     {t('users.table.actions') || 'Actions'}
                                 </th>
                             )}
@@ -165,7 +209,10 @@ export default function TableLayout({
                                         key={row.id ?? index}
                                         className="hover:bg-blue-50 transition-colors duration-150 group"
                                     >
-                                        <td className="px-6 py-4 whitespace-nowrap">
+                                        <td 
+                                            className="px-6 py-4 align-top"
+                                            style={{ width: '80px' }}
+                                        >
                                             <span className="text-sm font-medium text-gray-900">
                                                 {rowNumber}
                                             </span>
@@ -174,9 +221,13 @@ export default function TableLayout({
                                         {columns.map((col) => (
                                             <td
                                                 key={col.key}
-                                                className="px-6 py-4"
+                                                className={`px-6 py-4 align-top ${col.className || ''}`}
+                                                style={{ 
+                                                    width: columnWidths[col.key],
+                                                    minWidth: columnWidths[col.key].replace('px', '') + 'px'
+                                                }}
                                             >
-                                                <div className="text-sm text-gray-900">
+                                                <div className="text-sm text-gray-900 break-words">
                                                     {col.render
                                                         ? col.render(
                                                               row[col.key],
@@ -192,7 +243,10 @@ export default function TableLayout({
                                         ))}
 
                                         {showAction && (
-                                            <td className="px-6 py-4 whitespace-nowrap">
+                                            <td 
+                                                className="px-6 py-4 align-top"
+                                                style={{ width: '120px' }}
+                                            >
                                                 <div className="flex items-center gap-2">
                                                     {/* Tombol Email */}
                                                     {onSendEmail && (
