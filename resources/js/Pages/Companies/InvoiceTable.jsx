@@ -231,11 +231,6 @@ const InvoiceTable = ({ data: initialData, companyId, auth_permissions }) => {
         );
     };
 
-    // Calculate statistics
-    const totalAmount = data.reduce((sum, i) => sum + (i.invoice_amount || 0), 0);
-    const totalDue = data.reduce((sum, i) => sum + (i.amount_due || 0), 0);
-    const unpaidCount = data.filter(i => i.status === 'unpaid' || i.status === 'Unpaid').length;
-
     // Prepare columns untuk SubModuleTableLayout dengan TEXT KECIL
     const columns = useMemo(() => [
         {
@@ -382,44 +377,6 @@ const InvoiceTable = ({ data: initialData, companyId, auth_permissions }) => {
                     </select>
                 </div>
             </div>
-
-            {/* Statistics Cards - Text Kecil */}
-            {data.length > 0 && (
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-3">
-                    <div className="bg-white border border-gray-200 rounded-lg p-3 shadow-sm">
-                        <div className="text-gray-600 text-xs mb-1">
-                            {t('invoice_table.total_invoices')}
-                        </div>
-                        <div className="font-bold text-gray-900 text-sm">
-                            {data.length}
-                        </div>
-                    </div>
-                    <div className="bg-white border border-gray-200 rounded-lg p-3 shadow-sm">
-                        <div className="text-gray-600 text-xs mb-1">
-                            {t('invoice_table.total_amount')}
-                        </div>
-                        <div className="font-bold text-gray-900 text-xs truncate" title={formatCurrency(totalAmount)}>
-                            {formatCompactCurrency(totalAmount)}
-                        </div>
-                    </div>
-                    <div className="bg-white border border-gray-200 rounded-lg p-3 shadow-sm">
-                        <div className="text-gray-600 text-xs mb-1">
-                            {t('invoice_table.total_due')}
-                        </div>
-                        <div className="font-bold text-red-600 text-xs truncate" title={formatCurrency(totalDue)}>
-                            {formatCompactCurrency(totalDue)}
-                        </div>
-                    </div>
-                    <div className="bg-white border border-gray-200 rounded-lg p-3 shadow-sm">
-                        <div className="text-gray-600 text-xs mb-1">
-                            {t('invoice_table.unpaid_invoices')}
-                        </div>
-                        <div className="font-bold text-yellow-600 text-sm">
-                            {unpaidCount}
-                        </div>
-                    </div>
-                </div>
-            )}
 
             {/* Main Content menggunakan SubModuleTableLayout */}
             <SubModuleTableLayout

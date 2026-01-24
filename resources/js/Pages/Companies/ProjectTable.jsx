@@ -184,13 +184,6 @@ const ProjectTable = ({ data: initialData, onEdit, onDelete, auth_permissions })
 
     const filteredData = filterData();
 
-    // Calculate statistics
-    const totalProjects = data.length;
-    const completedCount = data.filter(p => mapStatusForDisplay(p.status) === "completed").length;
-    const inProgressCount = data.filter(p => mapStatusForDisplay(p.status) === "in_progress").length;
-    const pendingCount = data.filter(p => mapStatusForDisplay(p.status) === "pending").length;
-    const cancelledCount = data.filter(p => mapStatusForDisplay(p.status) === "cancelled").length;
-
     // Prepare columns untuk SubModuleTableLayout
     const columns = useMemo(() => [
         {
@@ -322,44 +315,6 @@ const ProjectTable = ({ data: initialData, onEdit, onDelete, auth_permissions })
                     </select>
                 </div>
             </div>
-
-            {/* Statistics Cards */}
-            {data.length > 0 && (
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-3">
-                    <div className="bg-white border border-gray-200 rounded-lg p-3 shadow-sm">
-                        <div className="text-gray-600 text-xs mb-1">
-                            {t('project_table.total_projects')}
-                        </div>
-                        <div className="font-bold text-gray-900 text-sm">
-                            {totalProjects}
-                        </div>
-                    </div>
-                    <div className="bg-white border border-gray-200 rounded-lg p-3 shadow-sm">
-                        <div className="text-gray-600 text-xs mb-1">
-                            {t('project_table.completed')}
-                        </div>
-                        <div className="font-bold text-green-600 text-sm">
-                            {completedCount}
-                        </div>
-                    </div>
-                    <div className="bg-white border border-gray-200 rounded-lg p-3 shadow-sm">
-                        <div className="text-gray-600 text-xs mb-1">
-                            {t('project_table.in_progress')}
-                        </div>
-                        <div className="font-bold text-blue-600 text-sm">
-                            {inProgressCount}
-                        </div>
-                    </div>
-                    <div className="bg-white border border-gray-200 rounded-lg p-3 shadow-sm">
-                        <div className="text-gray-600 text-xs mb-1">
-                            {t('project_table.pending')}
-                        </div>
-                        <div className="font-bold text-yellow-600 text-sm">
-                            {pendingCount}
-                        </div>
-                    </div>
-                </div>
-            )}
 
             {/* Main Content menggunakan SubModuleTableLayout */}
             <SubModuleTableLayout

@@ -290,12 +290,6 @@ const PaymentTable = ({ data: initialData, companyId, auth_permissions }) => {
         );
     };
 
-    // Calculate statistics
-    const totalAmount = data.reduce((sum, i) => sum + (i.amount || 0), 0);
-    const transferCount = data.filter(i => i.method?.toLowerCase() === 'transfer').length;
-    const cashCount = data.filter(i => i.method?.toLowerCase() === 'cash').length;
-    const checkCount = data.filter(i => i.method?.toLowerCase() === 'check').length;
-
     // Prepare columns untuk SubModuleTableLayout
     const columns = useMemo(() => [
         {
@@ -437,44 +431,6 @@ const PaymentTable = ({ data: initialData, companyId, auth_permissions }) => {
                             )}
                             {t('payment_table.delete_selected')}
                         </button>
-                    </div>
-                </div>
-            )}
-
-            {/* Statistics Cards */}
-            {data.length > 0 && (
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-3">
-                    <div className="bg-white border border-gray-200 rounded-lg p-3 shadow-sm">
-                        <div className="text-gray-600 text-xs mb-1">
-                            {t('payment_table.total_payments')}
-                        </div>
-                        <div className="font-bold text-gray-900 text-sm">
-                            {data.length}
-                        </div>
-                    </div>
-                    <div className="bg-white border border-gray-200 rounded-lg p-3 shadow-sm">
-                        <div className="text-gray-600 text-xs mb-1">
-                            {t('payment_table.total_received')}
-                        </div>
-                        <div className="font-bold text-green-600 text-xs truncate" title={formatCurrency(totalAmount)}>
-                            {formatCompactCurrency(totalAmount)}
-                        </div>
-                    </div>
-                    <div className="bg-white border border-gray-200 rounded-lg p-3 shadow-sm">
-                        <div className="text-gray-600 text-xs mb-1">
-                            {t('payment_table.transfers')}
-                        </div>
-                        <div className="font-bold text-blue-600 text-sm">
-                            {transferCount}
-                        </div>
-                    </div>
-                    <div className="bg-white border border-gray-200 rounded-lg p-3 shadow-sm">
-                        <div className="text-gray-600 text-xs mb-1">
-                            {t('payment_table.cash')}
-                        </div>
-                        <div className="font-bold text-green-600 text-sm">
-                            {cashCount}
-                        </div>
                     </div>
                 </div>
             )}
