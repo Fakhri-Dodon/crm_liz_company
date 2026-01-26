@@ -700,6 +700,7 @@
     "client_type": "Tipe Klien",
     "nib": "NIB",
     "vat_number": "Nomor PPN",
+    "npwp": "NPWP",
     "website": "Website",
     "city": "Kota",
     "province": "Provinsi",

@@ -229,10 +229,11 @@ const PaymentTable = ({ data: initialData, companyId, auth_permissions }) => {
         
         return (
             <div className="flex items-center gap-1 min-w-0">
-                <div className={`font-bold text-green-700 ${!isExpanded && shouldShowExpand ? 'truncate' : ''}`}>
-                    {isExpanded ? fullAmount : compactAmount}
+                <div className={`font-medium text-gray-900 text-xs ${!isExpanded && shouldShowExpand ? 'truncate' : ''}`}>
+                    {/* {isExpanded ? fullAmount : compactAmount} */}
+                    {fullAmount}
                 </div>
-                {shouldShowExpand && (
+                {/* {shouldShowExpand && (
                     <button 
                         onClick={(e) => {
                             e.stopPropagation();
@@ -250,7 +251,7 @@ const PaymentTable = ({ data: initialData, companyId, auth_permissions }) => {
                             <Maximize2 className="w-3 h-3" />
                         )}
                     </button>
-                )}
+                )} */}
             </div>
         );
     };

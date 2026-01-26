@@ -113,7 +113,14 @@ const ProfileTable = ({ data }) => {
             value: data.primary_contact?.position,
             bgColor: 'bg-amber-50',
             iconColor: 'text-amber-600'
-        }
+        },
+        {
+            icon: FileDigit,
+            label: t('profile_table.npwp'),
+            value: data.vat_number,
+            bgColor: 'bg-teal-50',
+            iconColor: 'text-teal-600'
+        },
     ];
 
     // Field yang ditampilkan pertama kali

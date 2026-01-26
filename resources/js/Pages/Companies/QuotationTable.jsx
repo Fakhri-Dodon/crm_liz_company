@@ -165,21 +165,21 @@ const QuotationTable = ({ data, statusOptions = [], companyId, auth_permissions,
                 />
             )
         },
-        {
-            key: 'company_name',
-            label: t("quotation_table.company_name"),
-            width: '160px',
-            render: (value, row) => {
-                const companyName = row.lead?.company_name || value || t("quotation_table.not_available");
-                const isClient = !!row.is_client;
+        // {
+        //     key: 'company_name',
+        //     label: t("quotation_table.company_name"),
+        //     width: '160px',
+        //     render: (value, row) => {
+        //         const companyName = row.lead?.company_name || value || t("quotation_table.not_available");
+        //         const isClient = !!row.is_client;
                 
-                return (
-                    <div className={`font-medium truncate ${isClient ? "text-blue-600" : "text-gray-900"} text-xs`}>
-                        {companyName}
-                    </div>
-                );
-            }
-        },
+        //         return (
+        //             <div className={`font-medium truncate ${isClient ? "text-blue-600" : "text-gray-900"} text-xs`}>
+        //                 {companyName}
+        //             </div>
+        //         );
+        //     }
+        // },
         {
             key: 'contact',
             label: t("quotation_table.contact"),
@@ -190,16 +190,16 @@ const QuotationTable = ({ data, statusOptions = [], companyId, auth_permissions,
                 </div>
             )
         },
-        {
-            key: 'created_by',
-            label: t("quotation_table.created_by"),
-            width: '120px',
-            render: (value, row) => (
-                <div className="text-gray-600 text-xs truncate">
-                    {row.creator?.name || "Admin"}
-                </div>
-            )
-        },
+        // {
+        //     key: 'created_by',
+        //     label: t("quotation_table.created_by"),
+        //     width: '120px',
+        //     render: (value, row) => (
+        //         <div className="text-gray-600 text-xs truncate">
+        //             {row.creator?.name || "Admin"}
+        //         </div>
+        //     )
+        // },
         {
             key: 'total',
             label: t("quotation_table.total"),
