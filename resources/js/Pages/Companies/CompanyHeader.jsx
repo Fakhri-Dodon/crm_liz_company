@@ -331,9 +331,9 @@ const CompanyHeader = ({ company, activeTab, data, statistics }) => {
                                 <div className="mb-2 font-semibold text-gray-800">
                                     {t('companies_header.outstanding_details')}
                                 </div>
-                                {data.invoices?.filter(inv => inv.status !== 'paid').length > 0 ? (
+                                {data.invoices?.filter(inv => inv.status !== 'Paid').length > 0 ? (
                                     <ul className="text-sm text-gray-700 max-h-40 overflow-y-auto">
-                                        {data.invoices.filter(inv => inv.status !== 'paid').map((inv, idx) => (
+                                        {data.invoices.filter(inv => inv.status !== 'Paid').map((inv, idx) => (
                                             <li key={inv.id || idx} className="mb-1 flex justify-between">
                                                 <span>{inv.invoice_number || '-'}</span>
                                                 <span>{formatFullCurrency(inv.amount_due || 0)}</span>
@@ -349,7 +349,7 @@ const CompanyHeader = ({ company, activeTab, data, statistics }) => {
                         )}
                     </div>
                     <p className="text-xs sm:text-sm text-gray-500 mt-1">
-                        {data.invoices?.filter(inv => inv.status !== 'paid').length || 0} {t('companies_header.unpaid_invoices')}
+                        {data.invoices?.filter(inv => inv.status !== 'Paid').length || 0} {t('companies_header.unpaid_invoices')}
                     </p>
                 </div>
             </div>

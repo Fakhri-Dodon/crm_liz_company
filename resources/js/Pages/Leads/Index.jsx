@@ -330,65 +330,65 @@ export default function LeadsIndex({ leads = [], auth, auth_permissions }) {
                 </div>
             ),
         },
-        {
-            key: "assigned_user",
-            label: t('leads.table.assigned_to') || 'Assigned To',
-            render: (assignedUser, row) => {
-                if (assignedUser && assignedUser.name) {
-                    const isCurrentUser = currentUser && assignedUser.id === currentUser.id;
+        // {
+        //     key: "assigned_user",
+        //     label: t('leads.table.assigned_to') || 'Assigned To',
+        //     render: (assignedUser, row) => {
+        //         if (assignedUser && assignedUser.name) {
+        //             const isCurrentUser = currentUser && assignedUser.id === currentUser.id;
                     
-                    return (
-                        <div className="flex items-center gap-2">
-                            <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                                <span className="text-blue-600 font-semibold text-sm">
-                                    {assignedUser.name.charAt(0).toUpperCase()}
-                                </span>
-                            </div>
-                            <div className="min-w-0">
-                                <div className="text-sm font-medium text-gray-900 truncate">
-                                    {assignedUser.name}
-                                    {isCurrentUser && (
-                                        <span className="ml-1 text-xs font-normal text-green-600">(You)</span>
-                                    )}
-                                </div>
-                                {assignedUser.email && (
-                                    <div className="text-xs text-gray-500 truncate max-w-[150px]">
-                                        {assignedUser.email}
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-                    );
-                }
+        //             return (
+        //                 <div className="flex items-center gap-2">
+        //                     <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+        //                         <span className="text-blue-600 font-semibold text-sm">
+        //                             {assignedUser.name.charAt(0).toUpperCase()}
+        //                         </span>
+        //                     </div>
+        //                     <div className="min-w-0">
+        //                         <div className="text-sm font-medium text-gray-900 truncate">
+        //                             {assignedUser.name}
+        //                             {isCurrentUser && (
+        //                                 <span className="ml-1 text-xs font-normal text-green-600">(You)</span>
+        //                             )}
+        //                         </div>
+        //                         {assignedUser.email && (
+        //                             <div className="text-xs text-gray-500 truncate max-w-[150px]">
+        //                                 {assignedUser.email}
+        //                             </div>
+        //                         )}
+        //                     </div>
+        //                 </div>
+        //             );
+        //         }
                 
-                // Jika ada assigned_to tapi tidak ada user data
-                if (row.assigned_to && !assignedUser) {
-                    return (
-                        <div className="flex items-center gap-2">
-                            <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center">
-                                <span className="text-gray-500 font-semibold text-sm">
-                                    ?
-                                </span>
-                            </div>
-                            <div className="text-sm text-gray-500">
-                                User ID: {row.assigned_to?.substring(0, 8) || 'Unknown'}...
-                            </div>
-                        </div>
-                    );
-                }
+        //         // Jika ada assigned_to tapi tidak ada user data
+        //         if (row.assigned_to && !assignedUser) {
+        //             return (
+        //                 <div className="flex items-center gap-2">
+        //                     <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center">
+        //                         <span className="text-gray-500 font-semibold text-sm">
+        //                             ?
+        //                         </span>
+        //                     </div>
+        //                     <div className="text-sm text-gray-500">
+        //                         User ID: {row.assigned_to?.substring(0, 8) || 'Unknown'}...
+        //                     </div>
+        //                 </div>
+        //             );
+        //         }
                 
-                return (
-                    <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center">
-                            <svg className="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
-                            </svg>
-                        </div>
-                        <span className="text-gray-400 text-sm">Unassigned</span>
-                    </div>
-                );
-            },
-        },
+        //         return (
+        //             <div className="flex items-center gap-2">
+        //                 <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center">
+        //                     <svg className="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        //                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
+        //                     </svg>
+        //                 </div>
+        //                 <span className="text-gray-400 text-sm">Unassigned</span>
+        //             </div>
+        //         );
+        //     },
+        // },
         {
             key: "status_name",
             label: t('leads.table.status') || 'Status',
@@ -483,19 +483,19 @@ export default function LeadsIndex({ leads = [], auth, auth_permissions }) {
                 );
             },
         },
-        {
-            key: "created_at",
-            label: t('leads.table.created_at') || 'Created',
-            render: (createdAt) => (
-                <div className="text-sm text-gray-600">
-                    {createdAt ? new Date(createdAt).toLocaleDateString('en-US', {
-                        month: 'short',
-                        day: 'numeric',
-                        year: 'numeric'
-                    }) : '-'}
-                </div>
-            ),
-        },
+        // {
+        //     key: "created_at",
+        //     label: t('leads.table.created_at') || 'Created',
+        //     render: (createdAt) => (
+        //         <div className="text-sm text-gray-600">
+        //             {createdAt ? new Date(createdAt).toLocaleDateString('en-US', {
+        //                 month: 'short',
+        //                 day: 'numeric',
+        //                 year: 'numeric'
+        //             }) : '-'}
+        //         </div>
+        //     ),
+        // },
     ];
 
     // Show notification function
@@ -674,7 +674,7 @@ export default function LeadsIndex({ leads = [], auth, auth_permissions }) {
                             </div>
 
                             {/* Assigned To Filter */}
-                            <div className="w-full sm:w-auto">
+                            {/* <div className="w-full sm:w-auto">
                                 <div className="relative">
                                     <select
                                         value={assignedFilter}
@@ -699,7 +699,7 @@ export default function LeadsIndex({ leads = [], auth, auth_permissions }) {
                                         </svg>
                                     </div>
                                 </div>
-                            </div>
+                            </div> */}
 
                             {/* Clear Filters Button */}
                             {hasActiveFilters && (

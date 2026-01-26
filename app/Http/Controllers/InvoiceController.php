@@ -637,10 +637,29 @@ class InvoiceController extends Controller
                     $validated['pdf_path'] = $path;
                 }
 
-                // Get status
-                $statusModel = \App\Models\InvoiceStatuses::where('name', 'Unpaid')->first() ?? \App\Models\InvoiceStatuses::where('name', 'Draft')->first();
+                // Calculate paid amount from existing payments
+                $paidAmount = $invoice->payments()->where('deleted', 0)->sum('amount');
+                $amountDue = $validated['total'] - $paidAmount;
+
+                // Determine status based on payment
+                $targetStatus = 'Unpaid';
+                if ($amountDue <= 0) {
+                    $targetStatus = 'Paid';
+                } elseif ($paidAmount > 0) {
+                    // Check if Partially Paid status exists
+                    $partial = \App\Models\InvoiceStatuses::where('name', 'Partially Paid')->first();
+                    if ($partial) {
+                        $targetStatus = 'Partially Paid';
+                    }
+                }
+
+                // Get status model
+                $statusModel = \App\Models\InvoiceStatuses::where('name', $targetStatus)->first() 
+                               ?? \App\Models\InvoiceStatuses::where('name', 'Unpaid')->first() 
+                               ?? \App\Models\InvoiceStatuses::where('name', 'Draft')->first();
+                               
                 $statusId = $statusModel ? $statusModel->id : null;
-                $statusName = $statusModel ? $statusModel->name : 'Draft'; // ✅ VARIABLE YANG BENAR
+                $statusName = $statusModel ? $statusModel->name : 'Draft';
 
                 // Update invoice
                 $invoice->update([
@@ -656,7 +675,7 @@ class InvoiceController extends Controller
                     'ppn'                   => $validated['tax_amount_ppn'] ?? 0,
                     'pph'                   => $validated['tax_amount_pph'] ?? 0,
                     'total'                 => $validated['total'],
-                    'amount_due'            => $validated['total'],
+                    'amount_due'            => $amountDue,
                     'invoice_statuses_id'   => $statusId,
                     'status'                => $statusName,
                     'pdf_path'              => $validated['pdf_path'] ?? $invoice->pdf_path,

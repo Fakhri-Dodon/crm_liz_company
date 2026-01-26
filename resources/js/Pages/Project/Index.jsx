@@ -620,18 +620,18 @@ export default function Index({
                                 { 
                                     key: 'project_description', 
                                     label: t('projects_index.description'),
-                                    className: "min-w-[180px] sm:min-w-[200px]",
+                                    className: "min-w-[140px] sm:min-w-[200px]",
                                     render: (val, project) => {
                                         return (
-                                            <div className="min-w-[180px] sm:min-w-[200px] max-w-[250px]">
+                                            <div className="min-w-[140px] sm:min-w-[200px] max-w-[250px]">
                                                 <div className="font-medium text-gray-900 truncate text-sm">
                                                     {val || '-'}
                                                 </div>
-                                                {project.note && (
+                                                {/* {project.note && (
                                                     <div className="text-xs text-gray-500 truncate mt-0.5">
                                                         {project.note}
                                                     </div>
-                                                )}
+                                                )} */}
                                             </div>
                                         );
                                     }
@@ -673,7 +673,7 @@ export default function Index({
                                 { 
                                     key: 'start_date', 
                                     label: t('projects_index.start_date'),
-                                    className: "min-w-[100px] sm:min-w-[110px]",
+                                    className: "min-w-[110px] sm:min-w-[120px]",
                                     render: (val) => val ? new Date(val).toLocaleDateString('id-ID', { 
                                         day: 'numeric', 
                                         month: 'short', 
@@ -683,21 +683,13 @@ export default function Index({
                                 { 
                                     key: 'deadline', 
                                     label: t('projects_index.deadline'),
-                                    className: "min-w-[100px] sm:min-w-[110px]",
+                                    className: "min-w-[110px] sm:min-w-[120px]",
                                     render: (val) => val ? new Date(val).toLocaleDateString('id-ID', { 
                                         day: 'numeric', 
                                         month: 'short', 
                                         year: 'numeric' 
                                     }) : '-' 
-                                },
-                                { 
-                                    key: 'status', 
-                                    label: t('projects_index.status'),
-                                    className: "min-w-[100px] sm:min-w-[120px]",
-                                    render: (val, project) => (
-                                        <StatusDropdown project={project} />
-                                    )
-                                },
+                                },                                
                                 { 
                                     key: 'quotation', 
                                     label: t('projects_index.quotation'),
@@ -713,6 +705,25 @@ export default function Index({
                                                     {t('projects_index.no_quotation')}
                                                 </span>
                                             )}
+                                        </div>
+                                    )
+                                },
+                                { 
+                                    key: 'status', 
+                                    label: t('projects_index.status'),
+                                    className: "min-w-[100px] sm:min-w-[120px]",
+                                    render: (val, project) => (
+                                        <StatusDropdown project={project} />
+                                    )
+                                },
+                                { 
+                                    key: 'note', 
+                                    // label: t('projects_index.status'),
+                                    label: "Note",
+                                    className: "min-w-[100px] sm:min-w-[120px]",
+                                    render: (val, project) => (
+                                        <div className="font-medium text-gray-900 truncate text-s">
+                                            {project.note}
                                         </div>
                                     )
                                 },

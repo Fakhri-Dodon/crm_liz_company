@@ -700,6 +700,7 @@
     "client_type": "Client Type",
     "nib": "NIB",
     "vat_number": "VAT Number",
+    "npwp": "NPWP",
     "website": "Website",
     "city": "City",
     "province": "Province",

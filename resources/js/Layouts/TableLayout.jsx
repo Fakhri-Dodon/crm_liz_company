@@ -111,7 +111,7 @@ export default function TableLayout({
             if (!widths[col.key]) {
                 if (col.key === 'quotation_number') widths[col.key] = '150px';
                 else if (col.key === 'date') widths[col.key] = '120px';
-                else if (col.key === 'subject') widths[col.key] = '230px';
+                else if (col.key === 'subject') widths[col.key] = '210px';
                 else if (col.key === 'lead') widths[col.key] = '200px';
                 else if (col.key === 'total') widths[col.key] = '180px';
                 else if (col.key === 'status') widths[col.key] = '130px';
@@ -155,7 +155,7 @@ export default function TableLayout({
                             {showAction && (
                                 <th 
                                     className="px-6 py-4 text-left text-xs font-semibold text-black uppercase tracking-wider"
-                                    style={{ width: '120px' }}
+                                    style={{ width: '140px' }}
                                 >
                                     {t('users.table.actions') || 'Actions'}
                                 </th>
@@ -245,7 +245,7 @@ export default function TableLayout({
                                         {showAction && (
                                             <td 
                                                 className="px-6 py-4 align-top"
-                                                style={{ width: '120px' }}
+                                                style={{ width: '140px' }}
                                             >
                                                 <div className="flex items-center gap-2">
                                                     {/* Tombol Email */}

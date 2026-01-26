@@ -58,18 +58,14 @@ export default function QoutationsIndex({
             key: "no",
             label: t("quotations.table.no_date"),
             render: (value, row) => (
-                <div>
-                    <a
+                <div className="flex flex-col items-start min-w-0">
+                    <a className="text-blue-600 font-semibold hover:underline cursor-pointer whitespace-nowrap" 
                         href={`/storage/${row.pdf_path}`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-blue-600 font-semibold hover:underline flex items-center gap-1"
-                    >
-                        {value}
-                    </a>
-                    <div className="text-gray-500 text-sm mt-1">
-                        {new Date(row.date || "-").toLocaleDateString()}
-                    </div>
+                        style={{ minWidth: 0 }}
+                    >{value}</a>
+                    <span className="text-xs text-gray-500 mt-1">{new Date(row.date || "-").toLocaleDateString()}</span>
                 </div>
             ),
         },

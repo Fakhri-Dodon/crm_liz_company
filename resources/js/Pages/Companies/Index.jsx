@@ -366,13 +366,13 @@ const CompaniesIndex = () => {
                 <span className="font-semibold text-green-700 bg-green-50 rounded px-2 py-1 text-xs">{value || '-'}</span>
             )
         },
-        {
-            key: "client_since",
-            label: t('companies.table.client_since'),
-            render: (value) => (
-                <div className="text-sm text-gray-600">{value ? new Date(value).toLocaleDateString('id-ID', { year: 'numeric', month: 'short', day: 'numeric' }) : '-'}</div>
-            ),
-        },
+        // {
+        //     key: "client_since",
+        //     label: t('companies.table.client_since'),
+        //     render: (value) => (
+        //         <div className="text-sm text-gray-600">{value ? new Date(value).toLocaleDateString('id-ID', { year: 'numeric', month: 'short', day: 'numeric' }) : '-'}</div>
+        //     ),
+        // },
     ];
 
     // Prepare data untuk TableLayout - DIPERBAIKI
