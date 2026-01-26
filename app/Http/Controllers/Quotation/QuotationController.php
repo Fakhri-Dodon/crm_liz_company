@@ -24,16 +24,7 @@ use Illuminate\Support\Facades\Mail;
 
 class QuotationController extends Controller {
     public function index(Request $request) {
-        $expiredStatus = QuotationStatuses::where('name', 'Expired')->first();
-        // SYNC: Update status di database sebelum melakukan perhitungan apapun
-        Quotation::where('deleted', 0)
-            ->whereNotIn('status', ['accepted', 'rejected', 'expired'])
-            ->whereNotNull('valid_until')
-            ->where('valid_until', '<', now()->startOfDay())
-            ->update([
-                'status' => 'expired',
-                'quotation_statuses_id' => $expiredStatus ? $expiredStatus->id : null
-            ]);
+        Quotation::syncExpiredStatus();
             
         // Summary
         $summary = Quotation::join('quotation_statuses', 'quotations.quotation_statuses_id', '=', 'quotation_statuses.id')
@@ -318,6 +309,7 @@ class QuotationController extends Controller {
 
     public function edit(Quotation $quotation)
     {
+        Quotation::syncExpiredStatus();
         $existingLeadIds = Company::where('deleted', 0)
             ->whereNotNull('lead_id')
             ->pluck('lead_id');
