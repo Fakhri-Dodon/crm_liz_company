@@ -81,25 +81,29 @@ class Quotation extends Model
 
     public function scopeSyncExpiredStatus($query)
     {
-        // return $query->where('deleted', 0)
-        //     ->whereNotIn('status', ['accepted', 'rejected', 'expired'])
-        //     ->where('valid_until', '<', now()->startOfDay())
-        //     ->update(['status' => 'expired']);
+        $excludedStatuses = \App\Models\QuotationStatuses::whereIn('name', ['Accepted', 'Rejected', 'Expired'])->get();
 
-        $expiredStatus = \App\Models\QuotationStatuses::where('name', 'Expired')
-            ->orWhere('slug', 'expired')
-            ->first();
-            
-        $updateData = ['status' => 'expired'];
+        $excludedIds = $excludedStatuses->pluck('id')->toArray();
+        $excludedNames = ['accepted', 'rejected', 'expired'];
 
-        if ($expiredStatus) {
-            $updateData['quotation_statuses_id'] = $expiredStatus->id;
+        $expiredStatus = $excludedStatuses->where('slug', 'expired')->first() 
+            ?? \App\Models\QuotationStatuses::where('name', 'Expired')->first();
+
+        if (!$expiredStatus) {
+            return $query; 
         }
 
-        return $query->where('quotations.deleted', 0)
-            ->whereNotIn('status', ['accepted', 'rejected', 'expired'])
+        return $query->withoutGlobalScope('notDeleted')
+            ->where('quotations.deleted', 0)
+            ->whereNotNull('valid_until')
             ->where('valid_until', '<', now()->startOfDay())
-            ->update($updateData);
+            ->whereNotIn('status', $excludedNames) 
+            ->whereNotIn('quotation_statuses_id', $excludedIds) 
+            ->update([
+                'status' => 'expired',
+                'quotation_statuses_id' => $expiredStatus->id,
+                'updated_at' => now()
+            ]);
     }
 
     public static function boot()
